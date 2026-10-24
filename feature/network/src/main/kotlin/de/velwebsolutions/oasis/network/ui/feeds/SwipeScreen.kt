@@ -85,8 +85,7 @@ import kotlinx.coroutines.launch
  * and the end card "Du bist durch" with what waits for the member. A deck with an end – no endless feed.
  */
 @Composable
-fun SwipeScreen() {
-    val viewModel = hiltViewModel<SwipeViewModel>()
+fun SwipeScreen(viewModel: SwipeViewModel = hiltViewModel<SwipeViewModel>()) {
     val deck by viewModel.deck.collectAsStateWithLifecycle()
     val status by viewModel.status.collectAsStateWithLifecycle()
     val error by viewModel.error.collectAsStateWithLifecycle()

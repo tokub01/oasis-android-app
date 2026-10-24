@@ -73,9 +73,11 @@ import de.velwebsolutions.oasis.network.ui.components.rememberImagePicker
  * the optional banner (stored at once when editing, with "Oase eröffnen" when founding), closing and roles.
  */
 @Composable
-fun OasisFormScreen(slug: String?) {
-    val viewModel =
+fun OasisFormScreen(
+    slug: String?,
+    viewModel: OasisFormViewModel =
         hiltViewModel<OasisFormViewModel, OasisFormViewModel.Factory>(key = "oasisForm:$slug", creationCallback = { it.create(slug) })
+) {
     val state by viewModel.state.collectAsStateWithLifecycle()
     val status by viewModel.status.collectAsStateWithLifecycle()
     val error by viewModel.error.collectAsStateWithLifecycle()

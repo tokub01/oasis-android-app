@@ -52,8 +52,7 @@ import de.velwebsolutions.oasis.network.ui.components.membersLabel
 
 /** "Oasen" (/app/oasen): the member's oases and all others as cards; "Oase eröffnen" for members who may write. */
 @Composable
-fun OasesScreen() {
-    val viewModel = hiltViewModel<OasesViewModel>()
+fun OasesScreen(viewModel: OasesViewModel = hiltViewModel<OasesViewModel>()) {
     val directory by viewModel.directory.collectAsStateWithLifecycle()
     val error by viewModel.error.collectAsStateWithLifecycle()
     LaunchedEffect(Unit) { viewModel.loadIfNeeded() }

@@ -82,8 +82,7 @@ import java.time.Instant
  * the feed like on a phone-sized web page. Switching the view keeps the page and swaps the cards in place.
  */
 @Composable
-fun SourceScreen() {
-    val viewModel = hiltViewModel<SourceViewModel>()
+fun SourceScreen(viewModel: SourceViewModel = hiltViewModel<SourceViewModel>()) {
     val state by viewModel.list.state.collectAsStateWithLifecycle()
     val session by viewModel.session.collectAsStateWithLifecycle()
     val scrollToTop by viewModel.scrollToTop.collectAsStateWithLifecycle()

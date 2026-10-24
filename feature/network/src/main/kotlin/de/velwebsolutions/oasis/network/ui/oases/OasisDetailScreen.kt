@@ -83,8 +83,10 @@ import kotlinx.coroutines.delay
  * the member list for members and the host tools.
  */
 @Composable
-fun OasisDetailScreen(slug: String) {
-    val viewModel = hiltViewModel<OasisViewModel, OasisViewModel.Factory>(creationCallback = { it.create(slug) })
+fun OasisDetailScreen(
+    slug: String,
+    viewModel: OasisViewModel = hiltViewModel<OasisViewModel, OasisViewModel.Factory>(creationCallback = { it.create(slug) })
+) {
     val detail by viewModel.detail.collectAsStateWithLifecycle()
     val posts by viewModel.posts.state.collectAsStateWithLifecycle()
     val members by viewModel.members.collectAsStateWithLifecycle()

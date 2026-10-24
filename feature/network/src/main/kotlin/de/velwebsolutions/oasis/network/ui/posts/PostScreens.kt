@@ -85,11 +85,14 @@ import de.velwebsolutions.oasis.network.ui.compose.callbacks
  * picked, "Schließen" and the back gesture ask before discarding the draft; the sheet closes itself after publishing.
  */
 @Composable
-fun ComposeScreen(oasisSlug: String?, replyTo: Int?) {
-    val viewModel = hiltViewModel<ComposeViewModel, ComposeViewModel.Factory>(
+fun ComposeScreen(
+    oasisSlug: String?,
+    replyTo: Int?,
+    viewModel: ComposeViewModel = hiltViewModel<ComposeViewModel, ComposeViewModel.Factory>(
         key = "compose:$oasisSlug:$replyTo",
         creationCallback = { it.create(oasisSlug, replyTo, null) }
     )
+) {
     val state by viewModel.state.collectAsStateWithLifecycle()
     val navigator = LocalNavigator.current
     var confirmDiscard by remember { mutableStateOf(false) }
@@ -161,10 +164,12 @@ fun ComposeContent(state: ComposeUiState, callbacks: ComposerCallbacks, onPublis
  * Inhalt gelesen". Afterwards the Quelle shows the new Tropfen.
  */
 @Composable
-fun CarryScreen(id: Int) {
-    val viewModel = hiltViewModel<CarryViewModel, CarryViewModel.Factory>(creationCallback = { it.create(id) })
-    val composer =
+fun CarryScreen(
+    id: Int,
+    viewModel: CarryViewModel = hiltViewModel<CarryViewModel, CarryViewModel.Factory>(creationCallback = { it.create(id) }),
+    composer: ComposeViewModel =
         hiltViewModel<ComposeViewModel, ComposeViewModel.Factory>(key = "carry:$id", creationCallback = { it.create(null, null, id) })
+) {
     val source by viewModel.source.collectAsStateWithLifecycle()
     val state by composer.state.collectAsStateWithLifecycle()
     val navigator = LocalNavigator.current
@@ -198,8 +203,10 @@ fun CarryScreen(id: Int) {
  * text is only left through "Änderung speichern" or "Abbrechen", which asks first.
  */
 @Composable
-fun EditPostScreen(id: Int) {
-    val viewModel = hiltViewModel<EditPostViewModel, EditPostViewModel.Factory>(creationCallback = { it.create(id) })
+fun EditPostScreen(
+    id: Int,
+    viewModel: EditPostViewModel = hiltViewModel<EditPostViewModel, EditPostViewModel.Factory>(creationCallback = { it.create(id) })
+) {
     val form by viewModel.form.collectAsStateWithLifecycle()
     val text by viewModel.text.collectAsStateWithLifecycle()
     val error by viewModel.error.collectAsStateWithLifecycle()
@@ -281,10 +288,12 @@ private fun EditPostPage(viewModel: EditPostViewModel, form: Loadable<PostEditFo
  * with "Antworten" from a card, the reply field is focused (the web jumps to #antworten).
  */
 @Composable
-fun PostDetailScreen(id: Int) {
-    val viewModel = hiltViewModel<PostDetailViewModel, PostDetailViewModel.Factory>(creationCallback = { it.create(id) })
-    val reply =
+fun PostDetailScreen(
+    id: Int,
+    viewModel: PostDetailViewModel = hiltViewModel<PostDetailViewModel, PostDetailViewModel.Factory>(creationCallback = { it.create(id) }),
+    reply: ComposeViewModel =
         hiltViewModel<ComposeViewModel, ComposeViewModel.Factory>(key = "reply:$id", creationCallback = { it.create(null, id, null) })
+) {
     val detail by viewModel.detail.collectAsStateWithLifecycle()
     val replyState by reply.state.collectAsStateWithLifecycle()
     val status by viewModel.status.collectAsStateWithLifecycle()
