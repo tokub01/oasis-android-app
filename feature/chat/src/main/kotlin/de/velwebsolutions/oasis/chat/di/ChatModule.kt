@@ -14,6 +14,7 @@ import dagger.Provides
 import dagger.hilt.InstallIn
 import dagger.hilt.android.qualifiers.ApplicationContext
 import dagger.hilt.components.SingletonComponent
+import de.velwebsolutions.oasis.chat.core.AndroidKeystoreBiometricKeys
 import de.velwebsolutions.oasis.chat.core.AndroidSodium
 import de.velwebsolutions.oasis.chat.core.BiometricPrompter
 import de.velwebsolutions.oasis.chat.core.ChatContext
@@ -80,7 +81,7 @@ object ChatModule {
         @ApplicationContext context: Context,
         prompter: BiometricPrompter,
         @ChatStore dataStore: DataStore<Preferences>
-    ): DeviceSecretStore = KeystoreDeviceSecretStore(context, prompter, dataStore)
+    ): DeviceSecretStore = KeystoreDeviceSecretStore(AndroidKeystoreBiometricKeys(context), prompter, dataStore)
 
     @Provides
     @Singleton
