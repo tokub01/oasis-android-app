@@ -134,13 +134,23 @@ private fun PaymentRow(payment: MembershipPayment, loading: Boolean, onOpen: () 
 
 /** /app/mitgliedschaft/rechnungen/{id} opened from a link: downloads the invoice and shows it with "Teilen". */
 @Composable
-fun InvoiceScreen(paymentId: Int) {
-    val viewModel =
-        hiltViewModel<InvoiceViewModel, InvoiceViewModel.Factory>(key = "invoice-$paymentId", creationCallback = { it.create(paymentId) })
+fun InvoiceScreen(
+    paymentId: Int,
+    viewModel: InvoiceViewModel = hiltViewModel<InvoiceViewModel, InvoiceViewModel.Factory>(
+        key = "invoice-$paymentId",
+        creationCallback = { it.create(paymentId) }
+    )
+) {
     val state by viewModel.state.collectAsStateWithLifecycle()
+    InvoiceContent(paymentId, state, viewModel::load, viewModel::showPreview, viewModel::closePreview)
+}
+
+/** The invoice page: loading, the server's error, or the invoice with "Rechnung ansehen" and "Teilen". */
+@Composable
+fun InvoiceContent(paymentId: Int, state: InvoiceUiState, onRetry: suspend () -> Unit, onShow: () -> Unit, onClose: () -> Unit) {
     val context = LocalContext.current
     OasisScreen("Rechnung") {
-        LoadableView(state.file, onRetry = viewModel::load) { file ->
+        LoadableView(state.file, onRetry = onRetry) { file ->
             Column(
                 Modifier.fillMaxSize().padding(32.dp),
                 verticalArrangement = Arrangement.spacedBy(16.dp, Alignment.CenterVertically),
@@ -148,15 +158,16 @@ fun InvoiceScreen(paymentId: Int) {
             ) {
                 Icon(Icons.Outlined.Description, contentDescription = null, tint = OasisColors.Spring, modifier = Modifier.size(40.dp))
                 Text("Rechnung OAS-$paymentId", style = OasisType.heading(), color = OasisColors.Night)
-                OasisButton("Rechnung ansehen", viewModel::showPreview, Modifier.testTag("invoice.view"), fullWidth = false)
+                OasisButton("Rechnung ansehen", onShow, Modifier.testTag("invoice.view"), fullWidth = false)
                 OasisButton(
                     "Teilen",
                     { FileSharing.shareFile(context, file, FileSharing.mimeType(file), "Teilen") },
+                    Modifier.testTag("invoice.pageShare"),
                     kind = OasisButtonKind.Secondary,
                     fullWidth = false
                 )
             }
         }
     }
-    state.preview?.let { InvoiceSheet(it, viewModel::closePreview) }
+    state.preview?.let { InvoiceSheet(it, onClose) }
 }
