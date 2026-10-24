@@ -7,17 +7,18 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.defaultMinSize
+import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.LazyListScope
+import androidx.compose.foundation.lazy.LazyListState
+import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.BasicTextField
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.outlined.EditNote
 import androidx.compose.material.icons.outlined.People
 import androidx.compose.material3.Icon
-import androidx.compose.material3.IconButton
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
@@ -59,8 +60,10 @@ import de.velwebsolutions.oasis.network.api.OasisDetail
 import de.velwebsolutions.oasis.network.api.OasisMembers
 import de.velwebsolutions.oasis.network.ui.PostListState
 import de.velwebsolutions.oasis.network.ui.components.ButtonFlow
+import de.velwebsolutions.oasis.network.ui.components.ComposeFab
 import de.velwebsolutions.oasis.network.ui.components.ConfirmDialog
 import de.velwebsolutions.oasis.network.ui.components.Disclosure
+import de.velwebsolutions.oasis.network.ui.components.FabInset
 import de.velwebsolutions.oasis.network.ui.components.FeedHandlers
 import de.velwebsolutions.oasis.network.ui.components.MemberRow
 import de.velwebsolutions.oasis.network.ui.components.NetworkPage
@@ -80,8 +83,10 @@ import kotlinx.coroutines.delay
  * the member list for members and the host tools.
  */
 @Composable
-fun OasisDetailScreen(slug: String) {
-    val viewModel = hiltViewModel<OasisViewModel, OasisViewModel.Factory>(creationCallback = { it.create(slug) })
+fun OasisDetailScreen(
+    slug: String,
+    viewModel: OasisViewModel = hiltViewModel<OasisViewModel, OasisViewModel.Factory>(creationCallback = { it.create(slug) })
+) {
     val detail by viewModel.detail.collectAsStateWithLifecycle()
     val posts by viewModel.posts.state.collectAsStateWithLifecycle()
     val members by viewModel.members.collectAsStateWithLifecycle()
@@ -92,6 +97,7 @@ fun OasisDetailScreen(slug: String) {
     var confirmUnfollow by remember { mutableStateOf(false) }
     val loaded = detail.valueOrNull
     val compose = { oasis: OasisDetail -> navigator.present(NetworkRoute.Compose(oasisSlug = oasis.oasis.slug)) }
+    val listState = rememberLazyListState()
 
     LaunchedEffect(Unit) { viewModel.loadIfNeeded() }
     LaunchedEffect(memberQuery) {
@@ -112,28 +118,21 @@ fun OasisDetailScreen(slug: String) {
         onDismissError = {
             viewModel.dismissError()
             viewModel.posts.dismissError()
-        },
-        actions = {
-            if (loaded?.canPost == true) {
-                IconButton(onClick = { compose(loaded) }, modifier = Modifier.testTag("oasis.compose")) {
-                    Icon(Icons.Outlined.EditNote, contentDescription = "Tropfen in ${loaded.oasis.name} schreiben")
-                }
-            }
         }
     ) {
-        LoadableView(detail, onRetry = viewModel::load, skeleton = SkeletonLayout.Cards) { oasis ->
-            val handlers = viewModel.posts.handlers(viewModel::launch)
-            NetworkPage(onRefresh = viewModel::load) {
-                oasisContent(
-                    detail = oasis,
-                    posts = posts,
-                    handlers = handlers,
-                    members = members,
-                    memberQuery = memberQuery,
-                    onMemberQuery = viewModel::updateMemberQuery,
-                    onFollow = { viewModel.setFollowing(true) },
-                    onUnfollow = { confirmUnfollow = true },
-                    onCompose = { compose(oasis) }
+        Box(Modifier.fillMaxSize()) {
+            LoadableView(detail, onRetry = viewModel::load, skeleton = SkeletonLayout.Cards) { oasis ->
+                OasisPage(oasis, listState, viewModel, posts, members, memberQuery, onUnfollow = { confirmUnfollow = true }) {
+                    compose(oasis)
+                }
+            }
+            // iOS: the pen in the toolbar; on Android the oasis' main action is the floating button.
+            if (loaded?.canPost == true) {
+                ComposeFab(
+                    listState,
+                    onClick = { compose(loaded) },
+                    Modifier.testTag("oasis.compose"),
+                    description = "Tropfen in ${loaded.oasis.name} schreiben"
                 )
             }
         }
@@ -144,6 +143,33 @@ fun OasisDetailScreen(slug: String) {
             confirmLabel = "Nicht mehr folgen",
             onConfirm = { viewModel.launch { viewModel.setFollowing(false) } },
             onDismiss = { confirmUnfollow = false }
+        )
+    }
+}
+
+@Composable
+private fun OasisPage(
+    oasis: OasisDetail,
+    listState: LazyListState,
+    viewModel: OasisViewModel,
+    posts: PostListState<NoContext>,
+    members: OasisMembers?,
+    memberQuery: String,
+    onUnfollow: () -> Unit,
+    onCompose: () -> Unit
+) {
+    val handlers = viewModel.posts.handlers(viewModel::launch)
+    NetworkPage(state = listState, onRefresh = viewModel::load, bottomInset = if (oasis.canPost) FabInset else 0.dp) {
+        oasisContent(
+            detail = oasis,
+            posts = posts,
+            handlers = handlers,
+            members = members,
+            memberQuery = memberQuery,
+            onMemberQuery = viewModel::updateMemberQuery,
+            onFollow = { viewModel.setFollowing(true) },
+            onUnfollow = onUnfollow,
+            onCompose = onCompose
         )
     }
 }

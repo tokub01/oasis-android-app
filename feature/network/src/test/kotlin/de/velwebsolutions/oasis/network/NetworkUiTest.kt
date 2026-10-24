@@ -1,15 +1,22 @@
 package de.velwebsolutions.oasis.network
 
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.setValue
+import androidx.compose.ui.Modifier
 import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.hasAnyAncestor
 import androidx.compose.ui.test.hasSetTextAction
 import androidx.compose.ui.test.hasTestTag
 import androidx.compose.ui.test.hasText
 import androidx.compose.ui.test.junit4.createComposeRule
+import androidx.compose.ui.test.onNodeWithContentDescription
 import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
@@ -18,6 +25,9 @@ import androidx.compose.ui.test.performTextInput
 import de.velwebsolutions.oasis.core.model.Loadable
 import de.velwebsolutions.oasis.core.network.DataEnvelope
 import de.velwebsolutions.oasis.core.network.OasisJson
+import de.velwebsolutions.oasis.design.components.LocalScreenChrome
+import de.velwebsolutions.oasis.design.components.OasisScreen
+import de.velwebsolutions.oasis.design.components.ScreenChrome
 import de.velwebsolutions.oasis.design.navigation.ChatRoute
 import de.velwebsolutions.oasis.design.navigation.LocalNavigator
 import de.velwebsolutions.oasis.design.navigation.MainTab
@@ -31,7 +41,9 @@ import de.velwebsolutions.oasis.network.api.Profile
 import de.velwebsolutions.oasis.network.api.SourceContext
 import de.velwebsolutions.oasis.network.ui.PostAction
 import de.velwebsolutions.oasis.network.ui.PostListState
+import de.velwebsolutions.oasis.network.ui.components.ComposeFab
 import de.velwebsolutions.oasis.network.ui.components.FeedHandlers
+import de.velwebsolutions.oasis.network.ui.components.LeaveGuard
 import de.velwebsolutions.oasis.network.ui.components.NetworkPage
 import de.velwebsolutions.oasis.network.ui.compose.ComposeViewModel
 import de.velwebsolutions.oasis.network.ui.compose.callbacks
@@ -43,6 +55,7 @@ import de.velwebsolutions.oasis.network.ui.profiles.profileContent
 import kotlinx.coroutines.runBlocking
 import org.junit.After
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertFalse
 import org.junit.Assert.assertTrue
 import org.junit.Rule
 import org.junit.Test
@@ -152,5 +165,39 @@ class NetworkUiTest {
         compose.onNodeWithTag("profile.chatHint").assertDoesNotExist()
         compose.onNodeWithTag("profile.write").performClick()
         assertEquals(ChatRoute.NewConversationWith("jonas"), navigator.stack(MainTab.Source).last())
+    }
+
+    @Test
+    fun `the back arrow and back gesture ask before a changed text is lost`() {
+        var left = false
+        var asked = 0
+        var changed by mutableStateOf(true)
+        show {
+            CompositionLocalProvider(LocalScreenChrome provides ScreenChrome(onBack = { left = true })) {
+                LeaveGuard(enabled = changed, onAttempt = { asked++ }) { OasisScreen(title = "Bearbeiten") {} }
+            }
+        }
+
+        compose.onNodeWithContentDescription("Zurück").performClick()
+        assertEquals(1, asked)
+        assertFalse(left)
+
+        changed = false
+        compose.waitForIdle()
+        compose.onNodeWithContentDescription("Zurück").performClick()
+        assertTrue(left)
+        assertEquals(1, asked)
+    }
+
+    @Test
+    fun `the floating button of an oasis says where the Tropfen goes`() {
+        var opened = false
+        show {
+            Box(Modifier.fillMaxSize()) {
+                ComposeFab(rememberLazyListState(), onClick = { opened = true }, description = "Tropfen in Garten schreiben")
+            }
+        }
+        compose.onNodeWithContentDescription("Tropfen in Garten schreiben").performClick()
+        assertTrue(opened)
     }
 }

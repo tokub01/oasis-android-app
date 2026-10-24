@@ -165,5 +165,6 @@ object DeepLink {
         else -> null
     }
 
-    private fun decode(value: String): String = runCatching { URLDecoder.decode(value, "UTF-8") }.getOrDefault(value)
+    /** The URI is valid at this point, so every escape decodes. */
+    private fun decode(value: String): String = URLDecoder.decode(value, "UTF-8") // the Charset overload needs API 33
 }

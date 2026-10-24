@@ -75,8 +75,7 @@ import java.time.Instant
 
 /** "Freund:innen" (/app/freunde): incoming requests (accept, decline), friends (end) and own open requests (withdraw). */
 @Composable
-fun FriendsScreen() {
-    val viewModel = hiltViewModel<FriendsViewModel>()
+fun FriendsScreen(viewModel: FriendsViewModel = hiltViewModel<FriendsViewModel>()) {
     val lists by viewModel.lists.collectAsStateWithLifecycle()
     val status by viewModel.status.collectAsStateWithLifecycle()
     val error by viewModel.error.collectAsStateWithLifecycle()
@@ -205,8 +204,7 @@ fun FriendsScreen() {
 
 /** "Deine Zahlen" (/app/statistik): counts only the member sees – never who reacted. */
 @Composable
-fun StatisticsScreen() {
-    val viewModel = hiltViewModel<StatisticsViewModel>()
+fun StatisticsScreen(viewModel: StatisticsViewModel = hiltViewModel<StatisticsViewModel>()) {
     val statistics by viewModel.statistics.collectAsStateWithLifecycle()
     val navigator = LocalNavigator.current
     LaunchedEffect(Unit) { viewModel.loadIfNeeded() }
@@ -280,8 +278,7 @@ fun StatisticsScreen() {
 
 /** "Menschen einladen" (/app/einladen): personal links within the monthly budget, their state and earned free months. */
 @Composable
-fun InvitationsScreen() {
-    val viewModel = hiltViewModel<InvitationsViewModel>()
+fun InvitationsScreen(viewModel: InvitationsViewModel = hiltViewModel<InvitationsViewModel>()) {
     val overview by viewModel.overview.collectAsStateWithLifecycle()
     val status by viewModel.status.collectAsStateWithLifecycle()
     val error by viewModel.error.collectAsStateWithLifecycle()
@@ -423,8 +420,11 @@ private fun longDate(instant: Instant): String = GermanTime.format(instant, "d. 
 
 /** The page behind an invitation link (/einladung/{token}) for a signed-in member. */
 @Composable
-fun InvitationScreen(token: String) {
-    val viewModel = hiltViewModel<InvitationViewModel, InvitationViewModel.Factory>(creationCallback = { it.create(token) })
+fun InvitationScreen(
+    token: String,
+    viewModel: InvitationViewModel =
+        hiltViewModel<InvitationViewModel, InvitationViewModel.Factory>(creationCallback = { it.create(token) })
+) {
     val landing by viewModel.landing.collectAsStateWithLifecycle()
     val navigator = LocalNavigator.current
     LaunchedEffect(Unit) { viewModel.load() }

@@ -15,6 +15,7 @@ import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.platform.LocalContext
 import androidx.core.content.FileProvider
+import androidx.core.net.toUri
 import de.velwebsolutions.oasis.network.R
 import java.io.File
 
@@ -47,7 +48,7 @@ fun rememberImagePicker(maxItems: Int = 1, onPicked: (List<Uri>) -> Unit): Image
     var photoUri by rememberSaveable { mutableStateOf<String?>(null) }
     val camera = rememberLauncherForActivityResult(ActivityResultContracts.TakePicture()) { saved ->
         val uri = photoUri
-        if (saved && uri != null) currentOnPicked(listOf(Uri.parse(uri)))
+        if (saved && uri != null) currentOnPicked(listOf(uri.toUri()))
         photoUri = null
     }
     val hasCamera = remember { context.packageManager.hasSystemFeature(PackageManager.FEATURE_CAMERA_ANY) }

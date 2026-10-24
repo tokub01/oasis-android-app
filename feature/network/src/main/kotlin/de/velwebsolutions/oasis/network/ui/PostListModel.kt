@@ -54,6 +54,7 @@ class PostListModel<C>(
 
     @Volatile
     private var generation = 0
+    private val busy = BusyCards()
 
     val posts: List<Post> get() = current.posts
 
@@ -124,9 +125,13 @@ class PostListModel<C>(
 
     /**
      * A card action. Reactions and bookmarks change at once and roll back if the server refuses; everything else changes
-     * the list after the server's confirmation, like the web's re-query.
+     * the list after the server's confirmation, like the web's re-query. A card takes no second action while one runs.
      */
     suspend fun perform(action: PostAction, post: Post) {
+        busy.run(post.id) { run(action, post) }
+    }
+
+    private suspend fun run(action: PostAction, post: Post) {
         val undo = action.undo?.takeUnless { action == PostAction.Unbookmark && dropsUnbookmarked }
         val optimistic = undo != null
         if (optimistic) apply(action, post)

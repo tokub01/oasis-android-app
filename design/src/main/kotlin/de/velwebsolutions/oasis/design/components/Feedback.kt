@@ -101,7 +101,7 @@ fun Pill(text: String, modifier: Modifier = Modifier, tone: PillTone = PillTone.
 /**
  * The confirmation of the last action and the last error as a Material snackbar at the bottom of the screen (the web's
  * `x-oasis.status`, a toast on iOS): always in view whatever was tapped, announced by TalkBack, with a haptic, gone after
- * a few seconds or when swiped. Setting a text shows it; the snackbar calls the dismiss callback to set it back to null.
+ * a few seconds or when closed; an error and a confirmation queue one after the other. Setting a text shows it; the snackbar calls the dismiss callback to set it back to null.
  */
 @Composable
 fun BoxScope.StatusToast(
@@ -118,7 +118,6 @@ fun BoxScope.StatusToast(
     LaunchedEffect(error) {
         if (error != null) {
             haptics.performHapticFeedback(HapticFeedbackType.Reject)
-            host.currentSnackbarData?.dismiss()
             withTimeoutOrNull(8_000) { host.showSnackbar(StatusVisuals(error, isError = true)) }
             currentDismissError()
         }
@@ -126,7 +125,6 @@ fun BoxScope.StatusToast(
     LaunchedEffect(message) {
         if (message != null) {
             haptics.performHapticFeedback(HapticFeedbackType.Confirm)
-            host.currentSnackbarData?.dismiss()
             withTimeoutOrNull(5_000) { host.showSnackbar(StatusVisuals(message, isError = false)) }
             currentDismissMessage()
         }
@@ -158,20 +156,4 @@ private class StatusVisuals(override val message: String, val isError: Boolean) 
     override val actionLabel: String? = null
     override val withDismissAction: Boolean = true
     override val duration: SnackbarDuration = SnackbarDuration.Indefinite
-}
-
-/** A Box with the status toast on top of [content]. */
-@Composable
-fun WithStatusToast(
-    message: String?,
-    error: String?,
-    onDismissMessage: () -> Unit,
-    onDismissError: () -> Unit,
-    modifier: Modifier = Modifier,
-    content: @Composable BoxScope.() -> Unit
-) {
-    Box(modifier) {
-        content()
-        StatusToast(message, error, onDismissMessage, onDismissError)
-    }
 }

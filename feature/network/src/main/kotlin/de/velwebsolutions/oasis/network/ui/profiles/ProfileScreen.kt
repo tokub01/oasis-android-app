@@ -109,8 +109,10 @@ class ProfileCallbacks(val perform: suspend (ProfileAction) -> Unit, val confirm
  * audiences allow, the member's Tropfen and the side cards.
  */
 @Composable
-fun ProfileScreen(handle: String) {
-    val viewModel = hiltViewModel<ProfileViewModel, ProfileViewModel.Factory>(creationCallback = { it.create(handle) })
+fun ProfileScreen(
+    handle: String,
+    viewModel: ProfileViewModel = hiltViewModel<ProfileViewModel, ProfileViewModel.Factory>(creationCallback = { it.create(handle) })
+) {
     val profile by viewModel.profile.collectAsStateWithLifecycle()
     val posts by viewModel.posts.state.collectAsStateWithLifecycle()
     val status by viewModel.status.collectAsStateWithLifecycle()
