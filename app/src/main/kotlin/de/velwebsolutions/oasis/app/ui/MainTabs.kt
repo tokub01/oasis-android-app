@@ -166,7 +166,7 @@ fun MainTabs(me: Me, viewModel: RootViewModel) {
             onDismissRequest = { navigator.dismissSheet() },
             sheetState = rememberModalBottomSheetState(
                 skipPartiallyExpanded = true,
-                confirmValueChange = { it != SheetValue.Hidden || navigator.sheetDismissible },
+                confirmValueChange = { it != SheetValue.Hidden || navigator.sheetDismissible }
             ),
             containerColor = OasisColors.Sand,
             dragHandle = null

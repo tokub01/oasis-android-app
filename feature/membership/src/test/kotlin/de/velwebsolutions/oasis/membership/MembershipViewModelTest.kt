@@ -87,7 +87,7 @@ class MembershipViewModelTest {
     @Test
     fun `withdrawal page exports the data directly`() = runTest {
         val (repository, transport) = Fixtures.repository(
-            Stub("GET", "membership/withdrawal", json = Fixtures.withdrawal),
+            Stub("GET", "membership/withdrawal", json = Fixtures.WITHDRAWAL),
             Stub("GET", "account/export", json = "PK")
         )
         val viewModel = WithdrawViewModel(repository, files, MembershipEvents(), Fixtures.session())

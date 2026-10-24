@@ -2,10 +2,10 @@ package de.velwebsolutions.oasis.app
 
 import android.content.Intent
 import android.os.Bundle
-import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
 import androidx.compose.runtime.CompositionLocalProvider
+import androidx.fragment.app.FragmentActivity
 import dagger.hilt.android.AndroidEntryPoint
 import de.velwebsolutions.oasis.app.ui.RootScreen
 import de.velwebsolutions.oasis.core.network.ApiClient
@@ -16,9 +16,9 @@ import de.velwebsolutions.oasis.design.navigation.Navigator
 import de.velwebsolutions.oasis.design.theme.OasisTheme
 import javax.inject.Inject
 
-/** The only activity: hosts the Compose tree and passes links (app links, `oasis://`, push taps) to the navigator. */
+/** The only activity (a FragmentActivity, so the chat can show the androidx BiometricPrompt): hosts the Compose tree and passes links (app links, `oasis://`, push taps) to the navigator. */
 @AndroidEntryPoint
-class MainActivity : ComponentActivity() {
+class MainActivity : FragmentActivity() {
     @Inject lateinit var navigator: Navigator
 
     @Inject lateinit var apiClient: ApiClient

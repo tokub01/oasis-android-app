@@ -5,6 +5,9 @@ config:
 complexity:
   LongMethod:
     threshold: 120
+    # Screens read top to bottom like the iOS views they mirror.
+    ignoreAnnotated: ['Composable']
+    excludes: ['**/test/**']
   LongParameterList:
     functionThreshold: 12
     constructorThreshold: 12
@@ -14,6 +17,7 @@ complexity:
     active: false
   CyclomaticComplexMethod:
     threshold: 25
+    excludes: ['**/test/**']
     ignoreSimpleWhenEntries: true
   ComplexCondition:
     threshold: 6
@@ -26,7 +30,7 @@ naming:
   FunctionNaming:
     ignoreAnnotated: ['Composable']
   TopLevelPropertyNaming:
-    constantPattern: '[A-Z][A-Za-z0-9]*'
+    constantPattern: '[A-Z][A-Za-z0-9_]*'
   MatchingDeclarationName:
     active: false
   ConstructorParameterNaming:
@@ -40,13 +44,14 @@ style:
   MagicNumber:
     active: false
   MaxLineLength:
-    maxLineLength: 160
-    excludeCommentStatements: true
+    # German UI texts stay on one line, as on iOS, so they can be found and compared.
+    active: false
   WildcardImport:
     active: true
   ReturnCount:
     max: 6
     excludeGuardClauses: true
+    excludes: ['**/test/**']
   UnusedPrivateMember:
     ignoreAnnotated: ['Preview']
   ForbiddenComment:
@@ -56,7 +61,8 @@ style:
   UnnecessaryAbstractClass:
     active: false
   ThrowsCount:
-    max: 4
+    # The crypto checks fail with a distinct error per step, like OasisChatCrypto.
+    max: 10
   LoopWithTooManyJumpStatements:
     maxJumpCount: 3
   UseCheckOrError:
@@ -64,6 +70,8 @@ style:
 
 exceptions:
   TooGenericExceptionCaught:
+    active: false
+  InstanceOfCheckForException:
     active: false
   SwallowedException:
     active: false

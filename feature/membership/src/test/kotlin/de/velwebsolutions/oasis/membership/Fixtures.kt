@@ -39,7 +39,7 @@ object Fixtures {
         {"data":{"tier_name":"Oase","name":"Mia Mitglied","email":"memsub@example.test","effective_date":"2026-11-18T15:39:37.000000Z"}}
     """.trimIndent()
 
-    val withdrawal = """{"data":{"tier_name":"Oase","name":"Mia Mitglied","email":"memsub@example.test"}}"""
+    const val WITHDRAWAL = """{"data":{"tier_name":"Oase","name":"Mia Mitglied","email":"memsub@example.test"}}"""
 
     const val CANCELLED = "Deine Kündigung wurde erfolgreich erfasst. Wir haben dir eine Bestätigung per E-Mail geschickt."
 
