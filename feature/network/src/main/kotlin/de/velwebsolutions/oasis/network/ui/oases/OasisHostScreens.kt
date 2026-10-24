@@ -32,8 +32,10 @@ import de.velwebsolutions.oasis.network.ui.components.membersLabel
  * authors. Like the web, closing leads to the oasis overview.
  */
 @Composable
-fun CloseOasisScreen(slug: String) {
-    val viewModel = hiltViewModel<CloseOasisViewModel, CloseOasisViewModel.Factory>(creationCallback = { it.create(slug) })
+fun CloseOasisScreen(
+    slug: String,
+    viewModel: CloseOasisViewModel = hiltViewModel<CloseOasisViewModel, CloseOasisViewModel.Factory>(creationCallback = { it.create(slug) })
+) {
     val closing by viewModel.closing.collectAsStateWithLifecycle()
     val confirmed by viewModel.confirmed.collectAsStateWithLifecycle()
     val error by viewModel.error.collectAsStateWithLifecycle()
@@ -85,8 +87,11 @@ fun CloseOasisScreen(slug: String) {
 
 /** Host statistics (/oasen/{slug}/statistik): sums only, never lists of people. */
 @Composable
-fun OasisStatisticsScreen(slug: String) {
-    val viewModel = hiltViewModel<OasisStatisticsViewModel, OasisStatisticsViewModel.Factory>(creationCallback = { it.create(slug) })
+fun OasisStatisticsScreen(
+    slug: String,
+    viewModel: OasisStatisticsViewModel =
+        hiltViewModel<OasisStatisticsViewModel, OasisStatisticsViewModel.Factory>(creationCallback = { it.create(slug) })
+) {
     val statistics by viewModel.statistics.collectAsStateWithLifecycle()
     LaunchedEffect(Unit) { viewModel.load() }
     OasisScreen(title = "Statistik") {

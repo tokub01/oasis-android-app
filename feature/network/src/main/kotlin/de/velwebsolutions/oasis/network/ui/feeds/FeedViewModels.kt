@@ -17,6 +17,7 @@ import de.velwebsolutions.oasis.network.api.SourceContext
 import de.velwebsolutions.oasis.network.api.SwipeDeck
 import de.velwebsolutions.oasis.network.api.TagContext
 import de.velwebsolutions.oasis.network.data.NetworkRepository
+import de.velwebsolutions.oasis.network.ui.BusyCards
 import de.velwebsolutions.oasis.network.ui.NetworkViewModel
 import de.velwebsolutions.oasis.network.ui.PostAction
 import de.velwebsolutions.oasis.network.ui.PostListModel
@@ -154,8 +155,14 @@ class SwipeViewModel @Inject constructor(private val repository: NetworkReposito
         if (deck.value.valueOrNull == null) load()
     }
 
-    /** Reactions and bookmarks change at once and roll back if the server refuses. */
+    private val busy = BusyCards()
+
+    /** Reactions and bookmarks change at once and roll back if the server refuses; one action per card at a time. */
     suspend fun perform(action: PostAction, post: Post) {
+        busy.run(post.id) { run(action, post) }
+    }
+
+    private suspend fun run(action: PostAction, post: Post) {
         val undo = action.undo
         if (undo != null) apply(action, post)
         try {

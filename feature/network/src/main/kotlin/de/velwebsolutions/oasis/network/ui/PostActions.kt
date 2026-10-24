@@ -2,6 +2,7 @@ package de.velwebsolutions.oasis.network.ui
 
 import de.velwebsolutions.oasis.network.api.Post
 import de.velwebsolutions.oasis.network.data.NetworkRepository
+import java.util.concurrent.ConcurrentHashMap
 
 /** The buttons and menu items of a Tropfen card (the web's `InteractsWithPosts`). */
 enum class PostAction {
@@ -83,4 +84,23 @@ fun List<Post>.applying(action: PostAction, post: Post): List<Post> = when (acti
     PostAction.Delete, PostAction.RemoveFromOasis -> filterNot { it.id == post.id }
 
     PostAction.Mute, PostAction.Block -> filterNot { it.author.id == post.author.id }
+}
+
+/**
+ * The cards whose action is still running. Like the iOS card (`busy`), a card takes no further taps until its action
+ * has finished, so a quick double tap does not send a reaction and its withdrawal at the same time.
+ */
+class BusyCards {
+    private val ids = ConcurrentHashMap.newKeySet<Int>()
+
+    /** Runs [action] for the card of [postId] unless one is running already; returns whether it ran. */
+    suspend fun run(postId: Int, action: suspend () -> Unit): Boolean {
+        if (!ids.add(postId)) return false
+        try {
+            action()
+        } finally {
+            ids.remove(postId)
+        }
+        return true
+    }
 }

@@ -25,6 +25,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.style.TextOverflow
+import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
@@ -88,14 +89,13 @@ fun <C> FeedScaffold(
 
 /** The scrolling page of a feed with pull to refresh. */
 @Composable
-fun FeedPage(listState: LazyListState, handlers: FeedHandlers, content: LazyListScope.() -> Unit) {
-    NetworkPage(state = listState, onRefresh = handlers.reload, content = content)
+fun FeedPage(listState: LazyListState, handlers: FeedHandlers, bottomInset: Dp = 0.dp, content: LazyListScope.() -> Unit) {
+    NetworkPage(state = listState, onRefresh = handlers.reload, bottomInset = bottomInset, content = content)
 }
 
 /** "Entdecken" (/app/entdecken): public Tropfen of public profiles, newest first, and the largest oases. No ranking. */
 @Composable
-fun DiscoverScreen() {
-    val viewModel = hiltViewModel<DiscoverViewModel>()
+fun DiscoverScreen(viewModel: DiscoverViewModel = hiltViewModel<DiscoverViewModel>()) {
     FeedScaffold(viewModel, "Entdecken") { state, handlers ->
         discoverContent(state, handlers)
     }
@@ -173,8 +173,7 @@ fun LazyListScope.discoverContent(state: PostListState<DiscoverContext>, handler
  * bookmarked.
  */
 @Composable
-fun BookmarksScreen() {
-    val viewModel = hiltViewModel<BookmarksViewModel>()
+fun BookmarksScreen(viewModel: BookmarksViewModel = hiltViewModel<BookmarksViewModel>()) {
     FeedScaffold(viewModel, "Gemerkt") { state, handlers ->
         block("header") {
             PageHeader(
@@ -213,9 +212,11 @@ fun BookmarksScreen() {
 
 /** A topic page (/themen/{tag}): every readable Tropfen with #tag, newest first. */
 @Composable
-fun TagScreen(tag: String) {
+fun TagScreen(
+    tag: String,
+    viewModel: TagViewModel = hiltViewModel<TagViewModel, TagViewModel.Factory>(creationCallback = { it.create(tag.lowercase()) })
+) {
     val lowered = tag.lowercase()
-    val viewModel = hiltViewModel<TagViewModel, TagViewModel.Factory>(creationCallback = { it.create(lowered) })
     FeedScaffold(viewModel, "#$lowered") { state, handlers ->
         block("header") { PageHeader("#$lowered", eyebrow = "Thema", lead = "Alle Tropfen mit #$lowered, neueste zuerst.") }
         if (state.posts.isEmpty()) {
