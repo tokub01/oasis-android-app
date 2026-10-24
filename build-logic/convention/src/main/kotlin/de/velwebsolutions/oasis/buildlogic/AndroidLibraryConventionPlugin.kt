@@ -11,6 +11,8 @@ class AndroidLibraryConventionPlugin : Plugin<Project> {
     override fun apply(target: Project) = with(target) {
         pluginManager.apply("com.android.library")
         pluginManager.apply("org.jetbrains.kotlin.plugin.serialization")
+        pluginManager.apply("org.jetbrains.kotlinx.kover")
+        configureKover("debug")
         extensions.configure<LibraryExtension> {
             configureAndroid(this)
             defaultConfig.testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"

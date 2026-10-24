@@ -6,6 +6,7 @@ import org.gradle.api.Project
 import org.gradle.api.artifacts.VersionCatalog
 import org.gradle.api.artifacts.VersionCatalogsExtension
 import org.gradle.api.tasks.testing.Test
+import org.gradle.kotlin.dsl.configure
 import org.gradle.kotlin.dsl.getByType
 import org.gradle.kotlin.dsl.withType
 import org.jetbrains.kotlin.gradle.dsl.JvmTarget
@@ -28,7 +29,8 @@ internal fun Project.configureAndroid(extension: CommonExtension) {
         testOptions.unitTests.isIncludeAndroidResources = true
         testOptions.unitTests.isReturnDefaultValues = true
         lint.abortOnError = true
-        lint.warningsAsErrors = false
+        lint.warningsAsErrors = true
+        lint.checkDependencies = false
         lint.disable += setOf("GradleDependency", "NewerVersionAvailable", "AndroidGradlePluginVersion")
     }
     configureKotlin()
@@ -48,5 +50,15 @@ internal fun Project.configureKotlin() {
                 "-opt-in=kotlinx.coroutines.ExperimentalCoroutinesApi",
             )
         }
+    }
+}
+
+/**
+ * Coverage of one module under the shared variant "oasis": the debug unit tests of Android modules, the tests of JVM
+ * modules. The root project merges the variant of all modules (`koverHtmlReportOasis`, `koverVerifyOasis`).
+ */
+internal fun Project.configureKover(sourceVariant: String) {
+    extensions.configure<kotlinx.kover.gradle.plugin.dsl.KoverProjectExtension>("kover") {
+        currentProject.createVariant("oasis") { add(sourceVariant) }
     }
 }
