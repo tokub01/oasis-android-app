@@ -32,10 +32,10 @@ data class HintsInboxUiState(
 ) {
     /** The loaded hints under their headings, in list order. */
     val groups: List<HintGroup>
-        get() = (state.valueOrNull ?: emptyList()).groupBy { it.group }.map { (title, hints) -> HintGroup(title, hints) }
+        get() = state.valueOrNull.orEmpty().groupBy { it.group }.map { (title, hints) -> HintGroup(title, hints) }
 
     /** Whether a loaded hint still shows "Neu". */
-    val showsUnread: Boolean get() = state.valueOrNull?.any { it.unread } ?: false
+    val showsUnread: Boolean get() = state.valueOrNull.orEmpty().any { it.unread }
 }
 
 /**

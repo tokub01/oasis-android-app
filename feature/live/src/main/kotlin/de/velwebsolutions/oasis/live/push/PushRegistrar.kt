@@ -55,16 +55,11 @@ class PushRegistrar(
             false
         }
         refreshAuthorization()
-        if (!isAvailable || !isSupported || isOptedOut) return
-        if (authorization.value == PushAuthorization.Authorized) register()
+        registerIfAllowed()
     }
 
     /** Firebase handed out a new token (FirebaseMessagingService.onNewToken). */
-    suspend fun tokenChanged() {
-        if (repository != null && isAvailable && isSupported && !isOptedOut && authorization.value == PushAuthorization.Authorized) {
-            register()
-        }
-    }
+    suspend fun tokenChanged() = registerIfAllowed()
 
     /** On signing out: forget this installation. The server removes it together with the sign-in's API token. */
     fun signedOut() {
@@ -121,6 +116,12 @@ class PushRegistrar(
         mutableAuthorization.value = system.authorization()
     }
 
+    /** Registers when the server sends app pushes, the member wants them here and Android allows them. */
+    private suspend fun registerIfAllowed() {
+        if (isAvailable && !isOptedOut && authorization.value == PushAuthorization.Authorized) register()
+    }
+
+    /** Sends this installation's token; false without sign-in, support, token or a working server. */
     private suspend fun register(): Boolean {
         val repository = repository ?: return false
         if (!isSupported) return false

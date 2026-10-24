@@ -76,7 +76,7 @@ class AndroidPushSystem(private val context: Context) : PushSystem {
     private val preferences = context.getSharedPreferences("oasis.push", Context.MODE_PRIVATE)
 
     override val isConfigured: Boolean
-        get() = runCatching { FirebaseApp.getApps(context).isNotEmpty() }.getOrDefault(false)
+        get() = FirebaseApp.getApps(context).isNotEmpty()
 
     override fun authorization(): PushAuthorization {
         val allowed = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
@@ -104,12 +104,11 @@ class AndroidPushSystem(private val context: Context) : PushSystem {
     @Suppress("DEPRECATION")
     override suspend fun token(): String? {
         if (!isConfigured) return null
+        // isConfigured guarantees Firebase's default app, so getInstance() cannot fail here.
         return suspendCancellableCoroutine { continuation ->
-            runCatching {
-                FirebaseMessaging.getInstance().token.addOnCompleteListener { task ->
-                    continuation.resume(if (task.isSuccessful) task.result else null)
-                }
-            }.onFailure { continuation.resume(null) }
+            FirebaseMessaging.getInstance().token.addOnCompleteListener { task ->
+                continuation.resume(if (task.isSuccessful) task.result else null)
+            }
         }
     }
 
@@ -117,9 +116,7 @@ class AndroidPushSystem(private val context: Context) : PushSystem {
     override suspend fun deleteToken() {
         if (!isConfigured) return
         suspendCancellableCoroutine { continuation ->
-            runCatching {
-                FirebaseMessaging.getInstance().deleteToken().addOnCompleteListener { continuation.resume(Unit) }
-            }.onFailure { continuation.resume(Unit) }
+            FirebaseMessaging.getInstance().deleteToken().addOnCompleteListener { continuation.resume(Unit) }
         }
     }
 

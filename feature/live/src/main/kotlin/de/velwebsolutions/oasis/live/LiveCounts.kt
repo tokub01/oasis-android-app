@@ -13,7 +13,6 @@ import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
-import kotlinx.coroutines.isActive
 import kotlinx.coroutines.launch
 
 /** The in-app notice about a new chat message; [id] tells two notices with the same text apart. */
@@ -56,7 +55,8 @@ class LiveCounts(
         this.load = load
         subscription = scope.launch { realtime.subscribe("private-inbox.$userId").collect(::handle) }
         pollJob = scope.launch {
-            while (isActive) {
+            // Ends with the job (stop or sign-out); delay checks the cancellation.
+            while (true) {
                 refresh()
                 delay(pollInterval)
             }
@@ -102,9 +102,7 @@ class LiveCounts(
             val from = event.string("from")
             showToast(
                 ChatToast(
-                    from?.let {
-                        "Neue Nachricht von $it"
-                    } ?: "Neue Chat-Nachricht",
+                    if (from != null) "Neue Nachricht von $from" else "Neue Chat-Nachricht",
                     event.string("conversation_id")?.toIntOrNull()
                 )
             )
@@ -115,6 +113,7 @@ class LiveCounts(
     /** The member closed the notice or opened the chat. */
     fun dismissToast() {
         toastJob?.cancel()
+        toastJob = null
         mutableToast.value = null
     }
 
@@ -123,7 +122,8 @@ class LiveCounts(
         toastJob?.cancel()
         toastJob = scope.launch {
             delay(toastDuration)
-            if (mutableToast.value?.id == toast.id) mutableToast.value = null
+            // Only this notice goes; a newer one keeps its own 15 seconds.
+            mutableToast.compareAndSet(toast, null)
         }
     }
 }

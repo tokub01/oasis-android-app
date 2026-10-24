@@ -1,12 +1,19 @@
 package de.velwebsolutions.oasis.live
 
 import de.velwebsolutions.oasis.core.model.Loadable
+import de.velwebsolutions.oasis.live.api.HintSettings
+import de.velwebsolutions.oasis.live.api.PushSettings
+import de.velwebsolutions.oasis.live.push.PushAuthorization
+import de.velwebsolutions.oasis.live.push.PushRegistrar
+import de.velwebsolutions.oasis.live.ui.HintSettingsUiState
 import de.velwebsolutions.oasis.live.ui.HintSettingsViewModel
+import de.velwebsolutions.oasis.live.ui.HintsInboxUiState
 import de.velwebsolutions.oasis.live.ui.HintsInboxViewModel
 import de.velwebsolutions.oasis.live.ui.timeText
 import de.velwebsolutions.oasis.testing.MainDispatcherRule
 import de.velwebsolutions.oasis.testing.StubTransport
 import java.util.Locale
+import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.test.runTest
 import kotlinx.serialization.json.JsonObject
@@ -233,5 +240,229 @@ class HintsViewModelTest {
         } finally {
             Locale.setDefault(before)
         }
+    }
+
+    @Test
+    fun showsALoadErrorOnlyAsToastOnceSomethingIsShown() = runTest {
+        val transport = StubTransport(StubTransport.Stub("GET", "hints/settings", status = 500, json = """{"message":"Server Error"}"""))
+        val model = settingsModel(transport)
+        assertTrue(model.loaded().state is Loadable.Failed)
+        assertNull("the failure is the screen, not a toast", model.ui.value.error)
+        assertFalse(model.quietHoursChanged)
+        model.edit { it.copy(digest = true) }
+        model.save()
+        model.saveChat("chat_push")
+        assertTrue("nothing to change or save without settings", model.ui.value.settings == null)
+
+        transport.add("GET", "hints/settings", json = LiveJson.SETTINGS)
+        model.load()
+        transport.add("GET", "hints/settings", status = 500, json = """{"message":"Server Error"}""")
+        model.load()
+        assertNotNull(model.ui.value.settings)
+        assertNotNull(model.ui.value.error)
+        model.dismissError()
+        assertNull(model.ui.value.error)
+    }
+
+    @Test
+    fun savesQuietHoursChangedDuringTheRequestRightAfter() = runTest {
+        val transport = StubTransport(
+            StubTransport.Stub("GET", "hints/settings", json = LiveJson.SETTINGS),
+            StubTransport.Stub("PUT", "hints/settings", json = LiveJson.saved("Gespeichert."))
+        )
+        val hooked = HookedRepository(repository(transport))
+        val model = HintSettingsViewModel(hooked, registrar())
+        model.loaded()
+        var changes = 0
+        hooked.whileSaving = {
+            if (changes++ == 0) model.edit { it.copy(quietFrom = "23:45") }
+        }
+        model.edit { it.copy(quietEnabled = true) }
+        model.save()
+        assertEquals("the change made meanwhile is saved, too", 2, transport.requests.count { it.request.method == "PUT" })
+        assertEquals("23:45", (transport.lastBody("hints/settings") as JsonObject)["quiet_from"]?.let { (it as JsonPrimitive).content })
+        assertFalse(model.ui.value.isSaving)
+        model.dismissMessage()
+        assertNull(model.ui.value.message)
+    }
+
+    @Test
+    fun waitsForTheRunningSaveAndStopsSavingWhenCancelled() = runTest {
+        val transport = StubTransport(
+            StubTransport.Stub("GET", "hints/settings", json = LiveJson.SETTINGS),
+            StubTransport.Stub("PUT", "hints/settings", json = LiveJson.saved("Gespeichert.")),
+            StubTransport.Stub(
+                "PUT",
+                "privacy/settings/chat_push",
+                json = """{"message":"Gespeichert.","data":{"key":"chat_push","value":true}}"""
+            )
+        )
+        val hooked = HookedRepository(repository(transport))
+        val model = HintSettingsViewModel(hooked, registrar())
+        model.loaded()
+        hooked.whileSaving = {
+            model.save()
+            model.saveChat("chat_push")
+            throw CancellationException("left the screen")
+        }
+        val cancelled = runCatching { model.save() }.exceptionOrNull()
+        assertTrue(cancelled is CancellationException)
+        assertEquals("nothing else is saved while a save runs", 1, transport.requests.count { it.request.method == "PUT" })
+        assertFalse(model.ui.value.isSaving)
+    }
+
+    @Test
+    fun aSwitchShowsAtOnceAndIsSaved() = runTest {
+        val transport = StubTransport(
+            StubTransport.Stub("GET", "hints/settings", json = LiveJson.SETTINGS),
+            StubTransport.Stub("PUT", "hints/settings", json = LiveJson.saved("Gespeichert.")),
+            StubTransport.Stub(
+                "PUT",
+                "privacy/settings/chat_push",
+                json = """{"message":"Chat-Push ist an.","data":{"key":"chat_push","value":true}}"""
+            )
+        )
+        val model = settingsModel(transport)
+        model.loaded()
+        model.toggle { it.copy(digest = true) }
+        model.ui.first { it.message == "Gespeichert." }
+        model.toggleChat("chat_push", true)
+        model.ui.first { it.message == "Chat-Push ist an." }
+        assertEquals(true, model.ui.value.settings?.chat?.last()?.enabled)
+        model.saveChat("unknown")
+        assertEquals(2, transport.requests.count { it.request.method == "PUT" })
+    }
+
+    @Test
+    fun endsThePauseAndReportsFailedPausesAndRemovals() = runTest {
+        val transport = StubTransport(
+            StubTransport.Stub("GET", "hints/settings", json = LiveJson.SETTINGS),
+            StubTransport.Stub("DELETE", "hints/pause", json = LiveJson.saved("Die Pause ist beendet.")),
+            StubTransport.Stub("POST", "hints/pause", status = 500, json = """{"message":"Server Error"}"""),
+            StubTransport.Stub("DELETE", "push/devices/4", status = 500, json = """{"message":"Server Error"}""")
+        )
+        val model = settingsModel(transport)
+        model.loaded()
+        model.resume()
+        assertEquals("Die Pause ist beendet.", model.ui.value.message)
+        assertNull(model.ui.value.settings?.pausedUntil)
+        model.pause(1)
+        assertNotNull(model.ui.value.error)
+        model.dismissError()
+        model.remove(model.ui.value.settings!!.push.devices.first())
+        assertNotNull(model.ui.value.error)
+    }
+
+    @Test
+    fun forgetsThisInstallationWhenItsAppDeviceIsRemoved() = runTest {
+        val transport = StubTransport(
+            StubTransport.Stub("GET", "hints/settings", json = LiveJson.SETTINGS),
+            StubTransport.Stub("DELETE", "push/devices/4", json = """{"message":"Entfernt."}""")
+        )
+        val store = MemoryPushStore(deviceId = 4)
+        val model = HintSettingsViewModel(repository(transport), registrar(store = store))
+        model.loaded()
+        // The list cannot be read again afterwards: it keeps what it had.
+        transport.add("GET", "hints/settings", status = 500, json = """{"message":"Server Error"}""")
+        model.remove(model.ui.value.settings!!.push.devices.first())
+        assertNull(store.deviceId)
+        assertEquals("Entfernt.", model.ui.value.message)
+        assertEquals(2, model.ui.value.settings?.push?.devices?.size)
+    }
+
+    @Test
+    fun switchesPushOnThisDeviceAndOpensTheAndroidSettings() = runTest {
+        val transport = StubTransport(
+            StubTransport.Stub("GET", "hints/settings", json = LiveJson.SETTINGS),
+            StubTransport.Stub("GET", "app-config", json = LiveJson.CONFIG),
+            StubTransport.Stub("POST", "push/devices", json = LiveJson.DEVICE),
+            StubTransport.Stub("DELETE", "push/devices/5", json = """{"message":"weg"}""")
+        )
+        val system = FakePushSystem(status = PushAuthorization.NotDetermined)
+        val push = registrar(system)
+        push.signedIn(repository(transport))
+        val model = HintSettingsViewModel(repository(transport), push)
+        model.loaded()
+        assertTrue("this installation is in the list", model.ui.value.isOnForThisDevice)
+        model.togglePushOnThisDevice()
+        assertEquals("Push-Hinweise sind auf diesem Gerät ausgeschaltet.", model.ui.value.message)
+
+        transport.add(
+            "GET",
+            "hints/settings",
+            json = LiveJson.SETTINGS.replace("\"current\":true", "\"current\":false")
+        )
+        model.load()
+        assertFalse(model.ui.value.isOnForThisDevice)
+        model.togglePushOnThisDevice()
+        assertEquals("without the permission it stays off", PushRegistrar.DENIED_TEXT, model.ui.value.error)
+
+        model.permissionAnswered(true)
+        assertEquals(PushAuthorization.Authorized, model.ui.value.authorization)
+        model.togglePushOnThisDevice()
+        assertEquals("Push-Hinweise sind auf diesem Gerät eingeschaltet.", model.ui.value.message)
+
+        model.openSystemSettings()
+        assertEquals(1, system.openedSettings)
+    }
+
+    @Test
+    fun loadsNoMorePagesWhileOneIsLoadingOrNoneIsLeft() = runTest {
+        val transport = StubTransport(StubTransport.Stub("GET", "hints", json = LiveJson.LAST_PAGE))
+        val model = HintsInboxViewModel(repository(transport), coordinator(transport, backgroundScope))
+        model.loadMore()
+        assertFalse(model.loaded().hasMore)
+        model.loadMore()
+        assertEquals("the last page needs no next one", 1, transport.requests.count { it.path == "hints" })
+
+        transport.add("GET", "hints", json = LiveJson.HINTS)
+        model.load()
+        transport.add("GET", "hints", json = LiveJson.HINTS)
+        model.loadMore()
+        model.loadMore()
+        val merged = model.ui.first { !it.isLoadingMore }
+        assertEquals("hints already shown are not repeated", 3, merged.state.valueOrNull?.size)
+        assertTrue(merged.hasMore)
+    }
+
+    @Test
+    fun reportsFailedPagesAndMarksWithoutAList() = runTest {
+        val transport = StubTransport(
+            StubTransport.Stub("GET", "hints", json = LiveJson.HINTS),
+            StubTransport.Stub("POST", "hints/read-all", status = 500, json = """{"message":"Server Error"}""")
+        )
+        val model = HintsInboxViewModel(repository(transport), coordinator(transport, backgroundScope))
+        model.loaded()
+        transport.add("GET", "hints", status = 500, json = """{"message":"Server Error"}""")
+        model.loadMore()
+        model.ui.first { !it.isLoadingMore && it.error != null }
+        model.dismissError()
+        model.load()
+        assertNotNull("a failed reload keeps the list and says so", model.ui.value.state.valueOrNull)
+        assertNotNull(model.ui.value.error)
+        model.dismissError()
+        model.markAllRead()
+        assertNotNull(model.ui.value.error)
+        model.dismissMessage()
+        assertNull(model.ui.value.message)
+
+        val empty = StubTransport(StubTransport.Stub("POST", "hints/read-all", json = """{"message":"Alle Hinweise sind gelesen."}"""))
+        val withoutList = HintsInboxViewModel(repository(empty), coordinator(empty, backgroundScope))
+        withoutList.loaded()
+        withoutList.markAllRead()
+        assertEquals("Alle Hinweise sind gelesen.", withoutList.ui.value.message)
+        assertTrue(withoutList.ui.value.groups.isEmpty())
+    }
+
+    @Test
+    fun saysNothingAboutPushOrUnreadHintsBeforeLoading() {
+        assertFalse(HintSettingsUiState().isOnForThisDevice)
+        assertFalse(HintSettingsUiState(pushSupported = true).pushAvailable)
+        val offServer = HintSettingsUiState(state = Loadable.Loaded(HintSettings()), pushSupported = true)
+        assertFalse("the server sends no app pushes", offServer.pushAvailable)
+        val on = HintSettingsUiState(state = Loadable.Loaded(HintSettings(push = PushSettings(available = true))), pushSupported = true)
+        assertTrue(on.pushAvailable)
+        assertFalse(HintsInboxUiState().showsUnread)
+        assertTrue(HintsInboxUiState().groups.isEmpty())
     }
 }

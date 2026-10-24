@@ -2,7 +2,9 @@ package de.velwebsolutions.oasis.live
 
 import de.velwebsolutions.oasis.core.realtime.RealtimeEvent
 import de.velwebsolutions.oasis.core.realtime.RealtimeService
+import de.velwebsolutions.oasis.live.api.HintSettings
 import de.velwebsolutions.oasis.live.data.DefaultLiveRepository
+import de.velwebsolutions.oasis.live.data.LiveRepository
 import de.velwebsolutions.oasis.live.push.PushAuthorization
 import de.velwebsolutions.oasis.live.push.PushRegistrar
 import de.velwebsolutions.oasis.live.push.PushStore
@@ -36,6 +38,13 @@ object LiveJson {
 
 fun repository(transport: StubTransport) = DefaultLiveRepository(transport.client)
 
+/** The real repository over the stubbed API, with a hook that runs while settings are being saved. */
+class HookedRepository(inner: LiveRepository, var whileSaving: suspend () -> Unit = {}) : LiveRepository by inner {
+    private val real = inner
+
+    override suspend fun save(settings: HintSettings) = real.save(settings).also { whileSaving() }
+}
+
 /** A push system that records what the registrar asks Android to do. */
 class FakePushSystem(
     var status: PushAuthorization = PushAuthorization.Authorized,
@@ -62,7 +71,11 @@ class FakePushSystem(
         deletedTokens += 1
     }
 
-    override fun openSettings() = Unit
+    var openedSettings = 0
+
+    override fun openSettings() {
+        openedSettings += 1
+    }
 }
 
 class MemoryPushStore(override var deviceId: Int? = null, override var optedOut: Boolean = false) : PushStore
