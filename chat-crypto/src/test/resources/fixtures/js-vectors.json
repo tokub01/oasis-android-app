@@ -1,0 +1,235 @@
+{
+  "passphrase": "Grüne Palme Regen Kompass – test only ✓",
+  "owner": {
+    "id": "11",
+    "public_keys": {
+      "encryption": "YVR6mHMubORVsYrrrXB4jWsJaOyS123F0SZzUAwUohY",
+      "signing": "RW2yMlJPP60TJWgQCHanU5C-Ood7ukHiOFIGOngZBHE",
+      "binding": "Lg7f0K64JJL160jMNVbCwljPy1TUXgpHe6k2xb2MZ4aJ4uD0MlvzX3LxuwvnvGwBvjK2wtDD60WEtrqfKA7QBw"
+    },
+    "locked_min": {
+      "version": 1,
+      "kdf": {
+        "alg": "argon2id13",
+        "opslimit": 1,
+        "memlimit": 8192,
+        "salt": "OblF96_wbv1B2x4acdD1yA"
+      },
+      "nonce": "1rRt_ZFQl8c-PRX1OT5TrWcZJDWveFcp",
+      "ciphertext": "eODo1bQvBWrG2QSlEalPTcFc_DQxQD4eVOISvkzAYqvvFGABgpUSIiAWLqzK9VSqAfHwWJnSMG4Y1ReMoWPyotRHD8V_ApoDukumOEglisVU25I-lQXFqiok15LlSjhhFsMbpMvzkrmv2jT1Yji9iA",
+      "publicKeys": {
+        "encryption": "YVR6mHMubORVsYrrrXB4jWsJaOyS123F0SZzUAwUohY",
+        "signing": "RW2yMlJPP60TJWgQCHanU5C-Ood7ukHiOFIGOngZBHE"
+      }
+    },
+    "locked_moderate": {
+      "version": 1,
+      "kdf": {
+        "alg": "argon2id13",
+        "opslimit": 3,
+        "memlimit": 268435456,
+        "salt": "QtmkzYrTHxKX3gGaob8ykQ"
+      },
+      "nonce": "K8tw3F861m6wfLvdcM23AxMoyhLAlPEq",
+      "ciphertext": "21aT4GaQeWxoaXPMSTFZc3M404GaxB636e_rLkOJ2UF88dVUfJQtuLNiwcWl3TYkBJzsAwXBxd24ixSGg4DmVZjmxa7mDGTFkLvxmsgnUufe2P-V7xflxsQYkrrxj2jQlcj9TaG3Mba1SQQuoz1T9w",
+      "publicKeys": {
+        "encryption": "YVR6mHMubORVsYrrrXB4jWsJaOyS123F0SZzUAwUohY",
+        "signing": "RW2yMlJPP60TJWgQCHanU5C-Ood7ukHiOFIGOngZBHE"
+      }
+    }
+  },
+  "member": {
+    "id": "12",
+    "public_keys": {
+      "encryption": "UxTq3_aWv3CKWn8zz9L0bC57pzbwPwWEKjuSeCHgFGE",
+      "signing": "PEHPz7U-bFrQ-h5Q_r3euRu7RSv_shYayz_7cT4VSo0",
+      "binding": "jutYejeIDRRPPTU4TZ6du9494P8zsyU9Bs8zHEDevxusZqWfnOt5ES-zllsTqa2p--LmL2ogkCLcPnti2fHmDA"
+    },
+    "locked_min": {
+      "version": 1,
+      "kdf": {
+        "alg": "argon2id13",
+        "opslimit": 1,
+        "memlimit": 8192,
+        "salt": "V81cIdkIY0sWm2tFrr-mRA"
+      },
+      "nonce": "VywdxgT4XhR9MmfKfsKFk-F5ExqG3GYi",
+      "ciphertext": "tNFW7JipAmxAo4MoeObBnQjGLESTFvalEwAn_OsIdx4QZho_NJN3X9LFC9Kw5fex0_UKUF3itHnOdLXWVIExZtqThMK33snzbe5j8BnPkRpB-LU2tF2ja8rZJ71eR9gqdqTXSMBw_JPX4Wnv5EI09A",
+      "publicKeys": {
+        "encryption": "UxTq3_aWv3CKWn8zz9L0bC57pzbwPwWEKjuSeCHgFGE",
+        "signing": "PEHPz7U-bFrQ-h5Q_r3euRu7RSv_shYayz_7cT4VSo0"
+      }
+    }
+  },
+  "safety_number": "53459 90070 50224 08849 21858 22048 22252 66205 13516 24705 17308 47127",
+  "conversation_key": "QwxEOi-6GRl-TUdv_Z434_wjBALgMntRloGeGjJMW_w",
+  "grants": [
+    {
+      "v": 1,
+      "conversation_id": "4242",
+      "key_version": 2,
+      "recipient_id": "12",
+      "granter_id": "11",
+      "wrapped_key": "A9QrjUavmL5EEXY7pAdAh9CRMQVlrAIx5yABqafkITHlKlnrUEGN2AtELp_rchi0vIDGnwZp0_c2aoNX3PTKJLT7eoTyMRcbA2JIdcnTvuI",
+      "signature": "YAr7p4Mm2lL2skmtSf2QmZbmUDNqhwLFStuUwvC8-SNnpbNzd_Z_F5Cgwil71zKh4DW9aF2QMRM2a4j4BUDSBw"
+    },
+    {
+      "v": 1,
+      "conversation_id": "4242",
+      "key_version": 1,
+      "recipient_id": "12",
+      "granter_id": "11",
+      "wrapped_key": "vJIiT-Zcbfz_gNpCHu-urug0GMQchddarHUy9FxzG0_5RHp8Qumu1MCQJNkxPRW3HgEYKMFfzXsEIKGyy_OXIXUTq2d0c0rX2dmXdO1NPSU",
+      "signature": "pAGssBfMN352US1A8jA06Aa_xTxoRRlou6itPN2rLO3eN0R-VyYf--bS1F1mWUDZ4J_elJzd_Jz7k7zsL5pXCQ"
+    }
+  ],
+  "messages": [
+    {
+      "plaintext": "Hallo aus dem Browser 🌴 – Grüße, Ünïcödé & \"Zeichen\"\nzweite Zeile",
+      "key_version": 2,
+      "envelope": {
+        "v": 1,
+        "conversation_id": "4242",
+        "key_version": 2,
+        "sender_id": "11",
+        "nonce": "IpNt0GswzRYAmJ2FCL5QIveIkgQKcIt6",
+        "ciphertext": "RU-Ay9aQHgr8H2wRTFS6HyJI5SWuKSSxmyIlYCdi5sM2EnggHM4SrEeI86qKmCY__l0X7wRTiiRXvloXP5M-ikus0LMzuOJKf_n0aCRcccozgC5D38ZT1z2UDnw",
+        "signature": "5Sp1jGnQoTYQyE16Lu9pl90Al7G1W7JGfI2dfLOsV9p8sg6AL5gVDXc-ldYF8muAOtHuN4yUfBS_kbg-568uAw",
+        "expires_at": "2099-01-01T00:00:00Z"
+      }
+    },
+    {
+      "plaintext": "Mit altem Schlüssel",
+      "key_version": 1,
+      "envelope": {
+        "v": 1,
+        "conversation_id": "4242",
+        "key_version": 1,
+        "sender_id": "11",
+        "nonce": "gyGEjAoZSU4T553MCMidBmfEXGYeEqcn",
+        "ciphertext": "GT1rwKTXYFeGxb95Zem2QRETN8u9JrZTd79m1AOEORispMyp",
+        "signature": "syjSn-VgnlZEv7au8O7sYBIenyROt_hCVxg3oyLnEX0d8vBD_hw5GvmEhOZpA3ci9DtF1b9WwHjRx7n6DmglDA",
+        "expires_at": "2099-06-30T12:34:56Z"
+      }
+    },
+    {
+      "plaintext": "Längst abgelaufen",
+      "key_version": 2,
+      "expired": true,
+      "envelope": {
+        "v": 1,
+        "conversation_id": "4242",
+        "key_version": 2,
+        "sender_id": "11",
+        "nonce": "v4VugGXTxFpw9bpwAchjwA4fSe9i4rUG",
+        "ciphertext": "ZFIdZ9wUIummVHcP7lqJC_27E-4cKGj-IIiW7ScN7jZIHw",
+        "signature": "12Vr3lI-FgLMwOfQI8_9lFxZB4vxuu_YwsgadUlipcG1szgbDHSL8CocChzG0t0gl8mfkJHexEDPEw424TPzBg",
+        "expires_at": "2020-01-02T03:04:05Z"
+      }
+    }
+  ],
+  "device_link": {
+    "public_key": "3XML6Mc62tyIxRtVyTMeM02Yq2hhR5QlA8CJcmlTxlA",
+    "private_key": "yKIvmLZE764hXTVoq7tt_GnWWuEGS86skhVX9f7y-HM",
+    "check_number": "9188 2371",
+    "locked_identity": {
+      "version": 1,
+      "kdf": {
+        "alg": "argon2id13",
+        "opslimit": 1,
+        "memlimit": 8192,
+        "salt": "jXAY9EtNKG8oYAz2Mk1JUA"
+      },
+      "nonce": "YVsSSmhifRneNdZulWrx7kvPXfJECpUD",
+      "ciphertext": "mfMTEuu7wqxL7rLsTe1jhMyOHruxuWbSd4FIMRonCjmwvPFEMRiBgzVV3p5ckyulA22Pq1qfe_zJoRebfK-i8VsdcyHaltPqaqlTffYfxCuJaou_zfUHVZsi3pDRP5tiOlS3EkPbTGHr7QFg5SH4ag",
+      "publicKeys": {
+        "encryption": "UxTq3_aWv3CKWn8zz9L0bC57pzbwPwWEKjuSeCHgFGE",
+        "signing": "PEHPz7U-bFrQ-h5Q_r3euRu7RSv_shYayz_7cT4VSo0"
+      }
+    },
+    "sealed_key": "pDho1vLB9nxEkJQpGapULOpoSG01ya3v-kPhqAnGlhpEW0yhFQJ6tCOVYpSQUj_LaTk3_iTfGnM8dC_I99pzEbFTej1KXlvzV6j4AeKnZSY"
+  },
+  "device_unlock": {
+    "secret": "3lMaxaOc8cZK39yeHpCpQnjN9OGFTXrGQ5hJzczlbiA",
+    "locked_identity": {
+      "version": 1,
+      "kdf": {
+        "alg": "argon2id13",
+        "opslimit": 1,
+        "memlimit": 8192,
+        "salt": "6sbBEBXfQ3SYpUzW6NfpWw"
+      },
+      "nonce": "JFBJDJ7Ptf8Vgh2NHTkSZHuoe0MQ4g2l",
+      "ciphertext": "icP2M9DWSY_d_rebrRY9F4Ghw_2TSBz53Qc3nuvAahSPJ6V7UuYpqCyhAqA1gg97nLZGfayDMT37vr6X2WSC2G-N02VX5BdeeT9ly_ivNFhYHiW0KT2MAfxRvEvLC1qf0PmvDdD-5bFngK4vMpG92Q",
+      "publicKeys": {
+        "encryption": "UxTq3_aWv3CKWn8zz9L0bC57pzbwPwWEKjuSeCHgFGE",
+        "signing": "PEHPz7U-bFrQ-h5Q_r3euRu7RSv_shYayz_7cT4VSo0"
+      }
+    }
+  },
+  "canonical": [
+    {
+      "label": "oasis-chat/test/v1",
+      "fields": [],
+      "bytes": "AAAAEm9hc2lzLWNoYXQvdGVzdC92MQ"
+    },
+    {
+      "label": "oasis-chat/test/v1",
+      "fields": [
+        "ab",
+        "c",
+        "",
+        "ü🌴"
+      ],
+      "bytes": "AAAAEm9hc2lzLWNoYXQvdGVzdC92MQAAAAJhYgAAAAFjAAAAAAAAAAbDvPCfjLQ"
+    }
+  ],
+  "base64": [
+    {
+      "hex": "",
+      "base64": ""
+    },
+    {
+      "hex": "fb",
+      "base64": "-w"
+    },
+    {
+      "hex": "fb20",
+      "base64": "-yA"
+    },
+    {
+      "hex": "fb2045",
+      "base64": "-yBF"
+    },
+    {
+      "hex": "fb20456a8fb4d9fe23486d92b7dc01264b7095badf04294e7398bde2072c51",
+      "base64": "-yBFao-02f4jSG2St9wBJktwlbrfBClOc5i94gcsUQ"
+    },
+    {
+      "hex": "fb20456a8fb4d9fe23486d92b7dc01264b7095badf04294e7398bde2072c5176",
+      "base64": "-yBFao-02f4jSG2St9wBJktwlbrfBClOc5i94gcsUXY"
+    },
+    {
+      "hex": "fb20456a8fb4d9fe23486d92b7dc01264b7095badf04294e7398bde2072c51769b",
+      "base64": "-yBFao-02f4jSG2St9wBJktwlbrfBClOc5i94gcsUXab"
+    },
+    {
+      "hex": "fb20456a8fb4d9fe23486d92b7dc01264b7095badf04294e7398bde2072c51769bc0e50a2f54799ec3e80d32577ca1c6eb10355a7fa4c9ee13385d82a7ccf116",
+      "base64": "-yBFao-02f4jSG2St9wBJktwlbrfBClOc5i94gcsUXabwOUKL1R5nsPoDTJXfKHG6xA1Wn-kye4TOF2Cp8zxFg"
+    }
+  ],
+  "check_numbers": [
+    {
+      "public_key": "AAAA",
+      "check": "4535 6424"
+    },
+    {
+      "public_key": "YVR6mHMubORVsYrrrXB4jWsJaOyS123F0SZzUAwUohY",
+      "check": "1793 2041"
+    },
+    {
+      "public_key": "UxTq3_aWv3CKWn8zz9L0bC57pzbwPwWEKjuSeCHgFGE",
+      "check": "6362 4076"
+    }
+  ]
+}
