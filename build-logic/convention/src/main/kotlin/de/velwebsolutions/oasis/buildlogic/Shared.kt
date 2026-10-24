@@ -65,9 +65,32 @@ internal fun Project.configureKover(sourceVariant: String) {
         // the $changed bookkeeping of composables), so lines and branches measure the code as written.
         useJacoco("0.8.15")
         currentProject.createVariant("oasis") { add(sourceVariant) }
+        currentProject.createVariant("oasisLogic") { add(sourceVariant) }
         reports.filters.excludes {
             classes(GeneratedClasses)
+            classes(HiltRewrittenClasses)
             annotatedBy(*GeneratedAnnotations)
+        }
+        // Every line of every module is tested, and every branch outside composable functions. Inside @Composable
+        // functions the Compose compiler adds branches of its own (Composer.changed/skipping, defaults invalid,
+        // isTraceInProgress) that only a recomposition with exactly matching inputs or a tracing run would take; the
+        // branches written in composables are tested like all others, but not counted against this bound.
+        reports.variant("oasis") {
+            verify.rule("Lines") {
+                bound {
+                    minValue.set(100)
+                    coverageUnits.set(kotlinx.kover.gradle.plugin.dsl.CoverageUnit.LINE)
+                }
+            }
+        }
+        reports.variant("oasisLogic") {
+            filters.excludes.annotatedBy("androidx.compose.runtime.Composable")
+            verify.rule("Branches outside composables") {
+                bound {
+                    minValue.set(100)
+                    coverageUnits.set(kotlinx.kover.gradle.plugin.dsl.CoverageUnit.BRANCH)
+                }
+            }
         }
     }
 }
@@ -81,6 +104,12 @@ internal val GeneratedClasses = listOf(
     "*_MembersInjector", "*_GeneratedInjector", "*_ComponentTreeDeps", "*\$\$serializer", "*ComposableSingletons*",
     "*.BuildConfig", "*.R", "*.R\$*",
 )
+
+/**
+ * The two Android entry points Hilt rewrites at build time (their superclass becomes Hilt_*): the class that runs is not
+ * the class JaCoCo reports on, so their execution cannot be attributed. They only hand over to AppHost, which is tested.
+ */
+internal val HiltRewrittenClasses = listOf("de.velwebsolutions.oasis.app.MainActivity", "de.velwebsolutions.oasis.app.OasisApplication")
 
 /** Hilt modules only wire objects together; @Preview functions are design-time only. */
 internal val GeneratedAnnotations = arrayOf("dagger.Module", "androidx.compose.ui.tooling.preview.Preview")

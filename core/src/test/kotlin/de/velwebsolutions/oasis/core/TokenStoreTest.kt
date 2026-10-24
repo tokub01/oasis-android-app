@@ -47,4 +47,19 @@ class TokenStoreTest {
         store.write("t")
         assertEquals("t", store.read())
     }
+
+    @Test
+    fun `the Keystore key is created once and then reused`() {
+        FakeAndroidKeyStore.install()
+        FakeAndroidKeyStore.reset()
+        KeystoreTokenStore(context).write("secret-token")
+        assertEquals(setOf("de.velwebsolutions.oasis.api-token"), FakeAndroidKeyStore.aliases)
+        assertEquals("secret-token", KeystoreTokenStore(context).read())
+    }
+
+    @Test
+    fun `nothing stored reads as signed out`() {
+        context.getSharedPreferences("oasis.session", 0).edit().clear().commit()
+        assertNull(KeystoreTokenStore(context) { key }.read())
+    }
 }

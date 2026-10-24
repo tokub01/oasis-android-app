@@ -24,6 +24,7 @@ dependencies {
     implementation(libs.coil.network.okhttp)
     implementation(libs.androidx.browser)
     debugImplementation(libs.compose.ui.tooling)
+    testImplementation(project(":core-testing"))
     testImplementation(libs.robolectric)
     testImplementation(libs.compose.ui.test.junit4)
     testImplementation(libs.roborazzi)

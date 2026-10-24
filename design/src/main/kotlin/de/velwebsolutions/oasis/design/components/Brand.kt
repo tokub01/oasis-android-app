@@ -93,7 +93,8 @@ fun SupportContacts(modifier: Modifier = Modifier) {
         append(before)
         parts.forEachIndexed { index, (text, url) ->
             withLink(LinkAnnotation.Url(url, links)) { append(text) }
-            if (index < parts.lastIndex) append(if (index == 0 && parts.size == 2) " (kostenlos, anonym), für Eltern: " else ", ")
+            // Only "Nummer gegen Kummer" has two numbers: for children and for parents.
+            if (index < parts.lastIndex) append(" (kostenlos, anonym), für Eltern: ")
         }
         append(after)
     }

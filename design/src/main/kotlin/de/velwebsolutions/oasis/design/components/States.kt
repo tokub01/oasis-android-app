@@ -59,19 +59,15 @@ fun <T> LoadableView(
     content: @Composable (T) -> Unit
 ) {
     when (state) {
-        Loadable.Idle, Loadable.Loading -> if (skeleton != null) SkeletonView(skeleton, modifier) else LoadingView(modifier)
-        is Loadable.Failed -> ErrorStateView(state.error, onRetry, modifier)
         is Loadable.Loaded -> content(state.value)
+        is Loadable.Failed -> ErrorStateView(state.error, onRetry, modifier)
+        else -> if (skeleton != null) SkeletonView(modifier, skeleton) else LoadingView(modifier)
     }
 }
 
-/** Centered spinner with "Lädt …". */
+/** Centered spinner with "Lädt …" or its own label ("Oasis startet …"). */
 @Composable
-fun LoadingView(modifier: Modifier = Modifier) = LoadingView("Lädt …", modifier)
-
-/** Centered spinner with its own label ("Oasis startet …"). */
-@Composable
-fun LoadingView(label: String, modifier: Modifier = Modifier) {
+fun LoadingView(modifier: Modifier = Modifier, label: String = "Lädt …") {
     Column(
         modifier.fillMaxSize().padding(32.dp),
         verticalArrangement = Arrangement.Center,
@@ -88,11 +84,7 @@ fun LoadingView(label: String, modifier: Modifier = Modifier) {
  * does not jump when the data arrives. One opacity animation for the whole block keeps it cheap.
  */
 @Composable
-fun SkeletonView(modifier: Modifier = Modifier) = SkeletonView(SkeletonLayout.Cards, modifier)
-
-/** [SkeletonView] in the given layout. */
-@Composable
-fun SkeletonView(layout: SkeletonLayout, modifier: Modifier = Modifier) {
+fun SkeletonView(modifier: Modifier = Modifier, layout: SkeletonLayout = SkeletonLayout.Cards) {
     val transition = rememberInfiniteTransition(label = "skeleton")
     val alpha by transition.animateFloat(1f, 0.55f, infiniteRepeatable(tween(900), RepeatMode.Reverse), label = "alpha")
     Column(
