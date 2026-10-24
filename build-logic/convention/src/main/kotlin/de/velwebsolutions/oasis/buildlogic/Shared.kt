@@ -5,6 +5,7 @@ import org.gradle.api.JavaVersion
 import org.gradle.api.Project
 import org.gradle.api.artifacts.VersionCatalog
 import org.gradle.api.artifacts.VersionCatalogsExtension
+import org.gradle.api.tasks.testing.Test
 import org.gradle.kotlin.dsl.getByType
 import org.gradle.kotlin.dsl.withType
 import org.jetbrains.kotlin.gradle.dsl.JvmTarget
@@ -31,6 +32,11 @@ internal fun Project.configureAndroid(extension: CommonExtension) {
         lint.disable += setOf("GradleDependency", "NewerVersionAvailable", "AndroidGradlePluginVersion")
     }
     configureKotlin()
+    // Robolectric (Compose UI tests on the JVM) reads FileDescriptor internals, closed by default since JDK 17.
+    tasks.withType<Test>().configureEach {
+        jvmArgs("--add-opens=java.base/java.io=ALL-UNNAMED", "--add-opens=java.base/java.lang=ALL-UNNAMED")
+        maxHeapSize = "2g"
+    }
 }
 
 internal fun Project.configureKotlin() {

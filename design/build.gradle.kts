@@ -23,4 +23,6 @@ dependencies {
     implementation(libs.androidx.browser)
     debugImplementation(libs.compose.ui.tooling)
     testImplementation(libs.robolectric)
+    testImplementation(libs.compose.ui.test.junit4)
+    debugImplementation(libs.compose.ui.test.manifest)
 }
