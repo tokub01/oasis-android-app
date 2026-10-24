@@ -48,6 +48,8 @@ internal fun Project.configureKotlin() {
             freeCompilerArgs.addAll(
                 "-opt-in=kotlinx.serialization.ExperimentalSerializationApi",
                 "-opt-in=kotlinx.coroutines.ExperimentalCoroutinesApi",
+                // Interface defaults as real JVM defaults, without DefaultImpls bridges nobody calls.
+                "-jvm-default=no-compatibility",
             )
         }
     }

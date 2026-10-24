@@ -163,6 +163,3 @@ fun Bullets(items: List<String>, modifier: Modifier = Modifier) {
         }
     }
 }
-
-/** Standard page padding of a scrolling screen (20 like the iOS screens). */
-val ScreenPadding = Modifier.padding(horizontal = 20.dp, vertical = 20.dp)

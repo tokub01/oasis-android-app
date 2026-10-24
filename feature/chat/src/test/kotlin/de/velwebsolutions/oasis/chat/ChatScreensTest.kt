@@ -1,6 +1,7 @@
 package de.velwebsolutions.oasis.chat
 
 import android.os.Looper
+import androidx.compose.foundation.layout.Row
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
@@ -20,15 +21,19 @@ import androidx.compose.ui.test.performScrollToNode
 import androidx.compose.ui.test.performTextInput
 import de.velwebsolutions.oasis.chat.api.ChatConversation
 import de.velwebsolutions.oasis.chat.api.ConversationMember
+import de.velwebsolutions.oasis.chat.api.PublicUser
 import de.velwebsolutions.oasis.chat.core.ChatKeyring
 import de.velwebsolutions.oasis.chat.ui.ChatAccessViewModel
 import de.velwebsolutions.oasis.chat.ui.ChatPhase
 import de.velwebsolutions.oasis.chat.ui.ChatSetupContent
 import de.velwebsolutions.oasis.chat.ui.ChatUnlockContent
 import de.velwebsolutions.oasis.chat.ui.ConversationContent
+import de.velwebsolutions.oasis.chat.ui.ConversationListActions
 import de.velwebsolutions.oasis.chat.ui.ConversationListContent
 import de.velwebsolutions.oasis.chat.ui.ConversationListState
 import de.velwebsolutions.oasis.chat.ui.ConversationViewModel
+import de.velwebsolutions.oasis.chat.ui.NewConversationContent
+import de.velwebsolutions.oasis.chat.ui.NewConversationState
 import de.velwebsolutions.oasis.core.realtime.NoRealtime
 import de.velwebsolutions.oasis.design.theme.OasisTheme
 import kotlin.time.Duration
@@ -182,8 +187,6 @@ class ChatScreensTest {
                     onLoadMore = {},
                     onOpen = { opened = it },
                     onNew = { newChats++ },
-                    onLock = {},
-                    onSettings = {},
                     onApprove = {},
                     onReject = {}
                 )
@@ -198,6 +201,67 @@ class ChatScreensTest {
         compose.onNodeWithTag("chat.list").performScrollToNode(hasText("Wandergruppe"))
         compose.onNodeWithText("Wandergruppe").performClick()
         assertEquals("4", opened?.id)
+    }
+
+    @Test
+    fun readOnlyMembersGetNoNewChatButton() {
+        compose.setContent {
+            OasisTheme {
+                ConversationListContent(
+                    state = ConversationListState(loaded = true),
+                    canParticipate = false,
+                    title = { it.displayTitle("1") },
+                    meta = { "" },
+                    onRefresh = {},
+                    onLoadMore = {},
+                    onOpen = {},
+                    onNew = {},
+                    onApprove = {},
+                    onReject = {}
+                )
+            }
+        }
+        compose.onNodeWithTag("chat.list.empty").assertIsDisplayed()
+        compose.onNodeWithTag("chat.new").assertDoesNotExist()
+    }
+
+    @Test
+    fun theNewChatShowsTheSelectedPeopleAsRemovableChips() {
+        val removed = mutableListOf<String>()
+        compose.setContent {
+            OasisTheme {
+                NewConversationContent(
+                    state = NewConversationState(selected = listOf(PublicUser("2", "jonas"))),
+                    canParticipate = true,
+                    onKind = {},
+                    onUsername = {},
+                    onTitle = {},
+                    onLifetime = {},
+                    onAdd = {},
+                    onRemove = { removed += it.username },
+                    onCreate = {}
+                )
+            }
+        }
+        compose.onNode(hasContentDescription("Ausgewählt")).assertIsDisplayed()
+        compose.onNodeWithText("@jonas").assertIsDisplayed()
+        compose.onNode(hasContentDescription("@jonas entfernen")).performClick()
+        assertEquals(listOf("jonas"), removed)
+    }
+
+    @Test
+    fun theTopBarLocksAndOpensTheSettings() {
+        var locks = 0
+        var settings = 0
+        compose.setContent {
+            OasisTheme {
+                Row { ConversationListActions(onLock = { locks++ }, onSettings = { settings++ }) }
+            }
+        }
+        compose.onNode(hasContentDescription("Sperren")).performClick()
+        compose.onNode(hasContentDescription("Chat-Einstellungen")).performClick()
+        assertEquals(1, locks)
+        assertEquals(1, settings)
     }
 
     @Test

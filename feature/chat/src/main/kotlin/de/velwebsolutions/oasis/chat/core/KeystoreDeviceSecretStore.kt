@@ -2,6 +2,7 @@ package de.velwebsolutions.oasis.chat.core
 
 import android.app.Activity
 import android.content.Context
+import android.hardware.biometrics.BiometricManager.Authenticators as FrameworkAuthenticators
 import android.hardware.biometrics.BiometricPrompt as FrameworkBiometricPrompt
 import android.os.Build
 import android.os.CancellationSignal
@@ -83,7 +84,8 @@ class BiometricPrompter {
             val builder = FrameworkBiometricPrompt.Builder(activity)
                 .setTitle(title)
                 .setNegativeButton("Abbrechen", executor) { _, _ -> if (continuation.isActive) continuation.resume(null) }
-            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) builder.setAllowedAuthenticators(BIOMETRIC_STRONG)
+            // The framework prompt takes the framework constant (same value as AndroidX's BIOMETRIC_STRONG).
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) builder.setAllowedAuthenticators(FrameworkAuthenticators.BIOMETRIC_STRONG)
             val callback = object : FrameworkBiometricPrompt.AuthenticationCallback() {
                 override fun onAuthenticationSucceeded(result: FrameworkBiometricPrompt.AuthenticationResult) {
                     if (continuation.isActive) continuation.resume(result.cryptoObject?.cipher)

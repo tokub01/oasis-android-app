@@ -23,6 +23,9 @@ import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.testTag
+import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.isTraversalGroup
+import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.unit.dp
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
@@ -118,7 +121,13 @@ internal fun NewConversationContent(
                 modifier = Modifier.testTag("chat.new.add")
             )
             if (state.selected.isNotEmpty()) {
-                Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                Column(
+                    verticalArrangement = Arrangement.spacedBy(8.dp),
+                    modifier = Modifier.semantics {
+                        isTraversalGroup = true
+                        contentDescription = "Ausgewählt"
+                    }.testTag("chat.new.selected")
+                ) {
                     state.selected.forEach { user ->
                         Row(
                             modifier = Modifier.background(OasisColors.Dune, CircleShape).padding(start = 16.dp, end = 4.dp),
