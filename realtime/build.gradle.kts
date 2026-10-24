@@ -12,6 +12,7 @@ android {
 dependencies {
     implementation(project(":core"))
     implementation(libs.hilt.android)
+    implementation(libs.androidx.lifecycle.process)
     ksp(libs.hilt.compiler)
     testImplementation(project(":core-testing"))
     testImplementation(libs.okhttp.mockwebserver)
