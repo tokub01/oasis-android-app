@@ -46,6 +46,9 @@ class NavigationTest {
         "/moderation/cases/3" to StaffRoute.ModerationCase(3),
         "/moderation/cases" to null,
         "/moderation/complaints/5" to StaffRoute.ComplaintReview(5),
+        "/moderation/complaints" to null,
+        "/moderation/complaints/x" to null,
+        "/moderation/cases/x" to null,
         "/moderation/roles" to StaffRoute.Roles,
         "/moderation/sperren" to StaffRoute.Suspensions,
         "/moderation/anderes" to null,
@@ -99,6 +102,7 @@ class NavigationTest {
         "/app/nachrichten#c" to ChatRoute.Conversations,
         "/app/nachrichten#c/0" to ChatRoute.Conversations,
         "/app/nachrichten#c/5/info" to ChatRoute.Details(5),
+        "/app/nachrichten#c/5/mehr" to ChatRoute.Conversations,
         "/app/nachrichten#c/5/x/y" to ChatRoute.Conversations,
         "/app/nachrichten#sonst" to ChatRoute.Conversations
     )
@@ -108,6 +112,7 @@ class NavigationTest {
         links.forEach { (path, route) -> assertEquals(path, route, DeepLink.route(base + path)) }
         assertEquals(MembershipRoute.Portal, DeepLink.route("oasis://app/mitgliedschaft/portal"))
         assertNull(DeepLink.route("oasis://"))
+        assertNull(DeepLink.route("mailto:hallo@get-oasis.com"))
         assertNull(DeepLink.route("kein link mit leerzeichen"))
         assertNull(DeepLink.route("$base/themen/100%"))
     }

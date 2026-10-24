@@ -57,4 +57,25 @@ class RootViewModelTest {
         model.clearConfirmation()
         assertNull(NetworkSignals.confirmation.value)
     }
+
+    @Test
+    fun `signing out before the tabs appeared`() = runTest {
+        val model = RootViewModel(session, live, purchases)
+        model.signOut()
+        assertEquals(SessionState.SignedOut, model.state.value)
+    }
+
+    @OptIn(androidx.compose.material3.ExperimentalMaterial3Api::class)
+    @Test
+    fun `a sheet with a draft cannot be swiped away`() {
+        assertEquals(
+            false,
+            de.velwebsolutions.oasis.app.ui.sheetMayChange(androidx.compose.material3.SheetValue.Hidden, dismissible = false)
+        )
+        assertEquals(true, de.velwebsolutions.oasis.app.ui.sheetMayChange(androidx.compose.material3.SheetValue.Hidden, dismissible = true))
+        assertEquals(
+            true,
+            de.velwebsolutions.oasis.app.ui.sheetMayChange(androidx.compose.material3.SheetValue.Expanded, dismissible = false)
+        )
+    }
 }

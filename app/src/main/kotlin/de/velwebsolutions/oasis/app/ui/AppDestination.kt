@@ -10,7 +10,6 @@ import de.velwebsolutions.oasis.design.navigation.LiveRoute
 import de.velwebsolutions.oasis.design.navigation.MembershipRoute
 import de.velwebsolutions.oasis.design.navigation.NetworkRoute
 import de.velwebsolutions.oasis.design.navigation.StaffRoute
-import de.velwebsolutions.oasis.design.navigation.WebRoute
 import de.velwebsolutions.oasis.live.LiveScreen
 import de.velwebsolutions.oasis.membership.MembershipScreen
 import de.velwebsolutions.oasis.network.NetworkScreen
@@ -32,7 +31,7 @@ fun AppDestination(route: AppRoute) {
 
         is StaffRoute -> StaffScreen(route)
 
-        // Websites open in a Custom Tab (Navigator.openWeb) and are never pushed.
-        is WebRoute -> Unit
+        // WebRoute: websites open in a Custom Tab (Navigator.openWeb) and are never pushed.
+        else -> Unit
     }
 }
