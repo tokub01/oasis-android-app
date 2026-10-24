@@ -80,7 +80,7 @@ class KeyringAndDevicesTest {
         val identity = crypto.createIdentity()
         val bundle = crypto.exportPublicKeys(identity)
         assertThrows(ChatCryptoException.WrongPassphrase::class.java) {
-            run { context.keyring.unlock(StoredIdentity("1", null, bundle), passphrase) }
+            run { context.keyring.unlock(StoredIdentity(null, bundle), passphrase) }
         }
         val other = crypto.createIdentity()
 
@@ -100,7 +100,7 @@ class KeyringAndDevicesTest {
                 identity.withPrivateKeys { _, s -> s.copyOf() }
             )
             assertThrows(ChatKeyringException.PublishedKeysMismatch::class.java) {
-                context.keyring.adopt(copy, StoredIdentity("1", null, published), context.vault.generation)
+                context.keyring.adopt(copy, StoredIdentity(null, published), context.vault.generation)
             }
             assertTrue(copy.isWiped)
         }
@@ -206,7 +206,7 @@ class KeyringAndDevicesTest {
         assertThrows(ChatKeyringException.DeviceUnlockUnsupported::class.java) { run { mira.devices.unlock(stored, emptyList()) } }
 
         val own = run { mira.devices.register() }
-        val foreign = DeviceUnlockRow("77", "web-passkey", "salt", "Browser", own.lockedIdentity, "2026-10-22T12:00:00Z")
+        val foreign = DeviceUnlockRow("77", "web-passkey", "Browser", own.lockedIdentity, "2026-10-22T12:00:00Z")
         run { mira.devices.remove(foreign) }
         assertNotNull("another device's row keeps this device's secret", run { secrets.credentialId("1") })
         run { mira.devices.remove(own) }

@@ -159,13 +159,13 @@ class DefaultChatRepository(client: ApiClient) : ChatRepository {
 
     override suspend fun deviceLinks() = service.deviceLinks().data
 
-    override suspend fun approveDeviceLink(id: String, locked: LockedIdentity, sealedKey: String) = service.approveDeviceLink(
-        id,
-        buildJsonObject {
-            put("locked_identity", locked.json())
-            put("sealed_key", sealedKey)
-        }
-    )
+    override suspend fun approveDeviceLink(id: String, locked: LockedIdentity, sealedKey: String) =
+        service.approveDeviceLink(id, approval(locked, sealedKey))
+
+    private fun approval(locked: LockedIdentity, sealedKey: String) = buildJsonObject {
+        put("locked_identity", locked.json())
+        put("sealed_key", sealedKey)
+    }
 
     override suspend fun rejectDeviceLink(id: String) = service.rejectDeviceLink(id)
 
@@ -193,7 +193,7 @@ class DefaultChatRepository(client: ApiClient) : ChatRepository {
         service.createConversation(
             buildJsonObject {
                 put("type", type)
-                put("title", title?.let(::JsonPrimitive) ?: JsonNull)
+                put("title", title)
                 put("member_ids", JsonArray(memberIds.mapNotNull { it.toLongOrNull()?.let(::JsonPrimitive) }))
                 put("lifetime_days", lifetimeDays)
             }
@@ -205,7 +205,7 @@ class DefaultChatRepository(client: ApiClient) : ChatRepository {
         id,
         buildJsonObject {
             if (lifetimeDays != null) put("lifetime_days", lifetimeDays)
-            if (setTitle) put("title", title?.let(::JsonPrimitive) ?: JsonNull)
+            if (setTitle) put("title", title)
         }
     ).data
 
@@ -218,13 +218,13 @@ class DefaultChatRepository(client: ApiClient) : ChatRepository {
 
     override suspend fun keyGrants(conversationId: String) = service.keyGrants(conversationId).data
 
-    override suspend fun storeKeyGrants(conversationId: String, keyVersion: Int, grants: List<KeyGrant>) = service.storeKeyGrants(
-        conversationId,
-        buildJsonObject {
-            put("key_version", keyVersion)
-            put("grants", grants.json())
-        }
-    )
+    override suspend fun storeKeyGrants(conversationId: String, keyVersion: Int, grants: List<KeyGrant>) =
+        service.storeKeyGrants(conversationId, grantsBody(keyVersion, grants))
+
+    private fun grantsBody(keyVersion: Int, grants: List<KeyGrant>) = buildJsonObject {
+        put("key_version", keyVersion)
+        put("grants", grants.json())
+    }
 
     override suspend fun activateKey(conversationId: String, keyVersion: Int) =
         service.activateKey(conversationId, buildJsonObject { put("key_version", keyVersion) }).data
@@ -245,14 +245,14 @@ class DefaultChatRepository(client: ApiClient) : ChatRepository {
 
     override suspend fun leave(conversationId: String) = service.leave(conversationId)
 
-    override suspend fun report(conversationId: String, envelope: MessageEnvelope, plaintext: String, reason: String) = service.report(
-        conversationId,
-        buildJsonObject {
-            put("envelope", envelope.toJsonObject())
-            put("plaintext", plaintext)
-            put("reason", reason)
-        }
-    )
+    override suspend fun report(conversationId: String, envelope: MessageEnvelope, plaintext: String, reason: String) =
+        service.report(conversationId, reportBody(envelope, plaintext, reason))
+
+    private fun reportBody(envelope: MessageEnvelope, plaintext: String, reason: String) = buildJsonObject {
+        put("envelope", envelope.toJsonObject())
+        put("plaintext", plaintext)
+        put("reason", reason)
+    }
 
     private companion object {
         /** Crypto objects as declared (camelCase `publicKeys`, nothing renamed). */
