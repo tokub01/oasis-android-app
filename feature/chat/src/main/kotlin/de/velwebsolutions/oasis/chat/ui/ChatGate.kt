@@ -4,6 +4,7 @@ import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.text.KeyboardActions
 import androidx.compose.material3.AlertDialog
@@ -21,7 +22,12 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.input.pointer.PointerEventPass
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.platform.testTag
+import androidx.compose.ui.text.AnnotatedString
+import androidx.compose.ui.text.SpanStyle
+import androidx.compose.ui.text.buildAnnotatedString
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.input.ImeAction
+import androidx.compose.ui.text.withStyle
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
@@ -39,6 +45,7 @@ import de.velwebsolutions.oasis.design.components.FieldError
 import de.velwebsolutions.oasis.design.components.LoadingView
 import de.velwebsolutions.oasis.design.components.OasisButton
 import de.velwebsolutions.oasis.design.components.OasisButtonKind
+import de.velwebsolutions.oasis.design.components.OasisKeyboard
 import de.velwebsolutions.oasis.design.components.OasisScreen
 import de.velwebsolutions.oasis.design.components.OasisTextButton
 import de.velwebsolutions.oasis.design.components.OasisTextField
@@ -213,11 +220,16 @@ private fun PassphraseForm(
     onSetUp: suspend () -> Unit
 ) {
     Column(verticalArrangement = Arrangement.spacedBy(24.dp)) {
-        Bullets(
+        RichBullets(
             listOf(
-                "Die Passphrase ist getrennt von deinem Passwort und verlässt nie dein Gerät.",
-                "Du gibst sie ein, wenn du die Nachrichten öffnest. Gespeichert wird auf deinem Gerät nichts.",
-                "Vergisst du sie, kann niemand deine Nachrichten wiederherstellen – auch wir nicht."
+                AnnotatedString("Die Passphrase ist getrennt von deinem Passwort und verlässt nie dein Gerät."),
+                AnnotatedString("Du gibst sie ein, wenn du die Nachrichten öffnest. Gespeichert wird auf deinem Gerät nichts."),
+                buildAnnotatedString {
+                    withStyle(SpanStyle(fontWeight = FontWeight.Bold, color = OasisColors.Night)) {
+                        append("Vergisst du sie, kann niemand deine Nachrichten wiederherstellen")
+                    }
+                    append(" – auch wir nicht.")
+                }
             )
         )
         Panel {
@@ -227,6 +239,8 @@ private fun PassphraseForm(
                 onPassphraseChange,
                 hint = "Mindestens $MIN_PASSPHRASE_LENGTH Zeichen. Gut merkbar sind mehrere Wörter, z. B. „Palme Regen Kompass Tee“.",
                 isSecure = true,
+                // "Weiter" moves on to the repetition, like iOS' submit label.
+                keyboardOptions = OasisKeyboard.Password.copy(imeAction = ImeAction.Next),
                 modifier = Modifier.testTag("chat.setup.passphrase")
             )
             OasisTextField(
@@ -234,6 +248,7 @@ private fun PassphraseForm(
                 state.confirmation,
                 onConfirmationChange,
                 isSecure = true,
+                keyboardOptions = OasisKeyboard.Password.copy(imeAction = ImeAction.Done),
                 modifier = Modifier.testTag("chat.setup.confirmation")
             )
             AnimatedVisibility(state.formError != null) { FieldError(state.formError.orEmpty()) }
@@ -308,6 +323,7 @@ internal fun ChatUnlockContent(
                     state.passphrase,
                     onPassphraseChange,
                     isSecure = true,
+                    keyboardOptions = OasisKeyboard.Password.copy(imeAction = ImeAction.Done),
                     keyboardActions = KeyboardActions(onDone = { scope.launch { onUnlock() } }),
                     modifier = Modifier.testTag("chat.unlock.passphrase")
                 )
@@ -389,5 +405,18 @@ private fun LinkBox(state: ChatAccessState, onRequestLink: suspend () -> Unit, o
             )
         }
         state.linkStatus?.let { Text(it, style = OasisType.Small, color = OasisColors.SunText) }
+    }
+}
+
+/** [Bullets] with emphasis inside an item (the setup's "Vergisst du sie …" in bold, as on iOS and the web). */
+@Composable
+private fun RichBullets(items: List<AnnotatedString>) {
+    Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
+        items.forEach { item ->
+            Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                Text("•", style = OasisType.Body, color = OasisColors.Ink2)
+                Text(item, style = OasisType.Body, color = OasisColors.Ink2)
+            }
+        }
     }
 }

@@ -8,6 +8,7 @@ import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.FlowRow
+import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -20,6 +21,7 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.BasicTextField
+import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.text.selection.SelectionContainer
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.outlined.Info
@@ -43,6 +45,7 @@ import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.liveRegion
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.font.FontStyle
+import androidx.compose.ui.text.input.KeyboardCapitalization
 import androidx.compose.ui.text.style.TextDecoration
 import androidx.compose.ui.unit.dp
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
@@ -65,6 +68,7 @@ import de.velwebsolutions.oasis.design.navigation.LocalNavigator
 import de.velwebsolutions.oasis.design.theme.OasisColors
 import de.velwebsolutions.oasis.design.theme.OasisRadius
 import de.velwebsolutions.oasis.design.theme.OasisType
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 
 /**
@@ -140,13 +144,18 @@ internal fun ConversationContent(
     var confirmBlockRequest by remember { mutableStateOf(false) }
     var confirmBlockFlagged by remember { mutableStateOf(false) }
 
-    // The newest message stays in view: on opening, on sending and on receiving.
+    // The newest message stays in view: on opening (without motion), on sending and on receiving. Older messages loaded
+    // above keep the last id, so they appear in place.
+    var shownLastId by remember { mutableStateOf<String?>(null) }
     LaunchedEffect(items.lastOrNull()?.id) {
-        if (items.isNotEmpty()) listState.animateScrollToItem(listState.layoutInfo.totalItemsCount.coerceAtLeast(1) - 1)
+        val lastId = items.lastOrNull()?.id ?: return@LaunchedEffect
+        val bottom = listState.layoutInfo.totalItemsCount.coerceAtLeast(1) - 1
+        if (shownLastId == null) listState.scrollToItem(bottom) else listState.animateScrollToItem(bottom)
+        shownLastId = lastId
     }
     LaunchedEffect(state.spokenNotice) {
         if (state.spokenNotice != null) {
-            kotlinx.coroutines.delay(1_500)
+            delay(1_500)
             onNoticeSpoken()
         }
     }
@@ -155,7 +164,7 @@ internal fun ConversationContent(
         LazyColumn(
             state = listState,
             modifier = Modifier.weight(1f).fillMaxWidth().testTag("chat.messages"),
-            contentPadding = androidx.compose.foundation.layout.PaddingValues(20.dp),
+            contentPadding = PaddingValues(20.dp),
             verticalArrangement = Arrangement.spacedBy(12.dp)
         ) {
             item {
@@ -200,7 +209,7 @@ internal fun ConversationContent(
                         Text(flagged.text, style = OasisType.Small, color = OasisColors.Ink2)
                         OasisButton("Blockieren und Chat löschen", { confirmBlockFlagged = true }, fullWidth = false)
                         OasisButton("Nachricht melden", { onReport(flagged.item) }, kind = OasisButtonKind.Secondary, fullWidth = false)
-                        SmallAction("Ist in Ordnung", onDismissFlagged)
+                        SmallAction("Ist in Ordnung", onDismissFlagged, underline = true)
                         Text(
                             "Diese Prüfung läuft nur auf deinem Gerät. Oasis liest deine Chats nicht; gemeldet wird nur, was du meldest.",
                             style = OasisType.Caption,
@@ -296,6 +305,7 @@ private fun ConversationComposer(state: ConversationState, onDraftChange: (Strin
                 enabled = state.canSend,
                 textStyle = OasisType.Body.copy(color = OasisColors.Ink),
                 cursorBrush = SolidColor(OasisColors.Night),
+                keyboardOptions = KeyboardOptions(capitalization = KeyboardCapitalization.Sentences),
                 minLines = 1,
                 maxLines = 6,
                 modifier = Modifier
