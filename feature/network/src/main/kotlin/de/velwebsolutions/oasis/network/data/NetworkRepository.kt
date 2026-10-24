@@ -196,7 +196,8 @@ class DefaultNetworkRepository @Inject constructor(client: ApiClient) : NetworkR
             add("tone_confirmed" to if (draft.toneConfirmed) "1" else "0")
             draft.alts.forEach { add("alts[]" to it) }
         }
-        val parts = fields.map { (name, value) -> MultipartBody.Part.createFormData(name, value) } + draft.images.map { file("images[]", it) }
+        val parts =
+            fields.map { (name, value) -> MultipartBody.Part.createFormData(name, value) } + draft.images.map { file("images[]", it) }
         return service.publish(parts)
     }
 
@@ -293,4 +294,3 @@ class DefaultNetworkRepository @Inject constructor(client: ApiClient) : NetworkR
         fun escape(segment: String): String = segment.replace("/", "")
     }
 }
-

@@ -28,7 +28,7 @@ data class PostListState<C>(
     /** The confirmation of the last action, shown as a toast. */
     val status: String? = null,
     /** An action or refresh that failed. */
-    val actionError: ApiError? = null,
+    val actionError: ApiError? = null
 ) {
     /** Whether every page is loaded (the list shows its honest end). */
     val reachedEnd: Boolean get() = state.valueOrNull != null && nextCursor == null
@@ -45,7 +45,7 @@ class PostListModel<C>(
     filter: String? = null,
     /** The Merkliste drops a Tropfen once it is no longer bookmarked, like the web's re-query. */
     private val dropsUnbookmarked: Boolean = false,
-    private val fetch: suspend NetworkRepository.(filter: String?, cursor: String?) -> FeedPage<C>,
+    private val fetch: suspend NetworkRepository.(filter: String?, cursor: String?) -> FeedPage<C>
 ) {
     private val mutableState = MutableStateFlow(PostListState<C>(filter = filter))
     val state: StateFlow<PostListState<C>> = mutableState.asStateFlow()
@@ -69,7 +69,13 @@ class PostListModel<C>(
             val page = repository.fetch(current.filter, null)
             if (started != generation) return
             mutableState.update {
-                it.copy(posts = page.data, context = page.context, nextCursor = page.nextCursor, loadMoreError = null, state = Loadable.Loaded(Unit))
+                it.copy(
+                    posts = page.data,
+                    context = page.context,
+                    nextCursor = page.nextCursor,
+                    loadMoreError = null,
+                    state = Loadable.Loaded(Unit)
+                )
             }
         } catch (error: CancellationException) {
             throw error
@@ -121,8 +127,8 @@ class PostListModel<C>(
      * the list after the server's confirmation, like the web's re-query.
      */
     suspend fun perform(action: PostAction, post: Post) {
-        val undo = action.undo
-        val optimistic = undo != null && !(action == PostAction.Unbookmark && dropsUnbookmarked)
+        val undo = action.undo?.takeUnless { action == PostAction.Unbookmark && dropsUnbookmarked }
+        val optimistic = undo != null
         if (optimistic) apply(action, post)
         try {
             val message = repository.perform(action, post)
@@ -131,7 +137,7 @@ class PostListModel<C>(
         } catch (error: CancellationException) {
             throw error
         } catch (error: Exception) {
-            if (optimistic && undo != null) mutableState.update { it.copy(posts = it.posts.applying(undo, post)) }
+            if (undo != null) mutableState.update { it.copy(posts = it.posts.applying(undo, post)) }
             mutableState.update { it.copy(actionError = ApiError.from(error)) }
         }
     }

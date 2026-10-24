@@ -15,7 +15,7 @@ data class Member(
     val displayName: String,
     val initials: String,
     val avatarColor: String = "sun",
-    val photoUrl: String? = null,
+    val photoUrl: String? = null
 )
 
 /**
@@ -28,7 +28,7 @@ data class TextSegment(
     val text: String,
     val url: String? = null,
     val username: String? = null,
-    val tag: String? = null,
+    val tag: String? = null
 ) {
     @Serializable
     enum class Kind {
@@ -42,7 +42,7 @@ data class TextSegment(
         Mention,
 
         @SerialName("tag")
-        Tag,
+        Tag
     }
 }
 
@@ -69,7 +69,7 @@ data class Post(
     val held: Held? = null,
     val stats: Stats? = null,
     val conversation: Conversation? = null,
-    val viewer: Viewer? = null,
+    val viewer: Viewer? = null
 ) {
     @Serializable
     data class OasisRef(val slug: String, val name: String, val color: String)
@@ -85,7 +85,7 @@ data class Post(
         val width: Int = 1,
         val height: Int = 1,
         /** The viewer sees images of this person only after tapping ("Wessen Bilder siehst du sofort?"). */
-        val covered: Boolean = false,
+        val covered: Boolean = false
     ) {
         val aspectRatio: Float get() = maxOf(width, 1).toFloat() / maxOf(height, 1).toFloat()
     }
@@ -101,7 +101,7 @@ data class Post(
             Muted,
 
             @SerialName("unavailable")
-            Unavailable,
+            Unavailable
         }
 
         @Serializable
@@ -135,7 +135,7 @@ data class Post(
         val canDelete: Boolean = false,
         val canRemoveFromOasis: Boolean = false,
         val hasMutedAuthor: Boolean = false,
-        val hasRestrictedAuthor: Boolean = false,
+        val hasRestrictedAuthor: Boolean = false
     )
 
     val isQuestion: Boolean get() = kind == "question"
@@ -153,7 +153,7 @@ data class PostDetail(
     val revisions: List<PostRevision> = emptyList(),
     val replies: List<Post> = emptyList(),
     val authorBio: String? = null,
-    val oasisDescription: String? = null,
+    val oasisDescription: String? = null
 )
 
 /** The edit form of a Tropfen. */
@@ -171,7 +171,7 @@ data class CarrySource(
     val author: Member,
     val body: String,
     val segments: List<TextSegment> = emptyList(),
-    val links: List<ExternalLink> = emptyList(),
+    val links: List<ExternalLink> = emptyList()
 )
 
 /** A choice with its German label (visibility, kind, colour). */
@@ -187,7 +187,7 @@ data class ComposerContext(
     val oasis: OasisName? = null,
     val links: List<ExternalLink> = emptyList(),
     val maxLength: Int = 500,
-    val maxImages: Int = 4,
+    val maxImages: Int = 4
 ) {
     @Serializable
     data class OasisName(val slug: String, val name: String)
@@ -216,5 +216,5 @@ data class PostDraft(
     val linkRead: Boolean = false,
     val toneConfirmed: Boolean = false,
     val images: List<ImageUpload> = emptyList(),
-    val alts: List<String> = emptyList(),
+    val alts: List<String> = emptyList()
 )

@@ -71,7 +71,7 @@ internal interface NetworkService {
     suspend fun composer(
         @Query("oasis") oasis: String?,
         @Query("reply_to") replyTo: Int?,
-        @Query("carried") carried: Int?,
+        @Query("carried") carried: Int?
     ): DataEnvelope<ComposerContext>
 
     @Multipart

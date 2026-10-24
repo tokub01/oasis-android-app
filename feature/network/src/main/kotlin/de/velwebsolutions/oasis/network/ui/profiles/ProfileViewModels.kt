@@ -106,7 +106,7 @@ data class EditProfileState(
     val toneConfirmed: Boolean = false,
     val toneNudge: Boolean = false,
     val toneHint: String? = null,
-    val uploading: Boolean = false,
+    val uploading: Boolean = false
 )
 
 /**
@@ -217,7 +217,14 @@ class EditProfileViewModel @Inject constructor(private val repository: NetworkRe
 
     private fun apply(loaded: OwnProfile) {
         mutableForm.update {
-            it.copy(bio = loaded.bio, location = loaded.location, color = loaded.avatarColor, toneHint = null, toneNudge = false, toneConfirmed = false)
+            it.copy(
+                bio = loaded.bio,
+                location = loaded.location,
+                color = loaded.avatarColor,
+                toneHint = null,
+                toneNudge = false,
+                toneConfirmed = false
+            )
         }
         mutableProfile.value = Loadable.Loaded(loaded)
     }

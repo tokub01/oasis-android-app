@@ -1,1 +1,23 @@
-<manifest />
+<?xml version="1.0" encoding="utf-8"?>
+<manifest xmlns:android="http://schemas.android.com/apk/res/android">
+
+    <!-- The camera app that takes a photo for a Tropfen, a profile or an oasis banner. -->
+    <queries>
+        <intent>
+            <action android:name="android.media.action.IMAGE_CAPTURE" />
+        </intent>
+    </queries>
+
+    <application>
+        <!-- Hands the camera app a file in the cache to write the photo to (own class, so it never clashes). -->
+        <provider
+            android:name="de.velwebsolutions.oasis.network.ui.components.CameraFileProvider"
+            android:authorities="${applicationId}.network.camera"
+            android:exported="false"
+            android:grantUriPermissions="true">
+            <meta-data
+                android:name="android.support.FILE_PROVIDER_PATHS"
+                android:resource="@xml/network_camera_paths" />
+        </provider>
+    </application>
+</manifest>

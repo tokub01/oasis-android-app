@@ -40,7 +40,8 @@ object ImageConverter {
 
     /** Reads a picked or photographed image off the main thread and converts it. */
     suspend fun upload(context: Context, uri: Uri, name: String, maxEdge: Int = 2048): ImageUpload? = withContext(Dispatchers.IO) {
-        val data = runCatching { context.contentResolver.openInputStream(uri)?.use { it.readBytes() } }.getOrNull() ?: return@withContext null
+        val data =
+            runCatching { context.contentResolver.openInputStream(uri)?.use { it.readBytes() } }.getOrNull() ?: return@withContext null
         withContext(Dispatchers.Default) { upload(data, name, maxEdge) }
     }
 
@@ -50,10 +51,15 @@ object ImageConverter {
         fun startsWith(vararg prefix: Int) = bytes.size >= prefix.size && prefix.indices.all { bytes[it] == prefix[it] }
         return when {
             startsWith(0xFF, 0xD8, 0xFF) -> FileType("jpg", "image/jpeg")
+
             startsWith(0x89, 0x50, 0x4E, 0x47) -> FileType("png", "image/png")
+
             startsWith(0x47, 0x49, 0x46, 0x38) -> FileType("gif", "image/gif")
-            bytes.size >= 12 && bytes.subList(0, 4) == listOf(0x52, 0x49, 0x46, 0x46) && bytes.subList(8, 12) == listOf(0x57, 0x45, 0x42, 0x50) ->
+
+            bytes.size >= 12 && bytes.subList(0, 4) == listOf(0x52, 0x49, 0x46, 0x46) &&
+                bytes.subList(8, 12) == listOf(0x57, 0x45, 0x42, 0x50) ->
                 FileType("webp", "image/webp")
+
             else -> null
         }
     }

@@ -41,7 +41,7 @@ data class ComposeUiState(
     val toneHint: String? = null,
     val images: List<PickedImage> = emptyList(),
     val error: ApiError? = null,
-    val isPublishing: Boolean = false,
+    val isPublishing: Boolean = false
 ) {
     val maxLength: Int get() = context.valueOrNull?.maxLength ?: 500
     val maxImages: Int get() = context.valueOrNull?.maxImages ?: 4
@@ -63,7 +63,13 @@ data class ComposeUiState(
             return if (name != null) "Dein Tropfen in $name" else "Dein Tropfen"
         }
 
-    val submitLabel: String get() = if (isReply) "Antworten" else if (isCarry) "Weitertragen" else "Tropfen teilen"
+    val submitLabel: String get() = if (isReply) {
+        "Antworten"
+    } else if (isCarry) {
+        "Weitertragen"
+    } else {
+        "Tropfen teilen"
+    }
 
     fun fieldError(field: String): String? = error?.message(field)
 
@@ -88,7 +94,7 @@ class ComposeViewModel @AssistedInject constructor(
     @Assisted("carried") carried: Int?,
     private val repository: NetworkRepository,
     private val common: CommonApi,
-    private val session: Session,
+    private val session: Session
 ) : ViewModel() {
     @AssistedFactory
     interface Factory {
@@ -177,7 +183,19 @@ class ComposeViewModel @AssistedInject constructor(
     fun updateAlt(index: Int, alt: String) {
         if (index !in current.images.indices) return
         val capped = prefix(alt, MAX_ALT_LENGTH)
-        mutableState.update { state -> state.copy(images = state.images.mapIndexed { position, image -> if (position == index) image.copy(alt = capped) else image }) }
+        mutableState.update { state ->
+            state.copy(
+                images = state.images.mapIndexed { position, image ->
+                    if (position ==
+                        index
+                    ) {
+                        image.copy(alt = capped)
+                    } else {
+                        image
+                    }
+                }
+            )
+        }
         saveDraft()
     }
 
@@ -196,7 +214,7 @@ class ComposeViewModel @AssistedInject constructor(
             linkRead = state.linkRead,
             toneConfirmed = state.toneConfirmed,
             images = state.images.map { it.upload },
-            alts = state.images.map { it.alt },
+            alts = state.images.map { it.alt }
         )
         return try {
             val result = repository.publish(draft)

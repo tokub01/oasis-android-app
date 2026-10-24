@@ -76,10 +76,12 @@ class PostDetailViewModel @AssistedInject constructor(@Assisted val id: Int, pri
                     mutableLeave.value = true
                     return
                 }
+
                 PostAction.Mute -> {
                     load()
                     return
                 }
+
                 else -> Unit
             }
         }
@@ -171,4 +173,3 @@ class CarryViewModel @AssistedInject constructor(@Assisted val id: Int, private 
         }
     }
 }
-

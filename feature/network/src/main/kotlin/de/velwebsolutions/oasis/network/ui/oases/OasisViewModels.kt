@@ -109,7 +109,7 @@ data class OasisFormState(
     /** The banner picked while founding; sent with "Oase eröffnen". */
     val banner: ImageUpload? = null,
     /** Where the form goes after saving. */
-    val outcome: OasisFormOutcome? = null,
+    val outcome: OasisFormOutcome? = null
 )
 
 /** Where the oasis form goes after saving. */

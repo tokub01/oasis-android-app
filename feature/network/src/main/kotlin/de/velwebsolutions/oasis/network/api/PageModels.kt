@@ -33,7 +33,7 @@ data class OasisSummary(
     val bannerUrl: String? = null,
     val membersCount: Int? = null,
     /** The viewer's (or the profile owner's) role: "host" or "member". */
-    val role: String? = null,
+    val role: String? = null
 )
 
 /** The Quelle's side information. */
@@ -44,7 +44,7 @@ data class SourceContext(
     val canPost: Boolean = true,
     val week: Week? = null,
     val oases: List<OasisSummary>? = null,
-    val openVote: Vote? = null,
+    val openVote: Vote? = null
 ) {
     @Serializable
     data class Week(val followers: Int = 0, val reactions: Int = 0, val karawane: Int = 0)
@@ -64,7 +64,7 @@ data class SearchContext(
     val searching: Boolean = false,
     val topic: String? = null,
     val people: List<Member>? = null,
-    val oases: List<OasisSummary>? = null,
+    val oases: List<OasisSummary>? = null
 )
 
 /** A topic page's context. */
@@ -78,7 +78,7 @@ data class SwipeDeck(
     val unreadChats: Int = 0,
     val unreadHints: Int = 0,
     val friendRequests: Int = 0,
-    val openVote: Vote? = null,
+    val openVote: Vote? = null
 ) {
     @Serializable
     data class Chapter(val key: String, val title: String, val reason: String = "", val posts: List<Post> = emptyList())
@@ -97,7 +97,7 @@ data class MemberStatistics(val totals: Totals, val weekly: List<Week> = emptyLi
         val replies: Int = 0,
         val carries: Int = 0,
         val followers: Int = 0,
-        val following: Int = 0,
+        val following: Int = 0
     )
 
     @Serializable

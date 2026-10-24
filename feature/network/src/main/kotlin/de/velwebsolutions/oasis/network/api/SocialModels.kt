@@ -36,7 +36,7 @@ data class Profile(
      */
     val chatHint: String? = null,
     val hasMuted: Boolean = false,
-    val hasRestricted: Boolean = false,
+    val hasRestricted: Boolean = false
 )
 
 /** The own profile form ("Dein Profil"). */
@@ -49,7 +49,7 @@ data class OwnProfile(
     val hasPhoto: Boolean = false,
     val bannerUrl: String? = null,
     val bioHeld: Boolean = false,
-    val colors: List<Choice> = emptyList(),
+    val colors: List<Choice> = emptyList()
 )
 
 /** "Freund:innen": the three lists. */
@@ -58,7 +58,7 @@ data class FriendLists(
     val incoming: List<Member> = emptyList(),
     val friends: List<Member> = emptyList(),
     val outgoing: List<Member> = emptyList(),
-    val acceptsRequests: Boolean = true,
+    val acceptsRequests: Boolean = true
 )
 
 /** "Menschen einladen". */
@@ -72,7 +72,7 @@ data class InvitationOverview(
     val freeMonthsPerYear: Int = 0,
     val freeMonthsWaiting: Int = 0,
     val trialDays: Int = 0,
-    val canCreate: Boolean = false,
+    val canCreate: Boolean = false
 ) {
     @Serializable
     data class Link(
@@ -81,7 +81,7 @@ data class InvitationOverview(
         val expiresAt: OasisInstant,
         val expired: Boolean = false,
         val acceptedAt: OasisInstant? = null,
-        val reward: Reward? = null,
+        val reward: Reward? = null
     ) {
         @Serializable
         data class Reward(val appliedAt: OasisInstant? = null)

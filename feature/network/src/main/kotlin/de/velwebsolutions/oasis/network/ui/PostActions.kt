@@ -15,7 +15,7 @@ enum class PostAction {
     Unmute,
     Restrict,
     Unrestrict,
-    Block,
+    Block
     ;
 
     /** The opposite of a reaction or bookmark, to roll back an optimistic toggle; null for every other action. */
@@ -59,13 +59,15 @@ fun List<Post>.applying(action: PostAction, post: Post): List<Post> = when (acti
             val on = action == PostAction.React
             item.copy(
                 viewer = item.viewer?.copy(reacted = on),
-                stats = item.stats?.let { it.copy(reactions = it.reactions + if (on) 1 else -1) },
+                stats = item.stats?.let { it.copy(reactions = it.reactions + if (on) 1 else -1) }
             )
         }
     }
+
     PostAction.Bookmark, PostAction.Unbookmark -> map { item ->
         if (item.id == post.id) item.copy(viewer = item.viewer?.copy(bookmarked = action == PostAction.Bookmark)) else item
     }
+
     PostAction.Restrict, PostAction.Unrestrict -> map { item ->
         if (item.author.id == post.author.id) {
             item.copy(viewer = item.viewer?.copy(hasRestrictedAuthor = action == PostAction.Restrict))
@@ -73,9 +75,12 @@ fun List<Post>.applying(action: PostAction, post: Post): List<Post> = when (acti
             item
         }
     }
+
     PostAction.Unmute -> map { item ->
         if (item.author.id == post.author.id) item.copy(viewer = item.viewer?.copy(hasMutedAuthor = false)) else item
     }
+
     PostAction.Delete, PostAction.RemoveFromOasis -> filterNot { it.id == post.id }
+
     PostAction.Mute, PostAction.Block -> filterNot { it.author.id == post.author.id }
 }

@@ -14,7 +14,7 @@ data class OasisDirectory(
     val mine: List<OasisSummary> = emptyList(),
     val others: List<OasisSummary> = emptyList(),
     val canCreate: Boolean = false,
-    val options: OasisOptions = OasisOptions(),
+    val options: OasisOptions = OasisOptions()
 )
 
 /** An oasis page without its Tropfen. */
@@ -27,7 +27,7 @@ data class OasisDetail(
     val isMember: Boolean = false,
     val isHost: Boolean = false,
     val canFollow: Boolean = false,
-    val canPost: Boolean = false,
+    val canPost: Boolean = false
 )
 
 /** The member list of an oasis, for its members. */
@@ -36,7 +36,7 @@ data class OasisMembers(
     val members: List<Entry> = emptyList(),
     val hiddenMembers: Int = 0,
     /** The viewer's own list audience when it limits them: "contacts" or "nobody". */
-    val ownListAudience: String? = null,
+    val ownListAudience: String? = null
 ) {
     @Serializable
     data class Entry(
@@ -46,7 +46,7 @@ data class OasisMembers(
         val initials: String,
         val avatarColor: String = "sun",
         val photoUrl: String? = null,
-        val canWrite: Boolean = false,
+        val canWrite: Boolean = false
     ) {
         val member: Member get() = Member(id, username, displayName, initials, avatarColor, photoUrl)
     }
@@ -58,7 +58,7 @@ data class OasisEditForm(
     val oasis: OasisSummary,
     val houseRules: String = "",
     val members: List<MemberRole> = emptyList(),
-    val options: OasisOptions = OasisOptions(),
+    val options: OasisOptions = OasisOptions()
 ) {
     @Serializable
     data class MemberRole(val id: Int, val username: String, val displayName: String, val role: String, val roleLabel: String)
@@ -71,11 +71,17 @@ data class OasisInput(
     val description: String = "",
     val houseRules: String = "",
     val visibility: String = "public",
-    val color: String = "spring",
+    val color: String = "spring"
 ) {
     /** The multipart fields when founding (with the optional banner). */
     val fields: List<Pair<String, String>>
-        get() = listOf("name" to name, "description" to description, "house_rules" to houseRules, "visibility" to visibility, "color" to color)
+        get() = listOf(
+            "name" to name,
+            "description" to description,
+            "house_rules" to houseRules,
+            "visibility" to visibility,
+            "color" to color
+        )
 }
 
 /** The confirmation page before closing an oasis. */
@@ -92,7 +98,7 @@ data class OasisStatistics(val name: String, val totals: Totals, val weekly: Lis
         val posts: Int = 0,
         @SerialName("posts_30_days") val posts30Days: Int = 0,
         @SerialName("active_authors_30_days") val activeAuthors30Days: Int = 0,
-        val removed: Int = 0,
+        val removed: Int = 0
     )
 
     @Serializable
