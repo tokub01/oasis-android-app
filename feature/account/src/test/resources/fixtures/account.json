@@ -1,0 +1,14 @@
+{
+ "data": {
+  "display_name": "Mira Sol",
+  "username": "mira",
+  "email": "mira@demo.oasis.tld",
+  "email_verified": true,
+  "two_factor": {
+   "state": "off",
+   "setup_key": null,
+   "otpauth_url": null
+  },
+  "password_confirmed": false
+ }
+}

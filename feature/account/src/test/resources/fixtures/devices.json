@@ -1,0 +1,36 @@
+{
+ "data": {
+  "current": {
+   "name": "iPhone von Mira",
+   "device": "Oasis-App auf iOS",
+   "ip": "192.168.65.…"
+  },
+  "apps": [
+   {
+    "id": 12,
+    "name": "iPad von Mira",
+    "signed_in_at": "2026-10-22T15:41:32.000000Z",
+    "last_used_at": "2026-10-22T15:41:32.000000Z"
+   }
+  ],
+  "sessions_listable": true,
+  "sessions": [
+   {
+    "key": "790861722d6cff63bc8507158dc695a7895a7830cde03ff7e45b43fa37c22fc0",
+    "device": "Unbekannter Browser auf unbekanntem System",
+    "ip": "192.168.65.…",
+    "last_active_at": "2026-10-22T13:32:29.000000Z"
+   }
+  ],
+  "known": [
+   {
+    "id": 1,
+    "label": "Unbekannter Browser auf unbekanntem System",
+    "last_seen_at": "2026-10-22T15:50:52.000000Z"
+   }
+  ],
+  "login_alerts": true,
+  "chat_devices": [],
+  "chat_passphrase": false
+ }
+}

@@ -1,0 +1,19 @@
+{
+ "data": [
+  {
+   "term": "Tropfen",
+   "slug": "tropfen",
+   "explanation": "Ein Beitrag auf Oasis – ein Gedanke, eine Frage, ein Bild. Wie ein Tweet oder Post, nur ruhiger."
+  },
+  {
+   "term": "Quelle",
+   "slug": "quelle",
+   "explanation": "Deine Startseite: Tropfen von Menschen und Oasen, denen du folgst, der Reihe nach und mit Ende. Unter „Ganz Oasis“ siehst du alle öffentlichen Tropfen."
+  },
+  {
+   "term": "Oase",
+   "slug": "oase",
+   "explanation": "Eine Gruppe zu einem Thema, zum Beispiel Garten, Fotografie oder deine Stadt. Tritt bei, dann landen ihre Tropfen in deiner Quelle."
+  }
+ ]
+}
