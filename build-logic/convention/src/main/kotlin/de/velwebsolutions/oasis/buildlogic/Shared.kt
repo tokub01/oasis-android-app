@@ -69,6 +69,17 @@ internal fun Project.configureKover(sourceVariant: String) {
             classes(GeneratedClasses)
             annotatedBy(*GeneratedAnnotations)
         }
+        // Every line and every branch of every module is tested (`koverVerifyOasis`, enforced in CI).
+        reports.verify.rule {
+            bound {
+                minValue.set(100)
+                coverageUnits.set(kotlinx.kover.gradle.plugin.dsl.CoverageUnit.LINE)
+            }
+            bound {
+                minValue.set(100)
+                coverageUnits.set(kotlinx.kover.gradle.plugin.dsl.CoverageUnit.BRANCH)
+            }
+        }
     }
 }
 

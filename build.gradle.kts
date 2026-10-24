@@ -63,4 +63,14 @@ kover {
         )
         annotatedBy("dagger.Module", "androidx.compose.ui.tooling.preview.Preview")
     }
+    reports.verify.rule {
+        bound {
+            minValue = 100
+            coverageUnits = kotlinx.kover.gradle.plugin.dsl.CoverageUnit.LINE
+        }
+        bound {
+            minValue = 100
+            coverageUnits = kotlinx.kover.gradle.plugin.dsl.CoverageUnit.BRANCH
+        }
+    }
 }

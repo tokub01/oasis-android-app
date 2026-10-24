@@ -62,13 +62,16 @@ class KeystoreTokenStore(
 ) : TokenStore {
     private val preferences = context.getSharedPreferences("oasis.session", Context.MODE_PRIVATE)
     private val lock = Any()
-    private var cached: Result<String?>? = null
+    private var loaded = false
+    private var cached: String? = null
 
     override fun read(): String? = synchronized(lock) {
-        cached?.let { return it.getOrNull() }
-        val token = preferences.getString(KEY, null)?.let { runCatching { decrypt(it) }.getOrNull() }
-        cached = Result.success(token)
-        token
+        if (!loaded) {
+            val stored = preferences.getString(KEY, null)
+            cached = if (stored == null) null else runCatching { decrypt(stored) }.getOrNull()
+            loaded = true
+        }
+        cached
     }
 
     override fun write(token: String?) = synchronized(lock) {
@@ -76,7 +79,8 @@ class KeystoreTokenStore(
         preferences.edit(commit = true) {
             if (token == null) remove(KEY) else putString(KEY, encrypt(token))
         }
-        cached = Result.success(token)
+        cached = token
+        loaded = true
     }
 
     private fun encrypt(token: String): String {
