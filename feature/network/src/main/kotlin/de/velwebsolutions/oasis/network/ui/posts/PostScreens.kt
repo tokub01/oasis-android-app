@@ -8,6 +8,7 @@ import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.outlined.Close
 import androidx.compose.material.icons.outlined.Share
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
@@ -105,11 +106,12 @@ fun ComposeScreen(oasisSlug: String?, replyTo: Int?) {
         closesItself = true,
         navigationAction = {
             if (navigator.sheet != null) {
-                OasisTextButton(
-                    "Schließen",
-                    { if (state.hasDraft) confirmDiscard = true else close() },
+                IconButton(
+                    onClick = { if (state.hasDraft) confirmDiscard = true else close() },
                     modifier = Modifier.testTag("compose.close")
-                )
+                ) {
+                    Icon(Icons.Outlined.Close, contentDescription = "Schließen", tint = OasisColors.Night)
+                }
             }
         }
     ) {

@@ -11,12 +11,13 @@ import androidx.compose.foundation.layout.statusBars
 import androidx.compose.foundation.layout.windowInsetsTopHeight
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.outlined.ArrowBack
-import androidx.compose.material3.CenterAlignedTopAppBar
+import androidx.compose.material.icons.outlined.Close
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
+import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.Immutable
@@ -30,7 +31,8 @@ import de.velwebsolutions.oasis.design.theme.OasisType
 /**
  * Where a screen is shown, set by the app shell: the root of a tab (the web header with logo, search, bell and "Mehr"
  * replaces the title bar, like the iOS tab roots), pushed on a stack (back arrow and title), or the first screen of a
- * sheet ("Schließen").
+ * sheet (close icon, like a Material full-screen dialog). Android patterns throughout: Material top app bar, system and
+ * predictive back, snackbars for confirmations.
  */
 @Immutable
 data class ScreenChrome(
@@ -62,9 +64,9 @@ fun OasisScreen(
     error: String? = null,
     onDismissMessage: () -> Unit = {},
     onDismissError: () -> Unit = {},
-    /** Replaces "Schließen" in a sheet when the screen closes itself (e.g. the composer asks before discarding). */
+    /** Replaces the close icon of a sheet when the screen closes itself (e.g. the composer asks before discarding). */
     closesItself: Boolean = false,
-    /** The leading bar button of a screen that closes itself (the composer's "Schließen"). */
+    /** The leading bar button of a screen that closes itself (the composer's close icon, which asks before discarding). */
     navigationAction: (@Composable () -> Unit)? = null,
     content: @Composable () -> Unit
 ) {
@@ -83,9 +85,9 @@ fun OasisScreen(
                 } else if (header != null) {
                     header(actions)
                 } else {
-                    CenterAlignedTopAppBar(
+                    TopAppBar(
                         title = {
-                            if (title != null) Text(title, style = OasisType.BodyBold, maxLines = 1, overflow = TextOverflow.Ellipsis)
+                            if (title != null) Text(title, style = OasisType.CardTitle, maxLines = 1, overflow = TextOverflow.Ellipsis)
                         },
                         navigationIcon = {
                             val onBack = chrome.onBack
@@ -95,7 +97,9 @@ fun OasisScreen(
                                     Icon(Icons.AutoMirrored.Outlined.ArrowBack, contentDescription = "Zurück", tint = OasisColors.Night)
                                 }
 
-                                onClose != null && !closesItself -> OasisTextButton("Schließen", onClose)
+                                onClose != null && !closesItself -> IconButton(onClick = onClose) {
+                                    Icon(Icons.Outlined.Close, contentDescription = "Schließen", tint = OasisColors.Night)
+                                }
 
                                 navigationAction != null -> navigationAction()
                             }

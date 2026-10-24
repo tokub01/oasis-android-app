@@ -20,12 +20,20 @@ import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.outlined.CheckCircle
-import androidx.compose.material.icons.outlined.ErrorOutline
+import androidx.compose.material.icons.outlined.Close
 import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
+import androidx.compose.material3.Snackbar
+import androidx.compose.material3.SnackbarDuration
+import androidx.compose.material3.SnackbarHost
+import androidx.compose.material3.SnackbarHostState
+import androidx.compose.material3.SnackbarVisuals
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.shadow
@@ -44,6 +52,7 @@ import de.velwebsolutions.oasis.design.theme.OasisColors
 import de.velwebsolutions.oasis.design.theme.OasisRadius
 import de.velwebsolutions.oasis.design.theme.OasisType
 import kotlinx.coroutines.delay
+import kotlinx.coroutines.withTimeoutOrNull
 
 /** The colour of a [Pill]. */
 enum class PillTone {
@@ -90,9 +99,9 @@ fun Pill(text: String, modifier: Modifier = Modifier, tone: PillTone = PillTone.
 }
 
 /**
- * The confirmation of the last action and the last error as a toast above the bottom of the screen (the web's
- * `x-oasis.status`): always in view whatever was tapped, read out by TalkBack, with a haptic, gone after a few seconds
- * or on tap. Showing a text shows it; the toast calls the dismiss callback to set it back to null.
+ * The confirmation of the last action and the last error as a Material snackbar at the bottom of the screen (the web's
+ * `x-oasis.status`, a toast on iOS): always in view whatever was tapped, announced by TalkBack, with a haptic, gone after
+ * a few seconds or when swiped. Setting a text shows it; the snackbar calls the dismiss callback to set it back to null.
  */
 @Composable
 fun BoxScope.StatusToast(
@@ -103,61 +112,52 @@ fun BoxScope.StatusToast(
     modifier: Modifier = Modifier
 ) {
     val haptics = LocalHapticFeedback.current
-    LaunchedEffect(message) {
-        if (message != null) {
-            haptics.performHapticFeedback(HapticFeedbackType.Confirm)
-            delay(5_000)
-            onDismissMessage()
-        }
-    }
+    val host = remember { SnackbarHostState() }
+    val currentDismissMessage by rememberUpdatedState(onDismissMessage)
+    val currentDismissError by rememberUpdatedState(onDismissError)
     LaunchedEffect(error) {
         if (error != null) {
             haptics.performHapticFeedback(HapticFeedbackType.Reject)
-            delay(8_000)
-            onDismissError()
+            host.currentSnackbarData?.dismiss()
+            withTimeoutOrNull(8_000) { host.showSnackbar(StatusVisuals(error, isError = true)) }
+            currentDismissError()
         }
     }
-    Column(
-        modifier = modifier
-            .align(Alignment.BottomCenter)
-            .widthIn(max = 720.dp)
-            .padding(horizontal = 16.dp, vertical = 12.dp),
-        verticalArrangement = Arrangement.spacedBy(8.dp)
-    ) {
-        AnimatedVisibility(error != null, enter = fadeIn() + slideInVertically { it }, exit = fadeOut() + slideOutVertically { it }) {
-            Toast(error.orEmpty(), isError = true, onTap = onDismissError, modifier = Modifier.testTag("status.error"))
+    LaunchedEffect(message) {
+        if (message != null) {
+            haptics.performHapticFeedback(HapticFeedbackType.Confirm)
+            host.currentSnackbarData?.dismiss()
+            withTimeoutOrNull(5_000) { host.showSnackbar(StatusVisuals(message, isError = false)) }
+            currentDismissMessage()
         }
-        AnimatedVisibility(message != null, enter = fadeIn() + slideInVertically { it }, exit = fadeOut() + slideOutVertically { it }) {
-            Toast(message.orEmpty(), isError = false, onTap = onDismissMessage, modifier = Modifier.testTag("status.message"))
+    }
+    SnackbarHost(
+        host,
+        modifier = modifier.align(Alignment.BottomCenter).widthIn(max = 720.dp).padding(horizontal = 8.dp, vertical = 8.dp)
+    ) { data ->
+        val isError = (data.visuals as? StatusVisuals)?.isError == true
+        Snackbar(
+            modifier = Modifier
+                .testTag(if (isError) "status.error" else "status.message")
+                .semantics { liveRegion = LiveRegionMode.Polite },
+            shape = RoundedCornerShape(OasisRadius.CHIP.dp),
+            containerColor = if (isError) OasisColors.SunText else OasisColors.Night,
+            contentColor = if (isError) OasisColors.Paper else OasisColors.OnNight,
+            dismissAction = {
+                IconButton(onClick = { data.dismiss() }) {
+                    Icon(Icons.Outlined.Close, contentDescription = "Schließen")
+                }
+            }
+        ) {
+            Text(data.visuals.message, style = OasisType.Small)
         }
     }
 }
 
-@Composable
-private fun Toast(text: String, isError: Boolean, onTap: () -> Unit, modifier: Modifier = Modifier) {
-    val shape = RoundedCornerShape(OasisRadius.TILE.dp)
-    Row(
-        modifier = modifier
-            .fillMaxWidth()
-            .shadow(12.dp, shape, ambientColor = OasisColors.Night.copy(alpha = 0.15f), spotColor = OasisColors.Night.copy(alpha = 0.15f))
-            .background(if (isError) OasisColors.Paper else OasisColors.Night, shape)
-            .then(if (isError) Modifier.border(1.dp, OasisColors.SunText, shape) else Modifier)
-            .clickable(onClick = onTap)
-            .semantics {
-                liveRegion = LiveRegionMode.Polite
-                onClick(label = "Schließen") {
-                    onTap()
-                    true
-                }
-            }
-            .padding(horizontal = 16.dp, vertical = 12.dp),
-        horizontalArrangement = Arrangement.spacedBy(10.dp),
-        verticalAlignment = Alignment.CenterVertically
-    ) {
-        val color = if (isError) OasisColors.SunText else OasisColors.OnNight
-        Icon(if (isError) Icons.Outlined.ErrorOutline else Icons.Outlined.CheckCircle, contentDescription = null, tint = color)
-        Text(text, style = OasisType.Small, color = color)
-    }
+private class StatusVisuals(override val message: String, val isError: Boolean) : SnackbarVisuals {
+    override val actionLabel: String? = null
+    override val withDismissAction: Boolean = true
+    override val duration: SnackbarDuration = SnackbarDuration.Indefinite
 }
 
 /** A Box with the status toast on top of [content]. */
