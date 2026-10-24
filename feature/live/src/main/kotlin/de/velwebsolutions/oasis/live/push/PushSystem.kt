@@ -7,6 +7,7 @@ import android.content.Intent
 import android.content.pm.PackageManager
 import android.os.Build
 import android.provider.Settings
+import androidx.core.content.edit
 import com.google.firebase.FirebaseApp
 import com.google.firebase.messaging.FirebaseMessaging
 import kotlin.coroutines.resume
@@ -52,13 +53,13 @@ class PreferencesPushStore(context: Context) : PushStore {
     override var deviceId: Int?
         get() = preferences.getInt(DEVICE_ID, -1).takeIf { it >= 0 }
         set(value) {
-            preferences.edit().apply { if (value == null) remove(DEVICE_ID) else putInt(DEVICE_ID, value) }.apply()
+            preferences.edit { if (value == null) remove(DEVICE_ID) else putInt(DEVICE_ID, value) }
         }
 
     override var optedOut: Boolean
         get() = preferences.getBoolean(OPTED_OUT, false)
         set(value) {
-            preferences.edit().putBoolean(OPTED_OUT, value).apply()
+            preferences.edit { putBoolean(OPTED_OUT, value) }
         }
 
     private companion object {
@@ -96,7 +97,7 @@ class AndroidPushSystem(private val context: Context) : PushSystem {
     }
 
     override fun permissionAnswered(granted: Boolean) {
-        preferences.edit().putBoolean(ASKED, true).apply()
+        preferences.edit { putBoolean(ASKED, true) }
     }
 
     // Firebase 26 marks the token calls deprecated; they are still the documented way to read and drop the FCM token.
