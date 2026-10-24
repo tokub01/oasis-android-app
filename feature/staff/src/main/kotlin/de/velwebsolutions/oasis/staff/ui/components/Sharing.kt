@@ -13,6 +13,7 @@ class StaffFileProvider : FileProvider(R.xml.staff_files)
 
 /** The share sheet for the evidence archive and the drafted breach report. */
 object Sharing {
+    /** Hands [file] to the share sheet with read access for the chosen app. */
     fun shareFile(context: Context, file: File, mimeType: String, title: String) {
         val uri = FileProvider.getUriForFile(context, "${context.packageName}.staff.files", file)
         val send = Intent(Intent.ACTION_SEND)
@@ -24,6 +25,7 @@ object Sharing {
         start(context, Intent.createChooser(send, title))
     }
 
+    /** Hands a text to the share sheet. */
     fun shareText(context: Context, text: String, title: String) {
         start(context, Intent.createChooser(Intent(Intent.ACTION_SEND).setType("text/plain").putExtra(Intent.EXTRA_TEXT, text), title))
     }

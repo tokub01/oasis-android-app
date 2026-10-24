@@ -48,11 +48,13 @@ import kotlinx.coroutines.launch
  * decides it (DSA Art. 20, AGB § 12).
  */
 @Composable
-fun ComplaintReviewScreen(complaintId: Int) {
-    val viewModel = hiltViewModel<ComplaintReviewViewModel, ComplaintReviewViewModel.Factory>(
+fun ComplaintReviewScreen(
+    complaintId: Int,
+    viewModel: ComplaintReviewViewModel = hiltViewModel<ComplaintReviewViewModel, ComplaintReviewViewModel.Factory>(
         key = "complaint-$complaintId",
         creationCallback = { it.create(complaintId) }
     )
+) {
     val state by viewModel.state.collectAsStateWithLifecycle()
     ComplaintReviewContent(
         state,
@@ -66,6 +68,7 @@ fun ComplaintReviewScreen(complaintId: Int) {
     )
 }
 
+/** The complaint page without its view model, for the app and for tests. */
 @Composable
 fun ComplaintReviewContent(
     state: ComplaintReviewUiState,
@@ -79,7 +82,7 @@ fun ComplaintReviewContent(
 ) {
     val navigator = LocalNavigator.current
     val scope = rememberCoroutineScope()
-    var confirmReview by remember { mutableStateOf(false) }
+    var confirmReview by remember { mutableStateOf<ComplaintDetail?>(null) }
     OasisScreen(
         "Widerspruch",
         message = state.message,
@@ -138,7 +141,7 @@ fun ComplaintReviewContent(
                         // A chosen result is confirmed first; without one the server names what is missing.
                         val incomplete = state.result.isEmpty() ||
                             (state.result == "overturned" && (state.statement.outcome.isEmpty() || state.statement.ground.isEmpty()))
-                        if (incomplete) onReview() else confirmReview = true
+                        if (incomplete) onReview() else confirmReview = complaint
                     }
 
                     else -> Text(
@@ -155,22 +158,21 @@ fun ComplaintReviewContent(
             }
         }
     }
-    if (confirmReview) {
+    confirmReview?.let { complaint ->
         ConfirmDialog(
             "Ergebnis mitteilen?",
             "Speichern und mitteilen",
             { scope.launch { onReview() } },
-            { confirmReview = false },
-            message = reviewSummary(state),
+            { confirmReview = null },
+            message = reviewSummary(state, complaint),
             confirmTag = "complaint.save.confirm"
         )
     }
 }
 
 /** What the result does, before it goes out to the complainant and the affected person. */
-private fun reviewSummary(state: ComplaintReviewUiState): String {
-    val complaint = state.complaint.valueOrNull
-    if (state.result != "overturned" || complaint == null) {
+internal fun reviewSummary(state: ComplaintReviewUiState, complaint: ComplaintDetail): String {
+    if (state.result != "overturned") {
         return "Die Entscheidung bleibt bestehen. Die Person, die widersprochen hat, bekommt die Begründung per E-Mail."
     }
     val outcome = complaint.outcomes.firstOrNull { it.value == state.statement.outcome }?.label.orEmpty()

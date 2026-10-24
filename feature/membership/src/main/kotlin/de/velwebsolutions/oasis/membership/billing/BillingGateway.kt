@@ -13,7 +13,7 @@ data class PlayProduct(
     val price: String,
     val period: BillingPeriod,
     /** The base plan's offer token Play needs to start the purchase. */
-    val offerToken: String? = null
+    val offerToken: String?
 )
 
 /** The renewal period of a subscription (ISO 8601 `P1M`, `P1Y`, `P1W`). */
@@ -41,9 +41,7 @@ data class PlayPurchase(
     val productIds: List<String>,
     /** Paid; false while the payment is still pending (for example cash payments or parental approval). */
     val isPurchased: Boolean,
-    val isAcknowledged: Boolean,
-    /** The obfuscated account id the purchase was started with (the member's account token). */
-    val accountId: String? = null
+    val isAcknowledged: Boolean
 ) {
     /** The first of our products in the purchase. */
     val productId: String? get() = productIds.firstOrNull { PlayProducts.entry(it) != null }
@@ -58,16 +56,19 @@ data class PlayPurchaseReceipt(val purchaseToken: String, val productId: String)
 
 /** How a purchase flow ended. */
 sealed interface PurchaseOutcome {
+    /** Paid; the purchases go to the server. */
     data class Purchased(val purchases: List<PlayPurchase>) : PurchaseOutcome
 
     /** Bought, but the payment is still pending; Play reports it again once it is paid. */
     data object Pending : PurchaseOutcome
 
+    /** The member closed Play's sheet. */
     data object Cancelled : PurchaseOutcome
 
     /** Google Play is not available on this device (no Play Store, not signed in, unsupported country). */
     data object Unavailable : PurchaseOutcome
 
+    /** Play could not complete the purchase. */
     data object Failed : PurchaseOutcome
 }
 

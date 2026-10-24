@@ -13,6 +13,7 @@ class PlayDelivery @Inject constructor(
     private val gateway: BillingGateway,
     private val verifier: PlayPurchaseVerifier
 ) {
+    /** What happened to a purchase handed to the server. */
     sealed interface Result {
         /** The server unlocked the membership; the purchase is acknowledged. */
         data class Unlocked(val update: Confirmed<MembershipOverview>) : Result

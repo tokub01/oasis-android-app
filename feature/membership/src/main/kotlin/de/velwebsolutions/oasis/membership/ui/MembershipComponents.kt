@@ -36,7 +36,6 @@ import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.AnnotatedString
 import androidx.compose.ui.text.SpanStyle
-import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.buildAnnotatedString
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextDecoration
@@ -61,7 +60,7 @@ enum class StatusTone { Spring, Sun, Dune }
  * has no such light tones.
  */
 @Composable
-fun StatusPill(text: String, icon: ImageVector, modifier: Modifier = Modifier, tone: StatusTone = StatusTone.Spring) {
+fun StatusPill(text: String, icon: ImageVector, modifier: Modifier, tone: StatusTone = StatusTone.Spring) {
     val foreground = when (tone) {
         StatusTone.Spring -> OasisColors.SpringText
         StatusTone.Sun -> OasisColors.SunInk
@@ -106,7 +105,7 @@ fun ContractDetails(rows: List<Pair<String, String>>) {
 
 /** A text link in the web's `o-link` style. */
 @Composable
-fun InlineLink(title: String, onClick: () -> Unit, modifier: Modifier = Modifier, color: Color = Color.Unspecified) {
+fun InlineLink(title: String, onClick: () -> Unit, modifier: Modifier = Modifier, color: Color) {
     Box(modifier.defaultMinSize(minHeight = 44.dp).pressable(onClick), contentAlignment = Alignment.CenterStart) {
         Text(title, style = OasisType.SmallBold.copy(textDecoration = TextDecoration.Underline), color = color)
     }
@@ -121,12 +120,12 @@ fun boldMarkdown(text: String): AnnotatedString = buildAnnotatedString {
 
 /** A bulleted list whose items may contain `**bold**` parts. */
 @Composable
-fun RichBullets(items: List<String>, style: TextStyle = OasisType.Body, color: Color = OasisColors.Ink2) {
+fun RichBullets(items: List<String>) {
     Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
         items.forEach { item ->
             Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                Text("•", style = style, color = color)
-                Text(boldMarkdown(item), style = style, color = color)
+                Text("•", style = OasisType.Body, color = OasisColors.Ink2)
+                Text(boldMarkdown(item), style = OasisType.Body, color = OasisColors.Ink2)
             }
         }
     }

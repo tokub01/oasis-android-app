@@ -34,6 +34,7 @@ import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 
+/** The moderation start page: figures, the queue and its filter. */
 data class ModerationOverviewUiState(
     val overview: Loadable<ModerationOverview> = Loadable.Idle,
     val cases: List<CaseSummary> = emptyList(),
@@ -58,6 +59,7 @@ class ModerationOverviewViewModel @Inject constructor(private val repository: St
         viewModelScope.launch { load() }
     }
 
+    /** Loads the page again; a failed first load shows the error page, a failed refresh a snackbar. */
     suspend fun load() {
         mutableState.update { it.copy(overview = it.overview.refreshing()) }
         val result = attempt { repository.overview() }
@@ -93,6 +95,7 @@ class ModerationOverviewViewModel @Inject constructor(private val repository: St
         result.apiError?.let { failure -> mutableState.update { it.copy(error = failure.userMessage, isLoadingQueue = false) } }
     }
 
+    /** Loads the next page. */
     suspend fun loadMore() {
         val current = mutableState.value
         if (!current.hasMore || current.isLoadingQueue) return
@@ -115,9 +118,11 @@ class ModerationOverviewViewModel @Inject constructor(private val repository: St
         }
     }
 
+    /** Hides the error once the snackbar showed it. */
     fun dismissError() = mutableState.update { it.copy(error = null) }
 }
 
+/** One case: the case, the forms of its actions, field errors and snackbars. */
 data class CaseDetailUiState(
     val detail: Loadable<ModerationCaseDetail> = Loadable.Idle,
     val message: String? = null,
@@ -137,6 +142,7 @@ class CaseDetailViewModel @AssistedInject constructor(
     private val repository: StaffRepository,
     private val files: StaffFiles
 ) : ViewModel() {
+    /** Creates the view model for one id (Hilt assisted injection). */
     @AssistedFactory
     interface Factory {
         fun create(caseId: Int): CaseDetailViewModel
@@ -149,6 +155,7 @@ class CaseDetailViewModel @AssistedInject constructor(
         viewModelScope.launch { load() }
     }
 
+    /** Loads the page again; a failed first load shows the error page, a failed refresh a snackbar. */
     suspend fun load() {
         mutableState.update { it.copy(detail = it.detail.refreshing()) }
         val result = attempt { repository.moderationCase(caseId) }
@@ -160,17 +167,22 @@ class CaseDetailViewModel @AssistedInject constructor(
         }
     }
 
+    /** Chooses the person to assign. */
     fun selectAssignee(id: Int) = mutableState.update { it.copy(assignTo = id) }
 
+    /** Changes the statement of reasons. */
     fun updateStatement(statement: StatementOfReasons) = mutableState.update { it.copy(statement = statement) }
 
+    /** Changes the authority reference. */
     fun updateReference(reference: String) = mutableState.update { it.copy(reference = reference) }
 
+    /** Assigns the case to the chosen person. */
     suspend fun assign() {
         val staffId = mutableState.value.assignTo ?: return
         run { repository.assign(caseId, staffId) }
     }
 
+    /** Saves the decision and tells the people affected. */
     suspend fun decide() {
         if (run {
                 repository.decide(caseId, mutableState.value.statement)
@@ -180,22 +192,27 @@ class CaseDetailViewModel @AssistedInject constructor(
         }
     }
 
+    /** Escalates the case (child abuse or terror). */
     suspend fun escalate(type: String) {
         run { repository.escalate(caseId, type) }
     }
 
+    /** Notes the report to an authority. */
     suspend fun recordReport() {
         if (run { repository.recordAuthorityReport(caseId, mutableState.value.reference) }) mutableState.update { it.copy(reference = "") }
     }
 
+    /** Keeps the evidence longer. */
     suspend fun extendEvidence() {
         run { repository.extendEvidence(caseId) }
     }
 
+    /** Deletes the evidence for good. */
     suspend fun deleteEvidence() {
         run { repository.deleteEvidence(caseId) }
     }
 
+    /** Lets the images be delivered again. */
     suspend fun liftQuarantine() {
         run { repository.liftQuarantine(caseId) }
     }
@@ -226,11 +243,14 @@ class CaseDetailViewModel @AssistedInject constructor(
         it.copy(detail = Loadable.Loaded(detail), assignTo = detail.assignee?.id ?: it.assignTo ?: detail.assignDefault)
     }
 
+    /** Hides the confirmation once the snackbar showed it. */
     fun dismissMessage() = mutableState.update { it.copy(message = null) }
 
+    /** Hides the error once the snackbar showed it. */
     fun dismissError() = mutableState.update { it.copy(error = null) }
 }
 
+/** A complaint under review: the complaint, the chosen result and the new statement. */
 data class ComplaintReviewUiState(
     val complaint: Loadable<ComplaintDetail> = Loadable.Idle,
     val result: String = "",
@@ -247,6 +267,7 @@ class ComplaintReviewViewModel @AssistedInject constructor(
     @Assisted private val complaintId: Int,
     private val repository: StaffRepository
 ) : ViewModel() {
+    /** Creates the view model for one id (Hilt assisted injection). */
     @AssistedFactory
     interface Factory {
         fun create(complaintId: Int): ComplaintReviewViewModel
@@ -259,6 +280,7 @@ class ComplaintReviewViewModel @AssistedInject constructor(
         viewModelScope.launch { load() }
     }
 
+    /** Loads the page again; a failed first load shows the error page, a failed refresh a snackbar. */
     suspend fun load() {
         mutableState.update { it.copy(complaint = it.complaint.refreshing()) }
         val result = attempt { repository.complaint(complaintId) }
@@ -279,12 +301,16 @@ class ComplaintReviewViewModel @AssistedInject constructor(
         }
     }
 
+    /** Chooses "upheld" or "overturned". */
     fun selectResult(result: String) = mutableState.update { it.copy(result = result) }
 
+    /** Changes the explanation of the result. */
     fun updateExplanation(explanation: String) = mutableState.update { it.copy(explanation = explanation) }
 
+    /** Changes the statement of reasons. */
     fun updateStatement(statement: StatementOfReasons) = mutableState.update { it.copy(statement = statement) }
 
+    /** Saves the result and tells the people affected. */
     suspend fun review() {
         val current = mutableState.value
         val result = attempt { repository.review(complaintId, current.result, current.explanation, current.statement) }
@@ -306,11 +332,14 @@ class ComplaintReviewViewModel @AssistedInject constructor(
         }
     }
 
+    /** Hides the confirmation once the snackbar showed it. */
     fun dismissMessage() = mutableState.update { it.copy(message = null) }
 
+    /** Hides the error once the snackbar showed it. */
     fun dismissError() = mutableState.update { it.copy(error = null) }
 }
 
+/** Role management: the people, their chosen roles and refusals per row. */
 data class RolesUiState(
     val users: Loadable<List<RoleUser>> = Loadable.Idle,
     val roleNames: List<Labelled> = emptyList(),
@@ -333,6 +362,7 @@ class RolesViewModel @Inject constructor(private val repository: StaffRepository
         viewModelScope.launch { load() }
     }
 
+    /** Loads the page again; a failed first load shows the error page, a failed refresh a snackbar. */
     suspend fun load() {
         mutableState.update { it.copy(users = it.users.refreshing()) }
         val result = attempt { repository.roles(1) }
@@ -357,6 +387,7 @@ class RolesViewModel @Inject constructor(private val repository: StaffRepository
         }
     }
 
+    /** Loads the next page. */
     suspend fun loadMore() {
         if (!mutableState.value.hasMore) return
         val result = attempt { repository.roles(page + 1) }
@@ -367,8 +398,10 @@ class RolesViewModel @Inject constructor(private val repository: StaffRepository
         result.apiError?.let { failure -> mutableState.update { it.copy(error = failure.userMessage) } }
     }
 
+    /** Chooses a role for a person (saved with [save]). */
     fun choose(userId: Int, role: String) = mutableState.update { it.copy(chosen = it.chosen + (userId to role)) }
 
+    /** Saves the chosen role of [user]. */
     suspend fun save(user: RoleUser) {
         val role = mutableState.value.chosen[user.id] ?: user.role.value
         val result = attempt { repository.changeRole(user.id, role) }
@@ -392,17 +425,21 @@ class RolesViewModel @Inject constructor(private val repository: StaffRepository
         val chosen = state.chosen.toMutableMap()
         users.forEach { user -> chosen.putIfAbsent(user.id, user.role.value) }
         state.copy(
-            users = Loadable.Loaded(if (replacing) users else state.users.valueOrNull.orEmpty() + users),
+            // A further page follows a loaded one (hasMore is only set with a loaded page).
+            users = Loadable.Loaded(if (replacing) users else state.users.valueOrNull!! + users),
             chosen = chosen,
             hasMore = hasMore
         )
     }
 
+    /** Hides the confirmation once the snackbar showed it. */
     fun dismissMessage() = mutableState.update { it.copy(message = null) }
 
+    /** Hides the error once the snackbar showed it. */
     fun dismissError() = mutableState.update { it.copy(error = null) }
 }
 
+/** The locks page. */
 data class SuspensionsUiState(val list: Loadable<SuspensionList> = Loadable.Idle, val message: String? = null, val error: String? = null)
 
 /** Locked accounts (like /moderation/sperren). */
@@ -415,6 +452,7 @@ class SuspensionsViewModel @Inject constructor(private val repository: StaffRepo
         viewModelScope.launch { load() }
     }
 
+    /** Loads the page again; a failed first load shows the error page, a failed refresh a snackbar. */
     suspend fun load() {
         mutableState.update { it.copy(list = it.list.refreshing()) }
         val result = attempt { repository.suspensions() }
@@ -435,6 +473,7 @@ class SuspensionsViewModel @Inject constructor(private val repository: StaffRepo
         }
     }
 
+    /** Releases the account from its lock. */
     suspend fun release(suspension: Suspension) {
         val result = attempt { repository.release(suspension.id) }
         result.onSuccess { message ->
@@ -444,7 +483,9 @@ class SuspensionsViewModel @Inject constructor(private val repository: StaffRepo
         result.apiError?.let { failure -> mutableState.update { it.copy(error = failure.userMessage) } }
     }
 
+    /** Hides the confirmation once the snackbar showed it. */
     fun dismissMessage() = mutableState.update { it.copy(message = null) }
 
+    /** Hides the error once the snackbar showed it. */
     fun dismissError() = mutableState.update { it.copy(error = null) }
 }
