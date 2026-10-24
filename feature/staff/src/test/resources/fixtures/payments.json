@@ -1,0 +1,117 @@
+{
+ "data": [
+  {
+   "id": 2,
+   "kind": "Mitgliedschaft",
+   "amount": "5,00 €",
+   "customer_name": "Mia Mitglied",
+   "customer_email": "memsub@example.test",
+   "account_deleted": false,
+   "status": "paid",
+   "status_label": "Bezahlt",
+   "refunded": false,
+   "tier": "Oase",
+   "rhythm": "monatlich",
+   "created_at": "2026-10-22T15:39:37.000000Z",
+   "paid_at": "2026-10-19T15:39:37.000000Z",
+   "mollie_payment_id": "tr_uitest1",
+   "mollie_customer_id": "cst_uitest",
+   "can_sync": false,
+   "can_refund": false,
+   "refundable": "5,00 €",
+   "refund_default": "5,00",
+   "refunds": []
+  },
+  {
+   "id": 1,
+   "kind": "Mitgliedschaft",
+   "amount": "5,00 €",
+   "customer_name": "Mira Sol",
+   "customer_email": "mira@demo.oasis.tld",
+   "account_deleted": false,
+   "status": "open",
+   "status_label": "Offen",
+   "refunded": false,
+   "tier": "Oase",
+   "rhythm": "monatlich",
+   "created_at": "2026-10-22T15:33:56.000000Z",
+   "paid_at": null,
+   "mollie_payment_id": "tr_3zxuc4G6d8giHDcGeTWYJ",
+   "mollie_customer_id": "cst_h2i2YpxrGs",
+   "can_sync": true,
+   "can_refund": false,
+   "refundable": "0,00 €",
+   "refund_default": "0,00",
+   "refunds": []
+  }
+ ],
+ "links": {
+  "first": "http://localhost/api/v1/staff/admin/payments?page=1",
+  "last": "http://localhost/api/v1/staff/admin/payments?page=1",
+  "prev": null,
+  "next": null
+ },
+ "meta": {
+  "current_page": 1,
+  "from": 1,
+  "last_page": 1,
+  "links": [
+   {
+    "url": null,
+    "label": "&laquo; Vorherige",
+    "page": null,
+    "active": false
+   },
+   {
+    "url": "http://localhost/api/v1/staff/admin/payments?page=1",
+    "label": "1",
+    "page": 1,
+    "active": true
+   },
+   {
+    "url": null,
+    "label": "Nächste &raquo;",
+    "page": null,
+    "active": false
+   }
+  ],
+  "path": "http://localhost/api/v1/staff/admin/payments",
+  "per_page": 25,
+  "to": 2,
+  "total": 2
+ },
+ "filters": {
+  "statuses": [
+   {
+    "value": "paid",
+    "label": "Bezahlt"
+   },
+   {
+    "value": "open",
+    "label": "Offen"
+   },
+   {
+    "value": "pending",
+    "label": "In Bearbeitung"
+   },
+   {
+    "value": "failed",
+    "label": "Fehlgeschlagen"
+   },
+   {
+    "value": "canceled",
+    "label": "Abgebrochen"
+   },
+   {
+    "value": "expired",
+    "label": "Abgelaufen"
+   },
+   {
+    "value": "erstattet",
+    "label": "Erstattet"
+   }
+  ],
+  "mollie_id": false,
+  "retention_years": 8
+ }
+}

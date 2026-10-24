@@ -1,0 +1,143 @@
+{
+ "data": {
+  "id": 1,
+  "status": {
+   "value": "open",
+   "label": "Offen"
+  },
+  "priority": {
+   "value": "urgent",
+   "label": "Dringend"
+  },
+  "subject_url": "http://localhost/tropfen/1",
+  "created_at": "2026-10-22T15:49:00.000000Z",
+  "report": {
+   "kind": "content_report",
+   "reason": "Bitte sofort prüfen.",
+   "plaintext": null,
+   "check": null
+  },
+  "subject_user": null,
+  "assignee": null,
+  "assign_default": 2,
+  "staff": [
+   {
+    "id": 2,
+    "display_name": "Kirstin Engelmann MBA.",
+    "is_me": true
+   }
+  ],
+  "decisions": [],
+  "complaints": [],
+  "events": [
+   {
+    "id": 1,
+    "type": {
+     "value": "opened",
+     "label": "Eröffnet"
+    },
+    "actor_name": null,
+    "created_at": "2026-10-22T15:49:00.000000Z"
+   },
+   {
+    "id": 2,
+    "type": {
+     "value": "escalated",
+     "label": "Eskaliert, Beweise gesichert"
+    },
+    "actor_name": "Kirstin Engelmann MBA.",
+    "created_at": "2026-10-22T15:49:00.000000Z"
+   }
+  ],
+  "escalation": {
+   "type": {
+    "value": "child_abuse",
+    "label": "Missbrauchsdarstellung"
+   },
+   "escalated_at": "2026-10-22T15:49:00.000000Z",
+   "escalated_by_name": "Kirstin Engelmann MBA.",
+   "checklist": [
+    "Den Inhalt nicht öffnen, nicht herunterladen und nicht weitergeben. Der Tropfen und seine Bilder sind bereits für alle gesperrt.",
+    "Beweise sind gesichert (Text, Metadaten, Prüfsummen, Bilder). Herunterladen dürfen sie nur Admins, ausschließlich für eine Übergabe an die Polizei.",
+    "Anzeige bei der Polizei oder der Zentralstelle der Staatsanwaltschaft erstatten. Oasis meldet nichts selbst.",
+    "Die Meldung unten mit Datum und Aktenzeichen vermerken. Die Beweise werden nach der Frist automatisch gelöscht; bei Bedarf verlängern.",
+    "Den Fall entscheiden: Inhalt entfernen und das Konto sperren. Die Quarantäne bleibt, bis ein Admin sie aufhebt."
+   ],
+   "authority_contact": null,
+   "authority_reported_at": null,
+   "authority_reference": null,
+   "evidence": [
+    {
+     "id": 1,
+     "kind": "text",
+     "created_at": "2026-10-22T15:49:00.000000Z",
+     "purge_after": "2027-01-20T15:49:00.000000Z",
+     "sha256": null,
+     "bytes": null,
+     "content": "Gemeldeter Text"
+    },
+    {
+     "id": 2,
+     "kind": "image",
+     "created_at": "2026-10-22T15:49:00.000000Z",
+     "purge_after": "2027-01-20T15:49:00.000000Z",
+     "sha256": "4077afac8f7085df021a91f0ced3aa1115143d46d2d3db36e8fffb11c2f658a6",
+     "bytes": 9,
+     "content": null
+    }
+   ],
+   "quarantined": true
+  },
+  "escalation_options": [
+   {
+    "value": "threat_to_life",
+    "label": "Gefahr für Leib und Leben",
+    "description": "Der Inhalt lässt eine Straftat befürchten, die das Leben oder die Sicherheit von Menschen bedroht – etwa eine Suizid-, Amok- oder Gewaltankündigung (Art. 18 DSA)."
+   },
+   {
+    "value": "child_abuse",
+    "label": "Missbrauchsdarstellung",
+    "description": "Der Inhalt zeigt oder beschreibt sexuellen Missbrauch von Kindern oder Jugendlichen. Der Tropfen wird sofort für alle gesperrt, auch für das Team."
+   }
+  ],
+  "evidence_days": 90,
+  "outcomes": [
+   {
+    "value": "no_action",
+    "label": "Keine Maßnahme"
+   },
+   {
+    "value": "content_removed",
+    "label": "Inhalt entfernt"
+   },
+   {
+    "value": "visibility_restricted",
+    "label": "Sichtbarkeit eingeschränkt"
+   },
+   {
+    "value": "account_restricted",
+    "label": "Konto eingeschränkt"
+   },
+   {
+    "value": "account_suspended",
+    "label": "Konto gesperrt"
+   }
+  ],
+  "grounds": [
+   {
+    "value": "illegal_content",
+    "label": "Rechtswidriger Inhalt"
+   },
+   {
+    "value": "community_rules",
+    "label": "Community-Regeln"
+   }
+  ],
+  "can": {
+   "assign": true,
+   "decide": true,
+   "administrate": true
+  }
+ },
+ "message": null
+}

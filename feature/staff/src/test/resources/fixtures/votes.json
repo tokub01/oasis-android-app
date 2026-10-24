@@ -1,0 +1,35 @@
+{
+ "data": [
+  {
+   "id": 1,
+   "title": "Wohin mit einem Überschuss?",
+   "starts_at": "2026-10-20T13:32",
+   "ends_at": "2026-11-03T13:32",
+   "state": "läuft",
+   "participations": 0,
+   "results": null
+  },
+  {
+   "id": 2,
+   "title": "Soll die Quelle eine Suchfunktion bekommen?",
+   "starts_at": "2026-09-12T13:32",
+   "ends_at": "2026-09-26T13:32",
+   "state": "beendet",
+   "participations": 0,
+   "results": [
+    {
+     "label": "Ja",
+     "votes": 412
+    },
+    {
+     "label": "Nein",
+     "votes": 96
+    },
+    {
+     "label": "Später",
+     "votes": 151
+    }
+   ]
+  }
+ ]
+}

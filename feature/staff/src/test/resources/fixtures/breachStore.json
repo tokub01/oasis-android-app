@@ -1,0 +1,29 @@
+{
+ "data": {
+  "id": 1,
+  "title": "Rechnungs-E-Mails",
+  "discovered_at": "2026-10-22T13:49:00.000000Z",
+  "risk": "high",
+  "risk_label": "Hohes Risiko – zusätzlich Betroffene benachrichtigen",
+  "closed_at": null,
+  "report_due_at": "2026-10-25T13:49:00.000000Z",
+  "report_outstanding": true,
+  "hours_left": 69,
+  "must_report": true,
+  "must_notify_people": true,
+  "report_text": "Meldung einer Verletzung des Schutzes personenbezogener Daten nach Art. 33 DSGVO\n\nVerantwortlicher: Tobias Kubina, B.Sc. – VelWebSolutions, Gubener Str. 14, 47829 Krefeld\nKontakt für Rückfragen (kein Datenschutzbeauftragter benannt): info@velwebsolutions.de, 0176 32544620\n\nBezeichnung: Rechnungs-E-Mails\nBekannt geworden am: 22.10.2026, 15:49 Uhr\n\na) Art der Verletzung\nEin Fehler.\nBetroffene Datenkategorien: Name\nUngefähre Zahl betroffener Personen: 3\n\nb) Ansprechpartner\ninfo@velwebsolutions.de\n\nc) Wahrscheinliche Folgen\nSpam.\n\nd) Ergriffene oder vorgeschlagene Maßnahmen\nGestoppt.\nDie betroffenen Personen werden nach Art. 34 DSGVO benachrichtigt.",
+  "authority_reported_at": null,
+  "authority_reference": null,
+  "people_notified_at": null,
+  "can_record_report": true,
+  "can_record_notified": true,
+  "log": [
+   {
+    "at": "2026-10-22T15:49:00.000000Z",
+    "by": "Anett Kuhn-Hentschel",
+    "text": "Datenpanne erfasst."
+   }
+  ]
+ },
+ "message": "Erfasst. Die Meldung an die Aufsichtsbehörde ist bis 25.10.2026 14:49 Uhr fällig."
+}

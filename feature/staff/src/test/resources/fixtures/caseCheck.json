@@ -1,0 +1,160 @@
+{
+ "data": {
+  "id": 2,
+  "status": {
+   "value": "open",
+   "label": "Offen"
+  },
+  "priority": {
+   "value": "normal",
+   "label": "Normal"
+  },
+  "subject_url": "http://localhost/tropfen/2",
+  "created_at": "2026-10-22T15:49:00.000000Z",
+  "report": {
+   "kind": "content_check",
+   "reason": "Grobe Beleidigung einer Person.",
+   "plaintext": null,
+   "check": {
+    "source_label": "Sprachmodell, Mistral, EU",
+    "checked_at": "2026-10-22T15:49:00.000000Z",
+    "checked_text": "Du bist ein Vollidiot",
+    "scores": [
+     {
+      "key": "insult",
+      "label": "Beleidigung",
+      "percent": 95,
+      "flagged": true
+     },
+     {
+      "key": "hate",
+      "label": "Hass/Hetze",
+      "percent": 0,
+      "flagged": false
+     },
+     {
+      "key": "threat",
+      "label": "Drohung",
+      "percent": 0,
+      "flagged": false
+     },
+     {
+      "key": "extremism",
+      "label": "Extremismus/Volksverhetzung",
+      "percent": 0,
+      "flagged": false
+     },
+     {
+      "key": "harassment",
+      "label": "Mobbing",
+      "percent": 0,
+      "flagged": false
+     },
+     {
+      "key": "solicitation",
+      "label": "Sexuelle Dienste anbieten",
+      "percent": 0,
+      "flagged": false
+     },
+     {
+      "key": "sexual",
+      "label": "Sexueller Inhalt",
+      "percent": 0,
+      "flagged": false
+     },
+     {
+      "key": "sexual_minors",
+      "label": "Sexueller Bezug zu Minderjährigen",
+      "percent": 0,
+      "flagged": false
+     }
+    ],
+    "reason": "Grobe Beleidigung einer Person.",
+    "held_at": "2026-10-22T15:49:00.000000Z"
+   }
+  },
+  "subject_user": {
+   "display_name": "Frau Valerie Reimann",
+   "username": "user_0m0md8er1lyg7yk3"
+  },
+  "assignee": null,
+  "assign_default": 4,
+  "staff": [
+   {
+    "id": 4,
+    "display_name": "Anett Kuhn-Hentschel",
+    "is_me": true
+   },
+   {
+    "id": 2,
+    "display_name": "Kirstin Engelmann MBA.",
+    "is_me": false
+   }
+  ],
+  "decisions": [],
+  "complaints": [],
+  "events": [
+   {
+    "id": 3,
+    "type": {
+     "value": "opened",
+     "label": "Eröffnet"
+    },
+    "actor_name": null,
+    "created_at": "2026-10-22T15:49:00.000000Z"
+   }
+  ],
+  "escalation": null,
+  "escalation_options": [
+   {
+    "value": "threat_to_life",
+    "label": "Gefahr für Leib und Leben",
+    "description": "Der Inhalt lässt eine Straftat befürchten, die das Leben oder die Sicherheit von Menschen bedroht – etwa eine Suizid-, Amok- oder Gewaltankündigung (Art. 18 DSA)."
+   },
+   {
+    "value": "child_abuse",
+    "label": "Missbrauchsdarstellung",
+    "description": "Der Inhalt zeigt oder beschreibt sexuellen Missbrauch von Kindern oder Jugendlichen. Der Tropfen wird sofort für alle gesperrt, auch für das Team."
+   }
+  ],
+  "evidence_days": 90,
+  "outcomes": [
+   {
+    "value": "no_action",
+    "label": "Keine Maßnahme"
+   },
+   {
+    "value": "content_removed",
+    "label": "Inhalt entfernt"
+   },
+   {
+    "value": "visibility_restricted",
+    "label": "Sichtbarkeit eingeschränkt"
+   },
+   {
+    "value": "account_restricted",
+    "label": "Konto eingeschränkt"
+   },
+   {
+    "value": "account_suspended",
+    "label": "Konto gesperrt"
+   }
+  ],
+  "grounds": [
+   {
+    "value": "illegal_content",
+    "label": "Rechtswidriger Inhalt"
+   },
+   {
+    "value": "community_rules",
+    "label": "Community-Regeln"
+   }
+  ],
+  "can": {
+   "assign": true,
+   "decide": true,
+   "administrate": true
+  }
+ },
+ "message": null
+}

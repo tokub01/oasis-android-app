@@ -1,0 +1,30 @@
+{
+ "data": {
+  "active": [
+   {
+    "id": 1,
+    "type": "provisional",
+    "label": "Vorläufige Sperre bis zur Prüfung",
+    "user": {
+     "display_name": "Frau Valerie Reimann",
+     "username": "user_0m0md8er1lyg7yk3",
+     "active_strikes": 0
+    },
+    "started_at": "2026-10-22T15:49:00.000000Z",
+    "ended_at": null,
+    "result_label": null,
+    "waiting_hours": 0,
+    "deadline_state": "ok",
+    "case_id": 2,
+    "accusation": "Verdacht auf eine Beleidigung in deinem Tropfen vom 22.10.2026, 17:49 Uhr (Community-Regeln). Begründung der automatischen Prüfung: „Grobe Beleidigung einer Person.“",
+    "excerpt": "Du bist ein Vollidiot",
+    "statement": "Es tut mir leid.",
+    "statement_at": "2026-10-22T15:49:00.000000Z",
+    "can_release": true
+   }
+  ],
+  "ended": [],
+  "strikes_for_ban": 3,
+  "review_hours": 48
+ }
+}
