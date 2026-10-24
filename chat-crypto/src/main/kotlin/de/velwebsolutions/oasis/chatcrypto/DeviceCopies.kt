@@ -15,6 +15,7 @@ class LinkKeyPair(
     /** Base64 (URL-safe, no padding) of the public key, as sent to `POST /device-links`. */
     val publicKeyBase64: String get() = crypto.toBase64(publicKey)
 
+    /** Overwrites the one-time private key with zeros once the approval is opened or the request ends. */
     fun wipe() = ChatEncoding.wipe(privateKey)
 }
 

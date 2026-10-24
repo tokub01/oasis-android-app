@@ -28,6 +28,7 @@ data class LockedIdentity(
     val ciphertext: String,
     val publicKeys: PublicKeys
 ) {
+    /** The Argon2id parameters and salt the passphrase key was derived with. */
     @Serializable
     data class Kdf(
         val alg: String,
@@ -37,6 +38,7 @@ data class LockedIdentity(
         val salt: String
     )
 
+    /** The two public keys the locked private keys belong to (bound into the associated data). */
     @Serializable
     data class PublicKeys(val encryption: String, val signing: String)
 }
@@ -92,7 +94,7 @@ data class MessageEnvelope(
         put("nonce", nonce)
         put("ciphertext", ciphertext)
         put("signature", signature)
-        put("expires_at", expiresAt?.let(::JsonPrimitive) ?: JsonNull)
+        put("expires_at", if (expiresAt == null) JsonNull else JsonPrimitive(expiresAt))
     }
 }
 

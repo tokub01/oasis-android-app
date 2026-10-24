@@ -200,10 +200,11 @@ class ChatCrypto(val sodium: Sodium) {
      * the safety number, not here.
      */
     fun verifyPublicKeys(bundle: PublicKeyBundle?): VerifiedPublicKeys {
+        if (bundle == null) throw ChatCryptoException.InvalidPublicKeys
         try {
-            val encryption = fromBase64(bundle?.encryption, 32)
-            val signing = fromBase64(bundle?.signing, 32)
-            val binding = fromBase64(bundle?.binding, SIGN_BYTES)
+            val encryption = fromBase64(bundle.encryption, 32)
+            val signing = fromBase64(bundle.signing, 32)
+            val binding = fromBase64(bundle.binding, SIGN_BYTES)
             val message = canonicalBytes(KEY_BINDING_LABEL, fields(encryption, signing))
             if (!verifyDetached(binding, message, signing)) throw ChatCryptoException.InvalidPublicKeys
             return VerifiedPublicKeys(encryption, signing)
