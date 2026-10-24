@@ -16,4 +16,5 @@ dependencies {
     ksp(libs.hilt.compiler)
     testImplementation(project(":core-testing"))
     testImplementation(libs.okhttp.mockwebserver)
+    testImplementation(libs.robolectric)
 }

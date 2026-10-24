@@ -181,7 +181,7 @@ class ReverbRealtime(
     }
 
     /** Reads frames until the socket fails; once connected, a ping loop runs alongside. */
-    private suspend fun listen(socket: WebSocketConnection) {
+    private suspend fun listen(socket: WebSocketConnection): Nothing {
         try {
             while (true) {
                 val text = socket.receive()
@@ -226,7 +226,7 @@ class ReverbRealtime(
                     failures = 0
                     pingJob?.cancel()
                     pingJob = scope.launch { keepAlive(socket) }
-                    handlers.filterValues { it.isNotEmpty() }.keys.toList()
+                    handlers.keys.toList()
                 }
                 mutableConnected.value = true
                 channels.forEach { channel -> scope.launch { subscribeOnServer(channel, socket, id) } }
@@ -257,7 +257,8 @@ class ReverbRealtime(
     private fun addHandler(channel: String, handler: (RealtimeEvent) -> Unit): Long {
         val id = nextHandlerId.incrementAndGet()
         val target = synchronized(lock) {
-            val isNew = handlers[channel].isNullOrEmpty()
+            // A channel stays registered exactly while it has handlers.
+            val isNew = channel !in handlers
             handlers.getOrPut(channel) { mutableMapOf() }[id] = handler
             val current = socket
             val currentId = socketId
@@ -320,7 +321,7 @@ class ReverbRealtime(
 }
 
 /** A Pusher protocol error: 4000–4099 must not reconnect, 4100–4199 reconnect after a backoff, 4200–4299 at once. */
-internal class PusherError(val code: Int) : Exception("Pusher error $code") {
+internal class PusherError(private val code: Int) : Exception("Pusher error $code") {
     val isFatal: Boolean get() = code in 4000 until 4100
     val reconnectsAtOnce: Boolean get() = code in 4200 until 4300
 }

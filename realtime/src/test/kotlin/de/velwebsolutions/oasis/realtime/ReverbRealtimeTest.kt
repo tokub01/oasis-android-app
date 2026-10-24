@@ -45,8 +45,11 @@ class FakeWebSocket(val url: String) : WebSocketConnection {
 
     fun sentEvents(event: String): List<JsonObject> = sentMessages.filter { it["event"]?.jsonPrimitive?.content == event }
 
+    /** The server stops taking frames (a half-open connection). */
+    @Volatile var refusesFrames = false
+
     override suspend fun send(text: String) {
-        if (isClosed) throw IOException("closed")
+        if (isClosed || refusesFrames) throw IOException("closed")
         sentFrames += text
     }
 
@@ -669,5 +672,111 @@ class ReverbRealtimeTest {
             { json.decodeFromString<BroadcastAuthAnswer>("{}") },
             { json.decodeFromString<BroadcastAuthBody>("{}") }
         ).forEach { decode -> assertTrue(runCatching(decode).exceptionOrNull() is SerializationException) }
+    }
+
+    @Test
+    fun keepsTheHostForAnEmptyOverride() {
+        assertEquals(settings, settings.withHost(""))
+        assertEquals(settings, settings.withHost("  "))
+        assertEquals(
+            listOf("oasis-local-key", "localhost", "8080", "http"),
+            listOf(settings.key, settings.host, "${settings.port}", settings.scheme)
+        )
+        val body = BroadcastAuthBody("1.2", "private-inbox.5")
+        assertEquals("1.2" to "private-inbox.5", body.socketId to body.channelName)
+    }
+
+    @Test
+    fun runsOnItsOwnScopeAndOpensWithTheFirstListenerByDefault() {
+        val factory = SocketFactory()
+        val realtime = ReverbRealtime(settings = { settings }, authorize = { _, _ -> "" }, makeSocket = factory::make)
+        val job = realtime.listen("status")
+        eventually { factory.sockets.size == 1 }
+        job.cancel()
+        eventually { factory.sockets[0].isClosed }
+    }
+
+    @Test
+    fun reconnectsListenersAfterAFatalErrorInTheForeground() {
+        val factory = SocketFactory()
+        val realtime = client(factory, ManualClock(), connectsWithSubscribers = true)
+        val job = realtime.listen("private-inbox.5")
+        eventually { factory.sockets.size == 1 }
+        factory.sockets[0].push("""{"event":"pusher:error","data":{"code":4001}}""")
+        eventually { factory.sockets[0].isClosed }
+        Thread.sleep(20)
+        realtime.reconnectIfNeeded()
+        eventually("the listener gets a connection again") { factory.sockets.size == 2 }
+        job.cancel()
+    }
+
+    @Test
+    fun survivesFramesItCannotSend() {
+        val factory = SocketFactory()
+        val clock = ManualClock()
+        val gate = CompletableDeferred<Unit>()
+        val realtime = client(factory, clock, authorize = { _, _ ->
+            gate.await()
+            "auth"
+        })
+        realtime.connect()
+        eventually { factory.sockets.size == 1 }
+        val socket = factory.sockets[0]
+        socket.established()
+        eventually { realtime.isConnected.value }
+        val status = realtime.listen("status")
+        eventually { socket.sentEvents("pusher:subscribe").size == 1 }
+        val inbox = realtime.listen("private-inbox.1")
+        Thread.sleep(20)
+        socket.refusesFrames = true
+        gate.complete(Unit)
+        status.cancel()
+        eventually { clock.pending == 1 }
+        clock.advance() // the ping cannot be sent …
+        eventually { clock.pending == 1 }
+        clock.advance() // … so no pong comes and the socket is closed
+        eventually { socket.isClosed }
+        inbox.cancel()
+        realtime.disconnect()
+    }
+
+    @Test
+    fun aCancelledAuthorisationSubscribesNothing() {
+        val factory = SocketFactory()
+        val realtime = client(factory, ManualClock(), authorize = { _, _ -> throw kotlinx.coroutines.CancellationException("left") })
+        val job = realtime.listen("private-inbox.1")
+        Thread.sleep(20)
+        realtime.connect()
+        eventually { factory.sockets.size == 1 }
+        factory.sockets[0].established()
+        eventually { realtime.isConnected.value }
+        Thread.sleep(30)
+        assertTrue(factory.sockets[0].sentEvents("pusher:subscribe").isEmpty())
+        job.cancel()
+        realtime.disconnect()
+    }
+
+    @Test
+    fun dropsTheSubscriptionOfAListenerThatLeftDuringItsAuth() {
+        val factory = SocketFactory()
+        val gate = CompletableDeferred<Unit>()
+        var asked = 0
+        val realtime = client(factory, ManualClock(), authorize = { _, _ ->
+            asked += 1
+            gate.await()
+            "late"
+        })
+        realtime.connect()
+        eventually { factory.sockets.size == 1 }
+        factory.sockets[0].established()
+        eventually { realtime.isConnected.value }
+        val job = realtime.listen("private-inbox.1")
+        eventually { asked == 1 }
+        job.cancel()
+        Thread.sleep(20)
+        gate.complete(Unit)
+        Thread.sleep(30)
+        assertTrue(factory.sockets[0].sentEvents("pusher:subscribe").isEmpty())
+        realtime.disconnect()
     }
 }
