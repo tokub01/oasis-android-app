@@ -12,4 +12,7 @@ android {
 dependencies {
     implementation(libs.androidx.activity.compose)
     implementation(libs.firebase.messaging)
+    // The screens' Hilt view models and the Firebase service under Robolectric (a test graph replaces :core's module).
+    testImplementation(libs.hilt.android.testing)
+    kspTest(libs.hilt.compiler)
 }

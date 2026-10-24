@@ -2,11 +2,15 @@ package de.velwebsolutions.oasis.live.ui
 
 import android.content.pm.PackageManager
 import androidx.activity.ComponentActivity
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.height
+import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.setValue
+import androidx.compose.ui.Modifier
 import androidx.compose.ui.semantics.SemanticsActions
 import androidx.compose.ui.test.SemanticsNodeInteraction
 import androidx.compose.ui.test.assertIsDisplayed
@@ -24,6 +28,7 @@ import androidx.compose.ui.test.performScrollToNode
 import androidx.compose.ui.test.performSemanticsAction
 import androidx.compose.ui.test.performTouchInput
 import androidx.compose.ui.test.swipeDown
+import androidx.compose.ui.unit.dp
 import com.github.takahirom.roborazzi.captureRoboImage
 import com.github.takahirom.roborazzi.captureScreenRoboImage
 import de.velwebsolutions.oasis.core.model.Loadable
@@ -65,6 +70,7 @@ import org.junit.Test
 import org.junit.runner.RunWith
 import org.robolectric.RobolectricTestRunner
 import org.robolectric.Shadows.shadowOf
+import org.robolectric.annotation.Config
 import org.robolectric.annotation.GraphicsMode
 
 /** The Live screens with their real view models over the stubbed API, one screenshot per state (Roborazzi). */
@@ -199,8 +205,12 @@ class LiveScreensTest {
         compose.mainClock.advanceTimeBy(1_000)
         compose.waitUntil(5_000) { transport.requests.count { it.request.method == "PUT" && it.path == "hints/settings" } == 1 }
         compose.waitUntil(5_000) { !model.ui.value.isSaving }
-        compose.onNodeWithContentDescription("Eine tägliche Zusammenfassung am Abend").performScrollTo().performClick()
+        compose.onNodeWithContentDescription("Jeden Tag eine Ruhezeit einhalten").tap()
         compose.waitUntil(5_000) { transport.requests.count { it.request.method == "PUT" && it.path == "hints/settings" } == 2 }
+        compose.waitUntil(5_000) { !model.ui.value.isSaving }
+        model.dismissMessage()
+        compose.onNodeWithContentDescription("Eine tägliche Zusammenfassung am Abend").tap()
+        compose.waitUntil(5_000) { transport.requests.count { it.request.method == "PUT" && it.path == "hints/settings" } == 3 }
         // The snackbar of the confirmation would cover the buttons below.
         compose.waitUntil(5_000) { model.ui.value.message != null }
         model.dismissMessage()
@@ -367,5 +377,51 @@ class LiveScreensTest {
         compose.waitUntil(5_000) { model.ui.value.state is Loadable.Loaded }
         compose.onNodeWithText("Neue Person in deiner Karawane · Emil Novak").performClick()
         assertEquals(listOf("https://example.com/x"), web)
+    }
+
+    @Test
+    fun theScreensFollowANewViewModelAndStayWhenTheirParentRedraws() {
+        val transport = StubTransport(
+            StubTransport.Stub("GET", "hints", json = LiveJson.HINTS),
+            StubTransport.Stub("GET", "hints/settings", json = LiveJson.SETTINGS),
+            StubTransport.Stub("GET", "live/counts", json = LiveJson.COUNTS)
+        )
+        val inboxes = List(2) { HintsInboxViewModel(repository(transport), coordinator(transport, scope)) }
+        val settingsModels = List(2) { HintSettingsViewModel(repository(transport), registrar()) }
+        val lives = List(2) { coordinator(transport, scope) }
+        var tick by mutableIntStateOf(0)
+        var current by mutableIntStateOf(0)
+        show {
+            Column {
+                Text("Durchgang $tick")
+                HintsButton(lives[current])
+                ChatToastOverlay(lives[current])
+                Column(Modifier.height(200.dp)) { HintsInboxScreen(inboxes[current]) }
+                Column(Modifier.height(200.dp)) { HintSettingsScreen(settingsModels[current]) }
+            }
+        }
+        compose.waitUntil(5_000) {
+            inboxes.all { it.ui.value.state is Loadable.Loaded } &&
+                settingsModels.all { it.ui.value.settings != null }
+        }
+        tick = 1
+        compose.onNodeWithText("Durchgang 1").assertIsDisplayed()
+        current = 1
+        compose.waitForIdle()
+        tick = 2
+        compose.onNodeWithText("Durchgang 2").assertIsDisplayed()
+    }
+
+    @Test
+    @Config(sdk = [32])
+    fun beforeAndroid13PushIsSwitchedWithoutAPermissionPrompt() {
+        val transport = StubTransport(
+            StubTransport.Stub("GET", "hints/settings", json = LiveJson.SETTINGS.replace("\"current\":true", "\"current\":false"))
+        )
+        val model = HintSettingsViewModel(repository(transport), registrar(FakePushSystem(status = PushAuthorization.NotDetermined)))
+        show { HintSettingsScreen(model) }
+        compose.waitUntil(5_000) { model.ui.value.settings != null }
+        compose.onNodeWithTag("push.toggle").tap()
+        compose.waitUntil(5_000) { model.ui.value.error == PushRegistrar.DENIED_TEXT }
     }
 }

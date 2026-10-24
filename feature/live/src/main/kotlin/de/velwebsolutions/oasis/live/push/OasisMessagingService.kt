@@ -9,10 +9,10 @@ import javax.inject.Inject
  * Receives push hints over Firebase Cloud Messaging and hands them to [PushMessages]. Without google-services.json
  * Firebase never starts this service.
  */
-@AndroidEntryPoint
-class OasisMessagingService : FirebaseMessagingService() {
+@AndroidEntryPoint(FirebaseMessagingService::class)
+class OasisMessagingService : Hilt_OasisMessagingService() {
     /** Shows pushes and registers new tokens. */
-    @Inject lateinit var messages: PushMessages
+    @set:Inject lateinit var messages: PushMessages
 
     override fun onNewToken(token: String) = messages.tokenChanged()
 

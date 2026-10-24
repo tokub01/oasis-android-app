@@ -4,7 +4,6 @@ import de.velwebsolutions.oasis.core.realtime.RealtimeEvent
 import de.velwebsolutions.oasis.core.realtime.RealtimeService
 import de.velwebsolutions.oasis.live.api.LiveCountsData
 import java.util.concurrent.atomic.AtomicLong
-import kotlin.coroutines.cancellation.CancellationException
 import kotlin.time.Duration
 import kotlin.time.Duration.Companion.seconds
 import kotlinx.coroutines.CoroutineScope
@@ -80,13 +79,7 @@ class LiveCounts(
     /** Ask the server again (foreground, after reading hints, after an InboxActivity). */
     suspend fun refresh() {
         val current = load ?: return
-        val counts = try {
-            current()
-        } catch (cancelled: CancellationException) {
-            throw cancelled
-        } catch (_: Exception) {
-            return
-        }
+        val counts = catching { current() }.getOrNull() ?: return
         if (load != null) apply(counts)
     }
 

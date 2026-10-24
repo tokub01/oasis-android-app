@@ -1,8 +1,14 @@
 package de.velwebsolutions.oasis.live
 
+import de.velwebsolutions.oasis.core.network.Confirmed
+import de.velwebsolutions.oasis.core.network.Page
 import de.velwebsolutions.oasis.core.realtime.RealtimeEvent
 import de.velwebsolutions.oasis.core.realtime.RealtimeService
+import de.velwebsolutions.oasis.live.api.Hint
 import de.velwebsolutions.oasis.live.api.HintSettings
+import de.velwebsolutions.oasis.live.api.LiveAppConfig
+import de.velwebsolutions.oasis.live.api.LiveCountsData
+import de.velwebsolutions.oasis.live.api.PushDevice
 import de.velwebsolutions.oasis.live.data.DefaultLiveRepository
 import de.velwebsolutions.oasis.live.data.LiveRepository
 import de.velwebsolutions.oasis.live.push.PushAuthorization
@@ -15,6 +21,7 @@ import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.emptyFlow
 
 /** Real answers of the Laravel API (copied from GET /api/v1/… against the demo data, like the iOS LiveJSON). */
 object LiveJson {
@@ -98,3 +105,40 @@ class FakeRealtime : RealtimeService {
 /** A coordinator over the stubbed API without realtime or push. */
 fun coordinator(transport: StubTransport, scope: CoroutineScope) =
     LiveCoordinator(repository(transport), FakeRealtime(), registrar(), LiveCounts(scope))
+
+/** A repository that answers at once, without suspending (the view models' paths without a network wait). */
+class ImmediateLiveRepository(
+    private val settings: HintSettings = HintSettings(),
+    private val counts: LiveCountsData = LiveCountsData(chats = 1, hints = 2)
+) : LiveRepository {
+    override suspend fun hints(page: Int) = Page<Hint>(emptyList())
+
+    override suspend fun markAllRead() = "Alle Hinweise sind gelesen."
+
+    override suspend fun settings() = settings
+
+    override suspend fun save(settings: HintSettings) = Confirmed(settings, "Gespeichert.")
+
+    override suspend fun pause(days: Int) = Confirmed(settings, "Pause.")
+
+    override suspend fun resume() = Confirmed(settings, "Weiter.")
+
+    override suspend fun setChatSwitch(key: String, on: Boolean) = "Gespeichert."
+
+    override suspend fun removeDevice(device: PushDevice) = "Entfernt."
+
+    override suspend fun removeAppDevice(id: Int) = Unit
+
+    override suspend fun registerDevice(token: String) = error("not used")
+
+    override suspend fun counts() = counts
+
+    override suspend fun appConfig() = LiveAppConfig()
+}
+
+/** A realtime service whose channel ends at once. */
+class EndedRealtime : RealtimeService {
+    override val isConnected: StateFlow<Boolean> = MutableStateFlow(false)
+
+    override fun subscribe(channel: String): Flow<RealtimeEvent> = emptyFlow()
+}

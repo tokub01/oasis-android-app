@@ -11,6 +11,7 @@ import android.os.Bundle
 import android.os.Looper
 import android.provider.Settings
 import androidx.test.core.app.ApplicationProvider
+import com.google.android.gms.tasks.Tasks
 import com.google.firebase.FirebaseApp
 import com.google.firebase.FirebaseOptions
 import com.google.firebase.messaging.RemoteMessage
@@ -218,5 +219,18 @@ class AndroidPushTest {
         }
         assertNull("without Google Play services there is no token", withTimeout(1_000) { token.await() })
         withTimeout(1_000) { deleted.await() }
+    }
+
+    @Test
+    fun readsTheTokenOnlyFromASuccessfulTask() {
+        assertEquals("fcm", tokenOf(Tasks.forResult("fcm")))
+        assertNull(tokenOf(Tasks.forException(IllegalStateException("no Play services"))))
+    }
+
+    @Test
+    fun opensNothingWhenNoSettingsScreenAnswers() {
+        shadowOf(app).checkActivities(true)
+        AndroidPushSystem(app).openSettings()
+        assertNull(shadowOf(app).nextStartedActivity)
     }
 }

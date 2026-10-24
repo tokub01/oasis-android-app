@@ -8,6 +8,7 @@ import android.content.pm.PackageManager
 import android.os.Build
 import android.provider.Settings
 import androidx.core.content.edit
+import com.google.android.gms.tasks.Task
 import com.google.firebase.FirebaseApp
 import com.google.firebase.messaging.FirebaseMessaging
 import kotlin.coroutines.resume
@@ -68,6 +69,9 @@ class PreferencesPushStore(context: Context) : PushStore {
     }
 }
 
+/** The token of a finished Firebase task, or null when Firebase could not hand one out. */
+internal fun tokenOf(task: Task<String>): String? = if (task.isSuccessful) task.result else null
+
 /**
  * The real system: notification permission (asked at runtime from Android 13 on), Firebase Cloud Messaging only when
  * the build is configured for it – without google-services.json Firebase has no default app and is never touched.
@@ -107,7 +111,7 @@ class AndroidPushSystem(private val context: Context) : PushSystem {
         // isConfigured guarantees Firebase's default app, so getInstance() cannot fail here.
         return suspendCancellableCoroutine { continuation ->
             FirebaseMessaging.getInstance().token.addOnCompleteListener { task ->
-                continuation.resume(if (task.isSuccessful) task.result else null)
+                continuation.resume(tokenOf(task))
             }
         }
     }

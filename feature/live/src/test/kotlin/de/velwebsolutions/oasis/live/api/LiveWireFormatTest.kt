@@ -2,6 +2,7 @@ package de.velwebsolutions.oasis.live.api
 
 import de.velwebsolutions.oasis.live.assertWireFormat
 import java.time.Instant
+import org.junit.Assert.assertEquals
 import org.junit.Test
 
 /** Every model and request body of the Live API reads back what it writes, with and without defaults. */
@@ -13,10 +14,9 @@ class LiveWireFormatTest {
     fun hintsAndTheirSettings() {
         assertWireFormat(
             Hint.serializer(),
-            Hint("a", "follow", "Neu", createdAt = since, group = "Heute"),
+            Hint("a", "Neu", createdAt = since, group = "Heute"),
             Hint(
                 "b",
-                "reply",
                 "Antwort",
                 url = "https://get-oasis.com/tropfen/1",
                 excerpt = "Toll",
@@ -65,5 +65,18 @@ class LiveWireFormatTest {
         assertWireFormat(PauseBody.serializer(), PauseBody(3))
         assertWireFormat(SwitchBody.serializer(), SwitchBody(true))
         assertWireFormat(FcmRegistrationBody.serializer(), FcmRegistrationBody("token", "android"))
+    }
+
+    @Test
+    fun requestBodiesCarryWhatTheScreensSet() {
+        val body = HintSettingsBody(mapOf("follow" to true), digest = true, quietEnabled = false, quietFrom = "22:00", quietUntil = "07:00")
+        assertEquals(
+            listOf(mapOf("follow" to true), true, false, "22:00", "07:00"),
+            listOf(body.kinds, body.digest, body.quietEnabled, body.quietFrom, body.quietUntil)
+        )
+        assertEquals(3, PauseBody(3).days)
+        assertEquals(true, SwitchBody(true).value)
+        val registration = FcmRegistrationBody("token", "android")
+        assertEquals("token" to "android", registration.token to registration.platform)
     }
 }

@@ -1,20 +1,24 @@
 package de.velwebsolutions.oasis.live
 
 import de.velwebsolutions.oasis.core.model.Loadable
+import de.velwebsolutions.oasis.live.api.ChatSwitch
 import de.velwebsolutions.oasis.live.api.HintSettings
 import de.velwebsolutions.oasis.live.api.PushSettings
+import de.velwebsolutions.oasis.live.data.LiveRepository
 import de.velwebsolutions.oasis.live.push.PushAuthorization
 import de.velwebsolutions.oasis.live.push.PushRegistrar
 import de.velwebsolutions.oasis.live.ui.HintSettingsUiState
 import de.velwebsolutions.oasis.live.ui.HintSettingsViewModel
 import de.velwebsolutions.oasis.live.ui.HintsInboxUiState
 import de.velwebsolutions.oasis.live.ui.HintsInboxViewModel
+import de.velwebsolutions.oasis.live.ui.hourAndMinute
 import de.velwebsolutions.oasis.live.ui.timeText
 import de.velwebsolutions.oasis.testing.MainDispatcherRule
 import de.velwebsolutions.oasis.testing.StubTransport
 import java.util.Locale
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.test.runCurrent
 import kotlinx.coroutines.test.runTest
 import kotlinx.serialization.json.JsonObject
 import kotlinx.serialization.json.JsonPrimitive
@@ -223,6 +227,7 @@ class HintsViewModelTest {
         val ui = model.loaded()
         assertTrue(ui.settings!!.push.available)
         assertFalse(ui.pushAvailable)
+        assertFalse(ui.pushSupported)
     }
 
     @Test
@@ -237,6 +242,8 @@ class HintsViewModelTest {
             Locale.setDefault(Locale.forLanguageTag("fa-IR"))
             assertEquals("07:05", timeText(7, 5))
             assertEquals("22:00", timeText(22, 0))
+            assertEquals(7 to 5, hourAndMinute("07:05"))
+            assertEquals(0 to 0, hourAndMinute(""))
         } finally {
             Locale.setDefault(before)
         }
@@ -464,5 +471,37 @@ class HintsViewModelTest {
         assertTrue(on.pushAvailable)
         assertFalse(HintsInboxUiState().showsUnread)
         assertTrue(HintsInboxUiState().groups.isEmpty())
+    }
+
+    @Test
+    fun answersWithoutWaitingAndSavesChatSwitchesBothWays() = runTest {
+        val immediate = ImmediateLiveRepository(
+            settings = HintSettings(
+                chat = listOf(ChatSwitch("chat_push", "Push", enabled = false), ChatSwitch("chat_email", "E-Mail", enabled = true))
+            )
+        )
+        val model = HintSettingsViewModel(immediate, registrar())
+        model.loaded()
+        model.pause(1)
+        assertEquals("Pause.", model.ui.value.message)
+        model.resume()
+        assertEquals("Weiter.", model.ui.value.message)
+        model.saveChat("chat_push")
+        model.saveChat("chat_email")
+        val failing = object : LiveRepository by immediate {
+            override suspend fun setChatSwitch(key: String, on: Boolean): String = error("offline")
+        }
+        val refused = HintSettingsViewModel(failing, registrar())
+        refused.loaded()
+        refused.saveChat("chat_push")
+        refused.saveChat("chat_email")
+        assertEquals(listOf(true, false), refused.ui.value.settings?.chat?.map { it.enabled })
+
+        val live = LiveCoordinator(immediate, EndedRealtime(), registrar(), LiveCounts(backgroundScope))
+        live.start(1)
+        runCurrent()
+        live.foreground()
+        assertEquals(2, live.hints.value)
+        live.stop()
     }
 }

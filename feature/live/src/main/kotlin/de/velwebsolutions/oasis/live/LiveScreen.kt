@@ -63,10 +63,8 @@ import javax.inject.Inject
 /** Entry point of the Live module: the screen for each [LiveRoute] (mapped in the app). */
 @Composable
 fun LiveScreen(route: LiveRoute) {
-    when (route) {
-        LiveRoute.Inbox -> HintsInboxScreen()
-        LiveRoute.Settings -> HintSettingsScreen()
-    }
+    // Two routes: the list and its settings.
+    if (route == LiveRoute.Inbox) HintsInboxScreen() else HintSettingsScreen()
 }
 
 /** Hands the app shell's live state (bell, chat notice) to the composables of the header and the tab view. */
