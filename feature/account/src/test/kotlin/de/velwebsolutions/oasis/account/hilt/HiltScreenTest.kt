@@ -1,7 +1,6 @@
 package de.velwebsolutions.oasis.account.hilt
 
 import android.content.ComponentName
-import androidx.activity.compose.setContent
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.ui.semantics.SemanticsActions
@@ -75,10 +74,13 @@ abstract class HiltScreenTest {
     fun stub(method: String, path: String, json: String, status: Int = 200) = transport.add(method, path, status, json)
 
     fun show(content: @Composable () -> Unit) {
-        scenario = ActivityScenario.launch(HiltTestActivity::class.java).onActivity { activity ->
-            this.activity = activity
-            activity.setContent { OasisTheme { CompositionLocalProvider(LocalNavigator provides navigator) { content() } } }
-        }
+        HiltTestActivity.content = { OasisTheme { CompositionLocalProvider(LocalNavigator provides navigator) { content() } } }
+        scenario = ActivityScenario.launch(HiltTestActivity::class.java).onActivity { this.activity = it }
+    }
+
+    /** Recreates the activity like a rotation does; saved state comes back. */
+    fun recreate() {
+        scenario = scenario?.recreate()?.onActivity { this.activity = it }
     }
 
     fun shot(name: String) = compose.onRoot().captureRoboImage("build/outputs/roborazzi/account-$name.png")

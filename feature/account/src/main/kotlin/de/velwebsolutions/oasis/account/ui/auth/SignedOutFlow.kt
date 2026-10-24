@@ -42,22 +42,31 @@ import kotlinx.coroutines.launch
 
 /** The screens a signed-out visitor moves between (SignedOutView.Step on iOS). Legal pages open in a Custom Tab. */
 sealed interface SignedOutStep {
-    data object Register : SignedOutStep
+    /** How the step is kept while the activity is recreated. */
+    val code: String
 
-    data object ForgotPassword : SignedOutStep
+    /** Registration (/testen). */
+    data object Register : SignedOutStep {
+        override val code = "register"
+    }
 
-    data object TwoFactorRecovery : SignedOutStep
+    /** „Passwort vergessen?“. */
+    data object ForgotPassword : SignedOutStep {
+        override val code = "forgot"
+    }
 
-    data class TwoFactor(val challenge: String) : SignedOutStep
+    /** „Kein Zugriff auf deine Codes?“. */
+    data object TwoFactorRecovery : SignedOutStep {
+        override val code = "recovery"
+    }
+
+    /** The second factor of a sign-in that asked for it. */
+    data class TwoFactor(val challenge: String) : SignedOutStep {
+        override val code get() = "two-factor:$challenge"
+    }
 
     companion object {
-        fun encode(step: SignedOutStep): String = when (step) {
-            Register -> "register"
-            ForgotPassword -> "forgot"
-            TwoFactorRecovery -> "recovery"
-            is TwoFactor -> "two-factor:${step.challenge}"
-        }
-
+        /** The step of a kept [code]; unknown codes (an older app) are dropped. */
         fun decode(raw: String): SignedOutStep? = when {
             raw == "register" -> Register
             raw == "forgot" -> ForgotPassword
@@ -69,7 +78,7 @@ sealed interface SignedOutStep {
 }
 
 private val StepsSaver = listSaver<SnapshotStateList<SignedOutStep>, String>(
-    save = { steps -> steps.map(SignedOutStep::encode) },
+    save = { steps -> steps.map { it.code } },
     restore = { saved -> mutableStateListOf<SignedOutStep>().apply { addAll(saved.mapNotNull(SignedOutStep::decode)) } }
 )
 
@@ -102,7 +111,11 @@ internal fun SignedOutFlow() {
 
                 SignedOutStep.TwoFactorRecovery -> TwoFactorRecoveryScreen()
 
-                is SignedOutStep.TwoFactor -> TwoFactorScreen(step.challenge, onLost = { steps.add(SignedOutStep.TwoFactorRecovery) })
+                // The remaining step: the second factor.
+                else -> {
+                    val twoFactor = step as SignedOutStep.TwoFactor
+                    TwoFactorScreen(twoFactor.challenge, onLost = { steps.add(SignedOutStep.TwoFactorRecovery) })
+                }
             }
         }
     }

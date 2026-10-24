@@ -1,6 +1,9 @@
 package de.velwebsolutions.oasis.account.hilt
 
+import android.os.Bundle
 import androidx.activity.ComponentActivity
+import androidx.activity.compose.setContent
+import androidx.compose.runtime.Composable
 import dagger.Module
 import dagger.Provides
 import dagger.hilt.android.AndroidEntryPoint
@@ -57,6 +60,19 @@ object TestCoreModule {
     fun realtime(): RealtimeService = NoRealtime()
 }
 
-/** An activity of the test graph, so `hiltViewModel()` works in the screens. */
+/**
+ * An activity of the test graph, so `hiltViewModel()` works in the screens. It shows [content] again when it is
+ * recreated, so saved state can be restored like in the app.
+ */
 @AndroidEntryPoint
-class HiltTestActivity : ComponentActivity()
+class HiltTestActivity : ComponentActivity() {
+    override fun onCreate(savedInstanceState: Bundle?) {
+        super.onCreate(savedInstanceState)
+        setContent { content() }
+    }
+
+    companion object {
+        /** What the activity shows. */
+        var content: @Composable () -> Unit = {}
+    }
+}

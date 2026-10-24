@@ -23,6 +23,9 @@ object Fixtures {
     val glossary get() = json("glossary")
     val report get() = json("report")
 
+    /** A starter oasis of the welcome tour. */
+    val starterOasis = de.velwebsolutions.oasis.account.api.StarterOasis(id = 1, slug = "korn-licht", name = "Korn & Licht")
+
     const val ME =
         """{"id":5,"username":"mira","display_name":"Mira Sol","initials":"MS","email":"mira@demo.oasis.tld","email_verified":true,"onboarded":true}"""
 }
