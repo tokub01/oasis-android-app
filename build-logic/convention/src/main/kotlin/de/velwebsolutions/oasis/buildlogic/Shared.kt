@@ -1,0 +1,46 @@
+package de.velwebsolutions.oasis.buildlogic
+
+import com.android.build.api.dsl.CommonExtension
+import org.gradle.api.JavaVersion
+import org.gradle.api.Project
+import org.gradle.api.artifacts.VersionCatalog
+import org.gradle.api.artifacts.VersionCatalogsExtension
+import org.gradle.kotlin.dsl.getByType
+import org.gradle.kotlin.dsl.withType
+import org.jetbrains.kotlin.gradle.dsl.JvmTarget
+import org.jetbrains.kotlin.gradle.tasks.KotlinCompile
+
+internal val Project.libs: VersionCatalog
+    get() = extensions.getByType<VersionCatalogsExtension>().named("libs")
+
+internal fun VersionCatalog.version(name: String): Int = findVersion(name).get().requiredVersion.toInt()
+
+internal fun VersionCatalog.library(name: String) = findLibrary(name).get()
+
+/** SDK levels, Java 17 bytecode and the compiler flags every Android module of Oasis shares. */
+internal fun Project.configureAndroid(extension: CommonExtension) {
+    extension.apply {
+        compileSdk = libs.version("compileSdk")
+        defaultConfig.minSdk = libs.version("minSdk")
+        compileOptions.sourceCompatibility = JavaVersion.VERSION_17
+        compileOptions.targetCompatibility = JavaVersion.VERSION_17
+        testOptions.unitTests.isIncludeAndroidResources = true
+        testOptions.unitTests.isReturnDefaultValues = true
+        lint.abortOnError = true
+        lint.warningsAsErrors = false
+        lint.disable += setOf("GradleDependency", "NewerVersionAvailable", "AndroidGradlePluginVersion")
+    }
+    configureKotlin()
+}
+
+internal fun Project.configureKotlin() {
+    tasks.withType<KotlinCompile>().configureEach {
+        compilerOptions {
+            jvmTarget.set(JvmTarget.JVM_17)
+            freeCompilerArgs.addAll(
+                "-opt-in=kotlinx.serialization.ExperimentalSerializationApi",
+                "-opt-in=kotlinx.coroutines.ExperimentalCoroutinesApi",
+            )
+        }
+    }
+}
