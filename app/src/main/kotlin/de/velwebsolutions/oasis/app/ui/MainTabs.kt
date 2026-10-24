@@ -63,6 +63,7 @@ import androidx.lifecycle.viewmodel.navigation3.rememberViewModelStoreNavEntryDe
 import androidx.navigation3.runtime.NavEntry
 import androidx.navigation3.runtime.rememberSaveableStateHolderNavEntryDecorator
 import androidx.navigation3.ui.NavDisplay
+import de.velwebsolutions.oasis.app.shell.LocalAppScreens
 import de.velwebsolutions.oasis.core.model.Me
 import de.velwebsolutions.oasis.design.components.CountBadge
 import de.velwebsolutions.oasis.design.components.LocalScreenChrome
@@ -81,9 +82,6 @@ import de.velwebsolutions.oasis.design.navigation.StaffRoute
 import de.velwebsolutions.oasis.design.theme.OasisColors
 import de.velwebsolutions.oasis.design.theme.OasisRadius
 import de.velwebsolutions.oasis.design.theme.OasisType
-import de.velwebsolutions.oasis.live.ChatToastOverlay
-import de.velwebsolutions.oasis.live.HintsButton
-import de.velwebsolutions.oasis.membership.TrialBanner
 
 private val MainTab.icon: ImageVector
     get() = when (this) {
@@ -110,7 +108,8 @@ fun MainTabs(me: Me, viewModel: RootViewModel) {
     LaunchedEffect(navigator.selectedTab) { viewModel.live.setShowingChats(navigator.selectedTab == MainTab.Chats) }
 
     val header: @Composable (@Composable RowScope.() -> Unit) -> Unit = { actions -> AppHeader(me, viewModel, actions) }
-    val banner: @Composable () -> Unit = { TrialBanner(me) }
+    val screens = LocalAppScreens.current
+    val banner: @Composable () -> Unit = { screens.Banner(me) }
     val tabStates = rememberSaveableStateHolder()
 
     Scaffold(
@@ -156,7 +155,7 @@ fun MainTabs(me: Me, viewModel: RootViewModel) {
                 }, rootChrome = ScreenChrome(rootHeader = header, banner = banner), banner = banner)
             }
             StatusToast(confirmation, null, onDismissMessage = viewModel::clearConfirmation, onDismissError = {})
-            ChatToastOverlay()
+            screens.ChatNotice()
         }
     }
 
@@ -214,7 +213,7 @@ private fun RouteStack(
             NavEntry(entry, contentKey = "${entry.index}:${entry.route}") {
                 val chrome = if (entry.index == 0) rootChrome else ScreenChrome(onBack = onBack, banner = banner)
                 CompositionLocalProvider(LocalScreenChrome provides chrome) {
-                    AppDestination(entry.route)
+                    LocalAppScreens.current.Destination(entry.route)
                 }
             }
         }
@@ -245,7 +244,7 @@ private fun AppHeader(me: Me, viewModel: RootViewModel, actions: @Composable Row
         IconButton(onClick = { navigator.open(NetworkRoute.Search()) }) {
             Icon(Icons.Outlined.Search, contentDescription = "Suchen", tint = OasisColors.Night)
         }
-        HintsButton()
+        LocalAppScreens.current.Bell()
         MoreMenu(me, viewModel)
     }
 }
