@@ -91,6 +91,9 @@ class FakeBillingGateway(
     var owned: List<PlayPurchase> = emptyList()
 ) : BillingGateway {
     val purchased = mutableListOf<Pair<String, String?>>()
+
+    /** Holds a purchase until the test completes it. */
+    var gate: kotlinx.coroutines.CompletableDeferred<Unit>? = null
     val acknowledged = mutableListOf<String>()
     val updates = MutableSharedFlow<PlayPurchase>(extraBufferCapacity = 8)
 
@@ -98,6 +101,7 @@ class FakeBillingGateway(
 
     override suspend fun purchase(activity: Activity?, product: PlayProduct, accountId: String?): PurchaseOutcome {
         purchased += product.id to accountId
+        gate?.await()
         return outcome
     }
 

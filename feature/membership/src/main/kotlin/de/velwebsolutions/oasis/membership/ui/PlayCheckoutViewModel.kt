@@ -94,8 +94,8 @@ class PlayCheckoutViewModel @Inject constructor(
     private suspend fun offers(): List<CheckoutOffer> {
         val products = gateway.products(PlayProducts.ids).orEmpty().associateBy(PlayProduct::id)
         return PlayProducts.tiers.map { tier ->
-            fun product(rhythm: String) = PlayProducts.all.firstOrNull { it.tier == tier && it.rhythm == rhythm }?.let { products[it.id] }
-            CheckoutOffer(tier, product(PlayProducts.MONTHLY), product(PlayProducts.YEARLY))
+            val byRhythm = PlayProducts.all.filter { it.tier == tier }.associate { it.rhythm to products[it.id] }
+            CheckoutOffer(tier, byRhythm[PlayProducts.MONTHLY], byRhythm[PlayProducts.YEARLY])
         }.filter { it.monthly != null || it.yearly != null }
     }
 
@@ -155,16 +155,13 @@ class PlayCheckoutViewModel @Inject constructor(
                 mutableState.update { it.copy(error = error.userMessage) }
                 continue
             }
-            when (result) {
-                is PlayDelivery.Result.Unlocked -> {
-                    unlocked = true
-                    mutableState.update { it.copy(message = result.update.message) }
-                    events.changed(message = result.update.message)
-                }
-
-                PlayDelivery.Result.AwaitingServer -> mutableState.update { it.copy(message = AWAITING_SERVER) }
-
-                PlayDelivery.Result.Skipped -> Unit
+            // Skipped purchases (pending, not ours) say nothing.
+            if (result is PlayDelivery.Result.Unlocked) {
+                unlocked = true
+                mutableState.update { it.copy(message = result.update.message) }
+                events.changed(message = result.update.message)
+            } else if (result == PlayDelivery.Result.AwaitingServer) {
+                mutableState.update { it.copy(message = AWAITING_SERVER) }
             }
         }
         if (unlocked) session.refreshMe()

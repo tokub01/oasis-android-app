@@ -81,6 +81,17 @@ class MembershipRepositoryTest {
     }
 
     @Test
+    fun `withdrawing reads the withdrawal page and posts the withdrawal`() = runTest {
+        val (repository, transport) = Fixtures.repository(
+            Stub("GET", "membership/withdrawal", json = Fixtures.WITHDRAWAL),
+            Stub("POST", "membership/withdrawal", json = Fixtures.confirmed("Widerrufen."))
+        )
+        assertEquals("Oase", repository.withdrawal().tierName)
+        assertEquals("Widerrufen.", repository.withdraw().message)
+        assertEquals("membership/withdrawal", transport.requests.last().path)
+    }
+
+    @Test
     fun `downloads the invoice and the export as files`() = runTest {
         val html = "<!doctype html><title>Rechnung OAS-2</title>"
         val (repository, transport) = Fixtures.repository(

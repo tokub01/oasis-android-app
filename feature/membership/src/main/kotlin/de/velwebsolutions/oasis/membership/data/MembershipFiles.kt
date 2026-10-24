@@ -15,13 +15,6 @@ class MembershipFiles(private val cacheDirectory: File) {
 
     private fun write(directory: File, name: String, bytes: ByteArray): File {
         directory.mkdirs()
-        val file = File(directory, name)
-        val temporary = File(directory, "$name.part")
-        temporary.writeBytes(bytes)
-        if (!temporary.renameTo(file)) {
-            file.writeBytes(bytes)
-            temporary.delete()
-        }
-        return file
+        return File(directory, name).apply { writeBytes(bytes) }
     }
 }
