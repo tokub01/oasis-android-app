@@ -42,9 +42,9 @@ class MainActivity : ComponentActivity() {
         handle(intent)
     }
 
-    /** A link or a tapped notification (`url` extra, set by the push service). */
+    /** A link or a tapped notification (`url` extra from the push service, or FCM's own data extra `url`). */
     private fun handle(intent: Intent?) {
-        val url = intent?.dataString ?: intent?.getStringExtra(EXTRA_URL) ?: return
+        val url = intent?.dataString ?: intent?.getStringExtra(EXTRA_URL) ?: intent?.getStringExtra("url") ?: return
         navigator.handle(url)
     }
 
