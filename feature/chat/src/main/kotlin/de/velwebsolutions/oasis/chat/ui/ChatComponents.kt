@@ -23,8 +23,10 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.semantics.stateDescription
+import androidx.compose.ui.text.style.TextDecoration
 import androidx.compose.ui.unit.dp
 import de.velwebsolutions.oasis.design.components.OasisTextButton
 import de.velwebsolutions.oasis.design.components.pressable
@@ -103,11 +105,12 @@ internal fun SmallAction(
     text: String,
     onClick: () -> Unit,
     modifier: Modifier = Modifier,
-    color: androidx.compose.ui.graphics.Color = OasisColors.Night
+    color: Color = OasisColors.Night,
+    underline: Boolean = false
 ) {
     Text(
         text,
-        style = OasisType.SmallBold,
+        style = if (underline) OasisType.SmallBold.copy(textDecoration = TextDecoration.Underline) else OasisType.SmallBold,
         color = color,
         modifier = modifier
             .defaultMinSize(minHeight = 44.dp)
