@@ -25,6 +25,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.style.TextOverflow
+import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
@@ -88,8 +89,8 @@ fun <C> FeedScaffold(
 
 /** The scrolling page of a feed with pull to refresh. */
 @Composable
-fun FeedPage(listState: LazyListState, handlers: FeedHandlers, content: LazyListScope.() -> Unit) {
-    NetworkPage(state = listState, onRefresh = handlers.reload, content = content)
+fun FeedPage(listState: LazyListState, handlers: FeedHandlers, bottomInset: Dp = 0.dp, content: LazyListScope.() -> Unit) {
+    NetworkPage(state = listState, onRefresh = handlers.reload, bottomInset = bottomInset, content = content)
 }
 
 /** "Entdecken" (/app/entdecken): public Tropfen of public profiles, newest first, and the largest oases. No ranking. */

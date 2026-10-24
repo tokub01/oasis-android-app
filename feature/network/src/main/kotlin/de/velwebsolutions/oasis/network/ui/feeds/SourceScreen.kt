@@ -4,9 +4,11 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.defaultMinSize
+import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyListScope
@@ -62,6 +64,8 @@ import de.velwebsolutions.oasis.design.theme.OasisRadius
 import de.velwebsolutions.oasis.design.theme.OasisType
 import de.velwebsolutions.oasis.network.api.SourceContext
 import de.velwebsolutions.oasis.network.ui.PostListState
+import de.velwebsolutions.oasis.network.ui.components.ComposeFab
+import de.velwebsolutions.oasis.network.ui.components.FabInset
 import de.velwebsolutions.oasis.network.ui.components.FeedHandlers
 import de.velwebsolutions.oasis.network.ui.components.OasisRow
 import de.velwebsolutions.oasis.network.ui.components.SectionTitle
@@ -103,10 +107,16 @@ fun SourceScreen() {
         onDismissMessage = viewModel.list::dismissStatus,
         onDismissError = viewModel.list::dismissError
     ) {
-        LoadableView(state.state, onRetry = viewModel.list::reload, skeleton = SkeletonLayout.Cards) {
-            val handlers = viewModel.list.handlers(viewModel::launch)
-            FeedPage(listState, handlers) {
-                sourceContent(state, me?.displayName.orEmpty(), handlers, onSelectView = viewModel::selectView)
+        val canPost = state.context?.canPost != false
+        Box(Modifier.fillMaxSize()) {
+            LoadableView(state.state, onRetry = viewModel.list::reload, skeleton = SkeletonLayout.Cards) {
+                val handlers = viewModel.list.handlers(viewModel::launch)
+                FeedPage(listState, handlers, bottomInset = if (canPost) FabInset else 0.dp) {
+                    sourceContent(state, me?.displayName.orEmpty(), handlers, onSelectView = viewModel::selectView)
+                }
+            }
+            if (state.state.valueOrNull != null && canPost) {
+                ComposeFab(listState, onClick = { navigator.present(NetworkRoute.Compose()) }, Modifier.testTag("source.compose"))
             }
         }
     }
