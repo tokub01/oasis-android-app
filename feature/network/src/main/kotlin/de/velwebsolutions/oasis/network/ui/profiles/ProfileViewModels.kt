@@ -20,6 +20,8 @@ import de.velwebsolutions.oasis.network.api.Profile
 import de.velwebsolutions.oasis.network.data.NetworkRepository
 import de.velwebsolutions.oasis.network.ui.NetworkViewModel
 import de.velwebsolutions.oasis.network.ui.PostListModel
+import de.velwebsolutions.oasis.network.ui.apiError
+import de.velwebsolutions.oasis.network.ui.attempt
 import de.velwebsolutions.oasis.network.ui.compose.ComposeViewModel
 import javax.inject.Inject
 import kotlinx.coroutines.CancellationException
@@ -69,32 +71,58 @@ class ProfileViewModel @AssistedInject constructor(@Assisted handle: String, pri
     suspend fun perform(action: ProfileAction) {
         val current = profile.value.valueOrNull ?: return
         val userId = current.member.id
-        if (action == ProfileAction.Block) {
-            try {
-                NetworkSignals.confirmation.value = repository.block(userId)
-                mutableLeave.value = true
-            } catch (error: CancellationException) {
-                throw error
-            } catch (error: Exception) {
-                mutableError.value = ApiError.from(error)
+        val call: suspend () -> String = when (action) {
+            ProfileAction.Follow -> {
+                { repository.follow(handle, on = true) }
             }
+
+            ProfileAction.Unfollow -> {
+                { repository.follow(handle, on = false) }
+            }
+
+            ProfileAction.RequestFriend -> {
+                { repository.requestFriendship(handle) }
+            }
+
+            ProfileAction.AcceptFriend -> {
+                { repository.acceptFriendship(handle) }
+            }
+
+            ProfileAction.RemoveFriend -> {
+                { repository.removeFriendship(handle) }
+            }
+
+            ProfileAction.Mute -> {
+                { repository.mute(userId, on = true) }
+            }
+
+            ProfileAction.Unmute -> {
+                { repository.mute(userId, on = false) }
+            }
+
+            ProfileAction.Restrict -> {
+                { repository.restrict(userId, on = true) }
+            }
+
+            ProfileAction.Unrestrict -> {
+                { repository.restrict(userId, on = false) }
+            }
+
+            ProfileAction.Block -> {
+                { repository.block(userId) }
+            }
+        }
+        if (action != ProfileAction.Block) {
+            if (confirm(call)) load()
             return
         }
-        val done = confirm {
-            when (action) {
-                ProfileAction.Follow -> repository.follow(handle, on = true)
-                ProfileAction.Unfollow -> repository.follow(handle, on = false)
-                ProfileAction.RequestFriend -> repository.requestFriendship(handle)
-                ProfileAction.AcceptFriend -> repository.acceptFriendship(handle)
-                ProfileAction.RemoveFriend -> repository.removeFriendship(handle)
-                ProfileAction.Mute -> repository.mute(userId, on = true)
-                ProfileAction.Unmute -> repository.mute(userId, on = false)
-                ProfileAction.Restrict -> repository.restrict(userId, on = true)
-                ProfileAction.Unrestrict -> repository.restrict(userId, on = false)
-                ProfileAction.Block -> error("handled above")
-            }
+        // Blocking leaves the profile (it no longer exists for the viewer); the tab bar shows the confirmation.
+        val result = attempt(call)
+        mutableError.value = result.apiError
+        result.onSuccess {
+            NetworkSignals.confirmation.value = it
+            mutableLeave.value = true
         }
-        if (done) load()
     }
 }
 
@@ -131,13 +159,9 @@ class EditProfileViewModel @Inject constructor(private val repository: NetworkRe
 
     suspend fun load() {
         mutableProfile.value = Loadable.Loading
-        try {
-            apply(repository.ownProfile())
-        } catch (error: CancellationException) {
-            throw error
-        } catch (error: Exception) {
-            mutableProfile.value = Loadable.Failed(ApiError.from(error))
-        }
+        val result = attempt { repository.ownProfile() }
+        result.onSuccess(::apply)
+        result.apiError?.let { mutableProfile.value = Loadable.Failed(it) }
     }
 
     suspend fun loadIfNeeded() {
@@ -149,29 +173,27 @@ class EditProfileViewModel @Inject constructor(private val repository: NetworkRe
         if (profile.value.valueOrNull == null) return
         mutableForm.update { it.copy(toneConfirmed = false) }
         val text = "${form.value.bio} ${form.value.location}".trim()
-        val result = try {
-            common.toneHint(text, "profile")
-        } catch (error: CancellationException) {
-            throw error
-        } catch (_: Exception) {
-            return
+        // A failed check shows nothing.
+        attempt { common.toneHint(text, "profile") }.onSuccess { result ->
+            mutableForm.update { it.copy(toneHint = result.hint, toneNudge = result.nudge) }
         }
-        mutableForm.update { it.copy(toneHint = result.hint, toneNudge = result.nudge) }
     }
 
     suspend fun save() {
         mutableError.value = null
         val form = form.value
-        try {
-            val saved = repository.updateOwnProfile(form.bio, form.location, form.color, form.toneConfirmed)
+        val result = attempt { repository.updateOwnProfile(form.bio, form.location, form.color, form.toneConfirmed) }
+        result.onSuccess { saved ->
             apply(saved.data)
             mutableStatus.value = saved.message
             NetworkSignals.didChangeProfile()
-        } catch (error: CancellationException) {
-            throw error
-        } catch (error: Exception) {
-            val failure = ApiError.from(error)
-            if (failure.message("bio")?.startsWith(ComposeViewModel.TONE_QUESTION) == true) mutableForm.update { it.copy(toneNudge = true) }
+        }
+        result.apiError?.let { failure ->
+            if (failure.message("bio").orEmpty().startsWith(ComposeViewModel.TONE_QUESTION)) {
+                mutableForm.update {
+                    it.copy(toneNudge = true)
+                }
+            }
             mutableError.value = failure
         }
     }
@@ -195,24 +217,18 @@ class EditProfileViewModel @Inject constructor(private val repository: NetworkRe
         }
         setUploading(true)
         mutableError.value = null
-        try {
-            change { upload(image) }
-        } finally {
-            setUploading(false)
-        }
+        change { upload(image) }
+        setUploading(false)
     }
 
     private suspend fun change(action: suspend () -> Confirmed<OwnProfile>) {
-        try {
-            val saved = action()
+        val result = attempt(action)
+        result.onSuccess { saved ->
             mutableProfile.value = Loadable.Loaded(saved.data)
             mutableStatus.value = saved.message
             NetworkSignals.didChangeProfile()
-        } catch (error: CancellationException) {
-            throw error
-        } catch (error: Exception) {
-            mutableError.value = ApiError.from(error)
         }
+        result.apiError?.let { mutableError.value = it }
     }
 
     private fun apply(loaded: OwnProfile) {
@@ -286,17 +302,13 @@ class InvitationsViewModel @Inject constructor(private val repository: NetworkRe
 
     /** A new link; the budget's message shows below the heading, anything else as a toast. */
     suspend fun create() {
-        mutableError.value = null
-        try {
-            mutableStatus.value = repository.createInvitation()
+        val result = attempt { repository.createInvitation() }
+        mutableError.value = result.apiError
+        result.onSuccess {
+            mutableStatus.value = it
             load()
-        } catch (error: CancellationException) {
-            throw error
-        } catch (error: Exception) {
-            val failure = ApiError.from(error)
-            mutableError.value = failure
-            if (failure.message("invitation") == null) mutableStatus.value = failure.userMessage
         }
+        result.apiError?.let { failure -> if (failure.message("invitation") == null) mutableStatus.value = failure.userMessage }
     }
 }
 

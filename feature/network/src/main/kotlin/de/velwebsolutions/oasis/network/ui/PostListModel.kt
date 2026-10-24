@@ -66,9 +66,10 @@ class PostListModel<C>(
     suspend fun reload() {
         val started = ++generation
         mutableState.update { it.copy(state = it.state.refreshing(), isReloading = true) }
-        try {
-            val page = repository.fetch(current.filter, null)
-            if (started != generation) return
+        val result = attempt { repository.fetch(current.filter, null) }
+        // A list forgotten or reloaded meanwhile ignores the late answer.
+        if (started != generation) return
+        result.onSuccess { page ->
             mutableState.update {
                 it.copy(
                     posts = page.data,
@@ -78,16 +79,19 @@ class PostListModel<C>(
                     state = Loadable.Loaded(Unit)
                 )
             }
-        } catch (error: CancellationException) {
-            throw error
-        } catch (error: Exception) {
-            if (started != generation) return
-            mutableState.update {
-                if (it.state.valueOrNull == null) it.copy(state = it.state.failing(error)) else it.copy(actionError = ApiError.from(error))
-            }
-        } finally {
-            if (started == generation) mutableState.update { it.copy(isReloading = false) }
         }
+        result.apiError?.let { error ->
+            mutableState.update {
+                if (it.state.valueOrNull ==
+                    null
+                ) {
+                    it.copy(state = Loadable.Failed(error))
+                } else {
+                    it.copy(actionError = error)
+                }
+            }
+        }
+        mutableState.update { it.copy(isReloading = false) }
     }
 
     /** Forget the list (a search term that became too short), so nothing stale shows up when it is long enough again. */
@@ -107,19 +111,14 @@ class PostListModel<C>(
         if (current.isLoadingMore || current.state.valueOrNull == null) return
         mutableState.update { it.copy(isLoadingMore = true) }
         val started = generation
-        try {
-            val page = repository.fetch(current.filter, cursor)
-            if (started != generation) return
+        val result = attempt { repository.fetch(current.filter, cursor) }
+        mutableState.update { it.copy(isLoadingMore = false, loadMoreError = result.apiError) }
+        if (started != generation) return
+        result.onSuccess { page ->
             mutableState.update { state ->
                 val known = state.posts.map { it.id }.toSet()
-                state.copy(posts = state.posts + page.data.filterNot { it.id in known }, nextCursor = page.nextCursor, loadMoreError = null)
+                state.copy(posts = state.posts + page.data.filterNot { it.id in known }, nextCursor = page.nextCursor)
             }
-        } catch (error: CancellationException) {
-            throw error
-        } catch (error: Exception) {
-            mutableState.update { it.copy(loadMoreError = ApiError.from(error)) }
-        } finally {
-            mutableState.update { it.copy(isLoadingMore = false) }
         }
     }
 
@@ -135,16 +134,11 @@ class PostListModel<C>(
         val undo = action.undo?.takeUnless { action == PostAction.Unbookmark && dropsUnbookmarked }
         val optimistic = undo != null
         if (optimistic) apply(action, post)
-        try {
-            val message = repository.perform(action, post)
-            mutableState.update { it.copy(status = message, actionError = null) }
-            if (!optimistic) apply(action, post)
-        } catch (error: CancellationException) {
-            throw error
-        } catch (error: Exception) {
-            if (undo != null) mutableState.update { it.copy(posts = it.posts.applying(undo, post)) }
-            mutableState.update { it.copy(actionError = ApiError.from(error)) }
-        }
+        val result = attempt { repository.perform(action, post) }
+        result.onSuccess { message -> mutableState.update { it.copy(status = message) } }
+        mutableState.update { it.copy(actionError = result.apiError) }
+        if (result.isSuccess && !optimistic) apply(action, post)
+        if (result.isFailure && undo != null) mutableState.update { it.copy(posts = it.posts.applying(undo, post)) }
     }
 
     /** Put a just-published Tropfen on top. */

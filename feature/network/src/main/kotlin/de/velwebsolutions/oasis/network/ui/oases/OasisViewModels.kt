@@ -20,6 +20,8 @@ import de.velwebsolutions.oasis.network.api.OasisStatistics
 import de.velwebsolutions.oasis.network.data.NetworkRepository
 import de.velwebsolutions.oasis.network.ui.NetworkViewModel
 import de.velwebsolutions.oasis.network.ui.PostListModel
+import de.velwebsolutions.oasis.network.ui.apiError
+import de.velwebsolutions.oasis.network.ui.attempt
 import javax.inject.Inject
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -86,9 +88,8 @@ class OasisViewModel @AssistedInject constructor(@Assisted val slug: String, pri
     }
 
     suspend fun loadMembers() {
-        mutableMembers.value = runCatching { repository.oasisMembers(slug, memberQuery.value.take(60)) }
-            .onFailure { if (it is CancellationException) throw it }
-            .getOrNull()
+        // A list that cannot load is simply not shown.
+        mutableMembers.value = attempt { repository.oasisMembers(slug, memberQuery.value.take(60)) }.getOrNull()
     }
 
     /** Follow (= become a member) or unfollow; the last host cannot leave (the server explains why). */
@@ -140,8 +141,7 @@ class OasisFormViewModel @AssistedInject constructor(@Assisted val slug: String?
     fun updateInput(change: (OasisInput) -> OasisInput) = mutableState.update { it.copy(input = change(it.input)) }
 
     suspend fun load() {
-        mutableState.update { it.copy(loadError = null) }
-        try {
+        val result = attempt {
             if (slug != null) {
                 val form = repository.oasisEditForm(slug)
                 val input = OasisInput(form.oasis.name, form.oasis.description, form.houseRules, form.oasis.visibility, form.oasis.color)
@@ -150,11 +150,8 @@ class OasisFormViewModel @AssistedInject constructor(@Assisted val slug: String?
                 val options = repository.oases().options
                 mutableState.update { it.copy(options = options) }
             }
-        } catch (error: CancellationException) {
-            throw error
-        } catch (error: Exception) {
-            mutableState.update { it.copy(loadError = ApiError.from(error)) }
         }
+        mutableState.update { it.copy(loadError = result.apiError) }
     }
 
     suspend fun loadIfNeeded() {
@@ -162,21 +159,18 @@ class OasisFormViewModel @AssistedInject constructor(@Assisted val slug: String?
     }
 
     suspend fun save() {
-        mutableError.value = null
-        try {
+        val result = attempt {
             if (slug != null) {
                 repository.updateOasis(slug, state.value.input)
-                NetworkSignals.didChangeOases()
-                mutableState.update { it.copy(outcome = OasisFormOutcome.Close) }
+                OasisFormOutcome.Close
             } else {
-                val created = repository.createOasis(state.value.input, state.value.banner)
-                NetworkSignals.didChangeOases()
-                mutableState.update { it.copy(outcome = OasisFormOutcome.Open(created)) }
+                OasisFormOutcome.Open(repository.createOasis(state.value.input, state.value.banner))
             }
-        } catch (error: CancellationException) {
-            throw error
-        } catch (error: Exception) {
-            mutableError.value = ApiError.from(error)
+        }
+        mutableError.value = result.apiError
+        result.onSuccess { outcome ->
+            NetworkSignals.didChangeOases()
+            mutableState.update { it.copy(outcome = outcome) }
         }
     }
 
@@ -208,21 +202,16 @@ class OasisFormViewModel @AssistedInject constructor(@Assisted val slug: String?
 
     suspend fun setRole(userId: Int, role: String) {
         val slug = slug ?: return
-        mutableError.value = null
-        try {
-            val change = repository.setRole(slug, userId, role)
-            NetworkSignals.didChangeOases()
-            if (change.data.stillHost) {
-                mutableStatus.value = change.message
-                load()
-            } else {
-                NetworkSignals.confirmation.value = change.message
-                mutableState.update { it.copy(outcome = OasisFormOutcome.Close) }
-            }
-        } catch (error: CancellationException) {
-            throw error
-        } catch (error: Exception) {
-            mutableError.value = ApiError.from(error)
+        val result = attempt { repository.setRole(slug, userId, role) }
+        mutableError.value = result.apiError
+        val change = result.getOrNull() ?: return
+        NetworkSignals.didChangeOases()
+        if (change.data.stillHost) {
+            mutableStatus.value = change.message
+            load()
+        } else {
+            NetworkSignals.confirmation.value = change.message
+            mutableState.update { it.copy(outcome = OasisFormOutcome.Close) }
         }
     }
 
@@ -261,15 +250,12 @@ class CloseOasisViewModel @AssistedInject constructor(@Assisted val slug: String
     }
 
     suspend fun close() {
-        mutableError.value = null
-        try {
-            NetworkSignals.confirmation.value = repository.closeOasis(slug, confirmed.value)
+        val result = attempt { repository.closeOasis(slug, confirmed.value) }
+        mutableError.value = result.apiError
+        result.onSuccess { message ->
+            NetworkSignals.confirmation.value = message
             NetworkSignals.didChangeOases()
             mutableClosed.value = true
-        } catch (error: CancellationException) {
-            throw error
-        } catch (error: Exception) {
-            mutableError.value = ApiError.from(error)
         }
     }
 }
