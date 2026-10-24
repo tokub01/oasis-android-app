@@ -179,4 +179,30 @@ class KeystoreDeviceSecretStoreTest {
         assertThrows(GeneralSecurityException::class.java) { keystore.encryptCipher("alias") }
         assertNotNull(ChatModule.dataStore(context))
     }
+
+    @Test
+    fun theKeystoreBindingAsksForAPerUseStrongBiometricKey() {
+        FakeAndroidKeyStore.install()
+        try {
+            val keystore = AndroidKeystoreBiometricKeys(ApplicationProvider.getApplicationContext())
+            val encrypt = keystore.encryptCipher("oasis.chat.device-unlock.1")
+            val spec = checkNotNull(FakeAndroidKeyStore.specs["oasis.chat.device-unlock.1"])
+            assertTrue(spec.isUserAuthenticationRequired)
+            assertEquals("a biometric for every single use", 0, spec.userAuthenticationValidityDurationSeconds)
+            assertEquals(android.security.keystore.KeyProperties.AUTH_BIOMETRIC_STRONG, spec.userAuthenticationType)
+            assertTrue(spec.isInvalidatedByBiometricEnrollment)
+            assertEquals(KEY_BITS, spec.keySize)
+
+            val sealed = encrypt.doFinal(byteArrayOf(1, 2, 3))
+            val decrypt = checkNotNull(keystore.decryptCipher("oasis.chat.device-unlock.1", encrypt.iv))
+            assertArrayEquals(byteArrayOf(1, 2, 3), decrypt.doFinal(sealed))
+            assertNull("unknown alias", keystore.decryptCipher("unknown", encrypt.iv))
+            FakeAndroidKeyStore.keys["not-secret"] = java.security.KeyPairGenerator.getInstance("EC").generateKeyPair().public
+            assertNull("not a secret key", keystore.decryptCipher("not-secret", encrypt.iv))
+            keystore.delete("oasis.chat.device-unlock.1")
+            assertNull(keystore.decryptCipher("oasis.chat.device-unlock.1", encrypt.iv))
+        } finally {
+            FakeAndroidKeyStore.uninstall()
+        }
+    }
 }

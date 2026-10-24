@@ -8,6 +8,7 @@ import androidx.fragment.app.FragmentActivity
 import java.lang.ref.WeakReference
 import javax.crypto.Cipher
 import kotlin.coroutines.resume
+import kotlinx.coroutines.CancellableContinuation
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.suspendCancellableCoroutine
 import kotlinx.coroutines.withContext
@@ -42,16 +43,7 @@ class BiometricPrompter : BiometricAuthenticator {
 
     private suspend fun androidPrompt(activity: FragmentActivity, cipher: Cipher, title: String): Cipher? =
         suspendCancellableCoroutine { continuation ->
-            val callback = object : BiometricPrompt.AuthenticationCallback() {
-                override fun onAuthenticationSucceeded(result: BiometricPrompt.AuthenticationResult) {
-                    if (continuation.isActive) continuation.resume(result.cryptoObject?.cipher)
-                }
-
-                override fun onAuthenticationError(errorCode: Int, errString: CharSequence) {
-                    if (continuation.isActive) continuation.resume(null)
-                }
-            }
-            val prompt = BiometricPrompt(activity, ContextCompat.getMainExecutor(activity), callback)
+            val prompt = BiometricPrompt(activity, ContextCompat.getMainExecutor(activity), PromptCallback(continuation))
             val info = BiometricPrompt.PromptInfo.Builder()
                 .setTitle(title)
                 .setNegativeButtonText("Abbrechen")
@@ -60,4 +52,15 @@ class BiometricPrompter : BiometricAuthenticator {
             prompt.authenticate(info, BiometricPrompt.CryptoObject(cipher))
             continuation.invokeOnCancellation { prompt.cancelAuthentication() }
         }
+}
+
+/** Hands the prompt's answer to the waiting coroutine once: the authorised cipher, or null for every refusal. */
+internal class PromptCallback(private val continuation: CancellableContinuation<Cipher?>) : BiometricPrompt.AuthenticationCallback() {
+    override fun onAuthenticationSucceeded(result: BiometricPrompt.AuthenticationResult) {
+        if (continuation.isActive) continuation.resume(result.cryptoObject?.cipher)
+    }
+
+    override fun onAuthenticationError(errorCode: Int, errString: CharSequence) {
+        if (continuation.isActive) continuation.resume(null)
+    }
 }

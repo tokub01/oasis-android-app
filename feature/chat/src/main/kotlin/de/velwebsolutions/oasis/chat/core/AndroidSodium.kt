@@ -1,6 +1,6 @@
 package de.velwebsolutions.oasis.chat.core
 
-import com.goterl.lazysodium.SodiumAndroid
+import com.goterl.lazysodium.Sodium as NativeSodium
 import com.sun.jna.Memory
 import com.sun.jna.NativeLong
 import de.velwebsolutions.oasis.chatcrypto.Sodium
@@ -17,11 +17,10 @@ import de.velwebsolutions.oasis.chatcrypto.SodiumKeyPair
 
 /**
  * [Sodium] in the app through lazysodium-android (libsodium for arm64-v8a, armeabi-v7a, x86 and x86_64, loaded with
- * JNA). The same calls as the JVM test binding `JvmSodium` in the chat-crypto test fixture, which the unit tests use.
+ * JNA): [native] is `SodiumAndroid` in the app. The unit tests pass lazysodium-java's `SodiumJava`, which has the same
+ * class and the same calls, so this binding runs on the JVM too.
  */
-class AndroidSodium : Sodium {
-    private val native = SodiumAndroid()
-
+class AndroidSodium(private val native: NativeSodium) : Sodium {
     init {
         // 0 on the first call, 1 when already initialised; lazysodium has loaded the library at this point.
         native.sodium_init()

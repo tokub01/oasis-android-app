@@ -6,10 +6,12 @@ import de.velwebsolutions.oasis.chat.core.ChatVault
 import de.velwebsolutions.oasis.chat.core.DeviceSecretStore
 import de.velwebsolutions.oasis.chat.core.MemoryChatPreferences
 import de.velwebsolutions.oasis.chat.core.MemoryDeviceSecretStore
+import de.velwebsolutions.oasis.chat.data.ChatRepository
 import de.velwebsolutions.oasis.chat.data.DefaultChatRepository
 import de.velwebsolutions.oasis.chatcrypto.ChatCrypto
 import de.velwebsolutions.oasis.chatcrypto.JvmSodium
 import kotlin.time.Duration
+import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
@@ -27,16 +29,27 @@ class ChatTestSupport(val server: FakeChatServer = FakeChatServer()) {
         secrets: DeviceSecretStore = MemoryDeviceSecretStore(available = false),
         canParticipate: Boolean = true,
         preferences: ChatPreferences = MemoryChatPreferences(),
-        vault: ChatVault = ChatVault(vaultScope, idleLock = Duration.INFINITE)
+        vault: ChatVault = ChatVault(vaultScope, idleLock = Duration.INFINITE),
+        cryptoDispatcher: CoroutineDispatcher = Dispatchers.Default,
+        repository: (ChatRepository) -> ChatRepository = { it }
     ): ChatContext {
         vault.prepare(userId.toString())
         return ChatContext(
-            repository = DefaultChatRepository(server.client(userId)),
+            repository = repository(DefaultChatRepository(server.client(userId))),
             vault = vault,
             crypto = testCrypto,
             secrets = secrets,
             preferences = preferences,
-            me = server.me(userId, canParticipate)
+            me = server.me(userId, canParticipate),
+            cryptoDispatcher = cryptoDispatcher
         )
+    }
+}
+
+/** Runs crypto on [Dispatchers.Default] after [before] – e.g. a lock that happens while Argon2id works. */
+class HookedDispatcher(private val before: () -> Unit) : CoroutineDispatcher() {
+    override fun dispatch(context: kotlin.coroutines.CoroutineContext, block: Runnable) {
+        before()
+        Dispatchers.Default.dispatch(context, block)
     }
 }

@@ -127,10 +127,10 @@ class ChatVault(
     fun touch() {
         idleTimer?.cancel()
         if (!unlocked) return
-        val captured = generation
+        // Every lock and every touch cancels this timer, so when it fires the same session is still open.
         idleTimer = scope.launch {
             delay(idleLock)
-            if (unlocked && captured == generation) lock()
+            lock()
         }
     }
 

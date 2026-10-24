@@ -1,7 +1,6 @@
 package de.velwebsolutions.oasis.chat.core
 
 import android.content.Context
-import android.os.Build
 import android.security.keystore.KeyGenParameterSpec
 import android.security.keystore.KeyPermanentlyInvalidatedException
 import android.security.keystore.KeyProperties
@@ -54,20 +53,21 @@ class AndroidKeystoreBiometricKeys(private val context: Context) : BiometricKeys
         BiometricManager.from(context).canAuthenticate(BIOMETRIC_STRONG) == BiometricManager.BIOMETRIC_SUCCESS
 
     override fun encryptCipher(alias: String): Cipher {
+        // Authentication for every use (validity 0) by a strong biometric only – the builder's defaults on every API
+        // level, checked by the tests – and invalid once fingerprints or faces change.
         val spec = KeyGenParameterSpec.Builder(alias, KeyProperties.PURPOSE_ENCRYPT or KeyProperties.PURPOSE_DECRYPT)
             .setBlockModes(KeyProperties.BLOCK_MODE_GCM)
             .setEncryptionPaddings(KeyProperties.ENCRYPTION_PADDING_NONE)
             .setKeySize(KEY_BITS)
             .setUserAuthenticationRequired(true)
             .setInvalidatedByBiometricEnrollment(true)
-        // Before Android 11 a key with user authentication and no validity duration already needs a biometric per use.
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) spec.setUserAuthenticationParameters(0, KeyProperties.AUTH_BIOMETRIC_STRONG)
-        val key = KeyGenerator.getInstance(KeyProperties.KEY_ALGORITHM_AES, KEYSTORE).apply { init(spec.build()) }.generateKey()
+            .build()
+        val key = KeyGenerator.getInstance(KeyProperties.KEY_ALGORITHM_AES, KEYSTORE).apply { init(spec) }.generateKey()
         return Cipher.getInstance(TRANSFORMATION).apply { init(Cipher.ENCRYPT_MODE, key) }
     }
 
     override fun decryptCipher(alias: String, iv: ByteArray): Cipher? {
-        val key = runCatching { keyStore.getKey(alias, null) as? SecretKey }.getOrNull() ?: return null
+        val key = runCatching { keyStore.getKey(alias, null) }.getOrNull() as? SecretKey ?: return null
         return Cipher.getInstance(TRANSFORMATION).apply { init(Cipher.DECRYPT_MODE, key, GCMParameterSpec(TAG_BITS, iv)) }
     }
 

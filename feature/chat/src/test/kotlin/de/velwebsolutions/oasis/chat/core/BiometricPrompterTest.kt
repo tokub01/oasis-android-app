@@ -64,6 +64,7 @@ class BiometricPrompterTest {
     fun detachingOnlyForgetsTheSameActivity() {
         val first = activity()
         val second = activity()
+        prompter.detach(first)
         prompter.attach(first)
         prompter.attach(second)
         prompter.detach(first)

@@ -56,6 +56,12 @@ class FakeChatServer : Interceptor {
     val reports = mutableListOf<JsonObject>()
     val blocks = mutableListOf<Pair<Int, Int>>()
     private var nextId = 100
+
+    /** Answers that replace the normal route once each, keyed "METHOD path" (path below chat/, e.g. "GET identity"). */
+    val failures = mutableMapOf<String, Pair<Int, String>>()
+
+    /** Called for every request before it is answered ("METHOD path"), e.g. to lock a vault mid-flight. */
+    var onRequest: (String) -> Unit = {}
     val serverTime = "2026-10-22T12:00:00Z"
 
     fun client(userId: Int): ApiClient {
@@ -133,7 +139,10 @@ class FakeChatServer : Interceptor {
         val text = request.body?.let { Buffer().also(it::writeTo).readUtf8() }.orEmpty()
         val body = if (text.isEmpty()) JsonObject(emptyMap()) else Json.parseToJsonElement(text).jsonObject
         val query = request.url.queryParameterNames.associateWith { request.url.queryParameter(it) }
-        val (status, json) = route(request.method, path.split("/").filter { it.isNotEmpty() }, user, body, query)
+        val key = "${request.method} $path"
+        onRequest(key)
+        val (status, json) = failures.remove(key)?.let { (code, text) -> code to Json.parseToJsonElement(text) }
+            ?: route(request.method, path.split("/").filter { it.isNotEmpty() }, user, body, query)
         return Response.Builder()
             .request(request)
             .protocol(Protocol.HTTP_1_1)

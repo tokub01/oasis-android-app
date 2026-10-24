@@ -9,6 +9,7 @@ import androidx.datastore.preferences.preferencesDataStore
 import androidx.lifecycle.DefaultLifecycleObserver
 import androidx.lifecycle.LifecycleOwner
 import androidx.lifecycle.ProcessLifecycleOwner
+import com.goterl.lazysodium.SodiumAndroid
 import dagger.Module
 import dagger.Provides
 import dagger.hilt.InstallIn
@@ -46,7 +47,7 @@ private val Context.chatDataStore: DataStore<Preferences> by preferencesDataStor
 object ChatModule {
     @Provides
     @Singleton
-    fun crypto(): ChatCrypto = ChatCrypto(AndroidSodium())
+    fun crypto(): ChatCrypto = ChatCrypto(AndroidSodium(SodiumAndroid()))
 
     @Provides
     @Singleton

@@ -45,9 +45,9 @@ object ChatMessages {
 
     /** Encrypt for the conversation's current key version with the server-clock expiry. */
     fun seal(plaintext: String, conversation: ChatConversation, vault: ChatVault, crypto: ChatCrypto): MessageEnvelope {
-        val key = vault.conversationKey(conversation.id, conversation.keyVersion)
         val identity = vault.identity
-        if (key == null || identity == null) throw ChatCryptoException.InvalidInput("conversationKey must be a Uint8Array of 32 bytes.")
+        val key = vault.conversationKey(conversation.id, conversation.keyVersion)
+        if (identity == null || key == null) throw ChatCryptoException.InvalidInput("conversationKey must be a Uint8Array of 32 bytes.")
         return crypto.encryptMessage(
             conversationKey = key,
             conversationId = conversation.id,
