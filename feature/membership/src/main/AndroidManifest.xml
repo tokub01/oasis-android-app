@@ -1,1 +1,16 @@
-<manifest />
+<?xml version="1.0" encoding="utf-8"?>
+<manifest xmlns:android="http://schemas.android.com/apk/res/android">
+
+    <application>
+        <!-- Invoices and the data export for the share sheet ("Teilen"). -->
+        <provider
+            android:name="de.velwebsolutions.oasis.membership.ui.MembershipFileProvider"
+            android:authorities="${applicationId}.membership.files"
+            android:exported="false"
+            android:grantUriPermissions="true">
+            <meta-data
+                android:name="android.support.FILE_PROVIDER_PATHS"
+                android:resource="@xml/membership_files" />
+        </provider>
+    </application>
+</manifest>
