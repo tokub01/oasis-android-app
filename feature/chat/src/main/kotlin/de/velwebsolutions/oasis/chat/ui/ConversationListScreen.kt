@@ -2,25 +2,27 @@ package de.velwebsolutions.oasis.chat.ui
 
 import androidx.compose.animation.animateContentSize
 import androidx.compose.foundation.background
-import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.FlowRow
+import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
-import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.outlined.KeyboardArrowRight
+import androidx.compose.material.icons.outlined.Edit
+import androidx.compose.material.icons.outlined.Lock
 import androidx.compose.material.icons.outlined.Settings
 import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.ExtendedFloatingActionButton
 import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
 import androidx.compose.material3.Text
 import androidx.compose.material3.pulltorefresh.PullToRefreshBox
 import androidx.compose.runtime.Composable
@@ -33,8 +35,6 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.testTag
-import androidx.compose.ui.semantics.contentDescription
-import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -47,7 +47,6 @@ import de.velwebsolutions.oasis.design.components.Banner
 import de.velwebsolutions.oasis.design.components.Bullets
 import de.velwebsolutions.oasis.design.components.DashedNote
 import de.velwebsolutions.oasis.design.components.LoadingView
-import de.velwebsolutions.oasis.design.components.OasisButton
 import de.velwebsolutions.oasis.design.components.OasisButtonKind
 import de.velwebsolutions.oasis.design.components.OasisScreen
 import de.velwebsolutions.oasis.design.components.PageHeader
@@ -76,6 +75,7 @@ internal fun ConversationListScreen() {
     LaunchedEffect(Unit) { model.liveUpdates() }
     OasisScreen(
         title = "Nachrichten",
+        actions = { ConversationListActions(onLock = model::lock, onSettings = { navigator.open(ChatRoute.Settings) }) },
         message = state.status,
         error = state.actionError,
         onDismissMessage = model::dismissStatus,
@@ -90,8 +90,6 @@ internal fun ConversationListScreen() {
             onLoadMore = model::loadMore,
             onOpen = { conversation -> conversation.id.toIntOrNull()?.let { navigator.open(ChatRoute.Conversation(it)) } },
             onNew = { navigator.open(ChatRoute.NewConversation) },
-            onLock = model::lock,
-            onSettings = { navigator.open(ChatRoute.Settings) },
             onApprove = model::approve,
             onReject = model::reject
         )
@@ -109,8 +107,6 @@ internal fun ConversationListContent(
     onLoadMore: suspend () -> Unit,
     onOpen: (ChatConversation) -> Unit,
     onNew: () -> Unit,
-    onLock: () -> Unit,
-    onSettings: () -> Unit,
     onApprove: suspend (DeviceLinkRequest) -> Unit,
     onReject: suspend (DeviceLinkRequest) -> Unit
 ) {
@@ -129,11 +125,11 @@ internal fun ConversationListContent(
     ) {
         LazyColumn(
             modifier = Modifier.fillMaxSize().testTag("chat.list"),
-            contentPadding = androidx.compose.foundation.layout.PaddingValues(20.dp),
+            // Room below the last panel for the floating "Neuer Chat" button.
+            contentPadding = PaddingValues(start = 20.dp, top = 20.dp, end = 20.dp, bottom = if (canParticipate) 96.dp else 20.dp),
             verticalArrangement = Arrangement.spacedBy(16.dp)
         ) {
             item { PageHeader(eyebrow = "Ende-zu-Ende verschlüsselt", title = "Nachrichten") }
-            item { ListActions(canParticipate, onNew, onLock, onSettings) }
             state.error?.let { error -> item { Banner(error) } }
             if (state.linkRequests.isNotEmpty()) item { LinkRequests(state.linkRequests, onApprove, onReject) }
             if (state.requests.isNotEmpty()) {
@@ -181,26 +177,34 @@ internal fun ConversationListContent(
                 }
             }
         }
+        // The main action of the list (iOS and the web: "Neuer Chat" beside the heading) as Android's floating button.
+        if (canParticipate) {
+            ExtendedFloatingActionButton(
+                onClick = onNew,
+                icon = { Icon(Icons.Outlined.Edit, contentDescription = null) },
+                text = { Text("Neuer Chat", style = OasisType.Button) },
+                containerColor = OasisColors.Night,
+                contentColor = OasisColors.OnNight,
+                modifier = Modifier
+                    .align(Alignment.BottomEnd)
+                    .padding(16.dp)
+                    .testTag("chat.new")
+            )
+        }
     }
 }
 
-/** The web's buttons beside the heading: "Neuer Chat", "Sperren", plus the chat settings (below the list on the web). */
+/**
+ * The web's buttons beside the heading, in the top app bar: "Sperren" and the chat settings (below the list on the web).
+ * "Neuer Chat" is the floating button of the list.
+ */
 @Composable
-private fun ListActions(canParticipate: Boolean, onNew: () -> Unit, onLock: () -> Unit, onSettings: () -> Unit) {
-    Row(horizontalArrangement = Arrangement.spacedBy(12.dp), verticalAlignment = Alignment.CenterVertically) {
-        if (canParticipate) OasisButton("Neuer Chat", onNew, fullWidth = false, modifier = Modifier.testTag("chat.new"))
-        OasisButton("Sperren", onLock, kind = OasisButtonKind.Secondary, fullWidth = false, modifier = Modifier.testTag("chat.lock"))
-        Box(
-            modifier = Modifier
-                .size(48.dp)
-                .border(1.5.dp, OasisColors.Night, CircleShape)
-                .pressable(onSettings)
-                .semantics { contentDescription = "Chat-Einstellungen" }
-                .testTag("chat.settings"),
-            contentAlignment = Alignment.Center
-        ) {
-            Icon(Icons.Outlined.Settings, contentDescription = null, tint = OasisColors.Night)
-        }
+internal fun ConversationListActions(onLock: () -> Unit, onSettings: () -> Unit) {
+    IconButton(onClick = onLock, modifier = Modifier.testTag("chat.lock")) {
+        Icon(Icons.Outlined.Lock, contentDescription = "Sperren", tint = OasisColors.Night)
+    }
+    IconButton(onClick = onSettings, modifier = Modifier.testTag("chat.settings")) {
+        Icon(Icons.Outlined.Settings, contentDescription = "Chat-Einstellungen", tint = OasisColors.Night)
     }
 }
 
