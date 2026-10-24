@@ -170,9 +170,9 @@ fun WithdrawContent(
 @Composable
 private fun <D> ContractState(state: Loadable<D>, onRetry: suspend () -> Unit, content: @Composable (D) -> Unit) {
     when (state) {
-        Loadable.Idle, Loadable.Loading -> LoadingView()
         is Loadable.Failed -> NotAvailable(state.error, onRetry)
         is Loadable.Loaded -> content(state.value)
+        else -> LoadingView()
     }
 }
 

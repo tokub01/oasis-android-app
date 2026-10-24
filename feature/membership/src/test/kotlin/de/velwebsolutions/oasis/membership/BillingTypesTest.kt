@@ -69,4 +69,14 @@ class BillingTypesTest {
         assertEquals(3, MembershipFormat.trialBannerDaysLeft(now.plus(3, ChronoUnit.DAYS).minusSeconds(60), null, now))
         assertEquals(10, MembershipFormat.trialBannerDaysLeft(Instant.now().plus(10, ChronoUnit.DAYS).minusSeconds(60), null))
     }
+
+    @Test
+    fun `an overview without data is read-only mode, a subscription without dates runs`() {
+        val empty = de.velwebsolutions.oasis.membership.api.MembershipOverview()
+        assertEquals(de.velwebsolutions.oasis.membership.api.MembershipOverview.State.Expired, empty.state)
+        assertNull(empty.apple)
+        val running = de.velwebsolutions.oasis.membership.api.MembershipOverview.Subscription("Oase")
+        assertFalse(running.onGracePeriod)
+        assertNull(running.endsAt)
+    }
 }

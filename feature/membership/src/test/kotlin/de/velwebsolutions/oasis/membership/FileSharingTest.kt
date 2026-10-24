@@ -45,6 +45,12 @@ class FileSharingTest {
     }
 
     @Test
+    fun `the module keeps its files in the app's cache`() {
+        val invoice = de.velwebsolutions.oasis.membership.di.MembershipModule.files(context).invoice(ByteArray(0), "OAS-1")
+        assertEquals(File(context.cacheDir, "Rechnungen/Rechnung-OAS-1.html"), invoice)
+    }
+
+    @Test
     fun `a voucher code goes to the share sheet as text`() {
         FileSharing.shareText(context, "OASIS-1234", "Weitergeben")
         val send = nextShare().getParcelableExtra(Intent.EXTRA_INTENT, Intent::class.java)!!

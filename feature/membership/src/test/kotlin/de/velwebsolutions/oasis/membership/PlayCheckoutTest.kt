@@ -227,4 +227,31 @@ class PlayCheckoutTest {
         restored.restore()
         assertEquals("Willkommen als Mitglied!", restored.state.value.message)
     }
+
+    @Test
+    fun `a cancelled load is passed on`() = runTest {
+        val fake = FakeMembershipRepository().apply { overview = Result.failure(kotlinx.coroutines.CancellationException("left")) }
+        val cancelling =
+            PlayCheckoutViewModel(
+                fake,
+                FakeBillingGateway(),
+                PlayDelivery(FakeBillingGateway(), FakeVerifier()),
+                FakeVerifier(),
+                events,
+                Fixtures.session()
+            )
+        val failure = runCatching { cancelling.load() }.exceptionOrNull()
+        assertTrue(failure is kotlinx.coroutines.CancellationException)
+    }
+
+    @Test
+    fun `background delivery ends with Play's updates and skips refusals`() = runTest {
+        val gateway = object : de.velwebsolutions.oasis.membership.billing.BillingGateway by FakeBillingGateway(
+            owned = listOf(Fixtures.purchase())
+        ) {
+            override val purchaseUpdates = kotlinx.coroutines.flow.flowOf(Fixtures.purchase(PlayProducts.SOLIDAR_YEARLY))
+        }
+        PlayTransactions(gateway, PlayDelivery(gateway, FakeVerifier.refusing("Abgelaufen.")), events).observe()
+        assertEquals("a refused purchase changes nothing", 0, events.version.value)
+    }
 }

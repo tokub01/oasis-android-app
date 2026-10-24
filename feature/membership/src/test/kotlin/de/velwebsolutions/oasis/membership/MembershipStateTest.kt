@@ -135,3 +135,41 @@ class MembershipStateTest {
         assertEquals("Erledigt.", events.take().message)
     }
 }
+
+/** A cancelled request (the screen left) is passed on, never shown as an error. */
+class MembershipCancellationTest {
+    @get:Rule
+    val main = MainDispatcherRule()
+
+    private val repository = FakeMembershipRepository()
+    private val files = MembershipFiles(Files.createTempDirectory("membership").toFile())
+    private val cancelled = Result.failure<Nothing>(kotlinx.coroutines.CancellationException("left"))
+
+    private suspend fun assertCancels(block: suspend () -> Unit) {
+        val failure = runCatching { block() }.exceptionOrNull()
+        assertTrue("expected a cancellation, got $failure", failure is kotlinx.coroutines.CancellationException)
+    }
+
+    @Test
+    fun `every view model passes a cancellation on`() = runTest {
+        val overview = OverviewViewModel(repository, MembershipEvents())
+        val portal = PortalViewModel(repository, files)
+        val invoice = InvoiceViewModel(2, repository, files)
+        val cancel = CancelViewModel(repository, files, MembershipEvents(), Fixtures.session())
+        repository.overview = cancelled
+        repository.payments = cancelled
+        repository.invoice = cancelled
+        repository.cancellation = cancelled
+        repository.end = cancelled
+        repository.export = cancelled
+        assertCancels { overview.load() }
+        assertCancels { portal.load() }
+        assertCancels { invoice.load() }
+        assertCancels { cancel.load() }
+        assertCancels { cancel.confirm() }
+        assertCancels { cancel.prepareExport() }
+        portal.openInvoice(portal.state.value.payments.valueOrNull!!.first())
+        assertNull("a cancelled download is no error", portal.state.value.error)
+        assertNull(overview.state.value.error)
+    }
+}

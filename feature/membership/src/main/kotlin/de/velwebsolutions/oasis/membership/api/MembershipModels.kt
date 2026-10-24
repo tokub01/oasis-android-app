@@ -66,13 +66,9 @@ data class MembershipOverview(
     data class Apple(
         val available: Boolean = false,
         val accountToken: String? = null,
-        val products: List<Product> = emptyList(),
         val managedByApple: Boolean = false,
         val manageUrl: String? = null
-    ) {
-        @Serializable
-        data class Product(val id: String, val tier: String, val rhythm: String)
-    }
+    )
 }
 
 /** One paid contribution (`PaymentResource`). */

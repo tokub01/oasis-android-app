@@ -47,10 +47,11 @@ class PlayBillingGateway @Inject constructor(private val connection: PlayBilling
 
     override suspend fun purchase(activity: Activity?, product: PlayProduct, accountId: String?): PurchaseOutcome {
         if (!connected()) return PurchaseOutcome.Unavailable
-        if (activity == null || product.offerToken == null || product.id !in known) return PurchaseOutcome.Failed
+        val offerToken = product.offerToken
+        if (activity == null || offerToken == null || product.id !in known) return PurchaseOutcome.Failed
         val waiting = CompletableDeferred<PurchaseOutcome>()
         waitingFlow = waiting
-        val launched = guarded { connection.launch(activity, product, accountId?.takeIf { it.length <= MAX_ACCOUNT_ID }) }
+        val launched = guarded { connection.launch(activity, product.id, offerToken, accountId?.takeIf { it.length <= MAX_ACCOUNT_ID }) }
         if (launched != BillingResponseCode.OK) {
             waitingFlow = null
             return outcome(launched, emptyList())

@@ -7,6 +7,7 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.test.assertIsDisplayed
+import androidx.compose.ui.test.assertIsNotEnabled
 import androidx.compose.ui.test.isRoot
 import androidx.compose.ui.test.junit4.createComposeRule
 import androidx.compose.ui.test.onAllNodesWithTag
@@ -464,5 +465,56 @@ class MembershipUiTest {
         shot("trial-banner")
         member = me.copy(membershipTier = "oase")
         compose.onNodeWithTag("membership.trialBanner").assertDoesNotExist()
+    }
+
+    @Test
+    fun `a web subscription that can no longer be cancelled, and Apple's switch off`() {
+        overview(subscription.copy(canCancel = false, isFoundingMember = false, apple = MembershipOverview.Apple(available = false)))
+        compose.onNodeWithTag("membership.portal").assertExists()
+        compose.onNodeWithTag("membership.cancel").assertDoesNotExist()
+        compose.onNodeWithTag("membership.founding").assertDoesNotExist()
+    }
+
+    @Test
+    fun `an Apple subscription with an empty manage link has no button`() {
+        overview(subscription.copy(apple = MembershipOverview.Apple(managedByApple = true, manageUrl = "")))
+        compose.onNodeWithTag("membership.manageApple").assertDoesNotExist()
+    }
+
+    @Test
+    fun `a gift for a founding member and a trial for everyone else`() {
+        var state by mutableStateOf(
+            subscription.copy(state = MembershipOverview.State.Gift, gift = MembershipOverview.Gift("Oase", null), isFoundingMember = true)
+        )
+        show { OverviewContent(OverviewUiState(Loadable.Loaded(state)), onRefresh = {}) }
+        compose.onNodeWithTag("membership.founding").performScrollTo().assertIsDisplayed()
+        state = state.copy(isFoundingMember = false)
+        compose.onNodeWithTag("membership.founding").assertDoesNotExist()
+        state = trial.copy(isFoundingMember = false, apple = MembershipOverview.Apple(available = false))
+        compose.onNodeWithTag("membership.trial").assertIsDisplayed()
+        compose.onNodeWithTag("membership.choose").assertDoesNotExist()
+        compose.onNodeWithTag("membership.founding").assertDoesNotExist()
+    }
+
+    @Test
+    fun `a contract page before it starts loading, and the checkout while a purchase runs`() {
+        var idle by mutableStateOf(true)
+        val offer = CheckoutOffer("oase", Fixtures.product(PlayProducts.OASE_MONTHLY, "5,00 €"), null)
+        show {
+            if (idle) {
+                CancelContent(ContractUiState(Loadable.Idle), onRetry = {}, onConfirm = {}, onExport = {})
+            } else {
+                PlayCheckoutContent(
+                    CheckoutUiState(Loadable.Loaded(listOf(offer)), canPurchase = true, purchasing = PlayProducts.OASE_MONTHLY),
+                    {},
+                    {},
+                    {},
+                    {}
+                )
+            }
+        }
+        compose.onNodeWithText("Bestätigung deiner Kündigung gemäß § 312k BGB.").assertIsDisplayed()
+        idle = false
+        compose.onNodeWithTag("checkout.subscribe.oase").assertIsNotEnabled()
     }
 }

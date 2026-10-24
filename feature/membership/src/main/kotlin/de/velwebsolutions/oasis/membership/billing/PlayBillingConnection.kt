@@ -26,8 +26,8 @@ interface PlayBillingConnection {
     /** Play's subscriptions with these ids, or the response code that refused them. */
     suspend fun products(ids: List<String>): Answer<List<PlayProduct>>
 
-    /** Opens Play's purchase sheet for [product] over [activity]; the response code of the launch. */
-    fun launch(activity: Activity, product: PlayProduct, accountId: String?): Int
+    /** Opens Play's purchase sheet for a product [products] returned, over [activity]; the response code of the launch. */
+    fun launch(activity: Activity, productId: String, offerToken: String, accountId: String?): Int
 
     /** The subscriptions Play knows for the signed-in Google account. */
     suspend fun purchases(): Answer<List<PlayPurchase>>

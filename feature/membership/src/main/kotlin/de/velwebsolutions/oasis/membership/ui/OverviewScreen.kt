@@ -162,9 +162,6 @@ fun StatusCard(overview: MembershipOverview, onSubscriptionManaged: () -> Unit =
 /** Buying in the app needs the server's switch for in-app subscriptions (`apple.available`). */
 private val MembershipOverview.canBuy: Boolean get() = apple?.available == true
 
-/** The membership runs through Apple: it is changed and cancelled in the App Store, not here. */
-private val MembershipOverview.managedByApple: Boolean get() = apple?.managedByApple == true
-
 @Composable
 private fun SubscriptionStatus(overview: MembershipOverview, onSubscriptionManaged: () -> Unit) {
     val subscription = overview.subscription ?: return
@@ -205,13 +202,15 @@ private fun SubscriptionStatus(overview: MembershipOverview, onSubscriptionManag
                 .testTag("membership.gracePeriod")
         )
     }
-    if (overview.managedByApple) {
+    // Billed by Apple: changed and cancelled in the App Store, not here.
+    val apple = overview.apple?.takeIf { it.managedByApple }
+    if (apple != null) {
         Text(
             "Deine Mitgliedschaft läuft über deine Apple-ID. Stufe, Laufzeit und Kündigung verwaltest du im App Store.",
             style = OasisType.Small,
             color = OasisColors.Ink2
         )
-        val manageUrl = overview.apple?.manageUrl
+        val manageUrl = apple.manageUrl
         if (!manageUrl.isNullOrEmpty()) {
             OasisButton(
                 "Abo verwalten",
@@ -225,10 +224,10 @@ private fun SubscriptionStatus(overview: MembershipOverview, onSubscriptionManag
     } else {
         OasisButton("Rechnungen ansehen", { navigator.open(MembershipRoute.Portal) }, Modifier.testTag("membership.portal"))
     }
-    if (overview.canCancel && !overview.managedByApple) {
+    if (overview.canCancel && apple == null) {
         InlineLink("Vertrag kündigen", { navigator.open(MembershipRoute.Cancel) }, Modifier.testTag("membership.cancel"), OasisColors.Night)
     }
-    if (overview.canWithdraw && !overview.managedByApple) {
+    if (overview.canWithdraw && apple == null) {
         InlineLink(
             "Mitgliedschaft widerrufen (14 Tage)",
             { navigator.open(MembershipRoute.Withdraw) },
@@ -293,7 +292,7 @@ private fun ExpiredStatus(overview: MembershipOverview) {
 }
 
 @Composable
-private fun Tile(label: String, value: String, modifier: Modifier = Modifier) {
+private fun Tile(label: String, value: String, modifier: Modifier) {
     Column(
         modifier
             .background(OasisColors.Dune, RoundedCornerShape(OasisRadius.CHIP.dp))

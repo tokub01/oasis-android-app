@@ -37,6 +37,7 @@ private class FakeConnection : PlayBillingConnection {
     var launchCode = BillingResponseCode.OK
     var acknowledgeCode = BillingResponseCode.OK
     var failing = false
+    var cancelling = false
     val launched = mutableListOf<Pair<String, String?>>()
     var connectCalls = 0
 
@@ -56,13 +57,14 @@ private class FakeConnection : PlayBillingConnection {
     }
 
     override suspend fun products(ids: List<String>): PlayBillingConnection.Answer<List<PlayProduct>> {
+        if (cancelling) throw kotlinx.coroutines.CancellationException("left")
         check(!failing) { "service gone" }
         return productsAnswer
     }
 
-    override fun launch(activity: Activity, product: PlayProduct, accountId: String?): Int {
+    override fun launch(activity: Activity, productId: String, offerToken: String, accountId: String?): Int {
         check(!failing) { "service gone" }
-        launched += product.id to accountId
+        launched += productId to accountId
         return launchCode
     }
 
@@ -192,5 +194,11 @@ class PlayBillingGatewayTest {
             .forEach { assertEquals(PurchaseOutcome.Unavailable, PlayBillingGateway.outcome(it, emptyList())) }
         assertEquals(PurchaseOutcome.Failed, PlayBillingGateway.outcome(BillingResponseCode.ERROR, emptyList()))
         assertEquals(PurchaseOutcome.Failed, PlayBillingGateway.outcome(null, emptyList()))
+    }
+
+    @Test
+    fun `a cancelled call is passed on, not swallowed`() = runTest {
+        connection.cancelling = true
+        assertTrue(runCatching { gateway.products(PlayProducts.ids) }.exceptionOrNull() is kotlinx.coroutines.CancellationException)
     }
 }

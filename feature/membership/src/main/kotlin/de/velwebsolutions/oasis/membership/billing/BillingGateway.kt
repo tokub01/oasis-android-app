@@ -13,7 +13,7 @@ data class PlayProduct(
     val price: String,
     val period: BillingPeriod,
     /** The base plan's offer token Play needs to start the purchase. */
-    val offerToken: String? = null
+    val offerToken: String?
 )
 
 /** The renewal period of a subscription (ISO 8601 `P1M`, `P1Y`, `P1W`). */
