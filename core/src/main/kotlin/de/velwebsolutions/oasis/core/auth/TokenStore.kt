@@ -27,11 +27,39 @@ class InMemoryTokenStore(private var token: String? = null) : TokenStore {
     }
 }
 
+/** The AES key that seals the token; the Android Keystore on devices, a software key in tests. */
+fun interface TokenKeyProvider {
+    fun key(): SecretKey
+}
+
+/** A non-exportable AES-256 key in the Android Keystore, created on first use. */
+object AndroidKeystoreTokenKey : TokenKeyProvider {
+    private const val ALIAS = "de.velwebsolutions.oasis.api-token"
+
+    override fun key(): SecretKey {
+        val keyStore = KeyStore.getInstance("AndroidKeyStore").apply { load(null) }
+        (keyStore.getEntry(ALIAS, null) as? KeyStore.SecretKeyEntry)?.let { return it.secretKey }
+        val generator = KeyGenerator.getInstance(KeyProperties.KEY_ALGORITHM_AES, "AndroidKeyStore")
+        generator.init(
+            KeyGenParameterSpec.Builder(ALIAS, KeyProperties.PURPOSE_ENCRYPT or KeyProperties.PURPOSE_DECRYPT)
+                .setBlockModes(KeyProperties.BLOCK_MODE_GCM)
+                .setEncryptionPaddings(KeyProperties.ENCRYPTION_PADDING_NONE)
+                .setKeySize(256)
+                .build()
+        )
+        return generator.generateKey()
+    }
+}
+
 /**
- * Keeps the token encrypted with an AES key in the Android Keystore (this device only, never in backups), like the
- * iOS Keychain item "available after first unlock, this device only". The encrypted value sits in private preferences.
+ * Keeps the token encrypted with AES-GCM under a key from [keys] (the Android Keystore: this device only, never in
+ * backups), like the iOS Keychain item "available after first unlock, this device only". The sealed value sits in private
+ * preferences; a value that no longer opens (key gone after a restore) reads as signed out.
  */
-class KeystoreTokenStore(context: Context) : TokenStore {
+class KeystoreTokenStore(
+    context: Context,
+    private val keys: TokenKeyProvider = AndroidKeystoreTokenKey
+) : TokenStore {
     private val preferences = context.getSharedPreferences("oasis.session", Context.MODE_PRIVATE)
     private val lock = Any()
     private var cached: Result<String?>? = null
@@ -49,25 +77,10 @@ class KeystoreTokenStore(context: Context) : TokenStore {
             if (token == null) remove(KEY) else putString(KEY, encrypt(token))
         }
         cached = Result.success(token)
-        Unit
-    }
-
-    private fun key(): SecretKey {
-        val keyStore = KeyStore.getInstance("AndroidKeyStore").apply { load(null) }
-        (keyStore.getEntry(ALIAS, null) as? KeyStore.SecretKeyEntry)?.let { return it.secretKey }
-        val generator = KeyGenerator.getInstance(KeyProperties.KEY_ALGORITHM_AES, "AndroidKeyStore")
-        generator.init(
-            KeyGenParameterSpec.Builder(ALIAS, KeyProperties.PURPOSE_ENCRYPT or KeyProperties.PURPOSE_DECRYPT)
-                .setBlockModes(KeyProperties.BLOCK_MODE_GCM)
-                .setEncryptionPaddings(KeyProperties.ENCRYPTION_PADDING_NONE)
-                .setKeySize(256)
-                .build()
-        )
-        return generator.generateKey()
     }
 
     private fun encrypt(token: String): String {
-        val cipher = Cipher.getInstance(TRANSFORMATION).apply { init(Cipher.ENCRYPT_MODE, key()) }
+        val cipher = Cipher.getInstance(TRANSFORMATION).apply { init(Cipher.ENCRYPT_MODE, keys.key()) }
         val sealed = cipher.iv + cipher.doFinal(token.toByteArray())
         return Base64.encodeToString(sealed, Base64.NO_WRAP)
     }
@@ -75,13 +88,12 @@ class KeystoreTokenStore(context: Context) : TokenStore {
     private fun decrypt(stored: String): String {
         val sealed = Base64.decode(stored, Base64.NO_WRAP)
         val cipher = Cipher.getInstance(TRANSFORMATION)
-        cipher.init(Cipher.DECRYPT_MODE, key(), GCMParameterSpec(128, sealed, 0, IV_BYTES))
+        cipher.init(Cipher.DECRYPT_MODE, keys.key(), GCMParameterSpec(128, sealed, 0, IV_BYTES))
         return String(cipher.doFinal(sealed, IV_BYTES, sealed.size - IV_BYTES))
     }
 
     private companion object {
         const val KEY = "api-token"
-        const val ALIAS = "de.velwebsolutions.oasis.api-token"
         const val TRANSFORMATION = "AES/GCM/NoPadding"
         const val IV_BYTES = 12
     }

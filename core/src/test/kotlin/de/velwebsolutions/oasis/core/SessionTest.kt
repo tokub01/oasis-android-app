@@ -81,4 +81,69 @@ class SessionTest {
         assertEquals(true, auth.loggedOut)
         assertEquals(SessionState.SignedOut, session.state.value)
     }
+
+    @Test
+    fun `two factor, registration and refresh keep the session current`() = runTest {
+        val tokens = InMemoryTokenStore()
+        val auth = FakeAuth(Result.success(mira))
+        val session = Session(tokens, "Pixel", TestScope()).apply { this.auth = auth }
+        session.refreshMe()
+        assertEquals(SessionState.Loading, session.state.value)
+        session.completeTwoFactor("ch", "123456", null)
+        assertEquals("new", tokens.read())
+        session.register(Registration(), RegistrationForm("hp", "tf", "t", 14))
+        assertEquals(mira, session.me)
+        val renamed = mira.copy(displayName = "Mira S.")
+        auth.meResult = Result.success(renamed)
+        session.refreshMe()
+        assertEquals(renamed, session.me)
+        auth.meResult = Result.failure(ApiError.Transport("offline"))
+        session.refreshMe()
+        assertEquals(renamed, session.me)
+        session.update(mira)
+        assertEquals(mira, session.me)
+        assertEquals("new", session.currentToken())
+    }
+
+    @Test
+    fun `a two factor challenge does not sign in yet`() = runTest {
+        val tokens = InMemoryTokenStore()
+        val session = Session(tokens, "Pixel", TestScope()).apply {
+            auth = object : AuthApi by FakeAuth(Result.success(mira)) {
+                override suspend fun login(login: String, password: String, deviceName: String) = SignInResult.TwoFactorRequired("ch")
+            }
+        }
+        assertEquals(SignInResult.TwoFactorRequired("ch"), session.signIn("mira", "pw"))
+        assertNull(tokens.read())
+    }
+
+    @Test
+    fun `a revoked token signs out once, wherever it was noticed`() = runTest {
+        val tokens = InMemoryTokenStore("t")
+        val scope = TestScope(testScheduler)
+        var stopped = 0
+        val session = Session(tokens, "Pixel", scope).apply { auth = FakeAuth(Result.success(mira)) }
+        session.addOnSignedOut { stopped++ }
+        session.onUnauthenticated()
+        scope.testScheduler.advanceUntilIdle()
+        assertEquals(0, stopped)
+        session.restore()
+        session.onUnauthenticated()
+        scope.testScheduler.advanceUntilIdle()
+        assertEquals(1, stopped)
+        assertNull(tokens.read())
+        assertEquals(SessionState.SignedOut, session.state.value)
+    }
+
+    @Test
+    fun `sign out still forgets the token when the server cannot be reached`() = runTest {
+        val tokens = InMemoryTokenStore("t")
+        val session = Session(tokens, "Pixel", TestScope()).apply {
+            auth = object : AuthApi by FakeAuth(Result.success(mira)) {
+                override suspend fun logout() = throw ApiError.Transport("offline")
+            }
+        }
+        session.signOut()
+        assertNull(tokens.read())
+    }
 }
