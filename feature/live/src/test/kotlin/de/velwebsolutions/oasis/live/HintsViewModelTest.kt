@@ -3,8 +3,10 @@ package de.velwebsolutions.oasis.live
 import de.velwebsolutions.oasis.core.model.Loadable
 import de.velwebsolutions.oasis.live.ui.HintSettingsViewModel
 import de.velwebsolutions.oasis.live.ui.HintsInboxViewModel
+import de.velwebsolutions.oasis.live.ui.timeText
 import de.velwebsolutions.oasis.testing.MainDispatcherRule
 import de.velwebsolutions.oasis.testing.StubTransport
+import java.util.Locale
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.test.runTest
 import kotlinx.serialization.json.JsonObject
@@ -219,5 +221,17 @@ class HintsViewModelTest {
     @Test
     fun labelsThePauseButtons() {
         assertEquals(listOf("1 Tag", "3 Tage", "1 Woche"), listOf(1, 3, 7).map(HintSettingsViewModel::pauseLabel))
+    }
+
+    @Test
+    fun writesQuietHoursWithLatinDigitsInEveryLanguage() {
+        val before = Locale.getDefault()
+        try {
+            Locale.setDefault(Locale.forLanguageTag("fa-IR"))
+            assertEquals("07:05", timeText(7, 5))
+            assertEquals("22:00", timeText(22, 0))
+        } finally {
+            Locale.setDefault(before)
+        }
     }
 }
