@@ -73,11 +73,10 @@ fun LiveScreen(route: LiveRoute) {
 @HiltViewModel
 internal class LiveShellViewModel @Inject constructor(val live: LiveCoordinator) : ViewModel()
 
-/** The bell in the header with the number of unread Hinweise. */
+/** The bell in the header with the number of unread Hinweise; [live] is the app's coordinator. */
 @Composable
-fun HintsButton() {
+fun HintsButton(live: LiveCoordinator = hiltViewModel<LiveShellViewModel>().live) {
     val navigator = LocalNavigator.current
-    val live = hiltViewModel<LiveShellViewModel>().live
     val unread by live.hints.collectAsStateWithLifecycle()
     HintsBell(unread) { navigator.open(LiveRoute.Inbox) }
 }
@@ -117,9 +116,8 @@ internal fun HintsBell(unread: Int, onClick: () -> Unit) {
 
 /** The in-app notice about a new chat message ("Neue Nachricht von …"), above the tab bar. */
 @Composable
-fun ChatToastOverlay() {
+fun ChatToastOverlay(live: LiveCoordinator = hiltViewModel<LiveShellViewModel>().live) {
     val navigator = LocalNavigator.current
-    val live = hiltViewModel<LiveShellViewModel>().live
     val toast by live.counts.toast.collectAsStateWithLifecycle()
     ChatToastContent(
         toast = toast,
