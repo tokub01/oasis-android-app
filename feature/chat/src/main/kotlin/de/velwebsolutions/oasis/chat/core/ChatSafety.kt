@@ -117,11 +117,18 @@ object ChatSafety {
     /** Compiled patterns, so the draft check on every keystroke does not compile them again. */
     private val compiled = ConcurrentHashMap<String, Pattern>()
 
-    /** ICU-like semantics as on iOS: Unicode-aware `\b`, `\w` and case folding. */
+    /**
+     * ICU semantics as on iOS: Unicode-aware `\b`, `\w` and case folding. Android's regex engine is ICU and Unicode-aware
+     * already (and rejects UNICODE_CHARACTER_CLASS); the JVM of the unit tests needs the flag for the same behaviour.
+     */
     private fun regex(pattern: String, caseInsensitive: Boolean): Pattern =
         compiled.getOrPut((if (caseInsensitive) "i" else "-") + pattern) {
-            val flags = Pattern.UNICODE_CHARACTER_CLASS or (if (caseInsensitive) Pattern.CASE_INSENSITIVE or Pattern.UNICODE_CASE else 0)
-            Pattern.compile(pattern, flags)
+            val case = if (caseInsensitive) Pattern.CASE_INSENSITIVE or Pattern.UNICODE_CASE else 0
+            try {
+                Pattern.compile(pattern, case or Pattern.UNICODE_CHARACTER_CLASS)
+            } catch (_: IllegalArgumentException) {
+                Pattern.compile(pattern, case)
+            }
         }
 
     private fun matches(pattern: Pattern, text: String): Boolean = pattern.matcher(text).find()
