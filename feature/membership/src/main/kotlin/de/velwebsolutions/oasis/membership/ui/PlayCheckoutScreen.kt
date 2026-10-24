@@ -84,8 +84,8 @@ fun PlayCheckoutContent(
             PageHeader(
                 "Bleib in der Oase.",
                 eyebrow = "Mitgliedschaft",
-                lead = "Werbefrei und ohne Algorithmus, getragen von den Mitgliedern. " +
-                    "Bei Abstimmungen hat jedes Mitglied eine Stimme, egal welche Stufe."
+                lead = "Werbefrei und ohne Algorithmus, getragen von den Mitgliedern. Bei Abstimmungen hat jedes Mitglied eine Stimme, " +
+                    "egal welche Stufe."
             )
             val rhythms = listOf(PlayProducts.MONTHLY to "Monatlich", PlayProducts.YEARLY to "Jährlich · 2 Monate geschenkt")
             SingleChoiceSegmentedButtonRow(Modifier.fillMaxWidth().testTag("checkout.rhythm")) {
@@ -141,9 +141,9 @@ fun PlayCheckoutContent(
             }
             Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
                 Text(
-                    "Bezahlt wird über dein Google-Konto. Das Abo verlängert sich automatisch um die gewählte Laufzeit, " +
-                        "wenn du es nicht vor Ablauf kündigst. Kündigen und die Stufe wechseln kannst du jederzeit " +
-                        "in der Google Play Store App unter Profil → Zahlungen & Abos → Abos.",
+                    "Bezahlt wird über dein Google-Konto. Das Abo verlängert sich automatisch um die gewählte Laufzeit, wenn du es " +
+                        "nicht vor Ablauf kündigst. Kündigen und die Stufe wechseln kannst du jederzeit in der Google Play Store App " +
+                        "unter Profil → Zahlungen & Abos → Abos.",
                     style = OasisType.Caption,
                     color = OasisColors.Muted
                 )

@@ -183,7 +183,8 @@ class PlayCheckoutViewModel @Inject constructor(
         const val NOTHING_TO_RESTORE = "Für dein Google-Konto haben wir keine laufende Mitgliedschaft gefunden."
         const val AWAITING_SERVER =
             "Dein Kauf ist bei Google Play eingegangen, Oasis kann ihn aber noch nicht bestätigen. Deine Mitgliedschaft ist deshalb " +
-                "noch nicht freigeschaltet. Bestätigt Oasis den Kauf nicht innerhalb von drei Tagen, erstattet Google Play den Betrag automatisch."
+                "noch nicht freigeschaltet. Bestätigt Oasis den Kauf nicht innerhalb von drei Tagen, erstattet Google Play den Betrag " +
+                "automatisch."
 
         /** Shown above the offers while the server cannot check Google Play purchases. */
         const val NOT_YET_AVAILABLE =

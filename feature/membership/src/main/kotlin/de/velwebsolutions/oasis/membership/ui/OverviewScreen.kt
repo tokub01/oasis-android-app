@@ -237,8 +237,8 @@ private fun TrialStatus(overview: MembershipOverview) {
     if (overview.isFoundingMember) FoundingPill()
     Text(
         boldMarkdown(
-            "Du hast noch **${MembershipFormat.days(overview.trialDaysLeft ?: 0)}** in deinem kostenlosen 30-Tage-Test " +
-                "(endet am ${MembershipFormat.day(overview.trialEndsAt)})."
+            "Du hast noch **${MembershipFormat.days(overview.trialDaysLeft ?: 0)}** in deinem kostenlosen 30-Tage-Test (endet am " +
+                "${MembershipFormat.day(overview.trialEndsAt)})."
         ),
         style = OasisType.Body,
         color = OasisColors.Ink
