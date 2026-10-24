@@ -53,6 +53,7 @@ dependencies {
 
 kover {
     // The modules set their own filters (build-logic, configureKover); the merged report uses the same ones.
+    useJacoco("0.8.15")
     currentProject.createVariant("oasis") {}
     reports.filters.excludes {
         classes(
