@@ -174,8 +174,9 @@ class OasisFormViewModel @AssistedInject constructor(@Assisted val slug: String?
         }
     }
 
-    /** A picked banner: stored at once when editing, kept for "Oase eröffnen" when founding. */
-    suspend fun pickBanner(upload: ImageUpload) {
+    /** A picked banner (null when it could not be read): stored at once when editing, kept for "Oase eröffnen" when founding. */
+    suspend fun pickBanner(upload: ImageUpload?) {
+        upload ?: return
         mutableError.value = null
         if (slug != null) {
             if (confirm { repository.uploadBanner(slug, upload) }) {

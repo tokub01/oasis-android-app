@@ -174,9 +174,8 @@ class EditProfileViewModel @Inject constructor(private val repository: NetworkRe
         mutableForm.update { it.copy(toneConfirmed = false) }
         val text = "${form.value.bio} ${form.value.location}".trim()
         // A failed check shows nothing.
-        attempt { common.toneHint(text, "profile") }.onSuccess { result ->
-            mutableForm.update { it.copy(toneHint = result.hint, toneNudge = result.nudge) }
-        }
+        val result = attempt { common.toneHint(text, "profile") }.getOrNull() ?: return
+        mutableForm.update { it.copy(toneHint = result.hint, toneNudge = result.nudge) }
     }
 
     suspend fun save() {

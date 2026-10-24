@@ -85,7 +85,7 @@ fun OasisFormScreen(
     val context = LocalContext.current
     val editing = slug != null
     val picker = rememberImagePicker { uris ->
-        viewModel.launch { ImageConverter.upload(context, uris.first(), "banner", maxEdge = 3000)?.let { viewModel.pickBanner(it) } }
+        viewModel.launch { viewModel.pickBanner(ImageConverter.upload(context, uris.first(), "banner", maxEdge = 3000)) }
     }
 
     LaunchedEffect(Unit) { viewModel.loadIfNeeded() }

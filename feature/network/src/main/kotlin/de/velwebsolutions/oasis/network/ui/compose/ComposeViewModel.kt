@@ -158,10 +158,13 @@ class ComposeViewModel @AssistedInject constructor(
         }
         // A failed check shows nothing; an answer for an older text is dropped.
         val result = attempt { common.toneHint(text, "post") }.getOrNull() ?: return
-        if (text == current.body) mutableState.update { it.copy(toneHint = result.hint, toneNudge = result.nudge) }
+        if (text != current.body) return
+        mutableState.update { it.copy(toneHint = result.hint, toneNudge = result.nudge) }
     }
 
-    fun add(upload: ImageUpload) {
+    /** Adds a picked image (null when it could not be read) while there is room. */
+    fun add(upload: ImageUpload?) {
+        upload ?: return
         if (current.images.size >= current.maxImages) return
         mutableState.update { it.copy(images = it.images + PickedImage(nextImageId.incrementAndGet(), upload)) }
         saveDraft()
@@ -179,15 +182,7 @@ class ComposeViewModel @AssistedInject constructor(
         val capped = prefix(alt, MAX_ALT_LENGTH)
         mutableState.update { state ->
             state.copy(
-                images = state.images.mapIndexed { position, image ->
-                    if (position ==
-                        index
-                    ) {
-                        image.copy(alt = capped)
-                    } else {
-                        image
-                    }
-                }
+                images = state.images.mapIndexed { position, image -> if (position == index) image.copy(alt = capped) else image }
             )
         }
         saveDraft()

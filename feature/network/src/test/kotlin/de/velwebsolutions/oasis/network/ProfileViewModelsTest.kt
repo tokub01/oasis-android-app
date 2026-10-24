@@ -64,6 +64,7 @@ class ProfileViewModelsTest(private val answersAtOnce: Boolean) {
     fun `every profile button calls its endpoint and reloads`() = runTest {
         val ok = """{"message":"Erledigt."}"""
         val network = profileNetwork(
+            stub("POST", "network/profiles/jonas/follow", ok),
             stub("DELETE", "network/profiles/jonas/follow", ok),
             stub("POST", "network/profiles/jonas/friendship", ok),
             stub("POST", "network/profiles/jonas/friendship/accept", ok),
@@ -78,6 +79,7 @@ class ProfileViewModelsTest(private val answersAtOnce: Boolean) {
         model.loadIfNeeded()
         model.loadIfNeeded()
         val expected = listOf(
+            ProfileAction.Follow to "POST network/profiles/jonas/follow",
             ProfileAction.Unfollow to "DELETE network/profiles/jonas/follow",
             ProfileAction.RequestFriend to "POST network/profiles/jonas/friendship",
             ProfileAction.AcceptFriend to "POST network/profiles/jonas/friendship/accept",

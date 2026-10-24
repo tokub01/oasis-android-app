@@ -71,8 +71,11 @@ fun rememberImagePicker(maxItems: Int = 1, onPicked: (List<Uri>) -> Unit): Image
 
 /** A fresh file in the cache for the camera app to write to. */
 private fun cameraUri(context: Context): Uri {
-    val folder = File(context.cacheDir, "network-camera").apply { mkdirs() }
-    folder.listFiles()?.forEach { it.delete() }
+    // Only the newest photo is kept: the folder starts empty for every shot.
+    val folder = File(context.cacheDir, "network-camera").apply {
+        deleteRecursively()
+        mkdirs()
+    }
     val file = File(folder, "foto-${System.currentTimeMillis()}.jpg")
     return FileProvider.getUriForFile(context, "${context.packageName}.network.camera", file)
 }

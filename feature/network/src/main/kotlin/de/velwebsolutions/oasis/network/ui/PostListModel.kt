@@ -108,7 +108,7 @@ class PostListModel<C>(
     /** The next page, when the last card appears. */
     suspend fun loadMore() {
         val cursor = current.nextCursor ?: return
-        if (current.isLoadingMore || current.state.valueOrNull == null) return
+        if (current.isLoadingMore) return
         mutableState.update { it.copy(isLoadingMore = true) }
         val started = generation
         val result = attempt { repository.fetch(current.filter, cursor) }

@@ -70,11 +70,12 @@ class PostDetailViewModel @AssistedInject constructor(@Assisted val id: Int, pri
         if (optimistic) apply(action, post)
         val result = attempt { repository.perform(action, post) }
         mutableError.value = result.apiError
-        if (result.isFailure) {
+        val message = result.getOrNull()
+        if (message == null) {
             if (undo != null) apply(undo, post)
             return
         }
-        mutableStatus.value = result.getOrNull()
+        mutableStatus.value = message
         val current = detail.value.valueOrNull
         if (optimistic || current == null) return
         if (post.id == current.post.id) {
@@ -101,9 +102,10 @@ class PostDetailViewModel @AssistedInject constructor(@Assisted val id: Int, pri
     /** The effect on the page: the Tropfen itself when it was the target or its author's state changed, and the replies. */
     private fun apply(action: PostAction, post: Post) {
         val current = detail.value.valueOrNull ?: return
-        val authorState = action == PostAction.Restrict || action == PostAction.Unrestrict || action == PostAction.Unmute
-        val updated = if (post.id == current.post.id || authorState) current.post.applying(action, post) ?: current.post else current.post
-        mutableDetail.value = Loadable.Loaded(current.copy(post = updated, replies = current.replies.applying(action, post)))
+        val page = (listOf(current.post) + current.replies).applying(action, post)
+        // The Tropfen of the page stays when its author is muted or blocked from one of the replies.
+        val shown = page.firstOrNull { it.id == current.post.id } ?: current.post
+        mutableDetail.value = Loadable.Loaded(current.copy(post = shown, replies = page.filterNot { it.id == current.post.id }))
     }
 }
 
