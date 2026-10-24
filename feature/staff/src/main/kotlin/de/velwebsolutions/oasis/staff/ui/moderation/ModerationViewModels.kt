@@ -392,7 +392,8 @@ class RolesViewModel @Inject constructor(private val repository: StaffRepository
         val chosen = state.chosen.toMutableMap()
         users.forEach { user -> chosen.putIfAbsent(user.id, user.role.value) }
         state.copy(
-            users = Loadable.Loaded(if (replacing) users else state.users.valueOrNull.orEmpty() + users),
+            // A further page follows a loaded one (hasMore is only set with a loaded page).
+            users = Loadable.Loaded(if (replacing) users else state.users.valueOrNull!! + users),
             chosen = chosen,
             hasMore = hasMore
         )

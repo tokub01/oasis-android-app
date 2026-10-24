@@ -7,6 +7,7 @@ import de.velwebsolutions.oasis.core.model.Loadable
 import de.velwebsolutions.oasis.core.model.failing
 import de.velwebsolutions.oasis.core.model.refreshing
 import de.velwebsolutions.oasis.core.network.Confirmed
+import de.velwebsolutions.oasis.core.network.asApiError
 import de.velwebsolutions.oasis.staff.api.AdminDashboard
 import de.velwebsolutions.oasis.staff.api.AdminVote
 import de.velwebsolutions.oasis.staff.api.BreachRegister
@@ -265,7 +266,7 @@ class AdminPaymentsViewModel @Inject constructor(private val repository: StaffRe
 
     private suspend fun lookup(request: suspend () -> MollieLookup) {
         val result = attempt { request() }
-        mutableState.update { it.copy(mollie = result.getOrNull() ?: MollieLookup(error = result.apiError?.userMessage)) }
+        mutableState.update { it.copy(mollie = result.getOrElse { failure -> MollieLookup(error = failure.asApiError().userMessage) }) }
     }
 
     private fun replace(answer: Confirmed<PaymentRecord>, refunded: Boolean) = mutableState.update { state ->

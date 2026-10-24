@@ -62,7 +62,7 @@ interface StaffRepository {
 
     suspend fun review(complaintId: Int, result: String, explanation: String, replacement: StatementOfReasons): Confirmed<ComplaintDetail>
 
-    suspend fun roles(page: Int = 1): RolePage
+    suspend fun roles(page: Int): RolePage
 
     suspend fun changeRole(userId: Int, role: String): Confirmed<RoleUser>
 
@@ -78,7 +78,7 @@ interface StaffRepository {
 
     suspend fun createVote(vote: NewVote): Confirmed<AdminVote>
 
-    suspend fun payments(search: String, status: String, page: Int = 1): PaymentPage
+    suspend fun payments(search: String, status: String, page: Int): PaymentPage
 
     suspend fun checkPayment(recordId: Int): MollieLookup
 
