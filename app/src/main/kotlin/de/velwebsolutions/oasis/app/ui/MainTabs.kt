@@ -121,7 +121,13 @@ fun MainTabs(me: Me, viewModel: RootViewModel) {
                         selected = navigator.selectedTab == tab,
                         onClick = { navigator.select(tab) },
                         icon = {
-                            BadgedBox(badge = { if (tab == MainTab.Chats && chats > 0) Badge(containerColor = OasisColors.Sun) { Text("$chats") } }) {
+                            BadgedBox(badge = {
+                                if (tab == MainTab.Chats &&
+                                    chats > 0
+                                ) {
+                                    Badge(containerColor = OasisColors.Sun) { Text("$chats") }
+                                }
+                            }) {
                                 Icon(tab.icon, contentDescription = null)
                             }
                         },
@@ -132,19 +138,21 @@ fun MainTabs(me: Me, viewModel: RootViewModel) {
                             selectedTextColor = OasisColors.Night,
                             indicatorColor = OasisColors.Dune,
                             unselectedIconColor = OasisColors.Muted,
-                            unselectedTextColor = OasisColors.Muted,
-                        ),
+                            unselectedTextColor = OasisColors.Muted
+                        )
                     )
                 }
             }
         },
-        contentWindowInsets = WindowInsets(0),
+        contentWindowInsets = WindowInsets(0)
     ) { padding ->
         Box(Modifier.fillMaxSize().padding(padding)) {
             val tab = navigator.selectedTab
             tabStates.SaveableStateProvider(tab.name) {
                 val root = Navigator.rootRoute(tab) ?: NetworkRoute.Profile(me.username)
-                RouteStack(root, navigator.stack(tab).toList(), onBack = { navigator.back() }, rootChrome = ScreenChrome(rootHeader = header, banner = banner), banner = banner)
+                RouteStack(root, navigator.stack(tab).toList(), onBack = {
+                    navigator.back()
+                }, rootChrome = ScreenChrome(rootHeader = header, banner = banner), banner = banner)
             }
             StatusToast(confirmation, null, onDismissMessage = viewModel::clearConfirmation, onDismissError = {})
             ChatToastOverlay()
@@ -157,7 +165,7 @@ fun MainTabs(me: Me, viewModel: RootViewModel) {
             onDismissRequest = { navigator.dismissSheet() },
             sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true),
             containerColor = OasisColors.Sand,
-            dragHandle = null,
+            dragHandle = null
         ) {
             Box(Modifier.fillMaxWidth().fillMaxSize(0.96f)) {
                 RouteStack(
@@ -165,7 +173,7 @@ fun MainTabs(me: Me, viewModel: RootViewModel) {
                     stack = navigator.sheetStack.drop(1),
                     onBack = { navigator.back() },
                     rootChrome = ScreenChrome(onClose = { navigator.dismissSheet() }),
-                    banner = null,
+                    banner = null
                 )
             }
         }
@@ -176,7 +184,9 @@ fun MainTabs(me: Me, viewModel: RootViewModel) {
 @Composable
 fun StandaloneStack(root: AppRoute) {
     val navigator = LocalNavigator.current
-    RouteStack(root, navigator.stack(navigator.selectedTab).toList(), onBack = { navigator.back() }, rootChrome = ScreenChrome(), banner = null)
+    RouteStack(root, navigator.stack(navigator.selectedTab).toList(), onBack = {
+        navigator.back()
+    }, rootChrome = ScreenChrome(), banner = null)
 }
 
 /** One entry of a displayed stack; the position keeps entries unique when a route is pushed twice. */
@@ -189,7 +199,7 @@ private fun RouteStack(
     stack: List<AppRoute>,
     onBack: () -> Unit,
     rootChrome: ScreenChrome,
-    banner: (@Composable () -> Unit)?,
+    banner: (@Composable () -> Unit)?
 ) {
     val entries = (listOf(root) + stack).mapIndexed(::StackEntry)
     NavDisplay(
@@ -203,7 +213,7 @@ private fun RouteStack(
                     AppDestination(entry.route)
                 }
             }
-        },
+        }
     )
 }
 
@@ -213,7 +223,7 @@ private fun AppHeader(me: Me, viewModel: RootViewModel, actions: @Composable Row
     val navigator = LocalNavigator.current
     Row(
         Modifier.fillMaxWidth().statusBarsPadding().height(56.dp).padding(start = 16.dp, end = 8.dp),
-        verticalAlignment = Alignment.CenterVertically,
+        verticalAlignment = Alignment.CenterVertically
     ) {
         Box(
             Modifier
@@ -222,7 +232,7 @@ private fun AppHeader(me: Me, viewModel: RootViewModel, actions: @Composable Row
                     navigator.popToRoot(MainTab.Source)
                     navigator.selectedTab = MainTab.Source
                 }
-                .semantics { contentDescription = "Oasis – zur Quelle" },
+                .semantics { contentDescription = "Oasis – zur Quelle" }
         ) {
             OasisLogo(size = 22.dp)
         }
@@ -257,7 +267,7 @@ private fun MoreMenu(me: Me, viewModel: RootViewModel) {
                 .testTag("more.menu")
                 .semantics { contentDescription = "Mehr" },
             horizontalArrangement = Arrangement.spacedBy(8.dp),
-            verticalAlignment = Alignment.CenterVertically,
+            verticalAlignment = Alignment.CenterVertically
         ) {
             Text("Mehr", style = OasisType.BodyBold, color = OasisColors.Night)
             if (hints > 0) Box(Modifier.size(10.dp).clip(CircleShape).border(5.dp, OasisColors.Sun, CircleShape))
@@ -266,7 +276,7 @@ private fun MoreMenu(me: Me, viewModel: RootViewModel) {
             expanded = open,
             onDismissRequest = { open = false },
             containerColor = OasisColors.Paper,
-            shape = RoundedCornerShape(OasisRadius.TILE.dp),
+            shape = RoundedCornerShape(OasisRadius.TILE.dp)
         ) {
             Column(Modifier.width(240.dp).padding(8.dp), verticalArrangement = Arrangement.spacedBy(4.dp)) {
                 fun go(route: AppRoute) {
@@ -299,7 +309,7 @@ private val MorePages: List<Pair<String, AppRoute>> = listOf(
     "Privatsphäre" to AccountRoute.Privacy,
     "Blockiert & stumm" to AccountRoute.Safety,
     "Abstimmungen" to AccountRoute.Votes,
-    "Begriffe erklärt" to AccountRoute.Glossary,
+    "Begriffe erklärt" to AccountRoute.Glossary
 )
 
 @Composable
@@ -311,7 +321,7 @@ private fun MoreRow(title: String, badge: Int = 0, onClick: () -> Unit) {
             .clip(RoundedCornerShape(OasisRadius.CHIP.dp))
             .clickable(onClick = onClick)
             .padding(horizontal = 12.dp),
-        verticalAlignment = Alignment.CenterVertically,
+        verticalAlignment = Alignment.CenterVertically
     ) {
         Text(title, style = OasisType.Body, color = OasisColors.Night, modifier = Modifier.weight(1f))
         CountBadge(badge)

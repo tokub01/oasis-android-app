@@ -5,6 +5,8 @@ import de.velwebsolutions.oasis.core.network.ApiClient
 import de.velwebsolutions.oasis.core.network.ApiConfig
 import de.velwebsolutions.oasis.core.network.OasisJson
 import de.velwebsolutions.oasis.core.network.TokenProvider
+import java.io.IOException
+import java.util.concurrent.CopyOnWriteArrayList
 import kotlinx.serialization.json.JsonElement
 import okhttp3.Interceptor
 import okhttp3.MediaType.Companion.toMediaType
@@ -14,8 +16,6 @@ import okhttp3.Request
 import okhttp3.Response
 import okhttp3.ResponseBody.Companion.toResponseBody
 import okio.Buffer
-import java.io.IOException
-import java.util.concurrent.CopyOnWriteArrayList
 
 /**
  * Answers API calls from canned responses – for unit tests of repositories and view models. Each route is matched by
@@ -27,7 +27,7 @@ class StubTransport(vararg stubs: Stub) : Interceptor {
         val path: String,
         val status: Int = 200,
         val json: String = "{}",
-        val headers: Map<String, String> = emptyMap(),
+        val headers: Map<String, String> = emptyMap()
     )
 
     /** A request as it was sent, with its body as text. */
@@ -49,7 +49,11 @@ class StubTransport(vararg stubs: Stub) : Interceptor {
                 unauthenticatedCount++
             }
         }
-        ApiClient(ApiConfig("http://localhost", "OasisApp/1.0 (Android; Android 16)"), tokens, OkHttpClient.Builder().addInterceptor(this).build())
+        ApiClient(
+            ApiConfig("http://localhost", "OasisApp/1.0 (Android; Android 16)"),
+            tokens,
+            OkHttpClient.Builder().addInterceptor(this).build()
+        )
     }
 
     fun add(stub: Stub) {

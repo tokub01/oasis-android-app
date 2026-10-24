@@ -1,5 +1,10 @@
 package de.velwebsolutions.oasis.core.network
 
+import java.lang.reflect.ParameterizedType
+import java.lang.reflect.Type
+import kotlin.coroutines.resume
+import kotlin.coroutines.resumeWithException
+import kotlinx.coroutines.suspendCancellableCoroutine
 import kotlinx.serialization.SerializationException
 import kotlinx.serialization.json.Json
 import kotlinx.serialization.json.JsonObject
@@ -20,11 +25,6 @@ import retrofit2.CallAdapter
 import retrofit2.Callback
 import retrofit2.Retrofit
 import retrofit2.converter.kotlinx.serialization.asConverterFactory
-import java.lang.reflect.ParameterizedType
-import java.lang.reflect.Type
-import kotlin.coroutines.resume
-import kotlin.coroutines.resumeWithException
-import kotlinx.coroutines.suspendCancellableCoroutine
 
 /** How keys are translated between Kotlin and the API. */
 enum class KeyCoding {
@@ -32,7 +32,7 @@ enum class KeyCoding {
     SnakeCase,
 
     /** Keys exactly as declared (chat crypto envelopes, which are camelCase on the wire and signed byte for byte). */
-    Verbatim,
+    Verbatim
 }
 
 /** Where the client talks to and how it introduces itself. */
@@ -42,7 +42,7 @@ data class ApiConfig(
     /** `OasisApp/<version> (Android; Android <release>)` – Laravel's DeviceLabel shows it as "Oasis-App auf Android". */
     val userAgent: String,
     /** The staging gate's password, sent as `X-Oasis-Gate` to the server only (Laravel's StagingGate). */
-    val gateKey: String? = null,
+    val gateKey: String? = null
 )
 
 /** Supplies the bearer token and hears about a 401, so the session can sign out once, wherever it happened. */
@@ -60,7 +60,7 @@ interface TokenProvider {
 class ApiClient(
     val config: ApiConfig,
     private val tokens: TokenProvider,
-    baseOkHttp: OkHttpClient = OkHttpClient(),
+    baseOkHttp: OkHttpClient = OkHttpClient()
 ) {
     val baseUrl: HttpUrl = config.baseUrl.trimEnd('/').toHttpUrl()
     private val apiRoot: HttpUrl = baseUrl.newBuilder().addPathSegments("api/v1/").build()
@@ -167,7 +167,7 @@ private suspend fun okhttp3.Call.await(): Response = suspendCancellableCoroutine
             override fun onResponse(call: okhttp3.Call, response: Response) {
                 continuation.resume(response)
             }
-        },
+        }
     )
     continuation.invokeOnCancellation { cancel() }
 }
@@ -204,7 +204,7 @@ private class ApiErrorCall(private val delegate: Call<Any>) : Call<Any> by deleg
                 override fun onFailure(call: Call<Any>, t: Throwable) {
                     callback.onFailure(this@ApiErrorCall, ApiClient.map(t))
                 }
-            },
+            }
         )
     }
 

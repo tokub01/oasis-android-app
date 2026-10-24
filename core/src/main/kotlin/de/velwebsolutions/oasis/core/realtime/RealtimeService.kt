@@ -14,7 +14,7 @@ data class RealtimeEvent(
     /** The broadcast name, e.g. `message.sent` (an event's `broadcastAs()`) or the class name. */
     val name: String,
     /** The event payload (`broadcastWith()`). */
-    val data: JsonElement = JsonNull,
+    val data: JsonElement = JsonNull
 ) {
     /** A string field of the payload (numbers as text). */
     fun string(key: String): String? = ((data as? JsonObject)?.get(key) as? JsonPrimitive)?.takeUnless { it is JsonNull }?.content

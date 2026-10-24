@@ -26,10 +26,10 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.SolidColor
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
+import androidx.compose.ui.text.input.KeyboardCapitalization
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.text.input.VisualTransformation
-import androidx.compose.ui.text.input.KeyboardCapitalization
 import androidx.compose.ui.unit.dp
 import de.velwebsolutions.oasis.design.theme.OasisColors
 import de.velwebsolutions.oasis.design.theme.OasisRadius
@@ -60,7 +60,7 @@ fun OasisTextField(
     lines: IntRange? = null,
     keyboardOptions: KeyboardOptions = if (isSecure) OasisKeyboard.Password else OasisKeyboard.Sentences,
     keyboardActions: KeyboardActions = KeyboardActions.Default,
-    enabled: Boolean = true,
+    enabled: Boolean = true
 ) {
     val shape = RoundedCornerShape(OasisRadius.XS.dp)
     Column(modifier, verticalArrangement = Arrangement.spacedBy(6.dp)) {
@@ -86,14 +86,14 @@ fun OasisTextField(
                         .fillMaxWidth()
                         .background(OasisColors.Field, shape)
                         .border(if (error == null) 1.dp else 2.dp, if (error == null) OasisColors.FieldLine else OasisColors.SunText, shape)
-                        .padding(horizontal = 14.dp, vertical = 12.dp),
+                        .padding(horizontal = 14.dp, vertical = 12.dp)
                 ) {
                     if (value.isEmpty() && prompt != null) {
                         Text(prompt, style = OasisType.Body, color = OasisColors.Muted)
                     }
                     inner()
                 }
-            },
+            }
         )
         if (error != null) {
             FieldError(error)
@@ -121,7 +121,7 @@ fun SettingToggle(
     onCheckedChange: (Boolean) -> Unit,
     modifier: Modifier = Modifier,
     detail: String? = null,
-    enabled: Boolean = true,
+    enabled: Boolean = true
 ) {
     Row(modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
         Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(2.dp)) {
@@ -138,9 +138,9 @@ fun SettingToggle(
                 checkedThumbColor = OasisColors.OnNight,
                 uncheckedTrackColor = OasisColors.Dune,
                 uncheckedBorderColor = OasisColors.DuneLine,
-                uncheckedThumbColor = OasisColors.FieldLine,
+                uncheckedThumbColor = OasisColors.FieldLine
             ),
-            modifier = Modifier.semantics { contentDescription = title },
+            modifier = Modifier.semantics { contentDescription = title }
         )
     }
 }

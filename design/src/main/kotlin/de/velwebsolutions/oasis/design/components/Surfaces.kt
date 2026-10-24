@@ -33,7 +33,7 @@ fun OasisCard(modifier: Modifier = Modifier, padding: Int = 16, content: @Compos
             .background(OasisColors.Paper, shape)
             .border(1.dp, OasisColors.PaperLine, shape)
             .padding(padding.dp),
-        content = content,
+        content = content
     )
 }
 
@@ -44,7 +44,7 @@ fun Eyebrow(text: String, modifier: Modifier = Modifier, onNight: Boolean = fals
         text.uppercase(),
         style = OasisType.Eyebrow.copy(letterSpacing = 0.18.em),
         color = if (onNight) OasisColors.SunOnNight else OasisColors.SunText,
-        modifier = modifier,
+        modifier = modifier
     )
 }
 
@@ -58,7 +58,7 @@ fun CountBadge(count: Int, modifier: Modifier = Modifier) {
             .background(OasisColors.Sun, CircleShape)
             .padding(horizontal = 6.dp)
             .semantics { contentDescription = "$count neu" },
-        contentAlignment = Alignment.Center,
+        contentAlignment = Alignment.Center
     ) {
         Text(if (count > 99) "99+" else "$count", style = OasisType.Caption.copy(fontWeight = FontWeight.Bold), color = OasisColors.SunInk)
     }

@@ -2,6 +2,7 @@ package de.velwebsolutions.oasis.design.theme
 
 import androidx.compose.animation.core.FiniteAnimationSpec
 import androidx.compose.animation.core.spring
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.selection.LocalTextSelectionColors
 import androidx.compose.foundation.text.selection.TextSelectionColors
 import androidx.compose.material3.LocalTextStyle
@@ -11,7 +12,6 @@ import androidx.compose.material3.Typography
 import androidx.compose.material3.lightColorScheme
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
-import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.ui.unit.dp
 
 /** Material 3 with the Oasis tokens: sand pages, paper cards, Nachtwasser for primary actions, Abendsonne as accent. */
@@ -40,7 +40,7 @@ private val OasisColorScheme = lightColorScheme(
     error = OasisColors.SunText,
     onError = OasisColors.Paper,
     outline = OasisColors.FieldLine,
-    outlineVariant = OasisColors.DuneLine,
+    outlineVariant = OasisColors.DuneLine
 )
 
 private val OasisTypography = Typography(
@@ -58,7 +58,7 @@ private val OasisTypography = Typography(
     bodySmall = OasisType.Caption,
     labelLarge = OasisType.Button,
     labelMedium = OasisType.SmallBold,
-    labelSmall = OasisType.Caption,
+    labelSmall = OasisType.Caption
 )
 
 private val OasisShapes = Shapes(
@@ -66,7 +66,7 @@ private val OasisShapes = Shapes(
     small = RoundedCornerShape(OasisRadius.XS.dp),
     medium = RoundedCornerShape(OasisRadius.TILE.dp),
     large = RoundedCornerShape(OasisRadius.M.dp),
-    extraLarge = RoundedCornerShape(OasisRadius.L.dp),
+    extraLarge = RoundedCornerShape(OasisRadius.L.dp)
 )
 
 /** The one theme of the app (light only, like iOS and the web). */
@@ -76,7 +76,7 @@ fun OasisTheme(content: @Composable () -> Unit) {
         CompositionLocalProvider(
             LocalTextStyle provides OasisType.Body.copy(color = OasisColors.Ink),
             LocalTextSelectionColors provides TextSelectionColors(OasisColors.Spring, OasisColors.Spring.copy(alpha = 0.3f)),
-            content = content,
+            content = content
         )
     }
 }

@@ -26,8 +26,7 @@ sealed interface Loadable<out T> {
 fun <T> Loadable<T>.refreshing(): Loadable<T> = if (valueOrNull == null) Loadable.Loading else this
 
 /** After a failed load: the error only while there is nothing to show yet, so a failed refresh keeps the screen. */
-fun <T> Loadable<T>.failing(error: Throwable): Loadable<T> =
-    if (valueOrNull == null) Loadable.Failed(ApiError.from(error)) else this
+fun <T> Loadable<T>.failing(error: Throwable): Loadable<T> = if (valueOrNull == null) Loadable.Failed(ApiError.from(error)) else this
 
 /** Maps a loaded value. */
 inline fun <T, R> Loadable<T>.map(transform: (T) -> R): Loadable<R> = when (this) {

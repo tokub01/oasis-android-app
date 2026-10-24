@@ -3,12 +3,12 @@ package de.velwebsolutions.oasis.core.auth
 import de.velwebsolutions.oasis.core.model.Me
 import de.velwebsolutions.oasis.core.network.ApiError
 import de.velwebsolutions.oasis.core.network.TokenProvider
+import java.util.concurrent.CopyOnWriteArrayList
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
-import java.util.concurrent.CopyOnWriteArrayList
 
 /** The app-wide sign-in state. */
 sealed interface SessionState {
@@ -28,7 +28,7 @@ class Session(
     private val tokenStore: TokenStore,
     /** The device name sent with sign-ins (shown in the token list), e.g. "Pixel 9 von Mira". */
     private val deviceName: String,
-    private val scope: CoroutineScope,
+    private val scope: CoroutineScope
 ) : TokenProvider {
     /** Set once by the DI graph: the API client needs the session for its token, the session needs the API. */
     lateinit var auth: AuthApi
@@ -71,8 +71,7 @@ class Session(
     }
 
     /** First sign-in step. Returns [SignInResult.TwoFactorRequired] when the code is needed next. */
-    suspend fun signIn(login: String, password: String): SignInResult =
-        auth.login(login, password, deviceName).also(::apply)
+    suspend fun signIn(login: String, password: String): SignInResult = auth.login(login, password, deviceName).also(::apply)
 
     /** Second step with the TOTP code or a recovery code. */
     suspend fun completeTwoFactor(challenge: String, code: String?, recoveryCode: String?) {

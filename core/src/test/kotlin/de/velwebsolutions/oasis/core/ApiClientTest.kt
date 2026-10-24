@@ -42,7 +42,7 @@ class ApiClientTest {
     @Test
     fun `maps validation errors per field`() = runTest {
         val stub = StubTransport(
-            StubTransport.Stub("POST", "auth/login", 422, """{"message":"Falsch","errors":{"login":["Diese Angaben passen nicht."]}}"""),
+            StubTransport.Stub("POST", "auth/login", 422, """{"message":"Falsch","errors":{"login":["Diese Angaben passen nicht."]}}""")
         )
         try {
             RemoteAuthApi(stub.client).login("mira", "x", "Pixel")

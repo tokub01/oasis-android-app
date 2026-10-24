@@ -24,8 +24,8 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.outlined.CheckCircle
 import androidx.compose.material.icons.outlined.ErrorOutline
 import androidx.compose.material.icons.outlined.Info
-import androidx.compose.material.icons.outlined.WaterDrop
 import androidx.compose.material.icons.outlined.WarningAmber
+import androidx.compose.material.icons.outlined.WaterDrop
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.Icon
 import androidx.compose.material3.Text
@@ -56,7 +56,7 @@ fun <T> LoadableView(
     onRetry: suspend () -> Unit,
     modifier: Modifier = Modifier,
     skeleton: SkeletonLayout? = null,
-    content: @Composable (T) -> Unit,
+    content: @Composable (T) -> Unit
 ) {
     when (state) {
         Loadable.Idle, Loadable.Loading -> if (skeleton != null) SkeletonView(skeleton, modifier) else LoadingView(modifier = modifier)
@@ -71,7 +71,7 @@ fun LoadingView(label: String = "Lädt …", modifier: Modifier = Modifier) {
     Column(
         modifier.fillMaxSize().padding(32.dp),
         verticalArrangement = Arrangement.Center,
-        horizontalAlignment = Alignment.CenterHorizontally,
+        horizontalAlignment = Alignment.CenterHorizontally
     ) {
         CircularProgressIndicator(color = OasisColors.Night)
         Spacer(Modifier.height(12.dp))
@@ -94,7 +94,7 @@ fun SkeletonView(layout: SkeletonLayout = SkeletonLayout.Cards, modifier: Modifi
             .padding(20.dp)
             .alpha(alpha)
             .clearAndSetSemantics { contentDescription = "Lädt …" },
-        verticalArrangement = Arrangement.spacedBy(16.dp),
+        verticalArrangement = Arrangement.spacedBy(16.dp)
     ) {
         Bar(90.dp, 12.dp)
         Bar(220.dp, 30.dp)
@@ -104,7 +104,7 @@ fun SkeletonView(layout: SkeletonLayout = SkeletonLayout.Cards, modifier: Modifi
             if (layout == SkeletonLayout.Cards) {
                 Column(
                     Modifier.fillMaxWidth().background(OasisColors.Paper, RoundedCornerShape(OasisRadius.M.dp)).padding(20.dp),
-                    verticalArrangement = Arrangement.spacedBy(14.dp),
+                    verticalArrangement = Arrangement.spacedBy(14.dp)
                 ) {
                     Row(verticalAlignment = Alignment.CenterVertically) {
                         Box(Modifier.size(44.dp).background(OasisColors.Dune, CircleShape))
@@ -122,7 +122,7 @@ fun SkeletonView(layout: SkeletonLayout = SkeletonLayout.Cards, modifier: Modifi
                 Column(
                     Modifier.fillMaxWidth().background(OasisColors.Paper, RoundedCornerShape(OasisRadius.S.dp))
                         .padding(horizontal = 20.dp, vertical = 16.dp),
-                    verticalArrangement = Arrangement.spacedBy(8.dp),
+                    verticalArrangement = Arrangement.spacedBy(8.dp)
                 ) {
                     Bar(160.dp, 15.dp)
                     Bar(240.dp, 12.dp)
@@ -137,7 +137,7 @@ private fun Bar(width: Dp?, height: Dp) {
     Box(
         (if (width == null) Modifier.fillMaxWidth() else Modifier.width(width))
             .height(height)
-            .background(OasisColors.Dune, RoundedCornerShape(height / 2)),
+            .background(OasisColors.Dune, RoundedCornerShape(height / 2))
     )
 }
 
@@ -147,7 +147,7 @@ fun ErrorStateView(error: ApiError, onRetry: suspend () -> Unit, modifier: Modif
     Column(
         modifier.fillMaxSize().padding(32.dp),
         verticalArrangement = Arrangement.spacedBy(16.dp, Alignment.CenterVertically),
-        horizontalAlignment = Alignment.CenterHorizontally,
+        horizontalAlignment = Alignment.CenterHorizontally
     ) {
         Icon(Icons.Outlined.WarningAmber, contentDescription = null, tint = OasisColors.SunText, modifier = Modifier.size(32.dp))
         Text(error.userMessage, style = OasisType.Body, color = OasisColors.Ink, textAlign = TextAlign.Center)
@@ -162,12 +162,12 @@ fun EmptyStateView(
     modifier: Modifier = Modifier,
     message: String? = null,
     icon: ImageVector = Icons.Outlined.WaterDrop,
-    actions: @Composable ColumnScope.() -> Unit = {},
+    actions: @Composable ColumnScope.() -> Unit = {}
 ) {
     Column(
         modifier.fillMaxWidth().padding(32.dp),
         verticalArrangement = Arrangement.spacedBy(12.dp),
-        horizontalAlignment = Alignment.CenterHorizontally,
+        horizontalAlignment = Alignment.CenterHorizontally
     ) {
         Icon(icon, contentDescription = null, tint = OasisColors.Spring, modifier = Modifier.size(34.dp))
         Text(title, style = OasisType.heading(), color = OasisColors.Night, textAlign = TextAlign.Center)
@@ -189,7 +189,7 @@ fun Banner(text: String, modifier: Modifier = Modifier, kind: BannerKind = Banne
     }
     Row(
         modifier.fillMaxWidth().background(background, RoundedCornerShape(OasisRadius.XS.dp)).padding(12.dp),
-        horizontalArrangement = Arrangement.spacedBy(10.dp),
+        horizontalArrangement = Arrangement.spacedBy(10.dp)
     ) {
         Icon(icon, contentDescription = null, tint = foreground, modifier = Modifier.size(18.dp))
         Text(text, style = OasisType.Small, color = foreground, modifier = Modifier.weight(1f))

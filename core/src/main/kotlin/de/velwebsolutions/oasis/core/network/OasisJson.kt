@@ -1,5 +1,10 @@
 package de.velwebsolutions.oasis.core.network
 
+import java.time.Instant
+import java.time.LocalDate
+import java.time.OffsetDateTime
+import java.time.format.DateTimeFormatter
+import java.time.format.DateTimeParseException
 import kotlinx.serialization.KSerializer
 import kotlinx.serialization.descriptors.PrimitiveKind
 import kotlinx.serialization.descriptors.PrimitiveSerialDescriptor
@@ -8,11 +13,6 @@ import kotlinx.serialization.encoding.Decoder
 import kotlinx.serialization.encoding.Encoder
 import kotlinx.serialization.json.Json
 import kotlinx.serialization.json.JsonNamingStrategy
-import java.time.Instant
-import java.time.LocalDate
-import java.time.OffsetDateTime
-import java.time.format.DateTimeFormatter
-import java.time.format.DateTimeParseException
 
 /**
  * JSON coding shared by every request: the Laravel API uses snake_case keys and ISO-8601 dates (Carbon's
@@ -49,7 +49,8 @@ object OasisJson {
     }
 
     /** `2026-10-22T13:37:00.000Z`, like the iOS encoder. */
-    fun formatInstant(instant: Instant): String = DateTimeFormatter.ISO_INSTANT.format(instant.truncatedTo(java.time.temporal.ChronoUnit.MILLIS))
+    fun formatInstant(instant: Instant): String =
+        DateTimeFormatter.ISO_INSTANT.format(instant.truncatedTo(java.time.temporal.ChronoUnit.MILLIS))
 
     /** `Y-m-d`, as the API expects for birth dates and other calendar days. */
     fun formatDay(day: LocalDate): String = day.toString()
@@ -79,7 +80,11 @@ object LocalDateSerializer : KSerializer<LocalDate> {
 }
 
 /** An [Instant] property decoded with [InstantSerializer]. */
-typealias OasisInstant = @kotlinx.serialization.Serializable(with = InstantSerializer::class) Instant
+typealias OasisInstant =
+    @kotlinx.serialization.Serializable(with = InstantSerializer::class)
+    Instant
 
 /** A [LocalDate] property decoded with [LocalDateSerializer]. */
-typealias OasisDay = @kotlinx.serialization.Serializable(with = LocalDateSerializer::class) LocalDate
+typealias OasisDay =
+    @kotlinx.serialization.Serializable(with = LocalDateSerializer::class)
+    LocalDate

@@ -1,6 +1,11 @@
 package de.velwebsolutions.oasis.core.di
 
 import android.content.Context
+import dagger.Module
+import dagger.Provides
+import dagger.hilt.InstallIn
+import dagger.hilt.android.qualifiers.ApplicationContext
+import dagger.hilt.components.SingletonComponent
 import de.velwebsolutions.oasis.core.auth.AuthApi
 import de.velwebsolutions.oasis.core.auth.KeystoreTokenStore
 import de.velwebsolutions.oasis.core.auth.RemoteAuthApi
@@ -10,18 +15,13 @@ import de.velwebsolutions.oasis.core.network.ApiClient
 import de.velwebsolutions.oasis.core.network.ApiConfig
 import de.velwebsolutions.oasis.core.network.CommonApi
 import de.velwebsolutions.oasis.core.network.RemoteCommonApi
-import dagger.Module
-import dagger.Provides
-import dagger.hilt.InstallIn
-import dagger.hilt.android.qualifiers.ApplicationContext
-import dagger.hilt.components.SingletonComponent
+import java.util.concurrent.TimeUnit
 import javax.inject.Qualifier
 import javax.inject.Singleton
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
 import okhttp3.OkHttpClient
-import java.util.concurrent.TimeUnit
 
 /** The device name sent with sign-ins and shown in Privatsphäre › Geräte. */
 data class DeviceName(val value: String)
@@ -61,10 +61,8 @@ object CoreModule {
 
     @Provides
     @Singleton
-    fun authApi(
-        @Suppress("UNUSED_PARAMETER") client: ApiClient,
-        session: Session,
-    ): AuthApi = session.auth // set while the client is created
+    fun authApi(@Suppress("UNUSED_PARAMETER") client: ApiClient, session: Session): AuthApi =
+        session.auth // set while the client is created
 
     @Provides
     @Singleton

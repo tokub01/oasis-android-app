@@ -23,7 +23,7 @@ object AppModule {
     fun apiConfig(): ApiConfig = ApiConfig(
         baseUrl = BuildConfig.OASIS_BASE_URL,
         userAgent = "OasisApp/${BuildConfig.VERSION_NAME} (Android; Android ${Build.VERSION.RELEASE})",
-        gateKey = BuildConfig.OASIS_GATE_KEY.ifEmpty { null },
+        gateKey = BuildConfig.OASIS_GATE_KEY.ifEmpty { null }
     )
 
     @Provides
@@ -35,7 +35,7 @@ object AppModule {
     @Singleton
     fun deviceName(@ApplicationContext context: Context): DeviceName = DeviceName(
         Settings.Global.getString(context.contentResolver, Settings.Global.DEVICE_NAME)?.takeIf { it.isNotBlank() }
-            ?: "${Build.MANUFACTURER.replaceFirstChar(Char::uppercase)} ${Build.MODEL}",
+            ?: "${Build.MANUFACTURER.replaceFirstChar(Char::uppercase)} ${Build.MODEL}"
     )
 
     @Provides

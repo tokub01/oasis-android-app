@@ -47,19 +47,28 @@ sealed class ApiError(message: String) : Exception(message) {
     val userMessage: String
         get() = when (this) {
             is Validation -> fields.values.firstOrNull()?.firstOrNull() ?: summary
+
             Unauthenticated -> "Bitte melde dich erneut an."
+
             is Forbidden ->
                 if (serverMessage.isEmpty() || serverMessage == "This action is unauthorized.") {
                     "Das darfst du leider nicht."
                 } else {
                     serverMessage
                 }
+
             NotFound -> "Das gibt es nicht (mehr) oder es ist nicht für dich sichtbar."
+
             is Conflict -> serverMessage.ifEmpty { "Das geht gerade nicht." }
+
             PayloadTooLarge -> "Das ist zu groß."
+
             is TooManyRequests -> "Zu viele Versuche. Bitte warte einen Moment."
+
             is Server -> serverMessage ?: "Da ist etwas schiefgelaufen. Bitte versuch es gleich noch einmal."
+
             is Transport -> "Keine Verbindung zu Oasis. Bitte prüfe dein Internet."
+
             is Decoding -> "Die Antwort von Oasis war unerwartet. Bitte aktualisiere die App."
         }
 

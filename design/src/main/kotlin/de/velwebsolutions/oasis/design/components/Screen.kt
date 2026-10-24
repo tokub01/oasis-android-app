@@ -38,7 +38,7 @@ data class ScreenChrome(
     /** Closes the sheet; set on the first screen of a sheet. */
     val onClose: (() -> Unit)? = null,
     /** Shown below the bar of every screen in a tab (the trial countdown). */
-    val banner: (@Composable () -> Unit)? = null,
+    val banner: (@Composable () -> Unit)? = null
 )
 
 /** The chrome of the current screen. */
@@ -61,7 +61,7 @@ fun OasisScreen(
     onDismissError: () -> Unit = {},
     /** Replaces "Schließen" in a sheet when the screen closes itself (e.g. the composer asks before discarding). */
     closesItself: Boolean = false,
-    content: @Composable () -> Unit,
+    content: @Composable () -> Unit
 ) {
     val chrome = LocalScreenChrome.current
     Scaffold(
@@ -85,6 +85,7 @@ fun OasisScreen(
                                 onBack != null -> IconButton(onClick = onBack) {
                                     Icon(Icons.AutoMirrored.Outlined.ArrowBack, contentDescription = "Zurück", tint = OasisColors.Night)
                                 }
+
                                 onClose != null && !closesItself -> OasisTextButton("Schließen", onClose)
                             }
                         },
@@ -94,14 +95,14 @@ fun OasisScreen(
                             scrolledContainerColor = OasisColors.Sand,
                             titleContentColor = OasisColors.Night,
                             actionIconContentColor = OasisColors.Night,
-                            navigationIconContentColor = OasisColors.Night,
+                            navigationIconContentColor = OasisColors.Night
                         ),
-                        windowInsets = if (chrome.onClose != null) WindowInsets(0) else TopAppBarDefaults.windowInsets,
+                        windowInsets = if (chrome.onClose != null) WindowInsets(0) else TopAppBarDefaults.windowInsets
                     )
                 }
                 chrome.banner?.invoke()
             }
-        },
+        }
     ) { padding ->
         Box(Modifier.fillMaxSize().padding(padding)) {
             content()

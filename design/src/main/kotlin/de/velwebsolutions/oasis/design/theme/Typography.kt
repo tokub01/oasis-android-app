@@ -19,7 +19,7 @@ private fun variable(resource: Int, weight: Int) =
 val Fraunces = FontFamily(
     variable(R.font.fraunces, 400),
     variable(R.font.fraunces, 600),
-    variable(R.font.fraunces, 700),
+    variable(R.font.fraunces, 700)
 )
 
 /** Manrope for everything else (bundled variable font, OFL). */
@@ -28,7 +28,7 @@ val Manrope = FontFamily(
     variable(R.font.manrope, 500),
     variable(R.font.manrope, 600),
     variable(R.font.manrope, 700),
-    variable(R.font.manrope, 800),
+    variable(R.font.manrope, 800)
 )
 
 /**
@@ -37,10 +37,26 @@ val Manrope = FontFamily(
  */
 object OasisType {
     /** Large display heading (screen titles in content, empty states). */
-    fun display(size: Int = 30) = TextStyle(fontFamily = Fraunces, fontWeight = FontWeight.SemiBold, fontSize = size.sp, lineHeight = (size * 1.15).sp)
+    fun display(size: Int = 30) = TextStyle(
+        fontFamily = Fraunces,
+        fontWeight = FontWeight.SemiBold,
+        fontSize = size.sp,
+        lineHeight = (
+            size *
+                1.15
+            ).sp
+    )
 
     /** Section and card headings. */
-    fun heading(size: Int = 21) = TextStyle(fontFamily = Fraunces, fontWeight = FontWeight.SemiBold, fontSize = size.sp, lineHeight = (size * 1.25).sp)
+    fun heading(size: Int = 21) = TextStyle(
+        fontFamily = Fraunces,
+        fontWeight = FontWeight.SemiBold,
+        fontSize = size.sp,
+        lineHeight = (
+            size *
+                1.25
+            ).sp
+    )
 
     /** The lead sentence below a page title (`o-lead`, 18 px on phones). */
     val Lead = TextStyle(fontFamily = Manrope, fontSize = 18.sp, lineHeight = 26.sp)

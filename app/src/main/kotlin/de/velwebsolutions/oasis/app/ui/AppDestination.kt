@@ -21,11 +21,17 @@ import de.velwebsolutions.oasis.staff.StaffScreen
 fun AppDestination(route: AppRoute) {
     when (route) {
         is NetworkRoute -> NetworkScreen(route)
+
         is ChatRoute -> ChatScreen(route)
+
         is AccountRoute -> AccountScreen(route)
+
         is LiveRoute -> LiveScreen(route)
+
         is MembershipRoute -> MembershipScreen(route)
+
         is StaffRoute -> StaffScreen(route)
+
         // Websites open in a Custom Tab (Navigator.openWeb) and are never pushed.
         is WebRoute -> Unit
     }

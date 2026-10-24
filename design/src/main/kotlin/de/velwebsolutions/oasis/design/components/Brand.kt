@@ -2,6 +2,7 @@ package de.velwebsolutions.oasis.design.components
 
 import android.content.Context
 import android.content.Intent
+import android.net.Uri
 import androidx.browser.customtabs.CustomTabColorSchemeParams
 import androidx.browser.customtabs.CustomTabsIntent
 import androidx.compose.foundation.Canvas
@@ -36,7 +37,6 @@ import androidx.compose.ui.text.withStyle
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.em
-import android.net.Uri
 import de.velwebsolutions.oasis.design.theme.OasisColors
 import de.velwebsolutions.oasis.design.theme.OasisRadius
 import de.velwebsolutions.oasis.design.theme.OasisType
@@ -47,7 +47,7 @@ fun OasisLogo(modifier: Modifier = Modifier, size: Dp = 26.dp, wordmark: Boolean
     Row(
         modifier.clearAndSetSemantics { contentDescription = "Oasis" },
         horizontalArrangement = Arrangement.spacedBy(size * 0.25f),
-        verticalAlignment = Alignment.CenterVertically,
+        verticalAlignment = Alignment.CenterVertically
     ) {
         LogoSign(Modifier.size(size))
         if (wordmark) {
@@ -99,12 +99,20 @@ fun SupportContacts(modifier: Modifier = Modifier) {
     }
     Column(
         modifier.fillMaxWidth().background(OasisColors.Dune, RoundedCornerShape(OasisRadius.XS.dp)).padding(16.dp),
-        verticalArrangement = Arrangement.spacedBy(8.dp),
+        verticalArrangement = Arrangement.spacedBy(8.dp)
     ) {
         Text("Du bist nicht allein – hier bekommst du Hilfe", style = OasisType.BodyBold, color = OasisColors.Night)
         Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
             val style = OasisType.Small.copy(color = OasisColors.Ink2)
-            Text(line("Nummer gegen Kummer", " für Kinder und Jugendliche: ", "116 111" to "tel:116111", "0800 111 0 550" to "tel:08001110550"), style = style)
+            Text(
+                line(
+                    "Nummer gegen Kummer",
+                    " für Kinder und Jugendliche: ",
+                    "116 111" to "tel:116111",
+                    "0800 111 0 550" to "tel:08001110550"
+                ),
+                style = style
+            )
             Text(line("JUUUPORT", " – junge Menschen helfen bei Cybermobbing: ", "juuuport.de" to "https://www.juuuport.de"), style = style)
             Text(line("HateAid", " – Beratung bei Hass und digitaler Gewalt: ", "hateaid.org" to "https://hateaid.org"), style = style)
             Text(line("TelefonSeelsorge", ", rund um die Uhr: ", "0800 111 0 111" to "tel:08001110111"), style = style)
@@ -125,4 +133,3 @@ fun openWebPage(context: Context, url: String) {
     intent.intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
     runCatching { intent.launchUrl(context, uri) }
 }
-

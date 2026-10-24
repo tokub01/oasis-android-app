@@ -6,13 +6,13 @@ import de.velwebsolutions.oasis.core.network.ApiError
 import de.velwebsolutions.oasis.core.network.DataEnvelope
 import de.velwebsolutions.oasis.core.network.MessageResponse
 import de.velwebsolutions.oasis.core.network.OasisJson
+import java.time.LocalDate
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.json.JsonObject
 import kotlinx.serialization.json.JsonPrimitive
 import retrofit2.http.Body
 import retrofit2.http.GET
 import retrofit2.http.POST
-import java.time.LocalDate
 
 /** Answer of a sign-in step: either the token, or a two-factor challenge. */
 sealed interface SignInResult {
@@ -33,7 +33,7 @@ data class Registration(
     val birthDate: LocalDate = LocalDate.now().minusYears(20),
     val password: String = "",
     val passwordConfirmation: String = "",
-    val acceptsTerms: Boolean = false,
+    val acceptsTerms: Boolean = false
 )
 
 @Serializable
@@ -41,7 +41,7 @@ internal data class TokenAnswer(
     val token: String? = null,
     val data: Me? = null,
     val twoFactor: Boolean? = null,
-    val challenge: String? = null,
+    val challenge: String? = null
 )
 
 @Serializable
@@ -123,7 +123,7 @@ class RemoteAuthApi(client: ApiClient) : AuthApi {
             "terms" to if (registration.acceptsTerms) "1" else "0",
             "device_name" to deviceName,
             form.honeypotField to "",
-            form.tokenField to form.formToken,
+            form.tokenField to form.formToken
         )
         return result(service.register(JsonObject(fields.mapValues { JsonPrimitive(it.value) })))
     }

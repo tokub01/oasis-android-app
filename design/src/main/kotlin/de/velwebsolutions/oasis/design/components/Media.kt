@@ -22,8 +22,8 @@ import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import coil3.compose.SubcomposeAsyncImage
-import de.velwebsolutions.oasis.core.format.RelativeTime
 import de.velwebsolutions.oasis.core.format.GermanTime
+import de.velwebsolutions.oasis.core.format.RelativeTime
 import de.velwebsolutions.oasis.core.network.ApiClient
 import de.velwebsolutions.oasis.design.theme.OasisColors
 import de.velwebsolutions.oasis.design.theme.OasisType
@@ -64,12 +64,17 @@ fun AvatarView(initials: String, color: String, modifier: Modifier = Modifier, p
             .clip(CircleShape)
             .background(if (photoUrl == null) AvatarTint.background(color) else OasisColors.Dune)
             .clearAndSetSemantics {},
-        contentAlignment = Alignment.Center,
+        contentAlignment = Alignment.Center
     ) {
         val fontSize = with(LocalDensity.current) { (size / 3).toSp() }
         Text(initials, style = OasisType.initials(fontSize), color = AvatarTint.foreground(color))
         if (photoUrl != null) {
-            AuthorizedImage(photoUrl, contentDescription = null, modifier = Modifier.size(size).clip(CircleShape), contentScale = ContentScale.Crop)
+            AuthorizedImage(
+                photoUrl,
+                contentDescription = null,
+                modifier = Modifier.size(size).clip(CircleShape),
+                contentScale = ContentScale.Crop
+            )
         }
     }
 }
@@ -83,7 +88,7 @@ fun AuthorizedImage(
     url: String,
     contentDescription: String?,
     modifier: Modifier = Modifier,
-    contentScale: ContentScale = ContentScale.Fit,
+    contentScale: ContentScale = ContentScale.Fit
 ) {
     val client = LocalApiClient.current
     val absolute = client?.absoluteUrl(url)?.toString() ?: url
@@ -96,17 +101,22 @@ fun AuthorizedImage(
             Box(Modifier.background(OasisColors.Dune), contentAlignment = Alignment.Center) {
                 Icon(Icons.Outlined.Image, contentDescription = null, tint = OasisColors.Muted)
             }
-        },
+        }
     )
 }
 
 /** "vor 5 Min." / "gestern" / "12. Okt." – relative time in German like the web's timestamps. */
 @Composable
-fun RelativeTimeText(instant: Instant, modifier: Modifier = Modifier, style: androidx.compose.ui.text.TextStyle = OasisType.Caption, color: Color = OasisColors.Muted) {
+fun RelativeTimeText(
+    instant: Instant,
+    modifier: Modifier = Modifier,
+    style: androidx.compose.ui.text.TextStyle = OasisType.Caption,
+    color: Color = OasisColors.Muted
+) {
     Text(
         RelativeTime.format(instant),
         style = style,
         color = color,
-        modifier = modifier.semantics { contentDescription = GermanTime.format(instant, "d. MMMM yyyy, HH:mm") },
+        modifier = modifier.semantics { contentDescription = GermanTime.format(instant, "d. MMMM yyyy, HH:mm") }
     )
 }

@@ -14,7 +14,7 @@ enum class MainTab(val title: String) {
     Discover("Entdecken"),
     Oases("Oasen"),
     Chats("Chats"),
-    Profile("Profil"),
+    Profile("Profil")
 }
 
 /**
@@ -106,12 +106,16 @@ class Navigator {
         /** The tab a deep-linked route belongs to. */
         fun tab(route: AppRoute): MainTab = when (route) {
             is ChatRoute -> MainTab.Chats
+
             NetworkRoute.Discover, NetworkRoute.Swipe, is NetworkRoute.Search, is NetworkRoute.Tag -> MainTab.Discover
+
             NetworkRoute.Oases, is NetworkRoute.Oasis, NetworkRoute.CreateOasis, is NetworkRoute.EditOasis,
-            is NetworkRoute.CloseOasis, is NetworkRoute.OasisStatistics, is NetworkRoute.Invitation,
+            is NetworkRoute.CloseOasis, is NetworkRoute.OasisStatistics, is NetworkRoute.Invitation
             -> MainTab.Oases
+
             NetworkRoute.Source, is NetworkRoute.Post, is NetworkRoute.EditPost, is NetworkRoute.CarryPost, is NetworkRoute.Compose ->
                 MainTab.Source
+
             else -> MainTab.Profile
         }
     }

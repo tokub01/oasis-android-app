@@ -71,7 +71,7 @@ fun OasisButton(
     fullWidth: Boolean = true,
     enabled: Boolean = true,
     loading: Boolean = false,
-    leading: (@Composable () -> Unit)? = null,
+    leading: (@Composable () -> Unit)? = null
 ) {
     val interaction = remember { MutableInteractionSource() }
     val border = kind.border()
@@ -86,11 +86,11 @@ fun OasisButton(
             .then(if (border != null) Modifier.border(border, CircleShape) else Modifier)
             .clickable(interaction, indication = null, enabled = enabled && !loading, role = Role.Button, onClick = onClick)
             .padding(horizontal = 20.dp, vertical = 12.dp),
-        contentAlignment = Alignment.Center,
+        contentAlignment = Alignment.Center
     ) {
         Row(
             modifier = Modifier.alpha(if (loading) 0f else 1f),
-            verticalAlignment = Alignment.CenterVertically,
+            verticalAlignment = Alignment.CenterVertically
         ) {
             if (leading != null) {
                 leading()
@@ -110,7 +110,7 @@ fun AsyncOasisButton(
     modifier: Modifier = Modifier,
     kind: OasisButtonKind = OasisButtonKind.Primary,
     fullWidth: Boolean = true,
-    enabled: Boolean = true,
+    enabled: Boolean = true
 ) {
     val scope = rememberCoroutineScope()
     var running by remember { mutableStateOf(false) }
@@ -132,13 +132,19 @@ fun AsyncOasisButton(
         kind = kind,
         fullWidth = fullWidth,
         enabled = enabled,
-        loading = running,
+        loading = running
     )
 }
 
 /** A plain text button in Nachtwasser (toolbar actions like "Schließen", "Fertig"). */
 @Composable
-fun OasisTextButton(text: String, onClick: () -> Unit, modifier: Modifier = Modifier, enabled: Boolean = true, color: Color = OasisColors.Night) {
+fun OasisTextButton(
+    text: String,
+    onClick: () -> Unit,
+    modifier: Modifier = Modifier,
+    enabled: Boolean = true,
+    color: Color = OasisColors.Night
+) {
     Text(
         text = text,
         style = OasisType.BodyBold,
@@ -147,7 +153,7 @@ fun OasisTextButton(text: String, onClick: () -> Unit, modifier: Modifier = Modi
             .alpha(if (enabled) 1f else 0.45f)
             .clip(CircleShape)
             .clickable(enabled = enabled, role = Role.Button, onClick = onClick)
-            .padding(horizontal = 12.dp, vertical = 10.dp),
+            .padding(horizontal = 12.dp, vertical = 10.dp)
     )
 }
 

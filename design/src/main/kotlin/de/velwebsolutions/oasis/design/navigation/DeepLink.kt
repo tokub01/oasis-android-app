@@ -26,6 +26,7 @@ object DeepLink {
 
         when (parts.size) {
             0 -> return null
+
             1 -> return when (parts[0]) {
                 "app" -> NetworkRoute.Source
                 "moderation" -> StaffRoute.Moderation
@@ -46,15 +47,20 @@ object DeepLink {
                     else -> NetworkRoute.Post(id)
                 }
             }
+
             "oasen" -> when (third) {
                 "bearbeiten" -> NetworkRoute.EditOasis(parts[1])
                 "schliessen" -> NetworkRoute.CloseOasis(parts[1])
                 "statistik" -> NetworkRoute.OasisStatistics(parts[1])
                 else -> NetworkRoute.Oasis(parts[1])
             }
+
             "profil" -> NetworkRoute.Profile(parts[1])
+
             "einladung" -> NetworkRoute.Invitation(parts[1])
+
             "themen" -> NetworkRoute.Tag(parts[1])
+
             "moderation" -> when (parts[1]) {
                 "cases" -> third?.toIntOrNull()?.let { StaffRoute.ModerationCase(it) }
                 "complaints" -> third?.toIntOrNull()?.let { StaffRoute.ComplaintReview(it) }
@@ -62,6 +68,7 @@ object DeepLink {
                 "sperren" -> StaffRoute.Suspensions
                 else -> null
             }
+
             "admin" -> when (parts[1]) {
                 "abstimmungen" -> StaffRoute.AdminVotes
                 "zahlungen" -> StaffRoute.AdminPayments
@@ -69,7 +76,9 @@ object DeepLink {
                 "system" -> StaffRoute.AdminSystem
                 else -> null
             }
+
             "app" -> appRoute(parts[1], parts.drop(2), query)
+
             else -> null
         }
     }
@@ -83,6 +92,7 @@ object DeepLink {
                 segments.size == 1 -> ChatRoute.NewConversation
                 else -> ChatRoute.Conversations
             }
+
             "c" -> {
                 val id = segments.getOrNull(1)?.takeIf { ConversationId.matches(it) }?.toIntOrNull() ?: return ChatRoute.Conversations
                 when {
@@ -91,38 +101,59 @@ object DeepLink {
                     else -> ChatRoute.Conversations
                 }
             }
+
             else -> ChatRoute.Conversations
         }
     }
 
     private fun appRoute(section: String, rest: List<String>, query: Map<String, String>): AppRoute? = when (section) {
         "entdecken" -> NetworkRoute.Discover
+
         "durchblaettern" -> NetworkRoute.Swipe
+
         "freunde" -> NetworkRoute.Friends
+
         "oasen" -> if (rest.firstOrNull() == "neu") NetworkRoute.CreateOasis else NetworkRoute.Oases
+
         "profil" -> NetworkRoute.EditProfile
+
         "statistik" -> NetworkRoute.Statistics
+
         "einladen" -> NetworkRoute.Invitations
+
         "suche" -> NetworkRoute.Search(query["q"])
+
         "gemerkt" -> NetworkRoute.Bookmarks
+
         "nachrichten" -> (query["c"]?.toIntOrNull() ?: query["conversation"]?.toIntOrNull())
             ?.let { ChatRoute.Conversation(it) } ?: ChatRoute.Conversations
+
         "hinweise" -> if (rest.firstOrNull() == "einstellungen") LiveRoute.Settings else LiveRoute.Inbox
+
         "einstellungen" -> AccountRoute.Settings
+
         "privatsphaere" -> when (rest.firstOrNull()) {
             "check" -> AccountRoute.PrivacyCheckup
             "woerter" -> AccountRoute.HiddenWords
             "geraete" -> AccountRoute.Devices
             else -> AccountRoute.Privacy
         }
+
         "willkommen" -> AccountRoute.Welcome
+
         "sicherheit" -> AccountRoute.Safety
+
         "melden" -> AccountRoute.Report(query["url"])
+
         "begriffe" -> AccountRoute.Glossary
+
         "gesperrt" -> AccountRoute.Suspended
+
         "abstimmungen" -> AccountRoute.Votes
+
         "moderation" ->
             if (rest.firstOrNull() == "complaint") rest.getOrNull(1)?.toIntOrNull()?.let { AccountRoute.Complaint(it) } else null
+
         "mitgliedschaft" -> when (rest.firstOrNull()) {
             "portal" -> MembershipRoute.Portal
             "kuendigen" -> MembershipRoute.Cancel
@@ -130,6 +161,7 @@ object DeepLink {
             "rechnungen" -> rest.getOrNull(1)?.toIntOrNull()?.let { MembershipRoute.Invoice(it) }
             else -> MembershipRoute.Overview
         }
+
         else -> null
     }
 

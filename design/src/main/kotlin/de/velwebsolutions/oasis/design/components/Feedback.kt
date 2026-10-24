@@ -57,7 +57,7 @@ enum class PillTone {
 
     /** Counts on paper (`bg-sand`). */
     Sand,
-    Outline,
+    Outline
 }
 
 /** A small rounded label: "Neu", a status, a count or a role. */
@@ -82,7 +82,7 @@ fun Pill(text: String, modifier: Modifier = Modifier, tone: PillTone = PillTone.
             .then(if (tone == PillTone.Outline) Modifier.border(1.dp, OasisColors.DuneLine, CircleShape) else Modifier)
             .padding(horizontal = 9.dp, vertical = 3.dp),
         horizontalArrangement = Arrangement.spacedBy(4.dp),
-        verticalAlignment = Alignment.CenterVertically,
+        verticalAlignment = Alignment.CenterVertically
     ) {
         if (icon != null) Icon(icon, contentDescription = null, tint = foreground, modifier = Modifier.size(14.dp))
         Text(text, style = OasisType.Caption.copy(fontWeight = FontWeight.ExtraBold), color = foreground)
@@ -100,7 +100,7 @@ fun BoxScope.StatusToast(
     error: String?,
     onDismissMessage: () -> Unit,
     onDismissError: () -> Unit,
-    modifier: Modifier = Modifier,
+    modifier: Modifier = Modifier
 ) {
     val haptics = LocalHapticFeedback.current
     LaunchedEffect(message) {
@@ -122,7 +122,7 @@ fun BoxScope.StatusToast(
             .align(Alignment.BottomCenter)
             .widthIn(max = 720.dp)
             .padding(horizontal = 16.dp, vertical = 12.dp),
-        verticalArrangement = Arrangement.spacedBy(8.dp),
+        verticalArrangement = Arrangement.spacedBy(8.dp)
     ) {
         AnimatedVisibility(error != null, enter = fadeIn() + slideInVertically { it }, exit = fadeOut() + slideOutVertically { it }) {
             Toast(error.orEmpty(), isError = true, onTap = onDismissError, modifier = Modifier.testTag("status.error"))
@@ -152,7 +152,7 @@ private fun Toast(text: String, isError: Boolean, onTap: () -> Unit, modifier: M
             }
             .padding(horizontal = 16.dp, vertical = 12.dp),
         horizontalArrangement = Arrangement.spacedBy(10.dp),
-        verticalAlignment = Alignment.CenterVertically,
+        verticalAlignment = Alignment.CenterVertically
     ) {
         val color = if (isError) OasisColors.SunText else OasisColors.OnNight
         Icon(if (isError) Icons.Outlined.ErrorOutline else Icons.Outlined.CheckCircle, contentDescription = null, tint = color)
@@ -168,7 +168,7 @@ fun WithStatusToast(
     onDismissMessage: () -> Unit,
     onDismissError: () -> Unit,
     modifier: Modifier = Modifier,
-    content: @Composable BoxScope.() -> Unit,
+    content: @Composable BoxScope.() -> Unit
 ) {
     Box(modifier) {
         content()

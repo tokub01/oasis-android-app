@@ -19,14 +19,19 @@ fun RootScreen(viewModel: RootViewModel = hiltViewModel()) {
     val state by viewModel.state.collectAsStateWithLifecycle()
     when (val current = state) {
         SessionState.Loading -> LoadingView("Oasis startet …", Modifier.fillMaxSize().oasisScreenBackground())
+
         SessionState.SignedOut -> SignedOutScreen()
+
         is SessionState.SignedIn -> {
             val me = current.me
             when {
                 !me.emailVerified -> VerifyEmailScreen()
+
                 me.isSuspended -> StandaloneStack(AccountRoute.Suspended)
+
                 // New members start with the welcome tour, like the web's Quelle sends them to /app/willkommen.
                 !me.onboarded -> StandaloneStack(AccountRoute.Welcome)
+
                 else -> MainTabs(me, viewModel)
             }
         }

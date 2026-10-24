@@ -4,9 +4,9 @@ import de.velwebsolutions.oasis.core.format.GermanTime
 import de.velwebsolutions.oasis.core.format.RelativeTime
 import de.velwebsolutions.oasis.core.network.ApiError
 import de.velwebsolutions.oasis.core.network.OasisJson
+import java.time.Instant
 import org.junit.Assert.assertEquals
 import org.junit.Test
-import java.time.Instant
 
 class FormattingTest {
     @Test

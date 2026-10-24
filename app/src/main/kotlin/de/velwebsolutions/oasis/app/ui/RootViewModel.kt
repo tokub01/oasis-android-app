@@ -18,7 +18,7 @@ import kotlinx.coroutines.launch
 class RootViewModel @Inject constructor(
     private val session: Session,
     val live: LiveCoordinator,
-    private val playTransactions: PlayTransactions,
+    private val playTransactions: PlayTransactions
 ) : ViewModel() {
     val state: StateFlow<SessionState> = session.state
     val confirmation = NetworkSignals.confirmation

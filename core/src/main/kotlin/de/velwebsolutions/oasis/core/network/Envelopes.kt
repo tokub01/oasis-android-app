@@ -18,7 +18,7 @@ data class Page<T>(val data: List<T>, val meta: Meta? = null) {
         val perPage: Int? = null,
         val currentPage: Int? = null,
         val lastPage: Int? = null,
-        val total: Int? = null,
+        val total: Int? = null
     )
 
     /** The cursor for the next request, or null on the last page. Page-number pagination maps to "page" numbers. */

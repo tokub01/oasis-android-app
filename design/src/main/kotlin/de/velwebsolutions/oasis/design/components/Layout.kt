@@ -49,7 +49,7 @@ fun Panel(
     modifier: Modifier = Modifier,
     tone: PanelTone = PanelTone.Paper,
     spacing: Int = 12,
-    content: @Composable ColumnScope.() -> Unit,
+    content: @Composable ColumnScope.() -> Unit
 ) {
     val shape = RoundedCornerShape(OasisRadius.M.dp)
     val background = when (tone) {
@@ -65,7 +65,7 @@ fun Panel(
                 .then(if (tone == PanelTone.Warning) Modifier.border(2.dp, OasisColors.Sun, shape) else Modifier)
                 .padding(24.dp),
             verticalArrangement = Arrangement.spacedBy(spacing.dp),
-            content = content,
+            content = content
         )
     }
 }
@@ -81,11 +81,11 @@ fun SideCard(title: String, modifier: Modifier = Modifier, tone: PanelTone = Pan
             title,
             style = OasisType.CardTitle,
             color = if (tone == PanelTone.Night) OasisColors.OnNight else OasisColors.Night,
-            modifier = Modifier.semantics { heading() },
+            modifier = Modifier.semantics { heading() }
         )
         CompositionLocalProvider(
             LocalTextStyle provides OasisType.Small,
-            LocalContentColor provides if (tone == PanelTone.Night) OasisColors.OnNight2 else OasisColors.Ink2,
+            LocalContentColor provides if (tone == PanelTone.Night) OasisColors.OnNight2 else OasisColors.Ink2
         ) {
             content()
         }
@@ -100,7 +100,7 @@ fun SectionCard(
     detail: String? = null,
     count: Int? = null,
     tone: PanelTone = PanelTone.Paper,
-    content: @Composable ColumnScope.() -> Unit,
+    content: @Composable ColumnScope.() -> Unit
 ) {
     Panel(modifier, tone, spacing = 14) {
         Row(verticalAlignment = Alignment.CenterVertically) {
@@ -108,7 +108,7 @@ fun SectionCard(
                 title,
                 style = OasisType.heading(),
                 color = if (tone == PanelTone.Night) OasisColors.OnNight else OasisColors.Night,
-                modifier = Modifier.weight(1f).semantics { heading() },
+                modifier = Modifier.weight(1f).semantics { heading() }
             )
             if (count != null) {
                 Spacer(Modifier.width(8.dp))
@@ -133,13 +133,13 @@ fun DashedNote(modifier: Modifier = Modifier, highlighted: Boolean = false, cont
                 drawRoundRect(
                     color = color,
                     cornerRadius = CornerRadius(OasisRadius.S.dp.toPx()),
-                    style = Stroke(width = 2.dp.toPx(), pathEffect = PathEffect.dashPathEffect(floatArrayOf(6.dp.toPx(), 6.dp.toPx()))),
+                    style = Stroke(width = 2.dp.toPx(), pathEffect = PathEffect.dashPathEffect(floatArrayOf(6.dp.toPx(), 6.dp.toPx())))
                 )
             }
             .padding(24.dp),
         horizontalAlignment = Alignment.CenterHorizontally,
         verticalArrangement = Arrangement.spacedBy(4.dp),
-        content = content,
+        content = content
     )
 }
 

@@ -61,7 +61,7 @@ class KeystoreTokenStore(context: Context) : TokenStore {
                 .setBlockModes(KeyProperties.BLOCK_MODE_GCM)
                 .setEncryptionPaddings(KeyProperties.ENCRYPTION_PADDING_NONE)
                 .setKeySize(256)
-                .build(),
+                .build()
         )
         return generator.generateKey()
     }

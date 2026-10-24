@@ -22,5 +22,5 @@ data class Me(
     val onboarded: Boolean = true,
     val trialEndsAt: OasisInstant? = null,
     val membershipTier: String? = null,
-    val isFoundingMember: Boolean = false,
+    val isFoundingMember: Boolean = false
 )

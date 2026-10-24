@@ -21,7 +21,8 @@ class SessionTest {
     private class FakeAuth(var meResult: Result<Me>) : AuthApi {
         var loggedOut = false
 
-        override suspend fun login(login: String, password: String, deviceName: String) = SignInResult.SignedIn("new", meResult.getOrThrow())
+        override suspend fun login(login: String, password: String, deviceName: String) =
+            SignInResult.SignedIn("new", meResult.getOrThrow())
 
         override suspend fun twoFactor(challenge: String, code: String?, recoveryCode: String?) = login("", "", "")
 
