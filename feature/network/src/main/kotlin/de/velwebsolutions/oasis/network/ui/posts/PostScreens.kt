@@ -1,6 +1,5 @@
 package de.velwebsolutions.oasis.network.ui.posts
 
-import androidx.activity.compose.BackHandler
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
@@ -36,6 +35,8 @@ import androidx.compose.ui.unit.dp
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import de.velwebsolutions.oasis.core.format.GermanTime
+import de.velwebsolutions.oasis.core.model.Loadable
+import de.velwebsolutions.oasis.core.network.ApiError
 import de.velwebsolutions.oasis.design.components.AsyncOasisButton
 import de.velwebsolutions.oasis.design.components.Banner
 import de.velwebsolutions.oasis.design.components.DashedNote
@@ -57,10 +58,12 @@ import de.velwebsolutions.oasis.design.theme.OasisType
 import de.velwebsolutions.oasis.network.NetworkSignals
 import de.velwebsolutions.oasis.network.api.Post
 import de.velwebsolutions.oasis.network.api.PostDetail
+import de.velwebsolutions.oasis.network.api.PostEditForm
 import de.velwebsolutions.oasis.network.ui.PostAction
 import de.velwebsolutions.oasis.network.ui.components.CarriedOriginal
 import de.velwebsolutions.oasis.network.ui.components.ConfirmDialog
 import de.velwebsolutions.oasis.network.ui.components.Disclosure
+import de.velwebsolutions.oasis.network.ui.components.LeaveGuard
 import de.velwebsolutions.oasis.network.ui.components.MemberRow
 import de.velwebsolutions.oasis.network.ui.components.NetworkPage
 import de.velwebsolutions.oasis.network.ui.components.OasisDot
@@ -82,18 +85,20 @@ import de.velwebsolutions.oasis.network.ui.compose.callbacks
  * picked, "Schließen" and the back gesture ask before discarding the draft; the sheet closes itself after publishing.
  */
 @Composable
-fun ComposeScreen(oasisSlug: String?, replyTo: Int?) {
-    val viewModel = hiltViewModel<ComposeViewModel, ComposeViewModel.Factory>(
+fun ComposeScreen(
+    oasisSlug: String?,
+    replyTo: Int?,
+    viewModel: ComposeViewModel = hiltViewModel<ComposeViewModel, ComposeViewModel.Factory>(
         key = "compose:$oasisSlug:$replyTo",
         creationCallback = { it.create(oasisSlug, replyTo, null) }
     )
+) {
     val state by viewModel.state.collectAsStateWithLifecycle()
     val navigator = LocalNavigator.current
     var confirmDiscard by remember { mutableStateOf(false) }
-    val close = { if (navigator.sheet != null) navigator.dismissSheet() else navigator.back() }
+    val close: () -> Unit = { if (navigator.sheet != null) navigator.dismissSheet() else navigator.back() }
 
     LaunchedEffect(Unit) { viewModel.loadIfNeeded() }
-    BackHandler(enabled = state.hasDraft) { confirmDiscard = true }
 
     // A draft keeps the sheet from being swiped away; "Schließen" and back ask first.
     DisposableEffect(state.hasDraft) {
@@ -101,23 +106,8 @@ fun ComposeScreen(oasisSlug: String?, replyTo: Int?) {
         onDispose { navigator.sheetDismissible = true }
     }
 
-    OasisScreen(
-        title = if (state.isReply) "Antworten" else "Tropfen schreiben",
-        closesItself = true,
-        navigationAction = {
-            if (navigator.sheet != null) {
-                IconButton(
-                    onClick = { if (state.hasDraft) confirmDiscard = true else close() },
-                    modifier = Modifier.testTag("compose.close")
-                ) {
-                    Icon(Icons.Outlined.Close, contentDescription = "Schließen", tint = OasisColors.Night)
-                }
-            }
-        }
-    ) {
-        LoadableView(state.context, onRetry = viewModel::load) {
-            ComposeContent(state, viewModel.callbacks(), onPublished = { close() })
-        }
+    LeaveGuard(enabled = state.hasDraft, onAttempt = { confirmDiscard = true }) {
+        ComposePage(state, viewModel, onClose = { if (state.hasDraft) confirmDiscard = true else close() }, onPublished = close)
     }
     if (confirmDiscard) {
         ConfirmDialog(
@@ -130,6 +120,29 @@ fun ComposeScreen(oasisSlug: String?, replyTo: Int?) {
             },
             onDismiss = { confirmDiscard = false }
         )
+    }
+}
+
+@Composable
+private fun ComposePage(state: ComposeUiState, viewModel: ComposeViewModel, onClose: () -> Unit, onPublished: () -> Unit) {
+    val navigator = LocalNavigator.current
+    OasisScreen(
+        title = if (state.isReply) "Antworten" else "Tropfen schreiben",
+        closesItself = true,
+        navigationAction = {
+            if (navigator.sheet != null) {
+                IconButton(
+                    onClick = onClose,
+                    modifier = Modifier.testTag("compose.close")
+                ) {
+                    Icon(Icons.Outlined.Close, contentDescription = "Schließen", tint = OasisColors.Night)
+                }
+            }
+        }
+    ) {
+        LoadableView(state.context, onRetry = viewModel::load) {
+            ComposeContent(state, viewModel.callbacks(), onPublished = { onPublished() })
+        }
     }
 }
 
@@ -151,10 +164,12 @@ fun ComposeContent(state: ComposeUiState, callbacks: ComposerCallbacks, onPublis
  * Inhalt gelesen". Afterwards the Quelle shows the new Tropfen.
  */
 @Composable
-fun CarryScreen(id: Int) {
-    val viewModel = hiltViewModel<CarryViewModel, CarryViewModel.Factory>(creationCallback = { it.create(id) })
-    val composer =
+fun CarryScreen(
+    id: Int,
+    viewModel: CarryViewModel = hiltViewModel<CarryViewModel, CarryViewModel.Factory>(creationCallback = { it.create(id) }),
+    composer: ComposeViewModel =
         hiltViewModel<ComposeViewModel, ComposeViewModel.Factory>(key = "carry:$id", creationCallback = { it.create(null, null, id) })
+) {
     val source by viewModel.source.collectAsStateWithLifecycle()
     val state by composer.state.collectAsStateWithLifecycle()
     val navigator = LocalNavigator.current
@@ -188,8 +203,10 @@ fun CarryScreen(id: Int) {
  * text is only left through "Änderung speichern" or "Abbrechen", which asks first.
  */
 @Composable
-fun EditPostScreen(id: Int) {
-    val viewModel = hiltViewModel<EditPostViewModel, EditPostViewModel.Factory>(creationCallback = { it.create(id) })
+fun EditPostScreen(
+    id: Int,
+    viewModel: EditPostViewModel = hiltViewModel<EditPostViewModel, EditPostViewModel.Factory>(creationCallback = { it.create(id) })
+) {
     val form by viewModel.form.collectAsStateWithLifecycle()
     val text by viewModel.text.collectAsStateWithLifecycle()
     val error by viewModel.error.collectAsStateWithLifecycle()
@@ -200,8 +217,17 @@ fun EditPostScreen(id: Int) {
 
     LaunchedEffect(Unit) { viewModel.load() }
     LaunchedEffect(saved) { if (saved) navigator.back() }
-    BackHandler(enabled = changed) { confirmDiscard = true }
 
+    LeaveGuard(enabled = changed, onAttempt = { confirmDiscard = true }) {
+        EditPostPage(viewModel, form, text, error, onCancel = { if (changed) confirmDiscard = true else navigator.back() })
+    }
+    if (confirmDiscard) {
+        ConfirmDialog("Änderung verwerfen?", "Verwerfen", onConfirm = { navigator.back() }, onDismiss = { confirmDiscard = false })
+    }
+}
+
+@Composable
+private fun EditPostPage(viewModel: EditPostViewModel, form: Loadable<PostEditForm>, text: String, error: ApiError?, onCancel: () -> Unit) {
     OasisScreen(title = "Bearbeiten") {
         LoadableView(form, onRetry = viewModel::load) { loaded ->
             NetworkPage {
@@ -236,7 +262,7 @@ fun EditPostScreen(id: Int) {
                             )
                             OasisButton(
                                 "Abbrechen",
-                                { if (changed) confirmDiscard = true else navigator.back() },
+                                onCancel,
                                 kind = OasisButtonKind.Secondary,
                                 fullWidth = false
                             )
@@ -254,9 +280,6 @@ fun EditPostScreen(id: Int) {
             }
         }
     }
-    if (confirmDiscard) {
-        ConfirmDialog("Änderung verwerfen?", "Verwerfen", onConfirm = { navigator.back() }, onDismiss = { confirmDiscard = false })
-    }
 }
 
 /**
@@ -265,10 +288,12 @@ fun EditPostScreen(id: Int) {
  * with "Antworten" from a card, the reply field is focused (the web jumps to #antworten).
  */
 @Composable
-fun PostDetailScreen(id: Int) {
-    val viewModel = hiltViewModel<PostDetailViewModel, PostDetailViewModel.Factory>(creationCallback = { it.create(id) })
-    val reply =
+fun PostDetailScreen(
+    id: Int,
+    viewModel: PostDetailViewModel = hiltViewModel<PostDetailViewModel, PostDetailViewModel.Factory>(creationCallback = { it.create(id) }),
+    reply: ComposeViewModel =
         hiltViewModel<ComposeViewModel, ComposeViewModel.Factory>(key = "reply:$id", creationCallback = { it.create(null, id, null) })
+) {
     val detail by viewModel.detail.collectAsStateWithLifecycle()
     val replyState by reply.state.collectAsStateWithLifecycle()
     val status by viewModel.status.collectAsStateWithLifecycle()

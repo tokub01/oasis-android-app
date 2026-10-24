@@ -182,4 +182,70 @@ class ComposeViewModelTest {
         assertEquals("Tropfen teilen", composer(network).state.value.submitLabel)
         assertEquals("Dein Tropfen", composer(network).state.value.bodyLabel)
     }
+
+    @Test
+    fun `ignores images and descriptions that are not there and a blank tone check`() = runTest {
+        val network = StubbedNetwork(stub("POST", "network/tone", """{"message":"Kaputt."}""", 500))
+        val model = composer(network, oasisSlug = "leer")
+        model.removeImage(3)
+        model.updateAlt(3, "Nichts")
+        assertTrue(model.state.value.images.isEmpty())
+        model.checkTone()
+        assertTrue(network.transport.requests.isEmpty())
+
+        model.updateBody("Hallo")
+        model.checkTone()
+        assertNull(model.state.value.toneHint)
+        model.setVisibility("members")
+        model.setKind("question")
+        model.setLinkRead(true)
+        assertEquals("members", model.state.value.visibility)
+        assertEquals("question", model.state.value.kind)
+        assertTrue(model.state.value.linkRead)
+        model.discard()
+    }
+
+    @Test
+    fun `a context that does not load shows its error, and loadIfNeeded loads once`() = runTest {
+        val network = StubbedNetwork(stub("GET", "network/composer", """{"message":"Kaputt."}""", 500))
+        val model = composer(network, replyTo = 12)
+        model.loadIfNeeded()
+        assertEquals("Kaputt.", (model.state.value.context as de.velwebsolutions.oasis.core.model.Loadable.Failed).error.userMessage)
+        model.loadIfNeeded()
+        assertEquals(1, network.transport.requests.size)
+        assertEquals("12", network.last("network/composer").request.url.queryParameter("reply_to"))
+    }
+
+    @Test
+    fun `a held Tropfen refreshes the account and a carry is sent as a plain Tropfen`() = runTest {
+        val network = StubbedNetwork(
+            stub("GET", "network/composer", Fixtures.composer),
+            stub("POST", "network/posts", """{"message":"Zurückgehalten.","suspended":true,"data":${postJson(43)}}""", 201)
+        )
+        val model = composer(network, carried = 12)
+        model.load()
+        model.updateBody("Hallo")
+        assertEquals("Zurückgehalten.", model.publish()?.message)
+        assertTrue(network.last("network/posts").body!!.contains(Regex("name=\"carried\"[\\s\\S]*?\r\n\r\n12\r\n")))
+        assertTrue(network.last("network/posts").body!!.contains(Regex("name=\"kind\"[\\s\\S]*?\r\n\r\npost\r\n")))
+    }
+
+    @Test
+    fun `a general error shows above the form, field errors at their field`() = runTest {
+        val network = StubbedNetwork(
+            stub("GET", "network/composer", Fixtures.composer),
+            stub("POST", "network/posts", """{"message":"Kaputt."}""", 500)
+        )
+        val model = composer(network, oasisSlug = "fehler")
+        model.load()
+        model.updateBody("Hallo")
+        assertNull(model.publish())
+        assertEquals("Kaputt.", model.state.value.generalError)
+        assertFalse(model.state.value.toneNudge)
+
+        network.add("POST", "network/posts", 422, """{"message":"Zu lang.","errors":{"body":["Zu lang."]}}""")
+        assertNull(model.publish())
+        assertNull(model.state.value.generalError)
+        assertEquals("Zu lang.", model.state.value.fieldError("body"))
+    }
 }

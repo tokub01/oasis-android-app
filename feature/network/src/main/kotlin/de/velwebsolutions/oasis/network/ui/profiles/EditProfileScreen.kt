@@ -74,8 +74,7 @@ import kotlinx.coroutines.delay
  * initials. Who may see the profile is a privacy setting (account area).
  */
 @Composable
-fun EditProfileScreen() {
-    val viewModel = hiltViewModel<EditProfileViewModel>()
+fun EditProfileScreen(viewModel: EditProfileViewModel = hiltViewModel<EditProfileViewModel>()) {
     val profile by viewModel.profile.collectAsStateWithLifecycle()
     val form by viewModel.form.collectAsStateWithLifecycle()
     val status by viewModel.status.collectAsStateWithLifecycle()

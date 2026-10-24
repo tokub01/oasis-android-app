@@ -74,7 +74,7 @@ internal fun Project.configureKover(sourceVariant: String) {
  * aggregation stubs, kotlinx.serialization serializers, Compose's lambda singletons, BuildConfig and R.
  */
 internal val GeneratedClasses = listOf(
-    "*_HiltModules*", "*Hilt_*", "hilt_aggregated_deps.*", "dagger.hilt.*", "_*", "*_*Factory", "*_*Factory\$*",
+    "*_HiltModules*", "*Hilt_*", "hilt_aggregated_deps.*", "dagger.hilt.*", "_*", "*_*Factory", "*_*Factory\$*", "*_Factory_Impl",
     "*_MembersInjector", "*_GeneratedInjector", "*_ComponentTreeDeps", "*\$\$serializer", "*ComposableSingletons*",
     "*.BuildConfig", "*.R", "*.R\$*",
 )

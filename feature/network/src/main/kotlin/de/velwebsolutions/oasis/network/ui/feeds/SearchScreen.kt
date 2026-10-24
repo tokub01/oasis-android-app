@@ -74,8 +74,10 @@ import kotlinx.coroutines.delay
  * its topic page; every request counts against the search budget of 30 per minute.
  */
 @Composable
-fun SearchScreen(query: String) {
-    val viewModel = hiltViewModel<SearchViewModel, SearchViewModel.Factory>(creationCallback = { it.create(query) })
+fun SearchScreen(
+    query: String,
+    viewModel: SearchViewModel = hiltViewModel<SearchViewModel, SearchViewModel.Factory>(creationCallback = { it.create(query) })
+) {
     val state by viewModel.list.state.collectAsStateWithLifecycle()
     val text by viewModel.query.collectAsStateWithLifecycle()
     val navigator = LocalNavigator.current

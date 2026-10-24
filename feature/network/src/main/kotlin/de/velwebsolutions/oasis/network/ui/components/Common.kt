@@ -4,6 +4,7 @@ import android.content.ClipData
 import android.content.ClipboardManager
 import android.content.Context
 import android.content.Intent
+import androidx.activity.compose.BackHandler
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
@@ -11,6 +12,7 @@ import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.BoxScope
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.ColumnScope
 import androidx.compose.foundation.layout.PaddingValues
@@ -33,6 +35,7 @@ import androidx.compose.foundation.selection.toggleable
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.outlined.Edit
 import androidx.compose.material.icons.outlined.ExpandLess
 import androidx.compose.material.icons.outlined.ExpandMore
 import androidx.compose.material.icons.outlined.UnfoldMore
@@ -40,14 +43,18 @@ import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.ExtendedFloatingActionButton
 import androidx.compose.material3.Icon
 import androidx.compose.material3.RadioButton
 import androidx.compose.material3.RadioButtonDefaults
 import androidx.compose.material3.Switch
 import androidx.compose.material3.SwitchDefaults
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.material3.pulltorefresh.PullToRefreshBox
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.CompositionLocalProvider
+import androidx.compose.runtime.derivedStateOf
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -60,12 +67,18 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.semantics.Role
+import androidx.compose.ui.semantics.clearAndSetSemantics
+import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.heading
+import androidx.compose.ui.semantics.onClick
+import androidx.compose.ui.semantics.role
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.style.TextDecoration
+import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import de.velwebsolutions.oasis.design.components.LocalApiClient
+import de.velwebsolutions.oasis.design.components.LocalScreenChrome
 import de.velwebsolutions.oasis.design.navigation.AppRoute
 import de.velwebsolutions.oasis.design.navigation.LocalNavigator
 import de.velwebsolutions.oasis.design.theme.OasisColors
@@ -87,13 +100,15 @@ fun NetworkPage(
     modifier: Modifier = Modifier,
     state: LazyListState = rememberLazyListState(),
     onRefresh: (suspend () -> Unit)? = null,
+    /** Extra room below the last block, so a floating button does not cover it. */
+    bottomInset: Dp = 0.dp,
     content: LazyListScope.() -> Unit
 ) {
     val list = @Composable {
         LazyColumn(
             modifier = modifier.fillMaxSize().background(OasisColors.Sand).testTag("network.page"),
             state = state,
-            contentPadding = PaddingValues(16.dp),
+            contentPadding = PaddingValues(start = 16.dp, top = 16.dp, end = 16.dp, bottom = 16.dp + bottomInset),
             verticalArrangement = Arrangement.spacedBy(20.dp),
             horizontalAlignment = Alignment.CenterHorizontally,
             content = content
@@ -119,6 +134,44 @@ fun NetworkPage(
             modifier = Modifier.fillMaxSize()
         ) { list() }
     }
+}
+
+/** The room a [ComposeFab] needs below the last block of its page. */
+val FabInset = 72.dp
+
+/**
+ * "Tropfen schreiben" – the main action of the Quelle and an oasis (iOS: the composer entry and the oasis' toolbar
+ * button) as Android's floating button, bottom right. It shows its label at the top of the page and shrinks to the pen
+ * while the page is scrolled.
+ */
+@Composable
+fun BoxScope.ComposeFab(
+    listState: LazyListState,
+    onClick: () -> Unit,
+    modifier: Modifier = Modifier,
+    /** What TalkBack reads ("Tropfen in … schreiben" in an oasis). */
+    description: String = "Tropfen schreiben"
+) {
+    val expanded by remember(listState) { derivedStateOf { listState.firstVisibleItemIndex == 0 } }
+    ExtendedFloatingActionButton(
+        onClick = onClick,
+        expanded = expanded,
+        icon = { Icon(Icons.Outlined.Edit, contentDescription = null) },
+        text = { Text("Tropfen schreiben", style = OasisType.Button) },
+        containerColor = OasisColors.Night,
+        contentColor = OasisColors.OnNight,
+        modifier = modifier
+            .align(Alignment.BottomEnd)
+            .padding(16.dp)
+            .clearAndSetSemantics {
+                contentDescription = description
+                role = Role.Button
+                onClick {
+                    onClick()
+                    true
+                }
+            }
+    )
 }
 
 /** One block of a [NetworkPage] at the page's readable width. */
@@ -322,7 +375,7 @@ fun Disclosure(
     }
 }
 
-/** A destructive question before an action (iOS `confirmationDialog`), with "Abbrechen". */
+/** A destructive question before an action (iOS `confirmationDialog`) as a Material dialog, with "Abbrechen". */
 @Composable
 fun ConfirmDialog(
     title: String,
@@ -338,31 +391,34 @@ fun ConfirmDialog(
         title = { Text(title, style = OasisType.heading(), color = OasisColors.Night) },
         text = message?.let { { Text(it, style = OasisType.Body, color = OasisColors.Ink2) } },
         confirmButton = {
-            Text(
-                confirmLabel,
-                style = OasisType.BodyBold,
-                color = if (destructive) OasisColors.SunText else OasisColors.Night,
-                modifier = Modifier
-                    .clip(CircleShape)
-                    .clickable(role = Role.Button) {
-                        onDismiss()
-                        onConfirm()
-                    }
-                    .padding(horizontal = 12.dp, vertical = 10.dp)
-                    .testTag("dialog.confirm")
-            )
+            TextButton(
+                onClick = {
+                    onDismiss()
+                    onConfirm()
+                },
+                modifier = Modifier.testTag("dialog.confirm")
+            ) {
+                Text(confirmLabel, style = OasisType.BodyBold, color = if (destructive) OasisColors.SunText else OasisColors.Night)
+            }
         },
         dismissButton = {
-            Text(
-                "Abbrechen",
-                style = OasisType.BodyBold,
-                color = OasisColors.Night,
-                modifier = Modifier.clip(
-                    CircleShape
-                ).clickable(role = Role.Button, onClick = onDismiss).padding(horizontal = 12.dp, vertical = 10.dp)
-            )
+            TextButton(onClick = onDismiss, modifier = Modifier.testTag("dialog.cancel")) {
+                Text("Abbrechen", style = OasisType.BodyBold, color = OasisColors.Night)
+            }
         }
     )
+}
+
+/**
+ * Asks before a screen with unsaved changes is left: while [enabled], the system back gesture (also predictive back) and
+ * the bar's back arrow call [onAttempt] instead of leaving (iOS hides the back button and stops the swipe instead).
+ */
+@Composable
+fun LeaveGuard(enabled: Boolean, onAttempt: () -> Unit, content: @Composable () -> Unit) {
+    BackHandler(enabled = enabled, onBack = onAttempt)
+    val chrome = LocalScreenChrome.current
+    val guarded = if (enabled && chrome.onBack != null) chrome.copy(onBack = onAttempt) else chrome
+    CompositionLocalProvider(LocalScreenChrome provides guarded, content = content)
 }
 
 /** A paper card with the web's large radius (`rounded-[24px]`), optionally outlined. */

@@ -28,10 +28,12 @@ jobs:
         run: ./gradlew ktlintCheck --continue
       - name: detekt
         run: ./gradlew detekt
-      - name: Android lint
-        run: ./gradlew :app:lintDebug
-      - name: Unit and Robolectric UI tests
-        run: ./gradlew test --continue
+      - name: Android lint (warnings are errors)
+        run: ./gradlew lintDebug --continue
+      - name: Unit, Robolectric UI and screenshot tests
+        run: ./gradlew testDebugUnitTest :chat-crypto:test --continue
+      - name: Coverage report and thresholds
+        run: ./gradlew koverHtmlReportOasis koverXmlReportOasis koverVerifyOasis
       - name: Build debug and staging APKs
         run: ./gradlew :app:assembleDebug :app:assembleStaging
       - uses: actions/upload-artifact@v4
@@ -41,6 +43,7 @@ jobs:
           path: |
             **/build/reports/**
             **/build/test-results/**
+            **/build/outputs/roborazzi/**
           retention-days: 7
       - uses: actions/upload-artifact@v4
         with:
