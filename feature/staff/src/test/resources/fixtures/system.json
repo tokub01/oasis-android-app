@@ -1,0 +1,74 @@
+{
+ "data": {
+  "healthy": false,
+  "checks": [
+   {
+    "key": "database",
+    "label": "Datenbank",
+    "ok": true,
+    "detail": "erreichbar"
+   },
+   {
+    "key": "cache",
+    "label": "Cache",
+    "ok": true,
+    "detail": "schreibt und liest"
+   },
+   {
+    "key": "storage",
+    "label": "Bilder-Speicher",
+    "ok": true,
+    "detail": "schreibt und liest (local)"
+   },
+   {
+    "key": "media-encryption",
+    "label": "Bilder-Verschlüsselung",
+    "ok": true,
+    "detail": "unverschlüsselt, nur auf dem eigenen Server"
+   },
+   {
+    "key": "disk",
+    "label": "Freier Plattenplatz",
+    "ok": true,
+    "detail": "106.8 GB frei"
+   },
+   {
+    "key": "queue",
+    "label": "Warteschlange",
+    "ok": false,
+    "detail": "38 Aufträge warten länger als 15 Minuten – läuft der Queue-Worker?"
+   },
+   {
+    "key": "scheduler",
+    "label": "Zeitplaner (Löschfristen, Abgleich, Mails)",
+    "ok": false,
+    "detail": "noch nie erfolgreich gelaufen"
+   },
+   {
+    "key": "mollie-sync",
+    "label": "Mollie-Abgleich",
+    "ok": false,
+    "detail": "noch nie erfolgreich gelaufen"
+   },
+   {
+    "key": "backup",
+    "label": "Datenbank-Sicherung",
+    "ok": false,
+    "detail": "noch nie erfolgreich gelaufen"
+   },
+   {
+    "key": "backup-verify",
+    "label": "Wiederherstellungstest",
+    "ok": false,
+    "detail": "noch nie erfolgreich gelaufen"
+   }
+  ],
+  "backups": [
+   "Neueste Sicherung: noch keine (local, 14 Tage aufbewahrt)",
+   "Sicherungsschlüssel: gesetzt",
+   "Überwachungs-URL /gesundheit: aktiv (mit OASIS_HEALTH_TOKEN)"
+  ],
+  "bot_refusals": [],
+  "heartbeats": []
+ }
+}

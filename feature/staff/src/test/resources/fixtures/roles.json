@@ -1,0 +1,234 @@
+{
+ "data": [
+  {
+   "id": 3,
+   "display_name": "Aylin Demir",
+   "email": "aylin@demo.oasis.tld",
+   "role": {
+    "value": "member",
+    "label": "Mitglied"
+   },
+   "editable": true,
+   "note": null,
+   "choosable_roles": [
+    "member",
+    "moderator"
+   ]
+  },
+  {
+   "id": 6,
+   "display_name": "Ben Hoffmann",
+   "email": "ben@demo.oasis.tld",
+   "role": {
+    "value": "member",
+    "label": "Mitglied"
+   },
+   "editable": true,
+   "note": null,
+   "choosable_roles": [
+    "member",
+    "moderator"
+   ]
+  },
+  {
+   "id": 8,
+   "display_name": "Emil Novak",
+   "email": "emil@demo.oasis.tld",
+   "role": {
+    "value": "member",
+    "label": "Mitglied"
+   },
+   "editable": true,
+   "note": null,
+   "choosable_roles": [
+    "member",
+    "moderator"
+   ]
+  },
+  {
+   "id": 2,
+   "display_name": "Jonas Weber",
+   "email": "jonas@demo.oasis.tld",
+   "role": {
+    "value": "member",
+    "label": "Mitglied"
+   },
+   "editable": true,
+   "note": null,
+   "choosable_roles": [
+    "member",
+    "moderator"
+   ]
+  },
+  {
+   "id": 7,
+   "display_name": "Lea Marquardt",
+   "email": "lea@demo.oasis.tld",
+   "role": {
+    "value": "member",
+    "label": "Mitglied"
+   },
+   "editable": true,
+   "note": null,
+   "choosable_roles": [
+    "member",
+    "moderator"
+   ]
+  },
+  {
+   "id": 4,
+   "display_name": "Lukas Brandt",
+   "email": "lukas@demo.oasis.tld",
+   "role": {
+    "value": "member",
+    "label": "Mitglied"
+   },
+   "editable": true,
+   "note": null,
+   "choosable_roles": [
+    "member",
+    "moderator"
+   ]
+  },
+  {
+   "id": 10,
+   "display_name": "Mia Mitglied",
+   "email": "memsub@example.test",
+   "role": {
+    "value": "member",
+    "label": "Mitglied"
+   },
+   "editable": true,
+   "note": null,
+   "choosable_roles": [
+    "member",
+    "moderator"
+   ]
+  },
+  {
+   "id": 1,
+   "display_name": "Mira Sol",
+   "email": "mira@demo.oasis.tld",
+   "role": {
+    "value": "member",
+    "label": "Mitglied"
+   },
+   "editable": true,
+   "note": null,
+   "choosable_roles": [
+    "member",
+    "moderator"
+   ]
+  },
+  {
+   "id": 9,
+   "display_name": "Moderationsteam (Beispiel)",
+   "email": "moderation@demo.oasis.tld",
+   "role": {
+    "value": "moderator",
+    "label": "Moderation"
+   },
+   "editable": true,
+   "note": null,
+   "choosable_roles": [
+    "member",
+    "moderator"
+   ]
+  },
+  {
+   "id": 5,
+   "display_name": "Sara Okafor",
+   "email": "sara@demo.oasis.tld",
+   "role": {
+    "value": "member",
+    "label": "Mitglied"
+   },
+   "editable": true,
+   "note": null,
+   "choosable_roles": [
+    "member",
+    "moderator"
+   ]
+  },
+  {
+   "id": 12,
+   "display_name": "Stella Staff",
+   "email": "staff-app@oasis.test",
+   "role": {
+    "value": "admin",
+    "label": "Admin"
+   },
+   "editable": false,
+   "note": "Das bist du",
+   "choosable_roles": [
+    "member",
+    "moderator",
+    "admin"
+   ]
+  },
+  {
+   "id": 11,
+   "display_name": "Tim Test",
+   "email": "memtrial@example.test",
+   "role": {
+    "value": "member",
+    "label": "Mitglied"
+   },
+   "editable": true,
+   "note": null,
+   "choosable_roles": [
+    "member",
+    "moderator"
+   ]
+  }
+ ],
+ "links": {
+  "first": "http://localhost/api/v1/staff/moderation/roles?page=1",
+  "last": "http://localhost/api/v1/staff/moderation/roles?page=1",
+  "prev": null,
+  "next": null
+ },
+ "meta": {
+  "current_page": 1,
+  "from": 1,
+  "last_page": 1,
+  "links": [
+   {
+    "url": null,
+    "label": "&laquo; Vorherige",
+    "page": null,
+    "active": false
+   },
+   {
+    "url": "http://localhost/api/v1/staff/moderation/roles?page=1",
+    "label": "1",
+    "page": 1,
+    "active": true
+   },
+   {
+    "url": null,
+    "label": "Nächste &raquo;",
+    "page": null,
+    "active": false
+   }
+  ],
+  "path": "http://localhost/api/v1/staff/moderation/roles",
+  "per_page": 25,
+  "to": 12,
+  "total": 12
+ },
+ "roles": [
+  {
+   "value": "member",
+   "label": "Mitglied"
+  },
+  {
+   "value": "moderator",
+   "label": "Moderation"
+  },
+  {
+   "value": "admin",
+   "label": "Admin"
+  }
+ ]
+}

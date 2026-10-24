@@ -1,1 +1,16 @@
-<manifest />
+<?xml version="1.0" encoding="utf-8"?>
+<manifest xmlns:android="http://schemas.android.com/apk/res/android">
+
+    <application>
+        <!-- The evidence archive of a case for the share sheet ("Beweis-Archiv teilen"). -->
+        <provider
+            android:name="de.velwebsolutions.oasis.staff.ui.components.StaffFileProvider"
+            android:authorities="${applicationId}.staff.files"
+            android:exported="false"
+            android:grantUriPermissions="true">
+            <meta-data
+                android:name="android.support.FILE_PROVIDER_PATHS"
+                android:resource="@xml/staff_files" />
+        </provider>
+    </application>
+</manifest>

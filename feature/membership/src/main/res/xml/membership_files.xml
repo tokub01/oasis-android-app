@@ -1,0 +1,6 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Invoices and the data export, shared through MembershipFileProvider (MembershipFiles writes them). -->
+<paths>
+    <cache-path name="invoices" path="Rechnungen/" />
+    <cache-path name="export" path="Export/" />
+</paths>

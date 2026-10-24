@@ -1,0 +1,61 @@
+{
+ "data": {
+  "id": 1,
+  "case_id": 3,
+  "status": {
+   "value": "open",
+   "label": "Offen"
+  },
+  "submitted_at": "2026-10-22T15:49:00.000000Z",
+  "decision": {
+   "outcome": {
+    "value": "content_removed",
+    "label": "Inhalt entfernt"
+   },
+   "ground": {
+    "value": "community_rules",
+    "label": "Community-Regeln"
+   },
+   "decider_name": "Frau Prof. Dr. Hermine Bühler",
+   "decided_at": "2026-10-22T15:49:00.000000Z",
+   "rule_reference": "Regel 1",
+   "explanation": "PRIVATE-EXPLANATION"
+  },
+  "reason": "Ich widerspreche, weil der Beitrag eindeutig beleidigend war.",
+  "can_review": true,
+  "result": null,
+  "outcomes": [
+   {
+    "value": "no_action",
+    "label": "Keine Maßnahme"
+   },
+   {
+    "value": "content_removed",
+    "label": "Inhalt entfernt"
+   },
+   {
+    "value": "visibility_restricted",
+    "label": "Sichtbarkeit eingeschränkt"
+   },
+   {
+    "value": "account_restricted",
+    "label": "Konto eingeschränkt"
+   },
+   {
+    "value": "account_suspended",
+    "label": "Konto gesperrt"
+   }
+  ],
+  "grounds": [
+   {
+    "value": "illegal_content",
+    "label": "Rechtswidriger Inhalt"
+   },
+   {
+    "value": "community_rules",
+    "label": "Community-Regeln"
+   }
+  ]
+ },
+ "message": null
+}

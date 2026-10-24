@@ -1,0 +1,272 @@
+{
+ "data": {
+  "days": 30,
+  "periods": [
+   7,
+   30,
+   90,
+   365
+  ],
+  "revenue": {
+   "month": "2026-10",
+   "is_current": true,
+   "previous_month": "2026-09",
+   "next_month": null,
+   "title": "Diesen Monat eingenommen",
+   "period": "01.10.–31.10.2026, Stand heute · brutto, ohne Erstattungen, vor Mollie-Gebühren",
+   "cents": 500,
+   "amount": "5,00 €",
+   "payments": "aus 1 Zahlung",
+   "fees": "Mollie-Gebühren: gibt es bei Mollie nur im Live-Modus – mit dem Testschlüssel fallen keine an.",
+   "comparison": "Vormonat: 0,00 € (+5,00 € bisher)"
+  },
+  "ai": {
+   "tiles": [
+    {
+     "value": "0,00 USD",
+     "label": "Kosten (Listenpreis)"
+    },
+    {
+     "value": "–",
+     "label": "Monatsbudget"
+    },
+    {
+     "value": "–",
+     "label": "vom Budget verbraucht"
+    },
+    {
+     "value": "0",
+     "label": "Token in 0 Anfragen"
+    }
+   ],
+   "note": "Für Prozentwert und Warnmail bei 75 % dein Mistral-Ausgabenlimit als OASIS_MISTRAL_MONTHLY_BUDGET eintragen."
+  },
+  "members": {
+   "tiles": [
+    {
+     "value": "1",
+     "label": "zahlende Mitglieder"
+    },
+    {
+     "value": "5 €",
+     "label": "monatlich wiederkehrende Beiträge"
+    },
+    {
+     "value": "10",
+     "label": "Konten im Test"
+    },
+    {
+     "value": "12",
+     "label": "Konten insgesamt (12 bestätigt)"
+    },
+    {
+     "value": "3",
+     "label": "Tests gestartet"
+    },
+    {
+     "value": "1",
+     "label": "Tests umgewandelt"
+    },
+    {
+     "value": "0",
+     "label": "Tests ausgelaufen"
+    },
+    {
+     "value": "0",
+     "label": "Kündigungen"
+    },
+    {
+     "value": "1",
+     "label": "Gründungsplätze vergeben (999 frei)"
+    },
+    {
+     "value": "1",
+     "label": "Geschenke verkauft"
+    },
+    {
+     "value": "0",
+     "label": "Geschenke eingelöst"
+    }
+   ],
+   "by_tier": [
+    {
+     "tier": "solidar",
+     "name": "Solidar",
+     "count": 0
+    },
+    {
+     "tier": "oase",
+     "name": "Oase",
+     "count": 1
+    },
+    {
+     "tier": "maezen",
+     "name": "Mäzen",
+     "count": 0
+    }
+   ]
+  },
+  "network": {
+   "tiles": [
+    {
+     "value": "24",
+     "label": "Tropfen im Zeitraum"
+    },
+    {
+     "value": "8",
+     "label": "Menschen, die geschrieben haben"
+    },
+    {
+     "value": "24",
+     "label": "Tropfen insgesamt"
+    },
+    {
+     "value": "4",
+     "label": "Oasen"
+    }
+   ],
+   "weeks": [
+    {
+     "week": "2026-08-03",
+     "registered": 0,
+     "posts": 0
+    },
+    {
+     "week": "2026-08-10",
+     "registered": 0,
+     "posts": 0
+    },
+    {
+     "week": "2026-08-17",
+     "registered": 0,
+     "posts": 0
+    },
+    {
+     "week": "2026-08-24",
+     "registered": 0,
+     "posts": 0
+    },
+    {
+     "week": "2026-08-31",
+     "registered": 0,
+     "posts": 0
+    },
+    {
+     "week": "2026-09-07",
+     "registered": 0,
+     "posts": 0
+    },
+    {
+     "week": "2026-09-14",
+     "registered": 0,
+     "posts": 0
+    },
+    {
+     "week": "2026-09-21",
+     "registered": 1,
+     "posts": 0
+    },
+    {
+     "week": "2026-09-28",
+     "registered": 0,
+     "posts": 0
+    },
+    {
+     "week": "2026-10-05",
+     "registered": 0,
+     "posts": 0
+    },
+    {
+     "week": "2026-10-12",
+     "registered": 0,
+     "posts": 0
+    },
+    {
+     "week": "2026-10-19",
+     "registered": 4,
+     "posts": 24
+    }
+   ]
+  },
+  "referrals": {
+   "tiles": [
+    {
+     "value": "0",
+     "label": "Einladungslinks erstellt"
+    },
+    {
+     "value": "0",
+     "label": "Einladungen angenommen"
+    },
+    {
+     "value": "0",
+     "label": "Eingeladene, die zahlen (insgesamt)"
+    },
+    {
+     "value": "0",
+     "label": "Freimonate verdient"
+    },
+    {
+     "value": "0",
+     "label": "Freimonate wartend"
+    },
+    {
+     "value": "0 €",
+     "label": "Wert gutgeschriebener Freimonate (insgesamt)"
+    }
+   ]
+  },
+  "chat": {
+   "tiles": [
+    {
+     "value": "0",
+     "label": "eingerichtete Chats"
+    },
+    {
+     "value": "0",
+     "label": "Unterhaltungen"
+    },
+    {
+     "value": "0",
+     "label": "Nachrichten im Zeitraum"
+    },
+    {
+     "value": "0",
+     "label": "gerade gespeichert (verschlüsselt)"
+    }
+   ]
+  },
+  "moderation": {
+   "tiles": [
+    {
+     "value": "2",
+     "label": "offene Fälle"
+    },
+    {
+     "value": "1",
+     "label": "in Prüfung"
+    },
+    {
+     "value": "4",
+     "label": "Meldungen im Zeitraum"
+    },
+    {
+     "value": "1",
+     "label": "Entscheidungen im Zeitraum"
+    },
+    {
+     "value": "0",
+     "label": "Beschwerden"
+    },
+    {
+     "value": "0",
+     "label": "Beschwerden mit Erfolg"
+    },
+    {
+     "value": "2 Tg. 22 Std.",
+     "label": "Median bis zur Entscheidung"
+    }
+   ]
+  }
+ }
+}
