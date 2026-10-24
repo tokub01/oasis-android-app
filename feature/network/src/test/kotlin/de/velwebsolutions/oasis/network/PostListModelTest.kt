@@ -4,8 +4,12 @@ import de.velwebsolutions.oasis.core.network.ApiError
 import de.velwebsolutions.oasis.network.api.DiscoverContext
 import de.velwebsolutions.oasis.network.api.NoContext
 import de.velwebsolutions.oasis.network.api.SourceContext
+import de.velwebsolutions.oasis.network.data.NetworkRepository
 import de.velwebsolutions.oasis.network.ui.PostAction
 import de.velwebsolutions.oasis.network.ui.PostListModel
+import kotlinx.coroutines.CompletableDeferred
+import kotlinx.coroutines.launch
+import kotlinx.coroutines.test.runCurrent
 import kotlinx.coroutines.test.runTest
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
@@ -137,5 +141,40 @@ class PostListModelTest {
         model.insert(published)
         model.insert(published)
         assertEquals(listOf(7, 2, 1), model.posts.map { it.id })
+    }
+
+    @Test
+    fun `a card takes no second action while its first one runs`() = runTest {
+        val network = StubbedNetwork(
+            stub("GET", "network/bookmarks", pageJson(postJson(2), postJson(1))),
+            stub("POST", "network/posts/2/reaction", """{"message":"Reaktion gesendet."}"""),
+            stub("POST", "network/posts/1/reaction", """{"message":"Reaktion gesendet."}""")
+        )
+        val gate = CompletableDeferred<Unit>()
+        val slowReactions = object : NetworkRepository by network.repository {
+            override suspend fun react(id: Int, on: Boolean): String {
+                gate.await()
+                return network.repository.react(id, on)
+            }
+        }
+        val model = PostListModel<NoContext>(slowReactions) { _, cursor -> bookmarks(cursor) }
+        model.reload()
+        val first = model.posts[0]
+
+        val running = launch { model.perform(PostAction.React, first) }
+        runCurrent()
+        // A second tap on the same card (now "Reagiert") is ignored; another card still works.
+        model.perform(PostAction.Unreact, model.posts[0])
+        val other = launch { model.perform(PostAction.React, model.posts[1]) }
+        runCurrent()
+        gate.complete(Unit)
+        running.join()
+        other.join()
+
+        assertEquals(true, model.posts[0].viewer?.reacted)
+        assertEquals(true, model.posts[1].viewer?.reacted)
+        val reactions = network.transport.requests.filter { it.path.endsWith("/reaction") }
+        assertEquals(listOf("network/posts/1/reaction", "network/posts/2/reaction"), reactions.map { it.path }.sorted())
+        assertTrue(reactions.all { it.request.method == "POST" })
     }
 }
