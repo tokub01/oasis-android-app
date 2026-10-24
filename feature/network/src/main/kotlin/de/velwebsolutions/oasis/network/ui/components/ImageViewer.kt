@@ -6,8 +6,11 @@ import androidx.compose.foundation.gestures.awaitFirstDown
 import androidx.compose.foundation.gestures.calculatePan
 import androidx.compose.foundation.gestures.calculateZoom
 import androidx.compose.foundation.gestures.detectTapGestures
+import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.statusBarsPadding
@@ -32,6 +35,8 @@ import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.input.pointer.positionChanged
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.testTag
+import androidx.compose.ui.semantics.clearAndSetSemantics
+import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.window.Dialog
 import androidx.compose.ui.window.DialogProperties
@@ -47,6 +52,23 @@ fun ImageViewer(images: List<Post.Image>, start: Post.Image, onDismiss: () -> Un
         Box(Modifier.fillMaxSize().background(OasisColors.Night)) {
             HorizontalPager(pager, Modifier.fillMaxSize(), key = { images[it].id }) { page ->
                 ZoomableImage(images[page])
+            }
+            // The page dots of iOS' paged TabView, only with more than one image.
+            if (images.size > 1) {
+                Row(
+                    Modifier
+                        .align(Alignment.BottomCenter)
+                        .navigationBarsPadding()
+                        .padding(bottom = 24.dp)
+                        .testTag("imageViewer.pages")
+                        .clearAndSetSemantics { contentDescription = "Bild ${pager.currentPage + 1} von ${images.size}" },
+                    horizontalArrangement = Arrangement.spacedBy(8.dp)
+                ) {
+                    images.indices.forEach { index ->
+                        val color = if (index == pager.currentPage) OasisColors.OnNight else OasisColors.OnNightMuted
+                        Box(Modifier.size(8.dp).background(color, CircleShape))
+                    }
+                }
             }
             IconButton(
                 onClick = onDismiss,

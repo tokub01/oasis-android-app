@@ -47,9 +47,13 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.hapticfeedback.HapticFeedbackType
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.layout.onSizeChanged
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.ui.platform.LocalHapticFeedback
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.semantics.clearAndSetSemantics
@@ -65,6 +69,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextDecoration
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.text.withStyle
+import androidx.compose.ui.unit.DpOffset
 import androidx.compose.ui.unit.dp
 import de.velwebsolutions.oasis.core.format.GermanTime
 import de.velwebsolutions.oasis.core.format.RelativeTime
@@ -104,6 +109,11 @@ fun PostCard(
     val navigator = LocalNavigator.current
     var confirmation by remember { mutableStateOf<CardConfirmation?>(null) }
     var contextMenu by remember { mutableStateOf(false) }
+    // Where the finger rested, so the long-press menu opens there (like Android's text and list menus).
+    var pressedAt by remember { mutableStateOf(DpOffset.Zero) }
+    var cardHeight by remember { mutableStateOf(0.dp) }
+    val density = LocalDensity.current
+    val haptics = LocalHapticFeedback.current
     val viewer = post.viewer
     val shape = RoundedCornerShape(OasisRadius.M.dp)
     val reply = {
@@ -124,9 +134,17 @@ fun PostCard(
                     } else {
                         // A long press opens the menu like the iOS context menu; TalkBack offers it as an action.
                         Modifier
-                            .pointerInput(post.id) { detectTapGestures(onLongPress = { contextMenu = true }) }
+                            .onSizeChanged { cardHeight = with(density) { it.height.toDp() } }
+                            .pointerInput(post.id) {
+                                detectTapGestures(onLongPress = { offset ->
+                                    haptics.performHapticFeedback(HapticFeedbackType.LongPress)
+                                    pressedAt = with(density) { DpOffset(offset.x.toDp(), offset.y.toDp()) }
+                                    contextMenu = true
+                                })
+                            }
                             .semantics {
                                 onLongClick("Aktionen zum Tropfen") {
+                                    pressedAt = DpOffset.Zero
                                     contextMenu = true
                                     true
                                 }
@@ -184,7 +202,13 @@ fun PostCard(
             }
         }
         if (viewer != null) {
-            DropdownMenu(expanded = contextMenu, onDismissRequest = { contextMenu = false }, containerColor = OasisColors.Paper) {
+            DropdownMenu(
+                expanded = contextMenu,
+                onDismissRequest = { contextMenu = false },
+                // The menu's offset counts from the card's bottom edge.
+                offset = DpOffset(pressedAt.x, pressedAt.y - cardHeight),
+                containerColor = OasisColors.Paper
+            ) {
                 ContextMenuItems(post, viewer, run, reply, close = { contextMenu = false }, onConfirm = { confirmation = it })
             }
         }
@@ -598,6 +622,10 @@ private fun PostImages(post: Post) {
                                 .semantics {
                                     contentDescription = image.alt
                                     role = Role.Image
+                                    onClick("Bild vergrößern") {
+                                        viewing = image
+                                        true
+                                    }
                                 }
                         ) {
                             AuthorizedImage(

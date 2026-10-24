@@ -82,4 +82,26 @@ class ApiClientTest {
         assertEquals("http://localhost/tropfen/1/bild/2", client.absoluteUrl("/tropfen/1/bild/2").toString())
         assertEquals("https://example.org/a.png", client.absoluteUrl("https://example.org/a.png").toString())
     }
+
+    @Test
+    fun `the gate key goes to the Oasis host only`() = runTest {
+        val stub = StubTransport(StubTransport.Stub("GET", "auth/me", json = """{"data":$me}"""))
+        stub.add(StubTransport.Stub("GET", "/bild.png", json = ""))
+        val tokens = object : de.velwebsolutions.oasis.core.network.TokenProvider {
+            override fun currentToken(): String? = null
+
+            override fun onUnauthenticated() = Unit
+        }
+        val client = de.velwebsolutions.oasis.core.network.ApiClient(
+            de.velwebsolutions.oasis.core.network.ApiConfig("http://localhost/", "OasisApp/1.0", gateKey = "tor"),
+            tokens,
+            okhttp3.OkHttpClient.Builder().addInterceptor(stub).build()
+        )
+        RemoteAuthApi(client).me()
+        val request = stub.requests.last().request
+        assertEquals("tor", request.header("X-Oasis-Gate"))
+        assertEquals(null, request.header("Authorization"))
+        client.download("https://cdn.example.org/bild.png")
+        assertEquals(null, stub.requests.last().request.header("X-Oasis-Gate"))
+    }
 }

@@ -12,6 +12,7 @@ import de.velwebsolutions.oasis.network.api.Post
 import de.velwebsolutions.oasis.network.api.PostDetail
 import de.velwebsolutions.oasis.network.api.PostEditForm
 import de.velwebsolutions.oasis.network.data.NetworkRepository
+import de.velwebsolutions.oasis.network.ui.BusyCards
 import de.velwebsolutions.oasis.network.ui.NetworkViewModel
 import de.velwebsolutions.oasis.network.ui.PostAction
 import de.velwebsolutions.oasis.network.ui.applying
@@ -50,8 +51,17 @@ class PostDetailViewModel @AssistedInject constructor(@Assisted val id: Int, pri
         mutableDetail.load { repository.post(id) }
     }
 
-    /** Reactions and bookmarks change at once and roll back if the server refuses; the rest follows its confirmation. */
+    private val busy = BusyCards()
+
+    /**
+     * Reactions and bookmarks change at once and roll back if the server refuses; the rest follows its confirmation. A
+     * card takes no second action while one runs.
+     */
     suspend fun perform(action: PostAction, post: Post) {
+        busy.run(post.id) { run(action, post) }
+    }
+
+    private suspend fun run(action: PostAction, post: Post) {
         val undo = action.undo
         val optimistic = undo != null
         if (optimistic) apply(action, post)

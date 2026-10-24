@@ -37,4 +37,25 @@ class FormattingTest {
         assertEquals("Das darfst du leider nicht.", ApiError.Forbidden("This action is unauthorized.").userMessage)
         assertEquals("Keine Verbindung zu Oasis. Bitte prüfe dein Internet.", ApiError.Transport("offline").userMessage)
     }
+
+    @Test
+    fun `days, older dates and the web's datetime-local values`() {
+        val now = Instant.parse("2026-10-22T12:00:00Z")
+        assertEquals("12. Okt. 2025", RelativeTime.format(Instant.parse("2025-10-12T12:00:00Z"), now))
+        assertEquals("22.10.2026", GermanTime.day(now))
+        assertEquals(Instant.parse("2026-10-22T12:30:00Z"), GermanTime.parse("2026-10-22T14:30", "yyyy-MM-dd'T'HH:mm"))
+        assertEquals(null, GermanTime.parse("morgen", "yyyy-MM-dd'T'HH:mm"))
+        assertEquals("14:00", GermanTime.format(now, "HH:mm"))
+    }
+
+    @Test
+    fun `confirmations decode with and without a message`() {
+        val confirmed = de.velwebsolutions.oasis.core.network.OasisJson.snake.decodeFromString(
+            de.velwebsolutions.oasis.core.network.Confirmed.serializer(kotlinx.serialization.serializer<Int>()),
+            """{"message":"Gespeichert.","data":3}"""
+        )
+        assertEquals(de.velwebsolutions.oasis.core.network.Confirmed(3, "Gespeichert."), confirmed)
+        assertEquals(de.velwebsolutions.oasis.core.di.DeviceName("Pixel 9"), de.velwebsolutions.oasis.core.di.DeviceName("Pixel 9"))
+        assertEquals(null, de.velwebsolutions.oasis.core.network.RealtimeConfig().hostOverride)
+    }
 }
