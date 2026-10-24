@@ -18,10 +18,6 @@ fun RootScreen(viewModel: RootViewModel = hiltViewModel()) {
     val state by viewModel.state.collectAsStateWithLifecycle()
     val screens = LocalAppScreens.current
     when (val current = state) {
-        SessionState.Loading -> LoadingView("Oasis startet …", Modifier.fillMaxSize().oasisScreenBackground())
-
-        SessionState.SignedOut -> screens.SignedOut()
-
         is SessionState.SignedIn -> {
             val me = current.me
             when {
@@ -35,5 +31,10 @@ fun RootScreen(viewModel: RootViewModel = hiltViewModel()) {
                 else -> MainTabs(me, viewModel)
             }
         }
+
+        SessionState.SignedOut -> screens.SignedOut()
+
+        // SessionState.Loading: the stored token is being checked.
+        else -> LoadingView(Modifier.fillMaxSize().oasisScreenBackground(), "Oasis startet …")
     }
 }

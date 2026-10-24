@@ -24,6 +24,7 @@ import androidx.compose.ui.test.onRoot
 import androidx.compose.ui.test.performClick
 import androidx.compose.ui.test.performScrollTo
 import androidx.compose.ui.test.performTextInput
+import androidx.compose.ui.test.performTouchInput
 import androidx.compose.ui.unit.dp
 import com.github.takahirom.roborazzi.captureRoboImage
 import de.velwebsolutions.oasis.core.model.Loadable
@@ -64,6 +65,7 @@ import de.velwebsolutions.oasis.design.components.SideCard
 import de.velwebsolutions.oasis.design.components.SkeletonLayout
 import de.velwebsolutions.oasis.design.components.SkeletonView
 import de.velwebsolutions.oasis.design.components.SupportContacts
+import de.velwebsolutions.oasis.design.components.oasisScreenBackground
 import de.velwebsolutions.oasis.design.components.openWebPage
 import de.velwebsolutions.oasis.design.components.pressable
 import de.velwebsolutions.oasis.design.navigation.LocalNavigator
@@ -182,7 +184,7 @@ class ComponentsTest {
             }
             LoadableView<String>(Loadable.Idle, onRetry = {}) { Text(it) }
             SkeletonView()
-            LoadingView("Oasis startet …")
+            LoadingView(label = "Oasis startet …")
             listOf("sun", "spring", "night", "dune").forEach { AvatarView("MS", it) }
             AvatarView("MS", "sun", photoUrl = "/bild.png", size = 64.dp)
             AuthorizedImage("https://example.org/bild.png", contentDescription = "Bild")
@@ -287,5 +289,66 @@ class ComponentsTest {
     @Test(expected = IllegalStateException::class)
     fun `screens need the app's navigator`() {
         compose.setContent { LocalNavigator.current }
+    }
+
+    @Test
+    fun `images without an API client use the address as given, and pressing shrinks`() {
+        compose.setContent {
+            OasisTheme {
+                CompositionLocalProvider(
+                    de.velwebsolutions.oasis.design.components.LocalApiClient provides
+                        de.velwebsolutions.oasis.testing.StubTransport().client
+                ) {
+                    Column(Modifier.oasisScreenBackground()) {
+                        AuthorizedImage("/a.png", contentDescription = "A")
+                        AuthorizedImage("ftp:x", contentDescription = "B")
+                        OasisButton("Drück mich", onClick = {})
+                    }
+                }
+            }
+        }
+        compose.onNodeWithText("Drück mich").performTouchInput { down(center) }
+        compose.waitForIdle()
+        compose.onNodeWithText("Drück mich").performTouchInput { up() }
+    }
+
+    @Test
+    fun `a running async button ignores more taps`() {
+        var taps = 0
+        val gate = kotlinx.coroutines.CompletableDeferred<Unit>()
+        show {
+            AsyncOasisButton("Langsam", onClick = {
+                taps++
+                gate.await()
+            })
+        }
+        compose.onNodeWithText("Langsam").performClick()
+        compose.onNodeWithText("Langsam").performClick()
+        gate.complete(Unit)
+        compose.waitForIdle()
+        assertEquals(1, taps)
+    }
+
+    @Test
+    fun `plain http pages also open in a custom tab`() {
+        openWebPage(RuntimeEnvironment.getApplication(), "http://localhost/hilfe")
+    }
+
+    @Test
+    fun `bars without a title and sheets that close themselves`() {
+        compose.setContent {
+            OasisTheme {
+                Column {
+                    CompositionLocalProvider(LocalScreenChrome provides ScreenChrome(onBack = {})) {
+                        OasisScreen(null, Modifier.weight(1f)) { Text("1") }
+                    }
+                    CompositionLocalProvider(LocalScreenChrome provides ScreenChrome(onClose = {})) {
+                        OasisScreen(null, Modifier.weight(1f), closesItself = true) { Text("2") }
+                    }
+                    OasisScreen(null, Modifier.weight(1f), navigationAction = { Text("X") }) { Text("3") }
+                }
+            }
+        }
+        compose.onNodeWithText("X").assertExists()
     }
 }

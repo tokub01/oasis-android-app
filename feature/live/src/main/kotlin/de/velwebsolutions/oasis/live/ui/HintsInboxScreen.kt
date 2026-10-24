@@ -138,7 +138,7 @@ internal fun HintsInboxContent(
             }
             when (val state = ui.state) {
                 Loadable.Idle, Loadable.Loading -> item(key = "skeleton") {
-                    SkeletonView(SkeletonLayout.Rows, Modifier.heightIn(max = 640.dp))
+                    SkeletonView(Modifier.heightIn(max = 640.dp), SkeletonLayout.Rows)
                 }
 
                 is Loadable.Failed -> item(key = "error") { ErrorStateView(state.error, onRefresh, Modifier.heightIn(max = 400.dp)) }

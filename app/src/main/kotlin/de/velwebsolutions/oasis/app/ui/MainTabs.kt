@@ -165,7 +165,7 @@ fun MainTabs(me: Me, viewModel: RootViewModel) {
             onDismissRequest = { navigator.dismissSheet() },
             sheetState = rememberModalBottomSheetState(
                 skipPartiallyExpanded = true,
-                confirmValueChange = { it != SheetValue.Hidden || navigator.sheetDismissible }
+                confirmValueChange = { sheetMayChange(it, navigator.sheetDismissible) }
             ),
             containerColor = OasisColors.Sand,
             dragHandle = null
@@ -182,6 +182,10 @@ fun MainTabs(me: Me, viewModel: RootViewModel) {
         }
     }
 }
+
+/** A sheet may move anywhere except away while its screen holds a draft (the composer asks first). */
+@OptIn(ExperimentalMaterial3Api::class)
+internal fun sheetMayChange(target: SheetValue, dismissible: Boolean): Boolean = target != SheetValue.Hidden || dismissible
 
 /** A screen with nothing else around it (lock screen, welcome tour); pushed screens go onto the source tab's stack. */
 @Composable

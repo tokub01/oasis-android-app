@@ -29,7 +29,7 @@ fun <T> Loadable<T>.refreshing(): Loadable<T> = if (valueOrNull == null) Loadabl
 fun <T> Loadable<T>.failing(error: Throwable): Loadable<T> = if (valueOrNull == null) Loadable.Failed(ApiError.from(error)) else this
 
 /** Maps a loaded value. */
-inline fun <T, R> Loadable<T>.map(transform: (T) -> R): Loadable<R> = when (this) {
+fun <T, R> Loadable<T>.map(transform: (T) -> R): Loadable<R> = when (this) {
     is Loadable.Loaded -> Loadable.Loaded(transform(value))
     is Loadable.Failed -> this
     Loadable.Idle -> Loadable.Idle

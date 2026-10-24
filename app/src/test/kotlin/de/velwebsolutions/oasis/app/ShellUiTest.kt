@@ -1,9 +1,10 @@
 package de.velwebsolutions.oasis.app
 
 import androidx.compose.runtime.CompositionLocalProvider
+import androidx.compose.ui.test.assertCountEquals
 import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.isRoot
-import androidx.compose.ui.test.junit4.createComposeRule
+import androidx.compose.ui.test.junit4.createAndroidComposeRule
 import androidx.compose.ui.test.onNodeWithContentDescription
 import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.onNodeWithText
@@ -49,7 +50,7 @@ class ShellUiTest {
     val main = MainDispatcherRule()
 
     @get:Rule(order = 1)
-    val compose = createComposeRule()
+    val compose = createAndroidComposeRule<androidx.activity.ComponentActivity>()
 
     private val live = FakeLive()
     private val navigator = Navigator()
@@ -177,5 +178,32 @@ class ShellUiTest {
         compose.mainClock.advanceTimeBy(6_000)
         compose.waitForIdle()
         assertNull(NetworkSignals.confirmation.value)
+    }
+
+    @Test
+    fun `system back leaves a screen pushed over the lock screen`() {
+        start(mira.copy(isSuspended = true))
+        compose.runOnIdle { navigator.open(AccountRoute.Glossary) }
+        compose.onNodeWithText("Inhalt ${AccountRoute.Glossary}").assertIsDisplayed()
+        compose.runOnIdle { compose.activity.onBackPressedDispatcher.onBackPressed() }
+        compose.onNodeWithText("Inhalt ${AccountRoute.Suspended}").assertIsDisplayed()
+    }
+
+    @Test
+    fun `moderators without admin rights and closing the menu again`() {
+        start(mira.copy(isStaff = true))
+        compose.onNodeWithTag("more.menu").performClick()
+        compose.onNodeWithText("Moderation").assertExists()
+        compose.onAllNodes(androidx.compose.ui.test.hasText("Verwaltung")).assertCountEquals(0)
+        compose.onAllNodes(isRoot())[0].let { }
+        compose.onNodeWithTag("more.menu").performClick()
+        compose.waitForIdle()
+    }
+
+    @Test
+    fun `members without staff rights see no moderation`() {
+        start()
+        compose.onNodeWithTag("more.menu").performClick()
+        compose.onAllNodes(androidx.compose.ui.test.hasText("Moderation")).assertCountEquals(0)
     }
 }
