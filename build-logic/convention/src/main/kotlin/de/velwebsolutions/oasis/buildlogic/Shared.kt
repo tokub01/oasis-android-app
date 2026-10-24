@@ -60,5 +60,22 @@ internal fun Project.configureKotlin() {
 internal fun Project.configureKover(sourceVariant: String) {
     extensions.configure<kotlinx.kover.gradle.plugin.dsl.KoverProjectExtension>("kover") {
         currentProject.createVariant("oasis") { add(sourceVariant) }
+        reports.filters.excludes {
+            classes(GeneratedClasses)
+            annotatedBy(*GeneratedAnnotations)
+        }
     }
 }
+
+/**
+ * Code the compilers and annotation processors generate, excluded from coverage: Hilt/Dagger components, factories and
+ * aggregation stubs, kotlinx.serialization serializers, Compose's lambda singletons, BuildConfig and R.
+ */
+internal val GeneratedClasses = listOf(
+    "*_HiltModules*", "*Hilt_*", "hilt_aggregated_deps.*", "dagger.hilt.*", "_*", "*_*Factory", "*_*Factory\$*",
+    "*_MembersInjector", "*_GeneratedInjector", "*_ComponentTreeDeps", "*\$\$serializer", "*ComposableSingletons*",
+    "*.BuildConfig", "*.R", "*.R\$*",
+)
+
+/** Hilt modules only wire objects together; @Preview functions are design-time only. */
+internal val GeneratedAnnotations = arrayOf("dagger.Module", "androidx.compose.ui.tooling.preview.Preview")
