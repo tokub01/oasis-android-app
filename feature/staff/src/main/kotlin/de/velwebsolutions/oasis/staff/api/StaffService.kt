@@ -13,24 +13,31 @@ import retrofit2.http.PUT
 import retrofit2.http.Path
 import retrofit2.http.Query
 
+/** `{"assigned_to": …}`. */
 @Serializable
 data class AssignBody(val assignedTo: Int)
 
+/** `{"type": …}`. */
 @Serializable
 data class TypeBody(val type: String)
 
+/** `{"reference": …}`. */
 @Serializable
 data class ReferenceBody(val reference: String)
 
+/** `{"role": …}`. */
 @Serializable
 data class RoleBody(val role: String)
 
+/** `{"q": …}`. */
 @Serializable
 data class SearchBody(val q: String)
 
+/** `{"amount": …, "reason": …}`. */
 @Serializable
 data class RefundBody(val amount: String, val reason: String)
 
+/** `{"note": …}`. */
 @Serializable
 data class NoteBody(val note: String)
 

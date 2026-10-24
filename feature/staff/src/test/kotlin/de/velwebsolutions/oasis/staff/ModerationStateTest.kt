@@ -165,7 +165,7 @@ class ModerationStateTest {
         viewModel.selectAssignee(5)
         viewModel.load()
         assertEquals(5, viewModel.state.value.assignTo)
-        repository.case = Result.success(Decoded.caseDetail.copy(assignee = ModerationCaseDetail.Assignee(12, "Mo Moderatorin")))
+        repository.case = Result.success(Decoded.caseDetail.copy(assignee = ModerationCaseDetail.Assignee(12)))
         viewModel.load()
         assertEquals("an assigned case shows its person", 12, viewModel.state.value.assignTo)
         repository.case = FakeStaffRepository.failure("Offline")
@@ -279,5 +279,12 @@ class ModerationStateTest {
         assertTrue(viewModel.state.value.list.valueOrNull != null)
         viewModel.dismissError()
         assertNull(viewModel.state.value.error)
+    }
+
+    @Test
+    fun `a cancelled request is passed on, never shown as an error`() = runTest {
+        repository.overview = Result.failure(kotlinx.coroutines.CancellationException("left"))
+        val failure = runCatching { ModerationOverviewViewModel(repository).load() }.exceptionOrNull()
+        assertTrue(failure is kotlinx.coroutines.CancellationException)
     }
 }

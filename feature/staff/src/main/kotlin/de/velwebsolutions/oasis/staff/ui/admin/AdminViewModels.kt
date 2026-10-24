@@ -33,6 +33,7 @@ import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 
+/** The statistics: figures, period and revenue month. */
 data class AdminDashboardUiState(
     val dashboard: Loadable<AdminDashboard> = Loadable.Idle,
     val days: Int = 30,
@@ -51,6 +52,7 @@ class AdminDashboardViewModel @Inject constructor(private val repository: StaffR
         viewModelScope.launch { load() }
     }
 
+    /** Loads the page again; a failed first load shows the error page, a failed refresh a snackbar. */
     suspend fun load() {
         mutableState.update { it.copy(dashboard = it.dashboard.refreshing()) }
         val current = mutableState.value
@@ -72,19 +74,23 @@ class AdminDashboardViewModel @Inject constructor(private val repository: StaffR
         }
     }
 
+    /** Shows the figures for another period. */
     suspend fun selectDays(days: Int) {
         mutableState.update { it.copy(days = days) }
         load()
     }
 
+    /** Shows the revenue of another month ("" for the current one). */
     suspend fun showMonth(month: String) {
         mutableState.update { it.copy(month = month) }
         load()
     }
 
+    /** Hides the error once the snackbar showed it. */
     fun dismissError() = mutableState.update { it.copy(error = null) }
 }
 
+/** The votes page: the votes and the new vote's form. */
 data class AdminVotesUiState(
     val votes: Loadable<List<AdminVote>> = Loadable.Idle,
     val title: String = "",
@@ -107,6 +113,7 @@ class AdminVotesViewModel @Inject constructor(private val repository: StaffRepos
         viewModelScope.launch { load() }
     }
 
+    /** Loads the page again; a failed first load shows the error page, a failed refresh a snackbar. */
     suspend fun load() {
         mutableState.update { it.copy(votes = it.votes.refreshing()) }
         val result = attempt { repository.votes() }
@@ -127,8 +134,10 @@ class AdminVotesViewModel @Inject constructor(private val repository: StaffRepos
         }
     }
 
+    /** Changes the new vote's form. */
     fun edit(transform: (AdminVotesUiState) -> AdminVotesUiState) = mutableState.update(transform)
 
+    /** Creates the vote; field errors stay at their fields. */
     suspend fun create() {
         val form = mutableState.value
         val vote =
@@ -146,11 +155,14 @@ class AdminVotesViewModel @Inject constructor(private val repository: StaffRepos
         }
     }
 
+    /** Hides the confirmation once the snackbar showed it. */
     fun dismissMessage() = mutableState.update { it.copy(message = null) }
 
+    /** Hides the error once the snackbar showed it. */
     fun dismissError() = mutableState.update { it.copy(error = null) }
 }
 
+/** The payments page: search, records, a Mollie lookup and the refund form. */
 data class AdminPaymentsUiState(
     val page: Loadable<PaymentPage> = Loadable.Idle,
     val records: List<PaymentRecord> = emptyList(),
@@ -181,6 +193,7 @@ class AdminPaymentsViewModel @Inject constructor(private val repository: StaffRe
         viewModelScope.launch { load() }
     }
 
+    /** Loads the page again; a failed first load shows the error page, a failed refresh a snackbar. */
     suspend fun load() {
         mutableState.update { it.copy(page = it.page.refreshing()) }
         val current = mutableState.value
@@ -205,6 +218,7 @@ class AdminPaymentsViewModel @Inject constructor(private val repository: StaffRe
         }
     }
 
+    /** Loads the next page of records. */
     suspend fun loadMore() {
         val current = mutableState.value
         if (!current.hasMore) return
@@ -226,34 +240,44 @@ class AdminPaymentsViewModel @Inject constructor(private val repository: StaffRe
         }
     }
 
+    /** Filters by payment status. */
     fun selectStatus(status: String) {
         mutableState.update { it.copy(statusFilter = status) }
         viewModelScope.launch { load() }
     }
 
+    /** Looks the record's payment up at Mollie. */
     suspend fun checkPayment(record: PaymentRecord) = lookup { repository.checkPayment(record.id) }
 
+    /** Looks all payments of the record's customer up at Mollie. */
     suspend fun checkCustomer(record: PaymentRecord) = lookup { repository.checkCustomer(record.id) }
 
+    /** Looks the search term up at Mollie directly. */
     suspend fun searchMollie() = lookup { repository.searchMollie(mutableState.value.search) }
 
+    /** Closes the Mollie panel. */
     fun closeMollie() = mutableState.update { it.copy(mollie = null) }
 
+    /** Syncs the record with Mollie. */
     suspend fun sync(record: PaymentRecord) {
         val result = attempt { repository.syncPayment(record.id) }
         result.onSuccess { answer -> replace(answer, refunded = false) }
         result.apiError?.let { failure -> mutableState.update { it.copy(error = failure.userMessage) } }
     }
 
+    /** Opens the refund form with the suggested amount. */
     fun startRefund(record: PaymentRecord) = mutableState.update {
         it.copy(refundFor = record.id, refundAmount = record.refundDefault, refundReason = "", refundErrors = emptyMap())
     }
 
+    /** Closes the refund form. */
     fun cancelRefund() = mutableState.update { it.copy(refundFor = null, refundErrors = emptyMap()) }
 
+    /** Changes amount or reason of the refund. */
     fun editRefund(amount: String? = null, reason: String? = null) =
         mutableState.update { it.copy(refundAmount = amount ?: it.refundAmount, refundReason = reason ?: it.refundReason) }
 
+    /** Refunds through Mollie; field errors stay at the form. */
     suspend fun refund(record: PaymentRecord) {
         val current = mutableState.value
         val result = attempt { repository.refund(record.id, current.refundAmount, current.refundReason) }
@@ -278,11 +302,14 @@ class AdminPaymentsViewModel @Inject constructor(private val repository: StaffRe
         )
     }
 
+    /** Hides the confirmation once the snackbar showed it. */
     fun dismissMessage() = mutableState.update { it.copy(message = null) }
 
+    /** Hides the error once the snackbar showed it. */
     fun dismissError() = mutableState.update { it.copy(error = null) }
 }
 
+/** The breach register: the register, the new breach's form and the inputs of each breach. */
 data class DataBreachesUiState(
     val register: Loadable<BreachRegister> = Loadable.Idle,
     val form: NewBreach = NewBreach(),
@@ -306,6 +333,7 @@ class DataBreachesViewModel @Inject constructor(private val repository: StaffRep
         viewModelScope.launch { load() }
     }
 
+    /** Loads the page again; a failed first load shows the error page, a failed refresh a snackbar. */
     suspend fun load() {
         mutableState.update { it.copy(register = it.register.refreshing()) }
         val result = attempt { repository.breaches() }
@@ -326,8 +354,10 @@ class DataBreachesViewModel @Inject constructor(private val repository: StaffRep
         }
     }
 
+    /** Changes the form or a breach's inputs. */
     fun edit(transform: (DataBreachesUiState) -> DataBreachesUiState) = mutableState.update(transform)
 
+    /** Records the new breach. */
     suspend fun record() {
         val current = mutableState.value
         val breach = current.form.copy(discoveredAt = StaffDate.localInput(current.discoveredAt))
@@ -349,6 +379,7 @@ class DataBreachesViewModel @Inject constructor(private val repository: StaffRep
         }
     }
 
+    /** Notes the report to the authority with its reference. */
     suspend fun recordReport(breach: DataBreach) {
         val reference = mutableState.value.references[breach.id].orEmpty()
         if (step(breach) { repository.recordBreachReport(breach.id, reference) }) {
@@ -361,15 +392,18 @@ class DataBreachesViewModel @Inject constructor(private val repository: StaffRep
         }
     }
 
+    /** Notes that the people affected were told. */
     suspend fun recordNotified(breach: DataBreach) {
         step(breach) { repository.recordPeopleNotified(breach.id) }
     }
 
+    /** Adds an addendum to the breach's log. */
     suspend fun addNote(breach: DataBreach) {
         val note = mutableState.value.notes[breach.id].orEmpty()
         if (step(breach) { repository.addBreachNote(breach.id, note) }) mutableState.update { it.copy(notes = it.notes - breach.id) }
     }
 
+    /** Closes the breach. */
     suspend fun close(breach: DataBreach) {
         step(breach) { repository.closeBreach(breach.id) }
     }
@@ -385,11 +419,14 @@ class DataBreachesViewModel @Inject constructor(private val repository: StaffRep
         return false
     }
 
+    /** Hides the confirmation once the snackbar showed it. */
     fun dismissMessage() = mutableState.update { it.copy(message = null) }
 
+    /** Hides the error once the snackbar showed it. */
     fun dismissError() = mutableState.update { it.copy(error = null) }
 }
 
+/** The system status page. */
 data class SystemUiState(val status: Loadable<SystemStatus> = Loadable.Idle, val error: String? = null)
 
 /** Systemzustand (like /admin/system); reloading runs the checks again ("Jetzt prüfen"). */
@@ -402,6 +439,7 @@ class SystemViewModel @Inject constructor(private val repository: StaffRepositor
         viewModelScope.launch { load() }
     }
 
+    /** Loads the page again; a failed first load shows the error page, a failed refresh a snackbar. */
     suspend fun load() {
         mutableState.update { it.copy(status = it.status.refreshing()) }
         val result = attempt { repository.system() }
@@ -422,5 +460,6 @@ class SystemViewModel @Inject constructor(private val repository: StaffRepositor
         }
     }
 
+    /** Hides the error once the snackbar showed it. */
     fun dismissError() = mutableState.update { it.copy(error = null) }
 }

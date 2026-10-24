@@ -35,6 +35,10 @@ class SharingTest {
         assertEquals(uri, send.clipData?.getItemAt(0)?.uri)
         assertTrue(send.flags and Intent.FLAG_GRANT_READ_URI_PERMISSION != 0)
         assertTrue(StaffFileProvider() is FileProvider)
+        assertEquals(
+            java.io.File(context.cacheDir, "Beweise/oasis-fall-5-beweise.zip"),
+            de.velwebsolutions.oasis.staff.di.StaffModule.files(context).evidenceArchive(5, ByteArray(0))
+        )
     }
 
     @Test

@@ -92,9 +92,13 @@ class CaseDetailActions(
  * decision-fields). The reporter is never shown.
  */
 @Composable
-fun CaseDetailScreen(caseId: Int) {
-    val viewModel =
-        hiltViewModel<CaseDetailViewModel, CaseDetailViewModel.Factory>(key = "case-$caseId", creationCallback = { it.create(caseId) })
+fun CaseDetailScreen(
+    caseId: Int,
+    viewModel: CaseDetailViewModel = hiltViewModel<CaseDetailViewModel, CaseDetailViewModel.Factory>(
+        key = "case-$caseId",
+        creationCallback = { it.create(caseId) }
+    )
+) {
     val state by viewModel.state.collectAsStateWithLifecycle()
     CaseDetailContent(
         caseId,
@@ -118,6 +122,7 @@ fun CaseDetailScreen(caseId: Int) {
     )
 }
 
+/** The case page without its view model, for the app and for tests. */
 @Composable
 fun CaseDetailContent(caseId: Int, state: CaseDetailUiState, actions: CaseDetailActions) {
     val scope = rememberCoroutineScope()
