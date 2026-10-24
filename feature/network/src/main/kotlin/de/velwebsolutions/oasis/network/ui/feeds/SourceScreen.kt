@@ -195,7 +195,11 @@ fun LazyListScope.sourceContent(
                 UnderlinedLink("Mitglied werden", { navigator.open(MembershipRoute.Overview) })
             }
         } else {
-            ComposeEntry("Was möchtest du teilen?", "Dein Tropfen: Was möchtest du teilen?", Modifier.testTag("source.composeEntry")) {
+            ComposeEntry(
+                "Was möchtest du teilen?",
+                Modifier.testTag("source.composeEntry"),
+                accessibilityLabel = "Dein Tropfen: Was möchtest du teilen?"
+            ) {
                 navigator.present(NetworkRoute.Compose())
             }
         }
@@ -297,7 +301,7 @@ fun dayMonth(instant: Instant): String = GermanTime.format(instant, "d. MMMM")
 
 /** The entry to the composer at the top of the Quelle and an oasis: a field-like button that opens the composer sheet. */
 @Composable
-fun ComposeEntry(prompt: String, accessibilityLabel: String? = null, modifier: Modifier = Modifier, onClick: () -> Unit) {
+fun ComposeEntry(prompt: String, modifier: Modifier = Modifier, accessibilityLabel: String? = null, onClick: () -> Unit) {
     val shape = RoundedCornerShape(OasisRadius.M.dp)
     Row(
         modifier
