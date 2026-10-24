@@ -11,6 +11,7 @@ import de.velwebsolutions.oasis.account.api.ReportForm
 import de.velwebsolutions.oasis.account.api.SafetyAccount
 import de.velwebsolutions.oasis.account.api.SafetyList
 import de.velwebsolutions.oasis.account.api.SafetyLists
+import de.velwebsolutions.oasis.account.catching
 import de.velwebsolutions.oasis.account.data.AccountRepository
 import de.velwebsolutions.oasis.core.model.Loadable
 import de.velwebsolutions.oasis.core.model.failing
@@ -18,7 +19,6 @@ import de.velwebsolutions.oasis.core.model.refreshing
 import de.velwebsolutions.oasis.core.network.ApiError
 import de.velwebsolutions.oasis.core.network.asApiError
 import javax.inject.Inject
-import kotlin.coroutines.cancellation.CancellationException
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -42,29 +42,27 @@ abstract class ListViewModel<T> : ViewModel() {
 
     suspend fun load() {
         mutableUi.update { it.copy(state = it.state.refreshing()) }
-        try {
-            val value = fetch()
-            mutableUi.update { it.copy(state = Loadable.Loaded(value)) }
-        } catch (cancelled: CancellationException) {
-            throw cancelled
-        } catch (error: Exception) {
-            mutableUi.update {
-                val failing = it.state.failing(error)
-                it.copy(state = failing, error = if (failing.valueOrNull != null) error.asApiError().userMessage else it.error)
+        catching { fetch() }
+            .onSuccess { value ->
+                mutableUi.update { it.copy(state = Loadable.Loaded(value)) }
             }
-        }
+            .onFailure { error ->
+                mutableUi.update {
+                    val failing = it.state.failing(error)
+                    it.copy(state = failing, error = if (failing.valueOrNull != null) error.asApiError().userMessage else it.error)
+                }
+            }
     }
 
     protected suspend fun change(action: suspend () -> String) {
-        try {
-            val message = action()
-            mutableUi.update { it.copy(message = message) }
-            load()
-        } catch (cancelled: CancellationException) {
-            throw cancelled
-        } catch (error: Exception) {
-            mutableUi.update { it.copy(error = error.asApiError().userMessage) }
-        }
+        catching { action() }
+            .onSuccess { message ->
+                mutableUi.update { it.copy(message = message) }
+                load()
+            }
+            .onFailure { error ->
+                mutableUi.update { it.copy(error = error.asApiError().userMessage) }
+            }
     }
 
     fun dismissMessage() = mutableUi.update { it.copy(message = null) }
@@ -142,30 +140,28 @@ class ReportViewModel @AssistedInject constructor(
             return
         }
         mutableUi.update { it.copy(state = it.state.refreshing()) }
-        try {
-            val form = repository.reportForm(url)
-            mutableUi.update { it.copy(state = Loadable.Loaded(form)) }
-        } catch (cancelled: CancellationException) {
-            throw cancelled
-        } catch (error: Exception) {
-            mutableUi.update { it.copy(state = it.state.failing(error)) }
-        }
+        catching { repository.reportForm(url) }
+            .onSuccess { form ->
+                mutableUi.update { it.copy(state = Loadable.Loaded(form)) }
+            }
+            .onFailure { error ->
+                mutableUi.update { it.copy(state = it.state.failing(error)) }
+            }
     }
 
     suspend fun send() {
         val current = ui.value
         val form = current.state.valueOrNull ?: return
         mutableUi.update { it.copy(fieldErrors = emptyMap()) }
-        try {
-            repository.report(form.url, current.category, current.comment)
-            mutableUi.update { it.copy(sent = true) }
-        } catch (cancelled: CancellationException) {
-            throw cancelled
-        } catch (error: Exception) {
-            val failure = error.asApiError()
-            val fields = failure.fieldMessages
-            mutableUi.update { it.copy(fieldErrors = fields, error = if (fields.isEmpty()) failure.userMessage else it.error) }
-        }
+        catching { repository.report(form.url, current.category, current.comment) }
+            .onSuccess {
+                mutableUi.update { it.copy(sent = true) }
+            }
+            .onFailure { error ->
+                val failure = error.asApiError()
+                val fields = failure.fieldMessages
+                mutableUi.update { it.copy(fieldErrors = fields, error = if (fields.isEmpty()) failure.userMessage else it.error) }
+            }
     }
 
     fun dismissError() = mutableUi.update { it.copy(error = null) }

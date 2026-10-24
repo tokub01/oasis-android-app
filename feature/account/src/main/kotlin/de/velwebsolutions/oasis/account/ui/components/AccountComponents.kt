@@ -52,6 +52,7 @@ import androidx.compose.ui.semantics.toggleableState
 import androidx.compose.ui.state.ToggleableState
 import androidx.compose.ui.text.style.TextDecoration
 import androidx.compose.ui.unit.dp
+import de.velwebsolutions.oasis.account.catching
 import de.velwebsolutions.oasis.core.format.GermanTime
 import de.velwebsolutions.oasis.core.network.asApiError
 import de.velwebsolutions.oasis.design.components.AsyncOasisButton
@@ -64,7 +65,6 @@ import de.velwebsolutions.oasis.design.theme.OasisColors
 import de.velwebsolutions.oasis.design.theme.OasisRadius
 import de.velwebsolutions.oasis.design.theme.OasisType
 import java.time.Instant
-import kotlin.coroutines.cancellation.CancellationException
 import kotlinx.coroutines.launch
 
 /** The long German date formats of the account pages (the short ones are `GermanTime.day` and `.dayAndTime`). */
@@ -297,13 +297,9 @@ fun DataExportButton(download: suspend () -> ByteArray, failed: (String) -> Unit
         AsyncOasisButton(
             "Daten herunterladen",
             {
-                try {
-                    file = download()
-                } catch (cancelled: CancellationException) {
-                    throw cancelled
-                } catch (error: Exception) {
-                    failed(error.asApiError().userMessage)
-                }
+                catching { download() }
+                    .onSuccess { file = it }
+                    .onFailure { error -> failed(error.asApiError().userMessage) }
             },
             kind = OasisButtonKind.Secondary,
             fullWidth = false,
