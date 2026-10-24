@@ -1,6 +1,9 @@
 package de.velwebsolutions.oasis.account.ui.settings
 
+import android.content.ActivityNotFoundException
+import android.content.Context
 import android.content.Intent
+import android.net.Uri
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
@@ -104,7 +107,7 @@ internal fun SettingsContent(ui: SettingsUiState, canSeeWelcome: Boolean, viewMo
             Column(verticalArrangement = Arrangement.spacedBy(24.dp)) {
                 ProfileSection(ui, settings, viewModel)
                 PasswordSection(ui, viewModel)
-                TwoFactorSection(ui, settings, viewModel, open)
+                TwoFactorSection(ui, settings, viewModel)
                 SectionCard(
                     "Deine Daten",
                     detail =
@@ -203,7 +206,7 @@ private fun PasswordSection(ui: SettingsUiState, viewModel: SettingsViewModel) {
  */
 @OptIn(ExperimentalLayoutApi::class)
 @Composable
-private fun TwoFactorSection(ui: SettingsUiState, settings: AccountSettings, viewModel: SettingsViewModel, open: (AppRoute) -> Unit) {
+private fun TwoFactorSection(ui: SettingsUiState, settings: AccountSettings, viewModel: SettingsViewModel) {
     val context = LocalContext.current
     SectionCard("Zwei-Faktor-Anmeldung") {
         when (settings.twoFactor.state) {
@@ -289,7 +292,11 @@ private fun TwoFactorSection(ui: SettingsUiState, settings: AccountSettings, vie
                 )
                 settings.twoFactor.otpauthUrl?.let { url ->
                     QrCodeView(url)
-                    OasisTextButton("In der Authenticator-App öffnen", { open(WebRoute(url)) }, color = OasisColors.SpringText)
+                    OasisTextButton(
+                        "In der Authenticator-App öffnen",
+                        { openAuthenticator(context, url) { viewModel.showError(it) } },
+                        color = OasisColors.SpringText
+                    )
                 }
                 settings.twoFactor.setupKey?.let { key ->
                     Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
@@ -334,6 +341,19 @@ private fun TwoFactorSection(ui: SettingsUiState, settings: AccountSettings, vie
                 )
             }
         }
+    }
+}
+
+/**
+ * Hands the `otpauth://` link to the authenticator app (iOS: `openURL`). A Custom Tab cannot open it; without an app
+ * for it the member hears so and can still scan the code or type the key.
+ */
+private fun openAuthenticator(context: Context, url: String, failed: (String) -> Unit) {
+    val intent = Intent(Intent.ACTION_VIEW, Uri.parse(url)).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+    try {
+        context.startActivity(intent)
+    } catch (_: ActivityNotFoundException) {
+        failed("Auf diesem Gerät ist keine Authenticator-App installiert. Scanne den QR-Code oder gib den Schlüssel ein.")
     }
 }
 

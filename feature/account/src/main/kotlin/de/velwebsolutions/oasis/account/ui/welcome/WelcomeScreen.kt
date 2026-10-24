@@ -1,5 +1,6 @@
 package de.velwebsolutions.oasis.account.ui.welcome
 
+import androidx.activity.compose.BackHandler
 import androidx.compose.animation.AnimatedContent
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
@@ -91,6 +92,8 @@ internal fun WelcomeScreen(viewModel: WelcomeViewModel = hiltViewModel()) {
         // Opened again from the settings: back to where it came from. New members get the Quelle by themselves.
         if (viewModel.finish() == true) navigator.back()
     }
+    // System back goes one step back first, like the „Zurück“ button.
+    BackHandler(enabled = ui.step > 1, onBack = viewModel::back)
     OasisScreen(title = "Willkommen") {
         WelcomeContent(ui, viewModel, finish, navigator::open)
     }

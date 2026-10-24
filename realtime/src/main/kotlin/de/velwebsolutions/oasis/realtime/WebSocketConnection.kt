@@ -43,7 +43,8 @@ class OkHttpWebSocketConnection(client: OkHttpClient, url: String) : WebSocketCo
             }
 
             override fun onClosing(webSocket: WebSocket, code: Int, reason: String) {
-                webSocket.close(code, null)
+                // Answer with a normal close: OkHttp refuses to echo reserved codes such as 1005 ("no status").
+                webSocket.close(NORMAL_CLOSURE, null)
                 incoming.close(IOException("Closed by the server ($code)"))
             }
 

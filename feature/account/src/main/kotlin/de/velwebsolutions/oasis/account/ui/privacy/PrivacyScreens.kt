@@ -1,5 +1,6 @@
 package de.velwebsolutions.oasis.account.ui.privacy
 
+import androidx.activity.compose.BackHandler
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
@@ -303,6 +304,8 @@ internal fun PrivacyCheckupContent(
 ) {
     val total = ui.checkupSections.size
     val section = ui.checkupSection
+    // System back goes one step back first, like the „Zurück“ button; on the first step it leaves the check.
+    BackHandler(enabled = ui.step > 1, onBack = onBack)
     Column(verticalArrangement = Arrangement.spacedBy(20.dp)) {
         Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
             Eyebrow("Privatsphäre-Check")

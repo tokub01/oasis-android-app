@@ -1,5 +1,10 @@
 package de.velwebsolutions.oasis.account.ui
 
+import androidx.activity.OnBackPressedDispatcher
+import androidx.activity.compose.LocalOnBackPressedDispatcherOwner
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableIntStateOf
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.assertIsNotEnabled
 import androidx.compose.ui.test.assertIsOff
@@ -176,6 +181,28 @@ class AccountUiTest {
         compose.onNodeWithText("Alles im Blick").assertIsDisplayed()
         compose.onNodeWithText("Zusammenfassung").assertIsDisplayed()
         compose.onNodeWithTag("checkup.done").performScrollTo().assertIsDisplayed()
+    }
+
+    @Test
+    fun systemBackGoesOneCheckupStepBackBeforeLeaving() {
+        var backs = 0
+        var dispatcher: OnBackPressedDispatcher? = null
+        var step by mutableIntStateOf(2)
+        compose.setContent {
+            dispatcher = LocalOnBackPressedDispatcherOwner.current?.onBackPressedDispatcher
+            AccountPage {
+                PrivacyCheckupContent(PrivacyUiState(state = Loadable.Loaded(centre), step = step), { _, _ -> }, {}, {
+                    backs += 1
+                    step -= 1
+                }, {}, {})
+            }
+        }
+        compose.runOnUiThread { dispatcher!!.onBackPressed() }
+        compose.waitForIdle()
+        assertEquals("back on step 2 goes to step 1", 1, backs)
+        compose.runOnUiThread { dispatcher!!.onBackPressed() }
+        compose.waitForIdle()
+        assertEquals("on the first step back leaves the check (the screen's own back)", 1, backs)
     }
 
     @Test
