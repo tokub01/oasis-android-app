@@ -6,6 +6,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.ui.semantics.SemanticsActions
 import androidx.compose.ui.test.SemanticsNodeInteraction
+import androidx.compose.ui.test.hasContentDescription
 import androidx.compose.ui.test.hasTestTag
 import androidx.compose.ui.test.hasText
 import androidx.compose.ui.test.junit4.createEmptyComposeRule
@@ -98,7 +99,19 @@ abstract class HiltScreenTest {
     fun SemanticsNodeInteraction.tap() = performScrollTo().performSemanticsAction(SemanticsActions.OnClick)
 
     /** Types into the field with this label (its content description). */
-    fun type(label: String, text: String) = compose.onNodeWithContentDescription(label).performScrollTo().performTextInput(text)
+    fun type(label: String, text: String) = field(label).performScrollTo().performTextInput(text)
+
+    /** The field with this label; a field with an error message has it in its description, too. */
+    fun field(label: String): SemanticsNodeInteraction {
+        val exact = compose.onAllNodes(hasContentDescription(label)).fetchSemanticsNodes().isNotEmpty()
+        return if (exact) {
+            compose.onNodeWithContentDescription(
+                label
+            )
+        } else {
+            compose.onNode(hasContentDescription("$label,", substring = true))
+        }
+    }
 
     /** All nodes with this text (dialog buttons repeat the screen's button). */
     fun androidx.compose.ui.test.junit4.ComposeTestRule.onAllNodesText(text: String) =
