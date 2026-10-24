@@ -1,0 +1,40 @@
+{
+ "data": {
+  "url": "http://localhost/profil/jonas",
+  "categories": [
+   {
+    "value": "mobbing",
+    "label": "Mobbing – jemand wird fertiggemacht, bloßgestellt oder ausgegrenzt"
+   },
+   {
+    "value": "belaestigung",
+    "label": "Belästigung oder Beleidigung"
+   },
+   {
+    "value": "sexuell",
+    "label": "Sexuelle Belästigung oder Anfragen"
+   },
+   {
+    "value": "hass",
+    "label": "Hass, Hetze oder Extremismus"
+   },
+   {
+    "value": "drohung",
+    "label": "Drohung oder Gewalt"
+   },
+   {
+    "value": "betrug",
+    "label": "Betrug oder Fragen nach Passwort, Bank- oder Kartendaten"
+   },
+   {
+    "value": "spam",
+    "label": "Spam oder Fake-Profil"
+   },
+   {
+    "value": "sonstiges",
+    "label": "Etwas anderes stimmt nicht"
+   }
+  ],
+  "review_hours": 48
+ }
+}

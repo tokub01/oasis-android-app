@@ -1,0 +1,335 @@
+{
+ "data": {
+  "sections": [
+   {
+    "key": "sichtbarkeit",
+    "title": "Wer dich sieht",
+    "in_checkup": true,
+    "settings": [
+     {
+      "key": "profile_audience",
+      "title": "Wer darf dein Profil sehen?",
+      "help": "Deine Profilseite mit Beschreibung und allen deinen Tropfen. Wer einzelne Tropfen per Link lesen darf, legst du bei jedem Tropfen fest.",
+      "kind": "choice",
+      "value": "everyone",
+      "choices": [
+       {
+        "value": "everyone",
+        "label": "Alle – auch ohne Konto"
+       },
+       {
+        "value": "members",
+        "label": "Alle Mitglieder"
+       },
+       {
+        "value": "following",
+        "label": "Menschen, denen du folgst"
+       }
+      ],
+      "limited": false
+     },
+     {
+      "key": "default_post_visibility",
+      "title": "Wer liest neue Tropfen standardmäßig?",
+      "help": "Vorauswahl beim Schreiben – du kannst sie bei jedem Tropfen ändern.",
+      "kind": "choice",
+      "value": "public",
+      "choices": [
+       {
+        "value": "public",
+        "label": "Öffentlich – auch ohne Konto lesbar"
+       },
+       {
+        "value": "members",
+        "label": "Nur für Mitglieder"
+       }
+      ],
+      "limited": false
+     },
+     {
+      "key": "follower_count_audience",
+      "title": "Wer sieht, wie groß deine Karawane ist?",
+      "help": "Die Zahl der Menschen, die dir folgen. Namen zeigen wir nie öffentlich.",
+      "kind": "choice",
+      "value": "members",
+      "choices": [
+       {
+        "value": "everyone",
+        "label": "Alle – auch ohne Konto"
+       },
+       {
+        "value": "members",
+        "label": "Alle Mitglieder"
+       },
+       {
+        "value": "following",
+        "label": "Menschen, denen du folgst"
+       },
+       {
+        "value": "nobody",
+        "label": "Niemand"
+       }
+      ],
+      "limited": false
+     },
+     {
+      "key": "location_audience",
+      "title": "Wer sieht deinen Ort?",
+      "help": "Der Ort aus deinem Profil. Alle anderen sehen dein Profil ohne ihn.",
+      "kind": "choice",
+      "value": "members",
+      "choices": [
+       {
+        "value": "everyone",
+        "label": "Alle – auch ohne Konto"
+       },
+       {
+        "value": "members",
+        "label": "Alle Mitglieder"
+       },
+       {
+        "value": "following",
+        "label": "Menschen, denen du folgst"
+       },
+       {
+        "value": "nobody",
+        "label": "Niemand"
+       }
+      ],
+      "limited": false
+     },
+     {
+      "key": "oases_audience",
+      "title": "Wer sieht, in welchen Oasen du bist?",
+      "help": "Die Liste deiner Oasen auf deinem Profil. In der Oase selbst bleibst du als Mitglied sichtbar.",
+      "kind": "choice",
+      "value": "members",
+      "choices": [
+       {
+        "value": "everyone",
+        "label": "Alle – auch ohne Konto"
+       },
+       {
+        "value": "members",
+        "label": "Alle Mitglieder"
+       },
+       {
+        "value": "following",
+        "label": "Menschen, denen du folgst"
+       },
+       {
+        "value": "nobody",
+        "label": "Niemand"
+       }
+      ],
+      "limited": false
+     },
+     {
+      "key": "oasis_list_audience",
+      "title": "Wer sieht dich in Mitgliederlisten von Oasen?",
+      "help": "Zu deinem eigenen Schutz ist voreingestellt, dass dich in den Mitgliederlisten deiner Oasen nur Freund:innen und Menschen sehen, denen du folgst. Alle anderen sehen dich dort nicht und können dich darüber weder anschreiben noch dein Profil öffnen. Du kannst das jederzeit umstellen.",
+      "kind": "choice",
+      "value": "contacts",
+      "choices": [
+       {
+        "value": "members",
+        "label": "Alle Mitglieder"
+       },
+       {
+        "value": "contacts",
+        "label": "Freund:innen und Menschen, denen du folgst"
+       },
+       {
+        "value": "nobody",
+        "label": "Niemand"
+       }
+      ],
+      "limited": false
+     }
+    ]
+   },
+   {
+    "key": "interaktionen",
+    "title": "Wer mit dir in Kontakt kommt",
+    "in_checkup": true,
+    "settings": [
+     {
+      "key": "mentions_audience",
+      "title": "Wer darf dich erwähnen?",
+      "help": "Bei allen anderen bleibt @dein-name reiner Text, ohne Link und ohne Hinweis an dich.",
+      "kind": "choice",
+      "value": "members",
+      "choices": [
+       {
+        "value": "members",
+        "label": "Alle Mitglieder"
+       },
+       {
+        "value": "following",
+        "label": "Menschen, denen du folgst"
+       },
+       {
+        "value": "nobody",
+        "label": "Niemand"
+       }
+      ],
+      "limited": false
+     },
+     {
+      "key": "replies_audience",
+      "title": "Wer darf auf deine Tropfen antworten?",
+      "help": "Reagieren und Merken bleibt für alle möglich, die den Tropfen lesen dürfen.",
+      "kind": "choice",
+      "value": "members",
+      "choices": [
+       {
+        "value": "members",
+        "label": "Alle Mitglieder"
+       },
+       {
+        "value": "following",
+        "label": "Menschen, denen du folgst"
+       },
+       {
+        "value": "nobody",
+        "label": "Niemand"
+       }
+      ],
+      "limited": false
+     },
+     {
+      "key": "carry_audience",
+      "title": "Wer darf deine Tropfen weitertragen?",
+      "help": "Weitertragen zeigt deinen Tropfen mit den Worten einer anderen Person.",
+      "kind": "choice",
+      "value": "members",
+      "choices": [
+       {
+        "value": "members",
+        "label": "Alle Mitglieder"
+       },
+       {
+        "value": "following",
+        "label": "Menschen, denen du folgst"
+       },
+       {
+        "value": "nobody",
+        "label": "Niemand"
+       }
+      ],
+      "limited": false
+     },
+     {
+      "key": "chat_invites_audience",
+      "title": "Wer darf dir schreiben?",
+      "help": "Wer einen verschlüsselten Chat mit dir beginnen oder dich in einen Gruppenchat holen darf. Schreiben dir Menschen, denen du nicht folgst und mit denen du nicht befreundet bist, landet das als Anfrage – ohne Hinweis, bis du sie annimmst. Bestehende Chats bleiben.",
+      "kind": "choice",
+      "value": "members",
+      "choices": [
+       {
+        "value": "members",
+        "label": "Alle Mitglieder"
+       },
+       {
+        "value": "contacts",
+        "label": "Freund:innen und Menschen, denen du folgst"
+       },
+       {
+        "value": "following",
+        "label": "Menschen, denen du folgst"
+       },
+       {
+        "value": "nobody",
+        "label": "Niemand"
+       }
+      ],
+      "limited": false
+     },
+     {
+      "key": "friend_requests",
+      "title": "Freundschaftsanfragen erhalten",
+      "help": "Ausgeschaltet kann dir niemand eine Freundschaftsanfrage schicken. Bestehende Freundschaften bleiben. Freundschaft und Folgen sind getrennt: Wer dir folgt, ist nicht automatisch befreundet.",
+      "kind": "switch",
+      "value": true,
+      "choices": [],
+      "limited": false
+     },
+     {
+      "key": "images_audience",
+      "title": "Wessen Bilder siehst du sofort?",
+      "help": "Alle anderen Bilder bleiben abgedeckt und werden nicht einmal geladen, bis du auf „Bild anzeigen“ tippst. So siehst du keine Bilder von Fremden, die du nicht sehen willst. Deine eigenen Bilder siehst du immer.",
+      "kind": "choice",
+      "value": "contacts",
+      "choices": [
+       {
+        "value": "members",
+        "label": "Alle Mitglieder"
+       },
+       {
+        "value": "contacts",
+        "label": "Freund:innen und Menschen, denen du folgst"
+       },
+       {
+        "value": "following",
+        "label": "Menschen, denen du folgst"
+       },
+       {
+        "value": "nobody",
+        "label": "Niemand"
+       }
+      ],
+      "limited": false
+     }
+    ]
+   },
+   {
+    "key": "auffindbarkeit",
+    "title": "Wie man dich findet",
+    "in_checkup": true,
+    "settings": [
+     {
+      "key": "searchable",
+      "title": "In der Oasis-Suche auffindbar",
+      "help": "Mitglieder finden dich über deinen Namen oder Benutzernamen. Ausgeschaltet erscheinst du nicht in der Personensuche; über deine Tropfen und Links bleibt dein Profil erreichbar.",
+      "kind": "switch",
+      "value": true,
+      "choices": [],
+      "limited": false
+     },
+     {
+      "key": "search_engines",
+      "title": "Öffentliches Profil in Suchmaschinen",
+      "help": "Gilt nur, solange dein Profil für alle sichtbar ist: Dann dürfen Suchmaschinen es und deine öffentlichen Tropfen anzeigen.",
+      "kind": "switch",
+      "value": true,
+      "choices": [],
+      "limited": false
+     }
+    ]
+   },
+   {
+    "key": "sicherheit",
+    "title": "Wie wir dein Konto schützen",
+    "in_checkup": true,
+    "settings": [
+     {
+      "key": "login_alerts",
+      "title": "E-Mail bei Anmeldung von einem neuen Gerät",
+      "help": "Meldet sich jemand mit einem Browser oder System an, das wir bei dir noch nicht kennen, schicken wir dir sofort eine E-Mail.",
+      "kind": "switch",
+      "value": true,
+      "choices": [],
+      "limited": false
+     }
+    ]
+   }
+  ],
+  "counts": {
+   "public_posts": 3,
+   "hidden_words": 0,
+   "restricted": 0,
+   "blocked": 0,
+   "muted": 0
+  }
+ }
+}

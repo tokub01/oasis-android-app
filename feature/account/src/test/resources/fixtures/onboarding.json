@@ -1,0 +1,92 @@
+{
+ "data": {
+  "steps": [
+   {
+    "key": "profil",
+    "title": "Über dich"
+   },
+   {
+    "key": "sichtbarkeit",
+    "title": "Wer dich sieht"
+   },
+   {
+    "key": "oasen",
+    "title": "Oasen finden"
+   },
+   {
+    "key": "menschen",
+    "title": "Menschen finden"
+   }
+  ],
+  "onboarded": true,
+  "bio": "Fotografiert analog, meistens zu früh am Morgen. Gastgeberin von Korn & Licht.",
+  "location": "Leipzig",
+  "avatar_color": "sun",
+  "colors": [
+   {
+    "value": "sun",
+    "label": "Sonne"
+   },
+   {
+    "value": "spring",
+    "label": "Quelle"
+   },
+   {
+    "value": "night",
+    "label": "Nacht"
+   },
+   {
+    "value": "dune",
+    "label": "Düne"
+   }
+  ],
+  "profile_audience": "everyone",
+  "default_post_visibility": "public",
+  "audiences": [
+   {
+    "value": "everyone",
+    "label": "Alle – auch ohne Konto"
+   },
+   {
+    "value": "members",
+    "label": "Alle Mitglieder"
+   },
+   {
+    "value": "following",
+    "label": "Menschen, denen du folgst"
+   }
+  ],
+  "visibilities": [
+   {
+    "value": "public",
+    "label": "Öffentlich – auch ohne Konto lesbar"
+   },
+   {
+    "value": "members",
+    "label": "Nur für Mitglieder"
+   }
+  ],
+  "oases": [
+   {
+    "id": 1,
+    "slug": "korn-licht",
+    "name": "Korn & Licht",
+    "description": "Analoge Fotografie: Filme, Kameras, Dunkelkammer und die Geduld dazwischen.",
+    "color": "sun",
+    "members_count": 4,
+    "banner_url": null,
+    "joined": true
+   },
+   {
+    "id": 3,
+    "slug": "lesekreis",
+    "name": "Lesekreis",
+    "description": "Ein Buch im Monat, gemeinsam gelesen. Spoiler nur mit Ansage.",
+    "color": "night",
+    "members_count": 4,
+    "banner_url": null,
+    "joined": false
+   }
+  ]
+ }
+}
