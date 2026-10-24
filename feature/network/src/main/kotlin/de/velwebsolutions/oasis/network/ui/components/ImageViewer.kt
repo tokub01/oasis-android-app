@@ -60,8 +60,8 @@ fun ImageViewer(images: List<Post.Image>, start: Post.Image, onDismiss: () -> Un
                         .align(Alignment.BottomCenter)
                         .navigationBarsPadding()
                         .padding(bottom = 24.dp)
-                        .clearAndSetSemantics { contentDescription = "Bild ${pager.currentPage + 1} von ${images.size}" }
-                        .testTag("imageViewer.pages"),
+                        .testTag("imageViewer.pages")
+                        .clearAndSetSemantics { contentDescription = "Bild ${pager.currentPage + 1} von ${images.size}" },
                     horizontalArrangement = Arrangement.spacedBy(8.dp)
                 ) {
                     images.indices.forEach { index ->
