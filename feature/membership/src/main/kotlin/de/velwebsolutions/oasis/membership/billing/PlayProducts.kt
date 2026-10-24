@@ -19,13 +19,26 @@ package de.velwebsolutions.oasis.membership.billing
 object PlayProducts {
     /** The server's rhythm keys. */
     const val MONTHLY = "monat"
+
+    /** The yearly rhythm key. */
     const val YEARLY = "jahr"
 
+    /** Solidar, monthly. */
     const val SOLIDAR_MONTHLY = "de.velwebsolutions.oasis.solidar.monat"
+
+    /** Solidar, yearly. */
     const val SOLIDAR_YEARLY = "de.velwebsolutions.oasis.solidar.jahr"
+
+    /** Oase, monthly. */
     const val OASE_MONTHLY = "de.velwebsolutions.oasis.oase.monat"
+
+    /** Oase, yearly. */
     const val OASE_YEARLY = "de.velwebsolutions.oasis.oase.jahr"
+
+    /** Mäzen, monthly. */
     const val MAEZEN_MONTHLY = "de.velwebsolutions.oasis.maezen.monat"
+
+    /** Mäzen, yearly. */
     const val MAEZEN_YEARLY = "de.velwebsolutions.oasis.maezen.jahr"
 
     /** One subscription of the catalogue. */
@@ -46,5 +59,6 @@ object PlayProducts {
     /** The tiers in the checkout's order. */
     val tiers: List<String> = all.map(Entry::tier).distinct()
 
+    /** The catalogue entry of a product id; null for products that are not ours. */
     fun entry(id: String): Entry? = all.firstOrNull { it.id == id }
 }

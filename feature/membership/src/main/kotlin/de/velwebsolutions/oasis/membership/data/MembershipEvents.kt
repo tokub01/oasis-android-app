@@ -22,6 +22,7 @@ class MembershipEvents @Inject constructor() {
     /** Increased whenever the membership changed; the overview reloads on change. */
     val version: StateFlow<Int> = mutableVersion.asStateFlow()
 
+    /** Reports a change of the membership with the outcome the overview shows. */
     fun changed(message: String? = null, error: String? = null) {
         pending.value = Outcome(message, error)
         mutableVersion.update { it + 1 }

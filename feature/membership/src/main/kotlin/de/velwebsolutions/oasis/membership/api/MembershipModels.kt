@@ -43,6 +43,7 @@ data class MembershipOverview(
         Expired
     }
 
+    /** A paid subscription. */
     @Serializable
     data class Subscription(
         val tierName: String,
@@ -51,9 +52,11 @@ data class MembershipOverview(
         val endsAt: OasisInstant? = null
     )
 
+    /** A redeemed gift voucher. */
     @Serializable
     data class Gift(val tierName: String, val expiresAt: OasisInstant? = null)
 
+    /** A voucher the member bought on the web, with its code. */
     @Serializable
     data class PurchasedGift(val id: Int, val code: String, val tierName: String, val redeemed: Boolean = false)
 

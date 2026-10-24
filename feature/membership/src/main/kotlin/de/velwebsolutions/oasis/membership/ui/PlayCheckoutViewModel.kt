@@ -29,12 +29,14 @@ import kotlinx.coroutines.launch
 
 /** One tier in both rhythms, in the checkout's order (Solidar, Oase, Mäzen). */
 data class CheckoutOffer(val tier: String, val monthly: PlayProduct?, val yearly: PlayProduct?) {
+    /** The product for "monat" or "jahr". */
     fun product(rhythm: String): PlayProduct? = if (rhythm == PlayProducts.YEARLY) yearly else monthly
 }
 
 /** Why the checkout sells nothing to this member. */
 enum class AlreadyMember { Web, Apple }
 
+/** The checkout: Play's offers, the chosen rhythm, a running purchase and snackbars. */
 data class CheckoutUiState(
     val offers: Loadable<List<CheckoutOffer>> = Loadable.Idle,
     /** "monat" or "jahr" (the server's rhythm keys). */
@@ -71,6 +73,7 @@ class PlayCheckoutViewModel @Inject constructor(
         viewModelScope.launch { load() }
     }
 
+    /** Loads the page again; a failed first load shows the error page, a failed refresh a snackbar. */
     suspend fun load() {
         mutableState.update { it.copy(offers = it.offers.refreshing()) }
         try {
@@ -99,6 +102,7 @@ class PlayCheckoutViewModel @Inject constructor(
         }.filter { it.monthly != null || it.yearly != null }
     }
 
+    /** Shows the monthly or yearly prices. */
     fun selectRhythm(rhythm: String) = mutableState.update { it.copy(rhythm = rhythm) }
 
     /** "Abonnieren". Returns true once the server unlocked the membership. */
@@ -168,8 +172,10 @@ class PlayCheckoutViewModel @Inject constructor(
         return unlocked
     }
 
+    /** Hides the confirmation once the snackbar showed it. */
     fun dismissMessage() = mutableState.update { it.copy(message = null) }
 
+    /** Hides the error once the snackbar showed it. */
     fun dismissError() = mutableState.update { it.copy(error = null) }
 
     companion object {

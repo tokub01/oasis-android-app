@@ -68,6 +68,7 @@ fun OverviewScreen(viewModel: OverviewViewModel = hiltViewModel()) {
     )
 }
 
+/** The overview without its view model, for the app and for tests. */
 @Composable
 fun OverviewContent(
     state: OverviewUiState,
@@ -152,9 +153,13 @@ fun StatusCard(overview: MembershipOverview, onSubscriptionManaged: () -> Unit =
     SectionCard("Status", Modifier.testTag("membership.statusCard")) {
         when (overview.state) {
             MembershipOverview.State.Subscription -> SubscriptionStatus(overview, onSubscriptionManaged)
+
             MembershipOverview.State.Gift -> GiftStatus(overview)
+
             MembershipOverview.State.Trial -> TrialStatus(overview)
-            MembershipOverview.State.Expired -> ExpiredStatus(overview)
+
+            // State.Expired, the last state.
+            else -> ExpiredStatus(overview)
         }
     }
 }

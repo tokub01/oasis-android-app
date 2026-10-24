@@ -50,6 +50,7 @@ fun PortalScreen(viewModel: PortalViewModel = hiltViewModel()) {
     state.invoiceFile?.let { InvoiceSheet(it, viewModel::closeInvoice) }
 }
 
+/** The invoices page without its view model, for the app and for tests. */
 @Composable
 fun PortalContent(
     state: PortalUiState,

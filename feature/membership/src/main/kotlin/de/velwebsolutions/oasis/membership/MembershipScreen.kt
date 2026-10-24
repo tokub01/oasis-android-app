@@ -18,11 +18,17 @@ import de.velwebsolutions.oasis.membership.ui.WithdrawScreen
 fun MembershipScreen(route: MembershipRoute) {
     when (route) {
         MembershipRoute.Overview -> OverviewScreen()
+
         MembershipRoute.Portal -> PortalScreen()
+
         is MembershipRoute.Invoice -> InvoiceScreen(route.paymentId)
+
         MembershipRoute.Cancel -> CancelScreen()
+
         MembershipRoute.Withdraw -> WithdrawScreen()
-        MembershipRoute.Checkout -> PlayCheckoutScreen()
+
+        // MembershipRoute.Checkout, the last route (an `else` instead of a check that could never fail).
+        else -> PlayCheckoutScreen()
     }
 }
 

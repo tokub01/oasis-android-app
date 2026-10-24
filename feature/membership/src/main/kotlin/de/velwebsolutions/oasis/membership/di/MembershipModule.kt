@@ -22,12 +22,15 @@ import javax.inject.Singleton
 @Module
 @InstallIn(SingletonComponent::class)
 abstract class MembershipModule {
+    /** The repository the screens use. */
     @Binds
     abstract fun repository(repository: DefaultMembershipRepository): MembershipRepository
 
+    /** Google Play Billing for the checkout. */
     @Binds
     abstract fun billing(gateway: PlayBillingGateway): BillingGateway
 
+    /** Play's client behind the billing gateway. */
     @Binds
     abstract fun billingConnection(connection: BillingClientConnection): PlayBillingConnection
 

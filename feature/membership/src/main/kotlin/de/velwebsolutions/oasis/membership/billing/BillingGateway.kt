@@ -56,16 +56,19 @@ data class PlayPurchaseReceipt(val purchaseToken: String, val productId: String)
 
 /** How a purchase flow ended. */
 sealed interface PurchaseOutcome {
+    /** Paid; the purchases go to the server. */
     data class Purchased(val purchases: List<PlayPurchase>) : PurchaseOutcome
 
     /** Bought, but the payment is still pending; Play reports it again once it is paid. */
     data object Pending : PurchaseOutcome
 
+    /** The member closed Play's sheet. */
     data object Cancelled : PurchaseOutcome
 
     /** Google Play is not available on this device (no Play Store, not signed in, unsupported country). */
     data object Unavailable : PurchaseOutcome
 
+    /** Play could not complete the purchase. */
     data object Failed : PurchaseOutcome
 }
 
