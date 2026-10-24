@@ -11,7 +11,11 @@ import de.velwebsolutions.oasis.membership.ui.WithdrawViewModel
 import de.velwebsolutions.oasis.testing.MainDispatcherRule
 import de.velwebsolutions.oasis.testing.StubTransport.Stub
 import java.nio.file.Files
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.test.runTest
+import kotlinx.coroutines.withContext
+import kotlinx.coroutines.withTimeout
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertNotNull
 import org.junit.Assert.assertNull
@@ -40,6 +44,22 @@ class MembershipViewModelTest {
         assertEquals(Fixtures.CANCELLED, viewModel.state.value.message)
         assertTrue(transport.requests.size > loads)
         assertNull(events.take().message)
+    }
+
+    @Test
+    fun `returning from Apple's subscription page reloads the overview`() = runTest {
+        val (repository, transport) = Fixtures.repository(Stub("GET", "membership", json = Fixtures.subscriptionOverview))
+        val events = MembershipEvents()
+        val viewModel = OverviewViewModel(repository, events)
+        viewModel.load()
+        val loads = transport.requests.size
+        val version = events.version.value
+
+        viewModel.subscriptionManaged()
+
+        assertEquals(version + 1, events.version.value)
+        // The reload goes out on OkHttp's thread; wait for it in real time.
+        withContext(Dispatchers.Default) { withTimeout(5_000) { while (transport.requests.size <= loads) delay(10) } }
     }
 
     @Test

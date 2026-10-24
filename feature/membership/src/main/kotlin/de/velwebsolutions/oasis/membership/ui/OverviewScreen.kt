@@ -20,6 +20,9 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
@@ -28,6 +31,8 @@ import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
+import androidx.lifecycle.Lifecycle
+import androidx.lifecycle.compose.LifecycleEventEffect
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import de.velwebsolutions.oasis.design.components.LoadableView
 import de.velwebsolutions.oasis.design.components.OasisButton
@@ -58,7 +63,8 @@ fun OverviewScreen(viewModel: OverviewViewModel = hiltViewModel()) {
         state,
         onRefresh = viewModel::load,
         onDismissMessage = viewModel::dismissMessage,
-        onDismissError = viewModel::dismissError
+        onDismissError = viewModel::dismissError,
+        onSubscriptionManaged = viewModel::subscriptionManaged
     )
 }
 
@@ -67,7 +73,8 @@ fun OverviewContent(
     state: OverviewUiState,
     onRefresh: suspend () -> Unit,
     onDismissMessage: () -> Unit = {},
-    onDismissError: () -> Unit = {}
+    onDismissError: () -> Unit = {},
+    onSubscriptionManaged: () -> Unit = {}
 ) {
     OasisScreen(
         title = "Mitgliedschaft",
@@ -78,18 +85,18 @@ fun OverviewContent(
     ) {
         MembershipPage(onRefresh) {
             PageHeader("Mitgliedschaft", eyebrow = "Konto", lead = "Verwalte deinen Beitrag, deine Rechnungen und deinen Status bei Oasis.")
-            LoadableView(state.overview, onRetry = onRefresh) { overview -> OverviewSections(overview) }
+            LoadableView(state.overview, onRetry = onRefresh) { overview -> OverviewSections(overview, onSubscriptionManaged) }
         }
     }
 }
 
 @Composable
-private fun OverviewSections(overview: MembershipOverview) {
+private fun OverviewSections(overview: MembershipOverview, onSubscriptionManaged: () -> Unit) {
     val navigator = LocalNavigator.current
     val openWebsite = rememberOpenWebsite(navigator)
     val context = LocalContext.current
     Column(verticalArrangement = Arrangement.spacedBy(18.dp)) {
-        StatusCard(overview)
+        StatusCard(overview, onSubscriptionManaged)
         if (overview.purchasedGifts.isNotEmpty()) {
             SectionCard("Deine gekauften Gutscheine") {
                 overview.purchasedGifts.forEachIndexed { index, gift ->
@@ -141,10 +148,10 @@ private fun OverviewSections(overview: MembershipOverview) {
 
 /** The status card (livewire/membership/partials/status.blade.php): subscription, gift, trial or read-only mode. */
 @Composable
-fun StatusCard(overview: MembershipOverview) {
+fun StatusCard(overview: MembershipOverview, onSubscriptionManaged: () -> Unit = {}) {
     SectionCard("Status", Modifier.testTag("membership.statusCard")) {
         when (overview.state) {
-            MembershipOverview.State.Subscription -> SubscriptionStatus(overview)
+            MembershipOverview.State.Subscription -> SubscriptionStatus(overview, onSubscriptionManaged)
             MembershipOverview.State.Gift -> GiftStatus(overview)
             MembershipOverview.State.Trial -> TrialStatus(overview)
             MembershipOverview.State.Expired -> ExpiredStatus(overview)
@@ -159,9 +166,18 @@ private val MembershipOverview.canBuy: Boolean get() = apple?.available == true
 private val MembershipOverview.managedByApple: Boolean get() = apple?.managedByApple == true
 
 @Composable
-private fun SubscriptionStatus(overview: MembershipOverview) {
+private fun SubscriptionStatus(overview: MembershipOverview, onSubscriptionManaged: () -> Unit) {
     val subscription = overview.subscription ?: return
     val navigator = LocalNavigator.current
+    // Back from Apple's subscription page (a Custom Tab): the membership may have changed there (iOS reloads when its
+    // manage sheet closes).
+    var managingSubscription by remember { mutableStateOf(false) }
+    LifecycleEventEffect(Lifecycle.Event.ON_RESUME) {
+        if (managingSubscription) {
+            managingSubscription = false
+            onSubscriptionManaged()
+        }
+    }
     StatusPill("Aktive Mitgliedschaft", Icons.Outlined.Check, Modifier.testTag("membership.active"))
     if (overview.isFoundingMember) FoundingPill()
     Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
@@ -197,7 +213,14 @@ private fun SubscriptionStatus(overview: MembershipOverview) {
         )
         val manageUrl = overview.apple?.manageUrl
         if (!manageUrl.isNullOrEmpty()) {
-            OasisButton("Abo verwalten", { navigator.open(WebRoute(manageUrl)) }, Modifier.testTag("membership.manageApple"))
+            OasisButton(
+                "Abo verwalten",
+                {
+                    managingSubscription = true
+                    navigator.open(WebRoute(manageUrl))
+                },
+                Modifier.testTag("membership.manageApple")
+            )
         }
     } else {
         OasisButton("Rechnungen ansehen", { navigator.open(MembershipRoute.Portal) }, Modifier.testTag("membership.portal"))
