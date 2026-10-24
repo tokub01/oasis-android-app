@@ -6,6 +6,7 @@ import org.gradle.api.Project
 import org.gradle.api.artifacts.VersionCatalog
 import org.gradle.api.artifacts.VersionCatalogsExtension
 import org.gradle.api.tasks.testing.Test
+import org.gradle.kotlin.dsl.configure
 import org.gradle.kotlin.dsl.getByType
 import org.gradle.kotlin.dsl.withType
 import org.jetbrains.kotlin.gradle.dsl.JvmTarget
@@ -28,7 +29,8 @@ internal fun Project.configureAndroid(extension: CommonExtension) {
         testOptions.unitTests.isIncludeAndroidResources = true
         testOptions.unitTests.isReturnDefaultValues = true
         lint.abortOnError = true
-        lint.warningsAsErrors = false
+        lint.warningsAsErrors = true
+        lint.checkDependencies = false
         lint.disable += setOf("GradleDependency", "NewerVersionAvailable", "AndroidGradlePluginVersion")
     }
     configureKotlin()
@@ -50,3 +52,30 @@ internal fun Project.configureKotlin() {
         }
     }
 }
+
+/**
+ * Coverage of one module under the shared variant "oasis": the debug unit tests of Android modules, the tests of JVM
+ * modules. The root project merges the variant of all modules (`koverHtmlReportOasis`, `koverVerifyOasis`).
+ */
+internal fun Project.configureKover(sourceVariant: String) {
+    extensions.configure<kotlinx.kover.gradle.plugin.dsl.KoverProjectExtension>("kover") {
+        currentProject.createVariant("oasis") { add(sourceVariant) }
+        reports.filters.excludes {
+            classes(GeneratedClasses)
+            annotatedBy(*GeneratedAnnotations)
+        }
+    }
+}
+
+/**
+ * Code the compilers and annotation processors generate, excluded from coverage: Hilt/Dagger components, factories and
+ * aggregation stubs, kotlinx.serialization serializers, Compose's lambda singletons, BuildConfig and R.
+ */
+internal val GeneratedClasses = listOf(
+    "*_HiltModules*", "*Hilt_*", "hilt_aggregated_deps.*", "dagger.hilt.*", "_*", "*_*Factory", "*_*Factory\$*",
+    "*_MembersInjector", "*_GeneratedInjector", "*_ComponentTreeDeps", "*\$\$serializer", "*ComposableSingletons*",
+    "*.BuildConfig", "*.R", "*.R\$*",
+)
+
+/** Hilt modules only wire objects together; @Preview functions are design-time only. */
+internal val GeneratedAnnotations = arrayOf("dagger.Module", "androidx.compose.ui.tooling.preview.Preview")

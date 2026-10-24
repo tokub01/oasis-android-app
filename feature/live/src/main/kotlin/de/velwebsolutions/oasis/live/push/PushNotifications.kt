@@ -12,42 +12,61 @@ import android.os.Build
 import de.velwebsolutions.oasis.core.model.PushPreview
 import de.velwebsolutions.oasis.live.R
 
+/** The notification channel of a push: the member silences hints and chat messages separately in Android's settings. */
+enum class PushChannel(val id: String, val title: String, val description: String) {
+    Hints("hints", "Hinweise", "Neue Hinweise aus Oasis – nie mit dem Text eines Tropfens."),
+    Chat("chat", "Chat-Nachrichten", "Neue Chat-Nachrichten – nie mit dem Text einer Nachricht.")
+}
+
 /** A push hint as the notification shows it: the generic line, or the named text once the preview was fetched. */
-data class PushContent(val title: String, val body: String, val url: String?) {
+data class PushContent(val title: String, val body: String, val url: String?, val tag: String? = null) {
     /** The same push with the named text of the Oasis server (PushPreviewController), if there is one. */
     fun with(preview: PushPreview?): PushContent = if (preview == null) this else copy(title = preview.title, body = preview.body)
 
+    /** Chat messages (`tag` "oasis-chat", or a link into the chat) go to their own channel, everything else to Hinweise. */
+    val channel: PushChannel
+        get() = if (tag == CHAT_TAG || url?.substringAfter("://")?.substringAfter('/')?.startsWith("app/nachrichten") == true) {
+            PushChannel.Chat
+        } else {
+            PushChannel.Hints
+        }
+
     companion object {
+        /** The web push `tag` of chat messages (NotifyChatRecipients); hints use "oasis-hinweise". */
+        const val CHAT_TAG = "oasis-chat"
+
         /**
-         * Reads a push's data (`title`, `body`, `url`, `preview`) – the keys Laravel's push payload uses – with the
+         * Reads a push's data (`title`, `body`, `url`, `tag`, `preview`) – the keys Laravel's push payload uses – with the
          * notification part as fallback.
          */
         fun from(data: Map<String, String>, notificationTitle: String?, notificationBody: String?): PushContent = PushContent(
             title = data["title"] ?: notificationTitle ?: "Oasis",
             body = data["body"] ?: notificationBody.orEmpty(),
-            url = data["url"]?.takeIf { it.startsWith("https://") || it.startsWith("http://") || it.startsWith("oasis://") }
+            url = data["url"]?.takeIf { it.startsWith("https://") || it.startsWith("http://") || it.startsWith("oasis://") },
+            tag = data["tag"]?.takeIf { it.isNotBlank() }
         )
     }
 }
 
 /**
- * The notification channel and the notifications of push hints. A tap opens the app with the hint's web URL in
- * [EXTRA_URL], which MainActivity hands to the navigator.
+ * The notification channels and the notifications of push hints. A tap opens the app with the hint's web URL in
+ * [EXTRA_URL], which MainActivity hands to the navigator. Notifications of one kind are grouped (the web push `tag`,
+ * iOS: `thread-id`).
  */
 object PushNotifications {
-    const val CHANNEL_ID = "hints"
-
     /** The intent extra MainActivity reads (`MainActivity.EXTRA_URL`). */
     const val EXTRA_URL = "de.velwebsolutions.oasis.url"
 
-    /** Creates the channel "Hinweise" once (no-op afterwards). */
+    /** Creates the channels "Hinweise" and "Chat-Nachrichten" once (no-op afterwards). */
     fun ensureChannel(context: Context) {
         val manager = context.getSystemService(NotificationManager::class.java) ?: return
-        if (manager.getNotificationChannel(CHANNEL_ID) != null) return
-        val channel = NotificationChannel(CHANNEL_ID, "Hinweise", NotificationManager.IMPORTANCE_DEFAULT).apply {
-            description = "Neue Hinweise und Chat-Nachrichten aus Oasis – nie mit dem Text eines Tropfens oder einer Nachricht."
+        PushChannel.entries.forEach { kind ->
+            if (manager.getNotificationChannel(kind.id) == null) {
+                val channel = NotificationChannel(kind.id, kind.title, NotificationManager.IMPORTANCE_DEFAULT)
+                channel.description = kind.description
+                manager.createNotificationChannel(channel)
+            }
         }
-        manager.createNotificationChannel(channel)
     }
 
     /** The intent a tap starts: the app's launch intent with the URL of the target. */
@@ -67,13 +86,15 @@ object PushNotifications {
         val tap = openIntent(context, content.url)?.let {
             PendingIntent.getActivity(context, id, it, PendingIntent.FLAG_IMMUTABLE or PendingIntent.FLAG_UPDATE_CURRENT)
         }
-        val notification = Notification.Builder(context, CHANNEL_ID)
+        val channel = content.channel
+        val notification = Notification.Builder(context, channel.id)
             .setSmallIcon(R.drawable.ic_stat_oasis)
             .setContentTitle(content.title)
             .setContentText(content.body)
             .setStyle(Notification.BigTextStyle().bigText(content.body))
             .setAutoCancel(true)
-            .setCategory(Notification.CATEGORY_SOCIAL)
+            .setCategory(if (channel == PushChannel.Chat) Notification.CATEGORY_MESSAGE else Notification.CATEGORY_SOCIAL)
+            .apply { content.tag?.let(::setGroup) }
             .apply { if (tap != null) setContentIntent(tap) }
             .build()
         context.getSystemService(NotificationManager::class.java)?.notify(id, notification)

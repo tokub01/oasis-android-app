@@ -22,6 +22,8 @@ import androidx.compose.material.icons.automirrored.outlined.KeyboardArrowRight
 import androidx.compose.material.icons.outlined.BarChart
 import androidx.compose.material.icons.outlined.Dns
 import androidx.compose.material.icons.outlined.Euro
+import androidx.compose.material.icons.outlined.ExpandLess
+import androidx.compose.material.icons.outlined.ExpandMore
 import androidx.compose.material.icons.outlined.GppMaybe
 import androidx.compose.material.icons.outlined.Lock
 import androidx.compose.material.icons.outlined.ManageAccounts
@@ -39,16 +41,20 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.platform.testTag
+import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.heading
+import androidx.compose.ui.semantics.role
 import androidx.compose.ui.semantics.selected
 import androidx.compose.ui.semantics.semantics
+import androidx.compose.ui.semantics.stateDescription
 import androidx.compose.ui.text.AnnotatedString
 import androidx.compose.ui.text.SpanStyle
 import androidx.compose.ui.text.buildAnnotatedString
@@ -259,6 +265,37 @@ fun LinkText(url: String) {
         color = OasisColors.Night,
         modifier = Modifier.pressable({ navigator.open(DeepLink.route(url) ?: WebRoute(url)) })
     )
+}
+
+/**
+ * A Material expandable row (iOS `DisclosureGroup`): the title with an expand arrow; the content shows while it is
+ * open. TalkBack reads it as a button with its state.
+ */
+@Composable
+fun Disclosure(title: String, modifier: Modifier = Modifier, content: @Composable ColumnScope.() -> Unit) {
+    var expanded by rememberSaveable { mutableStateOf(false) }
+    Column(modifier.fillMaxWidth(), verticalArrangement = Arrangement.spacedBy(6.dp)) {
+        Row(
+            Modifier
+                .fillMaxWidth()
+                .defaultMinSize(minHeight = 44.dp)
+                .pressable({ expanded = !expanded })
+                .semantics(mergeDescendants = true) {
+                    role = Role.Button
+                    stateDescription = if (expanded) "Ausgeklappt" else "Eingeklappt"
+                },
+            horizontalArrangement = Arrangement.spacedBy(6.dp),
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Text(title, style = OasisType.SmallBold, color = OasisColors.Night, modifier = Modifier.weight(1f))
+            Icon(
+                if (expanded) Icons.Outlined.ExpandLess else Icons.Outlined.ExpandMore,
+                contentDescription = null,
+                tint = OasisColors.Night
+            )
+        }
+        if (expanded) content()
+    }
 }
 
 /** "**Regel:** Text" – a bold lead-in followed by plain text. */

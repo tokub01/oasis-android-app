@@ -1,6 +1,7 @@
 package de.velwebsolutions.oasis.live
 
 import de.velwebsolutions.oasis.core.model.PushPreview
+import de.velwebsolutions.oasis.live.push.PushChannel
 import de.velwebsolutions.oasis.live.push.PushContent
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertNull
@@ -45,5 +46,17 @@ class PushContentTest {
         assertEquals("Neue Nachricht", content.title)
         assertEquals("Öffne Oasis", content.body)
         assertNull(content.url)
+    }
+
+    @Test
+    fun chatMessagesGetTheirOwnChannel() {
+        val chat = PushContent.from(mapOf("tag" to "oasis-chat", "url" to "https://get-oasis.com/app/nachrichten"), null, null)
+        assertEquals(PushChannel.Chat, chat.channel)
+        assertEquals("oasis-chat", chat.tag)
+        val chatByLink = PushContent.from(mapOf("url" to "https://get-oasis.com/app/nachrichten/12"), null, null)
+        assertEquals(PushChannel.Chat, chatByLink.channel)
+        val hint = PushContent.from(mapOf("tag" to "oasis-hinweise", "url" to "https://get-oasis.com/app/hinweise"), null, null)
+        assertEquals(PushChannel.Hints, hint.channel)
+        assertEquals(PushChannel.Hints, PushContent.from(emptyMap(), null, null).channel)
     }
 }

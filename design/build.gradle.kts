@@ -10,6 +10,7 @@ android {
 
 // Colours, fonts, shared components and the navigation routes of all areas (OasisDesign on iOS).
 dependencies {
+    implementation(libs.androidx.core.ktx)
     implementation(project(":core"))
     api(platform(libs.compose.bom))
     api(libs.compose.ui)

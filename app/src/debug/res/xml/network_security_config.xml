@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
 <!-- Debug builds talk plain HTTP to the local Sail backend (the emulator reaches the Mac as 10.0.2.2) and to
      Reverb; like NSAllowsLocalNetworking on iOS. Any LAN host works for a real phone (secrets.properties). -->
-<network-security-config>
-    <base-config cleartextTrafficPermitted="true" />
+<network-security-config xmlns:tools="http://schemas.android.com/tools">
+    <base-config cleartextTrafficPermitted="true" tools:ignore="InsecureBaseConfiguration" />
 </network-security-config>

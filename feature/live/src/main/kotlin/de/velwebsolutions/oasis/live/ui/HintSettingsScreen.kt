@@ -79,6 +79,7 @@ import de.velwebsolutions.oasis.live.api.HintSettings
 import de.velwebsolutions.oasis.live.api.PushDevice
 import de.velwebsolutions.oasis.live.push.PushAuthorization
 import de.velwebsolutions.oasis.live.push.PushRegistrar
+import java.util.Locale
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 
@@ -319,8 +320,8 @@ private fun TimeField(
     }
 }
 
-/** "07:05" from hour and minute. */
-internal fun timeText(hour: Int, minute: Int): String = "%02d:%02d".format(hour, minute)
+/** "07:05" from hour and minute – always Latin digits, whatever the device's language (the web's `H:i`). */
+internal fun timeText(hour: Int, minute: Int): String = String.format(Locale.ROOT, "%02d:%02d", hour, minute)
 
 @OptIn(ExperimentalLayoutApi::class)
 @Composable

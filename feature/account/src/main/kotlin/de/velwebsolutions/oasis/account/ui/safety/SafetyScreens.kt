@@ -251,7 +251,7 @@ private fun Chat(
         "Eine Chat-Passphrase hast du nicht festgelegt."
     }
     SectionCard(
-        "Chat mit Face ID oder Fingerabdruck",
+        "Chat mit Fingerabdruck oder Gesichtserkennung",
         detail =
             "Diese Geräte öffnen deine verschlüsselten Chats. Die Schlüssel liegen dafür im Sicherheitschip des Geräts – wir können sie nicht lesen. $passphrase Ein neues Gerät richtest du im Chat ein."
     ) {
