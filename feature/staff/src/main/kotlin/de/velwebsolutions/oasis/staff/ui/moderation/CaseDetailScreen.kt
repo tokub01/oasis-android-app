@@ -5,6 +5,7 @@ import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.IntrinsicSize
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxHeight
@@ -53,6 +54,7 @@ import de.velwebsolutions.oasis.staff.api.Labelled
 import de.velwebsolutions.oasis.staff.api.ModerationCaseDetail
 import de.velwebsolutions.oasis.staff.api.StatementOfReasons
 import de.velwebsolutions.oasis.staff.ui.components.ConfirmDialog
+import de.velwebsolutions.oasis.staff.ui.components.Disclosure
 import de.velwebsolutions.oasis.staff.ui.components.FactRow
 import de.velwebsolutions.oasis.staff.ui.components.LinkText
 import de.velwebsolutions.oasis.staff.ui.components.OptionPicker
@@ -295,20 +297,16 @@ private fun SandBox(content: @Composable () -> Unit) {
 /** The scores of the automated check as chips; flagged ones in the accent colour. */
 @Composable
 private fun ScoreChips(scores: List<ModerationCaseDetail.Score>) {
-    Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
-        scores.chunked(2).forEach { row ->
-            Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
-                row.forEach { score ->
-                    Text(
-                        "${score.label}: ${score.percent} %",
-                        style = if (score.flagged) OasisType.Caption.copy(fontWeight = FontWeight.Bold) else OasisType.Caption,
-                        color = if (score.flagged) OasisColors.SunInk else OasisColors.Ink2,
-                        modifier = Modifier
-                            .background(if (score.flagged) OasisColors.Sun else OasisColors.Sand, CircleShape)
-                            .padding(horizontal = 10.dp, vertical = 4.dp)
-                    )
-                }
-            }
+    FlowRow(horizontalArrangement = Arrangement.spacedBy(6.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
+        scores.forEach { score ->
+            Text(
+                "${score.label}: ${score.percent} %",
+                style = if (score.flagged) OasisType.Caption.copy(fontWeight = FontWeight.Bold) else OasisType.Caption,
+                color = if (score.flagged) OasisColors.SunInk else OasisColors.Ink2,
+                modifier = Modifier
+                    .background(if (score.flagged) OasisColors.Sun else OasisColors.Sand, CircleShape)
+                    .padding(horizontal = 10.dp, vertical = 4.dp)
+            )
         }
     }
 }
@@ -416,7 +414,6 @@ private fun EscalatedSection(
 /** One secured piece of evidence: kind, dates, checksum and the text behind a disclosure. */
 @Composable
 private fun EvidenceRow(evidence: ModerationCaseDetail.Evidence) {
-    var expanded by remember { mutableStateOf(false) }
     Column(
         Modifier.fillMaxWidth().background(OasisColors.Sand, RoundedCornerShape(OasisRadius.XS.dp)).padding(10.dp),
         verticalArrangement = Arrangement.spacedBy(4.dp)
@@ -438,13 +435,9 @@ private fun EvidenceRow(evidence: ModerationCaseDetail.Evidence) {
         }
         val content = evidence.content
         if (evidence.kind == "text" && !content.isNullOrEmpty()) {
-            Text(
-                if (expanded) "Text ausblenden" else "Text anzeigen",
-                style = OasisType.SmallBold.copy(textDecoration = TextDecoration.Underline),
-                color = OasisColors.Night,
-                modifier = Modifier.pressable({ expanded = !expanded })
-            )
-            if (expanded) SelectionContainer { Text(content, style = OasisType.Small, color = OasisColors.Ink) }
+            Disclosure("Text anzeigen") {
+                SelectionContainer { Text(content, style = OasisType.Small, color = OasisColors.Ink, modifier = Modifier.fillMaxWidth()) }
+            }
         }
     }
 }

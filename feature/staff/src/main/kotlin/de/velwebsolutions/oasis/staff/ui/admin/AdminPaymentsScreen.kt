@@ -230,14 +230,14 @@ object MollieFormat {
 
     fun method(value: String?): String? = value?.let { methods[it] ?: it }
 
-    /** "5.00" → "5,00 €". */
+    /** "5.00" → "5,00 €" (with a no-break space before the euro sign, like the web). */
     fun amount(value: String?): String {
         val number = value?.toDoubleOrNull() ?: return "–"
         val format = NumberFormat.getNumberInstance(Locale.GERMANY).apply {
             minimumFractionDigits = 2
             maximumFractionDigits = 2
         }
-        return format.format(number) + " €"
+        return format.format(number) + "\u00A0€"
     }
 
     fun date(value: String?): String = value?.let(OasisJson::parseInstant)?.let(StaffDate::medium) ?: "–"

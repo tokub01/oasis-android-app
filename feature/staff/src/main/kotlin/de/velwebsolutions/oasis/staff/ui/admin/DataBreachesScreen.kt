@@ -4,11 +4,16 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.defaultMinSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.selection.SelectionContainer
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.outlined.Share
 import androidx.compose.material3.HorizontalDivider
+import androidx.compose.material3.Icon
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
@@ -23,7 +28,6 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.text.SpanStyle
 import androidx.compose.ui.text.buildAnnotatedString
-import androidx.compose.ui.text.style.TextDecoration
 import androidx.compose.ui.text.withStyle
 import androidx.compose.ui.unit.dp
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
@@ -46,6 +50,7 @@ import de.velwebsolutions.oasis.staff.api.BreachRegister
 import de.velwebsolutions.oasis.staff.api.DataBreach
 import de.velwebsolutions.oasis.staff.ui.components.ConfirmDialog
 import de.velwebsolutions.oasis.staff.ui.components.DateTimeField
+import de.velwebsolutions.oasis.staff.ui.components.Disclosure
 import de.velwebsolutions.oasis.staff.ui.components.RadioList
 import de.velwebsolutions.oasis.staff.ui.components.Sharing
 import de.velwebsolutions.oasis.staff.ui.components.StaffDate
@@ -193,8 +198,6 @@ private fun BreachCard(
 ) {
     val open = breach.closedAt == null
     val context = LocalContext.current
-    var showReport by remember { mutableStateOf(false) }
-    var showLog by remember { mutableStateOf(false) }
     Column(
         Modifier
             .staffBox(if (breach.reportOutstanding) OasisColors.Sun else Color.Transparent, width = 2, radius = OasisRadius.M)
@@ -227,8 +230,7 @@ private fun BreachCard(
             )
         }
         breach.reportText?.let { report ->
-            Disclosure("Vorbereitete Meldung an die Aufsichtsbehörde", showReport) { showReport = !showReport }
-            if (showReport) {
+            Disclosure("Vorbereitete Meldung an die Aufsichtsbehörde") {
                 SelectionContainer {
                     Text(
                         report,
@@ -240,12 +242,16 @@ private fun BreachCard(
                         ).padding(10.dp)
                     )
                 }
-                Text(
-                    "Text teilen oder kopieren",
-                    style = OasisType.SmallBold.copy(textDecoration = TextDecoration.Underline),
-                    color = OasisColors.Night,
-                    modifier = Modifier.pressable({ Sharing.shareText(context, report, "Text teilen oder kopieren") })
-                )
+                Row(
+                    Modifier
+                        .defaultMinSize(minHeight = 44.dp)
+                        .pressable({ Sharing.shareText(context, report, "Text teilen oder kopieren") }),
+                    horizontalArrangement = Arrangement.spacedBy(6.dp),
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Icon(Icons.Outlined.Share, contentDescription = null, tint = OasisColors.Night, modifier = Modifier.size(18.dp))
+                    Text("Text teilen oder kopieren", style = OasisType.SmallBold, color = OasisColors.Night)
+                }
                 Text(
                     "Zuständig: ${authority ?: "–"}. Bitte prüfen und dort über das offizielle Meldeformular einreichen.",
                     style = OasisType.Caption,
@@ -295,30 +301,17 @@ private fun BreachCard(
             OasisButton("Abschließen", onConfirmClose, kind = OasisButtonKind.Secondary, fullWidth = false)
         }
         state.stepErrors[breach.id]?.let { FieldError(it) }
-        Disclosure("Verlauf (${breach.log.size})", showLog) { showLog = !showLog }
-        if (showLog) {
-            Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
-                breach.log.forEach { entry ->
-                    Text(
-                        buildAnnotatedString {
-                            withStyle(SpanStyle(color = OasisColors.Ink2)) { append("${StaffDate.withUhr(entry.at)} · ${entry.by}: ") }
-                            append(entry.text)
-                        },
-                        style = OasisType.Caption,
-                        color = OasisColors.Ink
-                    )
-                }
+        Disclosure("Verlauf (${breach.log.size})") {
+            breach.log.forEach { entry ->
+                Text(
+                    buildAnnotatedString {
+                        withStyle(SpanStyle(color = OasisColors.Ink2)) { append("${StaffDate.withUhr(entry.at)} · ${entry.by}: ") }
+                        append(entry.text)
+                    },
+                    style = OasisType.Caption,
+                    color = OasisColors.Ink
+                )
             }
         }
     }
-}
-
-@Composable
-private fun Disclosure(title: String, expanded: Boolean, onToggle: () -> Unit) {
-    Text(
-        "${if (expanded) "▾" else "▸"} $title",
-        style = OasisType.SmallBold,
-        color = OasisColors.Night,
-        modifier = Modifier.pressable(onToggle)
-    )
 }

@@ -64,6 +64,9 @@ class OverviewViewModel @Inject constructor(
         }
     }
 
+    /** Back from managing the Apple subscription: tier or cancellation may have changed there, so everything reloads. */
+    fun subscriptionManaged() = events.changed()
+
     fun dismissMessage() = mutableState.update { it.copy(message = null) }
 
     fun dismissError() = mutableState.update { it.copy(error = null) }
