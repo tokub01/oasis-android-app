@@ -55,12 +55,32 @@ kover {
     // The modules set their own filters (build-logic, configureKover); the merged report uses the same ones.
     useJacoco("0.8.15")
     currentProject.createVariant("oasis") {}
+    currentProject.createVariant("oasisLogic") {}
     reports.filters.excludes {
         classes(
             "*_HiltModules*", "*Hilt_*", "hilt_aggregated_deps.*", "dagger.hilt.*", "_*", "*_*Factory", "*_*Factory\$*", "*_Factory_Impl",
             "*_MembersInjector", "*_GeneratedInjector", "*_ComponentTreeDeps", "*\$\$serializer", "*ComposableSingletons*",
             "*.BuildConfig", "*.R", "*.R\$*",
         )
+        // Rewritten by Hilt at build time, so JaCoCo cannot attribute their execution (see build-logic, Shared.kt).
+        classes("de.velwebsolutions.oasis.app.MainActivity", "de.velwebsolutions.oasis.app.OasisApplication")
         annotatedBy("dagger.Module", "androidx.compose.ui.tooling.preview.Preview")
+    }
+    reports.variant("oasis") {
+        verify.rule("Lines") {
+            bound {
+                minValue = 100
+                coverageUnits = kotlinx.kover.gradle.plugin.dsl.CoverageUnit.LINE
+            }
+        }
+    }
+    reports.variant("oasisLogic") {
+        filters.excludes.annotatedBy("androidx.compose.runtime.Composable")
+        verify.rule("Branches outside composables") {
+            bound {
+                minValue = 100
+                coverageUnits = kotlinx.kover.gradle.plugin.dsl.CoverageUnit.BRANCH
+            }
+        }
     }
 }

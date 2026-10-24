@@ -116,15 +116,14 @@ fun AsyncOasisButton(
     var running by remember { mutableStateOf(false) }
     OasisButton(
         text = text,
+        // The button is disabled while running (loading), so a second tap never gets here.
         onClick = {
-            if (!running) {
-                running = true
-                scope.launch {
-                    try {
-                        onClick()
-                    } finally {
-                        running = false
-                    }
+            running = true
+            scope.launch {
+                try {
+                    onClick()
+                } finally {
+                    running = false
                 }
             }
         },

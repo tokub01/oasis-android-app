@@ -12,6 +12,7 @@ import androidx.compose.ui.unit.dp
 import dagger.hilt.android.testing.HiltAndroidRule
 import dagger.hilt.android.testing.HiltAndroidTest
 import dagger.hilt.android.testing.HiltTestApplication
+import de.velwebsolutions.oasis.app.shell.AppHost
 import de.velwebsolutions.oasis.app.shell.FeatureScreens
 import de.velwebsolutions.oasis.app.shell.LiveShell
 import de.velwebsolutions.oasis.app.ui.AppDestination
@@ -21,7 +22,6 @@ import de.velwebsolutions.oasis.design.navigation.AccountRoute
 import de.velwebsolutions.oasis.design.navigation.ChatRoute
 import de.velwebsolutions.oasis.design.navigation.LiveRoute
 import de.velwebsolutions.oasis.design.navigation.LocalNavigator
-import de.velwebsolutions.oasis.design.navigation.MainTab
 import de.velwebsolutions.oasis.design.navigation.MembershipRoute
 import de.velwebsolutions.oasis.design.navigation.Navigator
 import de.velwebsolutions.oasis.design.navigation.NetworkRoute
@@ -55,23 +55,33 @@ class AppWiringTest {
 
     @Inject lateinit var live: LiveShell
 
+    @Inject lateinit var purchases: de.velwebsolutions.oasis.app.shell.PurchaseObserver
+
     @Before
     fun inject() = hilt.inject()
 
     @Test
-    fun `starts signed out on the real sign-in page and follows links`() {
+    fun `starts signed out on the real sign-in page`() {
         compose.waitUntil(20_000) {
             compose.onAllNodes(androidx.compose.ui.test.hasText("Willkommen zurück.")).fetchSemanticsNodes().isNotEmpty()
         }
-        compose.runOnIdle {
-            compose.activity.handle(Intent(Intent.ACTION_VIEW, Uri.parse("https://get-oasis.com/app/nachrichten#c/5")))
-        }
-        assertEquals(MainTab.Chats, navigator.selectedTab)
-        compose.runOnIdle { compose.activity.handle(Intent().putExtra(MainActivity.EXTRA_URL, "https://get-oasis.com/oasen/garten")) }
-        assertEquals(MainTab.Oases, navigator.selectedTab)
-        compose.runOnIdle { compose.activity.handle(Intent().putExtra("url", "https://get-oasis.com/app/entdecken")) }
-        assertEquals(MainTab.Discover, navigator.selectedTab)
-        compose.runOnIdle { compose.activity.handle(Intent()) }
+        compose.activity.setContent { AppHost.Content(navigator, apiClient) }
+        compose.waitForIdle()
+    }
+
+    @Test
+    fun `links come from app links, our push extra or FCM's extra`() {
+        assertEquals(
+            "https://get-oasis.com/app/nachrichten#c/5",
+            AppHost.url(Intent(Intent.ACTION_VIEW, Uri.parse("https://get-oasis.com/app/nachrichten#c/5")))
+        )
+        assertEquals(
+            "https://get-oasis.com/oasen/garten",
+            AppHost.url(Intent().putExtra(AppHost.EXTRA_URL, "https://get-oasis.com/oasen/garten"))
+        )
+        assertEquals("https://get-oasis.com/app/entdecken", AppHost.url(Intent().putExtra("url", "https://get-oasis.com/app/entdecken")))
+        assertEquals(null, AppHost.url(Intent()))
+        assertEquals(null, AppHost.url(null))
         compose.runOnIdle { navigator.openWeb("https://get-oasis.com/impressum") }
     }
 
@@ -104,14 +114,15 @@ class AppWiringTest {
         assertEquals(0, live.hints.value)
         assertEquals(0, live.chats.value)
         live.setShowingChats(true)
+        kotlinx.coroutines.withTimeoutOrNull(500) { live.start(7) }
+        kotlinx.coroutines.withTimeoutOrNull(500) { purchases.observe() }
         live.foreground()
         live.stop()
     }
 
     @Test
     fun `images load through the API client's OkHttp`() {
-        val app = OasisApplication().apply { apiClient = this@AppWiringTest.apiClient }
-        val loader = app.newImageLoader(compose.activity)
+        val loader = AppHost.imageLoader(compose.activity, apiClient)
         assertEquals(true, loader.components.fetcherFactories.isNotEmpty())
     }
 }

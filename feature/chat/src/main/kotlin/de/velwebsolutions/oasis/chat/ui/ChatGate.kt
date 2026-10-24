@@ -82,7 +82,7 @@ internal fun ChatGate(content: @Composable () -> Unit) {
 
     Box(Modifier.fillMaxSize()) {
         when (val phase = state.phase) {
-            ChatPhase.Loading -> OasisScreen("Nachrichten") { LoadingView("Einen Moment …") }
+            ChatPhase.Loading -> OasisScreen("Nachrichten") { LoadingView(label = "Einen Moment …") }
 
             is ChatPhase.Failed -> OasisScreen("Nachrichten") {
                 ErrorStateView(ApiError.Server(0, phase.message), onRetry = { model.load() })

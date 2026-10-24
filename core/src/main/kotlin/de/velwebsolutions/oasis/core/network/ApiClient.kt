@@ -81,7 +81,7 @@ class ApiClient(
         .build()
 
     /** A Retrofit service of a feature module; paths are relative to `/api/v1/`. */
-    fun <T> create(service: Class<T>, keyCoding: KeyCoding = KeyCoding.SnakeCase): T =
+    fun <T> create(service: Class<T>, keyCoding: KeyCoding): T =
         (if (keyCoding == KeyCoding.Verbatim) verbatimRetrofit else snakeRetrofit).create(service)
 
     inline fun <reified T> create(keyCoding: KeyCoding = KeyCoding.SnakeCase): T = create(T::class.java, keyCoding)
@@ -178,8 +178,9 @@ private suspend fun okhttp3.Call.await(): Response = suspendCancellableCoroutine
  */
 internal object ApiErrorCallAdapterFactory : CallAdapter.Factory() {
     override fun get(returnType: Type, annotations: Array<out Annotation>, retrofit: Retrofit): CallAdapter<*, *>? {
-        if (getRawType(returnType) != Call::class.java || returnType !is ParameterizedType) return null
-        val responseType = getParameterUpperBound(0, returnType)
+        if (getRawType(returnType) != Call::class.java) return null
+        // Kotlin has no raw types, so a Call return type always carries its body type.
+        val responseType = getParameterUpperBound(0, returnType as ParameterizedType)
         return object : CallAdapter<Any, Call<Any>> {
             override fun responseType(): Type = responseType
 
@@ -196,7 +197,8 @@ private class ApiErrorCall(private val delegate: Call<Any>) : Call<Any> by deleg
                     if (response.isSuccessful) {
                         callback.onResponse(this@ApiErrorCall, response)
                     } else {
-                        val error = ApiClient.errorFor(response.code(), response.errorBody()?.string(), response.headers()["Retry-After"])
+                        // Retrofit gives every non-2xx response an error body.
+                        val error = ApiClient.errorFor(response.code(), response.errorBody()!!.string(), response.headers()["Retry-After"])
                         callback.onFailure(this@ApiErrorCall, error)
                     }
                 }

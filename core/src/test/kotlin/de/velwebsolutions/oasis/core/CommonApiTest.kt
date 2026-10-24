@@ -124,4 +124,65 @@ class CommonApiTest {
         }
         assertEquals("http://localhost/api/v1/network/feed", client.url("/network/feed").toString())
     }
+
+    @Test
+    fun `odd answers and addresses`() = runTest {
+        assertEquals(ApiError.Validation("", emptyMap()), ApiClient.errorFor(422, null, null))
+        assertEquals(ApiError.Validation("x", emptyMap()), ApiClient.errorFor(422, """{"message":"x"}""", null))
+        assertEquals(ApiError.TooManyRequests(null), ApiClient.errorFor(429, null, null))
+        assertEquals(ApiError.Server(500, "Wartung"), ApiClient.errorFor(500, """{"message":"Wartung"}""", null))
+        val client = StubTransport().client
+        assertEquals("http://localhost/api/v1/", client.url("ftp:x").toString())
+        assertNull(client.absoluteUrl("http://"))
+        try {
+            client.download("ftp:x")
+            fail("expected an error")
+        } catch (error: ApiError) {
+            assertEquals(ApiError.Transport("Ungültige Adresse"), error)
+        }
+        val auth = RemoteAuthApi(
+            StubTransport(
+                StubTransport.Stub("POST", "auth/login", json = """{"two_factor":true}"""),
+                StubTransport.Stub("POST", "auth/two-factor", json = """{"token":"t"}""")
+            ).client
+        )
+        for (call in listOf<suspend () -> Unit>({ auth.login("m", "p", "d") }, { auth.twoFactor("c", "1", null) })) {
+            try {
+                call()
+                fail("expected an error")
+            } catch (error: ApiError) {
+                assertEquals(ApiError.Decoding("Anmeldung ohne Token"), error)
+            }
+        }
+        assertEquals("ok", de.velwebsolutions.oasis.core.network.MessageResponse("ok").message)
+        assertNull(de.velwebsolutions.oasis.core.auth.TokenAnswer().token)
+        assertNull(de.velwebsolutions.oasis.core.realtime.RealtimeEvent("x").string("kind"))
+    }
+
+    @Test
+    fun `connection failures without a message still read as no connection`() = runTest {
+        val failing = okhttp3.OkHttpClient.Builder().addInterceptor { throw java.io.IOException() }.build()
+        val tokens = object : de.velwebsolutions.oasis.core.network.TokenProvider {
+            override fun currentToken(): String? = null
+
+            override fun onUnauthenticated() = Unit
+        }
+        val client = ApiClient(de.velwebsolutions.oasis.core.network.ApiConfig("http://localhost", "UA", gateKey = ""), tokens, failing)
+        try {
+            client.download("/bild.png")
+            fail("expected an error")
+        } catch (error: ApiError) {
+            assertEquals(ApiError.Transport("Keine Verbindung"), error)
+        }
+    }
+
+    interface NotACall {
+        @retrofit2.http.GET("x")
+        fun plain(): String
+    }
+
+    @Test(expected = IllegalArgumentException::class)
+    fun `services return calls or suspend`() {
+        StubTransport().client.create<NotACall>().plain()
+    }
 }
