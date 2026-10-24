@@ -16,6 +16,7 @@ import androidx.compose.ui.test.performSemanticsAction
 import androidx.compose.ui.test.performTextInput
 import androidx.test.core.app.ActivityScenario
 import androidx.test.core.app.ApplicationProvider
+import com.github.takahirom.roborazzi.ExperimentalRoborazziApi
 import com.github.takahirom.roborazzi.captureRoboImage
 import com.github.takahirom.roborazzi.captureScreenRoboImage
 import dagger.hilt.android.testing.HiltAndroidRule
@@ -51,6 +52,9 @@ abstract class HiltScreenTest {
     val web = mutableListOf<String>()
     private var scenario: ActivityScenario<HiltTestActivity>? = null
 
+    /** The activity of the screen (results of the system's pickers are handed to it). */
+    lateinit var activity: HiltTestActivity
+
     @Before
     fun startGraph() {
         hilt.inject()
@@ -71,6 +75,7 @@ abstract class HiltScreenTest {
 
     fun show(content: @Composable () -> Unit) {
         scenario = ActivityScenario.launch(HiltTestActivity::class.java).onActivity { activity ->
+            this.activity = activity
             activity.setContent { OasisTheme { CompositionLocalProvider(LocalNavigator provides navigator) { content() } } }
         }
     }
@@ -78,6 +83,7 @@ abstract class HiltScreenTest {
     fun shot(name: String) = compose.onRoot().captureRoboImage("build/outputs/roborazzi/account-$name.png")
 
     /** The whole screen with its dialogs and sheets. */
+    @OptIn(ExperimentalRoborazziApi::class)
     fun screenShot(name: String) = captureScreenRoboImage("build/outputs/roborazzi/account-$name.png")
 
     fun waitForText(text: String, substring: Boolean = false) =
