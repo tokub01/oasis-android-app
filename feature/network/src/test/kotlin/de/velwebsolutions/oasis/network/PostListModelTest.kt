@@ -177,4 +177,82 @@ class PostListModelTest {
         assertEquals(listOf("network/posts/1/reaction", "network/posts/2/reaction"), reactions.map { it.path }.sorted())
         assertTrue(reactions.all { it.request.method == "POST" })
     }
+
+    @Test
+    fun `older Tropfen load only when there are more and show a failure to retry`() = runTest {
+        val network = StubbedNetwork(stub("GET", "network/bookmarks", pageJson(postJson(3), next = "abc")))
+        val model = bookmarks(network)
+        model.loadMore()
+        assertTrue(network.transport.requests.isEmpty())
+
+        model.loadIfNeeded()
+        model.loadIfNeeded()
+        assertEquals(1, network.transport.requests.size)
+        network.add("GET", "network/bookmarks", status = 500, json = """{"message":"Kaputt."}""")
+        model.loadMore()
+        assertEquals("Kaputt.", model.state.value.loadMoreError?.userMessage)
+        assertFalse(model.state.value.isLoadingMore)
+
+        network.add("GET", "network/bookmarks", json = pageJson(postJson(3), postJson(2)))
+        model.loadMore()
+        assertEquals(listOf(3, 2), model.posts.map { it.id })
+        assertNull(model.state.value.loadMoreError)
+        model.loadMore()
+        assertEquals(3, network.transport.requests.size)
+    }
+
+    @Test
+    fun `a first page that fails shows the error page`() = runTest {
+        val network = StubbedNetwork(stub("GET", "network/bookmarks", status = 500, json = """{"message":"Kaputt."}"""))
+        val model = bookmarks(network)
+        model.reload()
+        assertEquals("Kaputt.", model.state.value.state.errorOrNull?.userMessage)
+        assertFalse(model.state.value.reachedEnd)
+    }
+
+    @Test
+    fun `a list forgotten while loading ignores the late answer`() = runTest {
+        val gate = CompletableDeferred<Unit>()
+        val network = StubbedNetwork(stub("GET", "network/bookmarks", pageJson(postJson(3), next = "abc")))
+        val slow = object : NetworkRepository by network.repository {
+            override suspend fun bookmarks(cursor: String?) = network.repository.bookmarks(cursor).also { gate.await() }
+        }
+        val model = PostListModel<NoContext>(slow) { _, cursor -> bookmarks(cursor) }
+        val first = launch { model.reload() }
+        runCurrent()
+        model.reset()
+        gate.complete(Unit)
+        first.join()
+        assertTrue(model.posts.isEmpty())
+        assertFalse(model.state.value.isReloading)
+    }
+
+    @Test
+    fun `a page forgotten while older Tropfen load ignores them, and status and error can be dismissed`() = runTest {
+        var gate = CompletableDeferred<Unit>().apply { complete(Unit) }
+        val network = StubbedNetwork(
+            stub("GET", "network/bookmarks", pageJson(postJson(3), next = "abc")),
+            stub("POST", "network/posts/3/bookmark", """{"message":"Gemerkt."}""")
+        )
+        val slow = object : NetworkRepository by network.repository {
+            override suspend fun bookmarks(cursor: String?) = network.repository.bookmarks(cursor).also { gate.await() }
+        }
+        val model = PostListModel<NoContext>(slow) { _, cursor -> bookmarks(cursor) }
+        model.reload()
+        gate = CompletableDeferred()
+        val more = launch { model.loadMore() }
+        runCurrent()
+        model.reset()
+        gate.complete(Unit)
+        more.join()
+        assertTrue(model.posts.isEmpty())
+
+        model.reload()
+        model.perform(PostAction.Bookmark, model.posts[0])
+        assertEquals("Gemerkt.", model.state.value.status)
+        model.dismissStatus()
+        assertNull(model.state.value.status)
+        model.dismissError()
+        assertNull(model.state.value.actionError)
+    }
 }
