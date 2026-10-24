@@ -17,6 +17,7 @@ class AndroidFeatureConventionPlugin : Plugin<Project> {
         pluginManager.apply("org.jetbrains.kotlin.plugin.compose")
         pluginManager.apply("com.google.devtools.ksp")
         pluginManager.apply("com.google.dagger.hilt.android")
+        pluginManager.apply("io.github.takahirom.roborazzi")
         extensions.configure<LibraryExtension> {
             buildFeatures.compose = true
         }
@@ -39,6 +40,9 @@ class AndroidFeatureConventionPlugin : Plugin<Project> {
             add("ksp", libs.library("hilt-compiler"))
             add("testImplementation", project(":core-testing"))
             add("testImplementation", libs.library("robolectric"))
+            add("testImplementation", libs.library("roborazzi"))
+            add("testImplementation", libs.library("roborazzi-compose"))
+            add("testImplementation", libs.library("roborazzi-junit-rule"))
             add("testImplementation", libs.library("compose-ui-test-junit4"))
             add("testImplementation", bom)
             add("debugImplementation", libs.library("compose-ui-test-manifest"))

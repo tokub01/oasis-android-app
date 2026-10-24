@@ -14,6 +14,8 @@ class AndroidApplicationConventionPlugin : Plugin<Project> {
         pluginManager.apply("org.jetbrains.kotlin.plugin.serialization")
         pluginManager.apply("com.google.devtools.ksp")
         pluginManager.apply("com.google.dagger.hilt.android")
+        pluginManager.apply("org.jetbrains.kotlinx.kover")
+        configureKover("debug")
         extensions.configure<ApplicationExtension> {
             configureAndroid(this)
             defaultConfig.targetSdk = libs.version("targetSdk")

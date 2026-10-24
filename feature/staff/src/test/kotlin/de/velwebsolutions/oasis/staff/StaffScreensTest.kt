@@ -115,6 +115,16 @@ class StaffScreensTest {
     }
 
     @Test
+    fun `secured text evidence opens behind its disclosure`() {
+        val escalated = data(Fixtures.caseEscalated, ModerationCaseDetail.serializer())
+        show { CaseDetailContent(escalated.id, CaseDetailUiState(Loadable.Loaded(escalated)), CaseDetailActions()) }
+        compose.onNodeWithTag("case.escalated").performScrollTo().assertIsDisplayed()
+        compose.onNodeWithText("Gemeldeter Text").assertDoesNotExist()
+        compose.onNodeWithText("Text anzeigen").performScrollTo().performClick()
+        compose.onNodeWithText("Gemeldeter Text").performScrollTo().assertIsDisplayed()
+    }
+
+    @Test
     fun `a lock is released after confirming`() {
         val list = data(Fixtures.suspensions, SuspensionList.serializer())
         val released = mutableListOf<Int>()

@@ -4,6 +4,7 @@ import android.annotation.SuppressLint
 import android.webkit.WebView
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.outlined.Description
 import androidx.compose.material.icons.outlined.Print
 import androidx.compose.material.icons.outlined.Share
 import androidx.compose.material3.Icon
@@ -77,7 +78,7 @@ private fun InvoiceDocument(file: File) {
                 file.name,
                 Modifier.testTag("invoice.document"),
                 message = "Über „Teilen“ kannst du die Rechnung speichern, drucken oder als PDF sichern.",
-                icon = Icons.Outlined.Share
+                icon = Icons.Outlined.Description
             )
         }
     }

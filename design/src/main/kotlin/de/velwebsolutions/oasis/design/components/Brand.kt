@@ -2,7 +2,6 @@ package de.velwebsolutions.oasis.design.components
 
 import android.content.Context
 import android.content.Intent
-import android.net.Uri
 import androidx.browser.customtabs.CustomTabColorSchemeParams
 import androidx.browser.customtabs.CustomTabsIntent
 import androidx.compose.foundation.Canvas
@@ -37,6 +36,7 @@ import androidx.compose.ui.text.withStyle
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.em
+import androidx.core.net.toUri
 import de.velwebsolutions.oasis.design.theme.OasisColors
 import de.velwebsolutions.oasis.design.theme.OasisRadius
 import de.velwebsolutions.oasis.design.theme.OasisType
@@ -123,7 +123,7 @@ fun SupportContacts(modifier: Modifier = Modifier) {
 
 /** Opens a public website page (legal pages, help) in a Custom Tab in the Oasis colours; other schemes go to the system. */
 fun openWebPage(context: Context, url: String) {
-    val uri = Uri.parse(url)
+    val uri = url.toUri()
     if (uri.scheme != "http" && uri.scheme != "https") {
         runCatching { context.startActivity(Intent(Intent.ACTION_VIEW, uri).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)) }
         return

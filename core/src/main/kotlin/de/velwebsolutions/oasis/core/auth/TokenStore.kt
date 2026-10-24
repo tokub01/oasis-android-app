@@ -4,6 +4,7 @@ import android.content.Context
 import android.security.keystore.KeyGenParameterSpec
 import android.security.keystore.KeyProperties
 import android.util.Base64
+import androidx.core.content.edit
 import java.security.KeyStore
 import javax.crypto.Cipher
 import javax.crypto.KeyGenerator
@@ -43,10 +44,9 @@ class KeystoreTokenStore(context: Context) : TokenStore {
     }
 
     override fun write(token: String?) = synchronized(lock) {
-        if (token == null) {
-            preferences.edit().remove(KEY).commit()
-        } else {
-            preferences.edit().putString(KEY, encrypt(token)).commit()
+        // Written synchronously: the token must be on disk before the app may be killed after signing in.
+        preferences.edit(commit = true) {
+            if (token == null) remove(KEY) else putString(KEY, encrypt(token))
         }
         cached = Result.success(token)
         Unit
