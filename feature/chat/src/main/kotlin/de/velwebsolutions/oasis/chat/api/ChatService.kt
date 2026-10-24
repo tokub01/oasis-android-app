@@ -1,7 +1,6 @@
 package de.velwebsolutions.oasis.chat.api
 
 import de.velwebsolutions.oasis.chatcrypto.KeyGrant
-import de.velwebsolutions.oasis.chatcrypto.LinkApproval
 import de.velwebsolutions.oasis.core.network.DataEnvelope
 import kotlinx.serialization.json.JsonObject
 import retrofit2.http.Body
@@ -21,7 +20,7 @@ import retrofit2.http.Query
  */
 interface ChatService {
     @GET("chat/identity")
-    suspend fun identity(): DataEnvelope<StoredIdentity?>
+    suspend fun identity(): OptionalIdentity
 
     @PUT("chat/identity")
     suspend fun saveIdentity(@Body body: JsonObject): DataEnvelope<StoredIdentity>
@@ -39,7 +38,7 @@ interface ChatService {
     suspend fun requestDeviceLink(@Body body: JsonObject): DataEnvelope<CreatedDeviceLink>
 
     @GET("chat/device-links/{id}")
-    suspend fun deviceLink(@Path("id") id: String): DataEnvelope<LinkApproval?>
+    suspend fun deviceLink(@Path("id") id: String): OptionalLinkApproval
 
     @GET("chat/device-links")
     suspend fun deviceLinks(): DataEnvelope<List<DeviceLinkRequest>>

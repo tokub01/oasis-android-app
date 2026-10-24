@@ -1,6 +1,7 @@
 package de.velwebsolutions.oasis.chat.api
 
 import de.velwebsolutions.oasis.chatcrypto.FlexibleIdSerializer
+import de.velwebsolutions.oasis.chatcrypto.LinkApproval
 import de.velwebsolutions.oasis.chatcrypto.LockedIdentity
 import de.velwebsolutions.oasis.chatcrypto.MessageEnvelope
 import de.velwebsolutions.oasis.chatcrypto.PublicKeyBundle
@@ -142,13 +143,12 @@ data class ChatSettings(
     /** The choices in the Audience enum's order (members, contacts, following, nobody), whatever the JSON order. */
     val choices: List<Pair<String, String>>
         get() = choiceMap.entries
-            .sortedWith(compareBy({ ORDER.indexOf(it.key).let { index -> if (index < 0) 99 else index } }, { it.key }))
+            .sortedWith(compareBy({ AUDIENCE_ORDER.indexOf(it.key).let { index -> if (index < 0) 99 else index } }, { it.key }))
             .map { it.key to it.value }
-
-    private companion object {
-        val ORDER = listOf("everyone", "members", "contacts", "following", "nobody")
-    }
 }
+
+/** The Audience enum's order of the "Wer darf dir schreiben?" choices. */
+private val AUDIENCE_ORDER = listOf("everyone", "members", "contacts", "following", "nobody")
 
 /** Word lists of the on-device safety checks (`GET /chat/safety`). */
 @Serializable
@@ -167,3 +167,13 @@ data class SafetyLists(
 /** `POST …/read`: the unread count afterwards. */
 @Serializable
 data class UnreadCount(val count: Int = 0)
+
+/**
+ * `{ "data": … | null }` of the identity and the device-link pickup. Own classes, because Retrofit hands the converter a
+ * Java type, which cannot say that `data` may be null.
+ */
+@Serializable
+data class OptionalIdentity(val data: StoredIdentity? = null)
+
+@Serializable
+data class OptionalLinkApproval(val data: LinkApproval? = null)
