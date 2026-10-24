@@ -21,7 +21,6 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.callbackFlow
-import kotlinx.coroutines.isActive
 import kotlinx.coroutines.launch
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.json.JsonElement
@@ -31,7 +30,6 @@ import kotlinx.serialization.json.JsonPrimitive
 import kotlinx.serialization.json.contentOrNull
 import kotlinx.serialization.json.intOrNull
 import kotlinx.serialization.json.jsonObject
-import kotlinx.serialization.json.jsonPrimitive
 import retrofit2.http.Body
 import retrofit2.http.GET
 import retrofit2.http.POST
@@ -148,7 +146,8 @@ class ReverbRealtime(
     }
 
     private suspend fun run() {
-        while (currentCoroutineContext().isActive) {
+        // Ends by returning (no Reverb, fatal error) or by cancellation, which every suspension point checks.
+        while (true) {
             var reconnectAtOnce = false
             try {
                 val current = settings()
@@ -202,13 +201,12 @@ class ReverbRealtime(
      * which ends [listen] and reconnects.
      */
     private suspend fun keepAlive(socket: WebSocketConnection) {
-        while (currentCoroutineContext().isActive) {
+        // Runs as [pingJob], which is cancelled before the socket is replaced or closed.
+        while (true) {
             sleep(synchronized(lock) { activityTimeout })
-            if (synchronized(lock) { this.socket !== socket }) return
             awaitingPong = true
             runCatching { socket.send(frame("pusher:ping", JsonObject(emptyMap()))) }
             sleep(pongTimeout)
-            if (synchronized(lock) { this.socket !== socket }) return
             if (awaitingPong) {
                 socket.close()
                 return
@@ -221,10 +219,10 @@ class ReverbRealtime(
         when (message.event) {
             "pusher:connection_established" -> {
                 val payload = message.payload as? JsonObject ?: return
-                val id = payload["socket_id"]?.jsonPrimitive?.contentOrNull ?: return
+                val id = (payload["socket_id"] as? JsonPrimitive)?.contentOrNull ?: return
                 val channels = synchronized(lock) {
                     socketId = id
-                    payload["activity_timeout"]?.jsonPrimitive?.intOrNull?.takeIf { it > 0 }?.let { activityTimeout = it.seconds }
+                    (payload["activity_timeout"] as? JsonPrimitive)?.intOrNull?.takeIf { it > 0 }?.let { activityTimeout = it.seconds }
                     failures = 0
                     pingJob?.cancel()
                     pingJob = scope.launch { keepAlive(socket) }
@@ -239,7 +237,7 @@ class ReverbRealtime(
             "pusher:pong" -> Unit
 
             "pusher:error" -> {
-                val code = (message.payload as? JsonObject)?.get("code")?.jsonPrimitive?.intOrNull ?: 0
+                val code = ((message.payload as? JsonObject)?.get("code") as? JsonPrimitive)?.intOrNull ?: 0
                 if (code in 4000 until 4300) throw PusherError(code)
             }
 
@@ -247,7 +245,7 @@ class ReverbRealtime(
 
             else -> {
                 val channel = message.channel ?: return
-                val receivers = synchronized(lock) { handlers[channel]?.values?.toList() }.orEmpty()
+                val receivers = synchronized(lock) { handlers[channel].orEmpty().values.toList() }
                 val event = RealtimeEvent(message.event, message.payload)
                 receivers.forEach { it(event) }
             }
@@ -263,7 +261,8 @@ class ReverbRealtime(
             handlers.getOrPut(channel) { mutableMapOf() }[id] = handler
             val current = socket
             val currentId = socketId
-            if (isNew && mutableConnected.value && current != null && currentId != null) current to currentId else null
+            // A socket id means the connection is established; until then the connection subscribes everything itself.
+            if (isNew && current != null && currentId != null) current to currentId else null
         }
         if (target != null) scope.launch { subscribeOnServer(channel, target.first, target.second) }
         if (connectsWithSubscribers) connect()
@@ -272,10 +271,11 @@ class ReverbRealtime(
 
     private fun removeHandler(channel: String, id: Long) {
         val (unsubscribeOn, nobodyLeft) = synchronized(lock) {
-            val channelHandlers = handlers[channel]
-            channelHandlers?.remove(id)
+            // Every handler id is removed once, so its channel is still registered.
+            val channelHandlers = handlers.getValue(channel)
+            channelHandlers.remove(id)
             var target: WebSocketConnection? = null
-            if (channelHandlers != null && channelHandlers.isEmpty()) {
+            if (channelHandlers.isEmpty()) {
                 handlers.remove(channel)
                 subscribed.remove(channel)
                 if (mutableConnected.value) target = socket
@@ -304,7 +304,7 @@ class ReverbRealtime(
         }
         // The connection may have changed while the auth request ran.
         val current = synchronized(lock) {
-            this.socket === socket && this.socketId == socketId && !handlers[channel].isNullOrEmpty()
+            this.socket === socket && this.socketId == socketId && channel in handlers
         }
         if (!current) return
         runCatching { socket.send(frame("pusher:subscribe", JsonObject(data))) }
@@ -312,7 +312,7 @@ class ReverbRealtime(
 
     companion object {
         /** Waits after the n-th failed attempt in a row (the last value repeats). */
-        val BACKOFF: List<Duration> = listOf(1.seconds, 2.seconds, 4.seconds, 8.seconds, 16.seconds, 30.seconds)
+        private val BACKOFF: List<Duration> = listOf(1.seconds, 2.seconds, 4.seconds, 8.seconds, 16.seconds, 30.seconds)
 
         internal fun frame(event: String, data: JsonElement): String =
             JsonObject(mapOf("event" to JsonPrimitive(event), "data" to data)).toString()

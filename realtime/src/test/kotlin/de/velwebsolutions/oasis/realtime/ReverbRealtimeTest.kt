@@ -17,6 +17,8 @@ import kotlinx.coroutines.channels.Channel
 import kotlinx.coroutines.flow.launchIn
 import kotlinx.coroutines.flow.onEach
 import kotlinx.coroutines.runBlocking
+import kotlinx.serialization.SerializationException
+import kotlinx.serialization.encodeToString
 import kotlinx.serialization.json.Json
 import kotlinx.serialization.json.JsonObject
 import kotlinx.serialization.json.JsonPrimitive
@@ -444,5 +446,228 @@ class ReverbRealtimeTest {
         val transport =
             StubTransport(StubTransport.Stub("GET", "app-config", json = """{"data":{"reverb":null,"push":{"available":false}}}"""))
         assertEquals(null, RealtimeApi(transport.client).settings())
+    }
+
+    @Test
+    fun ignoresFramesItCannotUseAndKeepsTheDefaultActivityTimeout() {
+        val factory = SocketFactory()
+        val clock = ManualClock()
+        val realtime = client(factory, clock)
+        val received = CopyOnWriteArrayList<RealtimeEvent>()
+        val job = realtime.listen("status", received)
+        Thread.sleep(20)
+        realtime.connect()
+        eventually { factory.sockets.size == 1 }
+        val socket = factory.sockets[0]
+        listOf(
+            "no json",
+            """{"event":"pusher:connection_established","data":"[]"}""",
+            """{"event":"pusher:connection_established","data":"{}"}""",
+            """{"event":"pusher:connection_established","data":"{\"socket_id\":null}"}""",
+            """{"event":"pusher:error"}""",
+            """{"event":"pusher:error","data":{"code":"x"}}""",
+            """{"event":"pusher:error","data":{"code":1006}}""",
+            """{"event":"pusher:error","data":{"code":4300}}""",
+            """{"event":"pusher_internal:subscription_succeeded","data":"{}"}""",
+            """{"event":"InboxActivity","data":"{}"}""",
+            """{"event":"InboxActivity","channel":"nobody-listens","data":"{}"}"""
+        ).forEach(socket::push)
+        Thread.sleep(50)
+        assertFalse("nothing established the connection", realtime.isConnected.value)
+        assertFalse(socket.isClosed)
+        assertTrue(received.isEmpty())
+
+        // An activity timeout that is no positive number keeps the protocol's 120 seconds.
+        socket.push("""{"event":"pusher:connection_established","data":"{\"socket_id\":\"1.1\",\"activity_timeout\":\"soon\"}"}""")
+        eventually { realtime.isConnected.value }
+        eventually { clock.pending == 1 }
+        assertEquals(listOf(120.seconds), clock.requested.toList())
+        listOf("""\"activity_timeout\":0""", """\"activity_timeout\":{}""", """\"other\":1""").forEachIndexed { index, timeout ->
+            socket.push("""{"event":"pusher:connection_established","data":"{\"socket_id\":\"1.$index\",$timeout}"}""")
+            eventually { clock.requested.size == index + 2 }
+        }
+        assertEquals(List(4) { 120.seconds }, clock.requested.toList())
+        socket.push("""{"event":"Status","channel":"status","data":"open"}""")
+        eventually { received.size == 1 }
+        assertEquals("open", (received.first().data as JsonPrimitive).content)
+        job.cancel()
+        realtime.disconnect()
+    }
+
+    @Test
+    fun connectsOnceAndStopsCleanlyWithoutAConnection() {
+        val factory = SocketFactory()
+        val realtime = client(factory, ManualClock())
+        realtime.disconnect()
+        realtime.reconnectIfNeeded()
+        Thread.sleep(20)
+        assertTrue("nothing to reconnect before connect()", factory.sockets.isEmpty())
+        realtime.connect()
+        realtime.connect()
+        Thread.sleep(30)
+        assertEquals(1, factory.sockets.size)
+        realtime.reconnectIfNeeded()
+        eventually("a pending connection is started again") { factory.sockets.size == 2 }
+        realtime.disconnect()
+
+        val withSubscribers = client(SocketFactory(), ManualClock(), connectsWithSubscribers = true)
+        withSubscribers.reconnectIfNeeded()
+        Thread.sleep(20)
+        assertFalse(withSubscribers.isConnected.value)
+    }
+
+    @Test
+    fun subscribesPresenceChannelsWithAuthAndWaitsForTheConnection() {
+        val factory = SocketFactory()
+        val realtime = client(factory, ManualClock())
+        realtime.connect()
+        eventually { factory.sockets.size == 1 }
+        val socket = factory.sockets[0]
+        // Open but not established: the subscription goes out with the connection.
+        val job = realtime.listen("presence-room.1")
+        Thread.sleep(30)
+        assertTrue(socket.sentEvents("pusher:subscribe").isEmpty())
+        socket.established()
+        eventually { socket.sentEvents("pusher:subscribe").size == 1 }
+        assertEquals(
+            "key:123.456:presence-room.1",
+            socket.sentEvents("pusher:subscribe").first()["data"]!!.jsonObject["auth"]!!.jsonPrimitive.content
+        )
+        job.cancel()
+        realtime.disconnect()
+    }
+
+    @Test
+    fun dropsASubscriptionWhoseAuthArrivesTooLate() {
+        val factory = SocketFactory()
+        val gate = CompletableDeferred<Unit>()
+        val asked = CopyOnWriteArrayList<String>()
+        val realtime = client(factory, ManualClock(), authorize = { socket, channel ->
+            asked += "$socket:$channel"
+            gate.await()
+            "late"
+        })
+        realtime.connect()
+        eventually { factory.sockets.size == 1 }
+        val socket = factory.sockets[0]
+        socket.established()
+        eventually { realtime.isConnected.value }
+
+        // The listener leaves while its channel is being authorised.
+        val gone = realtime.listen("private-inbox.1")
+        eventually { asked.size == 1 }
+        gone.cancel()
+        Thread.sleep(20)
+
+        // The connection changes while another channel is being authorised.
+        val stays = realtime.listen("private-inbox.2")
+        eventually { asked.size == 2 }
+        socket.established(socketId = "777.1")
+        eventually { asked.size == 3 }
+        gate.complete(Unit)
+        eventually { socket.sentEvents("pusher:subscribe").size == 1 }
+        Thread.sleep(30)
+        assertEquals("only the current connection's channel is subscribed", 1, socket.sentEvents("pusher:subscribe").size)
+        assertEquals(
+            JsonPrimitive("private-inbox.2"),
+            socket.sentEvents("pusher:subscribe").single()["data"]!!.jsonObject["channel"]
+        )
+        stays.cancel()
+        realtime.disconnect()
+    }
+
+    @Test
+    fun unsubscribesOneChannelWhileAnotherKeepsTheConnection() {
+        val factory = SocketFactory()
+        val realtime = client(factory, ManualClock(), connectsWithSubscribers = true)
+        val inbox = realtime.listen("private-inbox.5")
+        val chat = realtime.listen("private-conversation.3")
+        eventually { factory.sockets.size == 1 }
+        val socket = factory.sockets[0]
+        socket.established()
+        eventually { socket.sentEvents("pusher:subscribe").size == 2 }
+        chat.cancel()
+        eventually { socket.sentEvents("pusher:unsubscribe").size == 1 }
+        assertFalse(socket.isClosed)
+        inbox.cancel()
+        eventually { socket.isClosed }
+    }
+
+    @Test
+    fun unsubscribesWithoutAFrameWhileNotConnected() {
+        val factory = SocketFactory()
+        val realtime = client(factory, ManualClock())
+        val job = realtime.listen("status")
+        Thread.sleep(20)
+        realtime.connect()
+        eventually { factory.sockets.size == 1 }
+        job.cancel()
+        Thread.sleep(30)
+        assertTrue(factory.sockets[0].sentEvents("pusher:unsubscribe").isEmpty())
+        realtime.disconnect()
+    }
+
+    @Test
+    fun waitsWithTheRealClockByDefault() {
+        val factory = SocketFactory()
+        var attempts = 0
+        val realtime = ReverbRealtime(
+            settings = { settings },
+            authorize = { _, _ -> "" },
+            makeSocket = { url ->
+                attempts += 1
+                if (attempts == 1) throw IOException("offline")
+                factory.make(url)
+            },
+            scope = scope,
+            connectsWithSubscribers = false
+        )
+        realtime.connect()
+        repeat(400) { if (factory.sockets.isEmpty()) Thread.sleep(10) }
+        assertEquals("the second attempt after the one-second backoff", 1, factory.sockets.size)
+        realtime.disconnect()
+    }
+
+    @Test
+    fun dropsASubscriptionWhenTheSocketClosedDuringItsAuth() {
+        val factory = SocketFactory()
+        val clock = ManualClock()
+        val gate = CompletableDeferred<Unit>()
+        val realtime = client(factory, clock, authorize = { _, _ ->
+            gate.await()
+            "late"
+        })
+        val job = realtime.listen("private-inbox.1")
+        Thread.sleep(20)
+        realtime.connect()
+        eventually { factory.sockets.size == 1 }
+        val socket = factory.sockets[0]
+        socket.established()
+        eventually { realtime.isConnected.value }
+        socket.close()
+        eventually { clock.requested.lastOrNull() == 1.seconds }
+        gate.complete(Unit)
+        Thread.sleep(30)
+        assertTrue(socket.sentEvents("pusher:subscribe").isEmpty())
+        job.cancel()
+        realtime.disconnect()
+    }
+
+    @Test
+    fun readsTheWireFormatOfSettingsAndChannelAuth() {
+        val json = Json { ignoreUnknownKeys = true }
+        assertEquals(AppConfigAnswer(null), json.decodeFromString<AppConfigAnswer>("{}"))
+        assertEquals("{}", json.encodeToString(AppConfigAnswer(null)))
+        assertEquals(AppConfigAnswer(null), json.decodeFromString<AppConfigAnswer>("""{"reverb":null}"""))
+        assertEquals("""{"reverb":null}""", Json { encodeDefaults = true }.encodeToString(AppConfigAnswer(null)))
+        assertEquals(AppConfigAnswer(settings), json.decodeFromString<AppConfigAnswer>(json.encodeToString(AppConfigAnswer(settings))))
+        val body = BroadcastAuthBody("1.2", "private-inbox.5")
+        assertEquals(body, json.decodeFromString<BroadcastAuthBody>(json.encodeToString(body)))
+        assertEquals(BroadcastAuthAnswer("k:1"), json.decodeFromString<BroadcastAuthAnswer>("""{"auth":"k:1"}"""))
+        listOf<() -> Any>(
+            { json.decodeFromString<ReverbSettings>("""{"key":"k"}""") },
+            { json.decodeFromString<BroadcastAuthAnswer>("{}") },
+            { json.decodeFromString<BroadcastAuthBody>("{}") }
+        ).forEach { decode -> assertTrue(runCatching(decode).exceptionOrNull() is SerializationException) }
     }
 }
