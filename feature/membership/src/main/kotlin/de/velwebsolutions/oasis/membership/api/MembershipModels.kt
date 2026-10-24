@@ -20,7 +20,6 @@ data class MembershipOverview(
     val canCancel: Boolean = false,
     val canWithdraw: Boolean = false,
     val purchasedGifts: List<PurchasedGift> = emptyList(),
-    val giftOffers: List<GiftOffer> = emptyList(),
     /** In-app subscriptions through Apple (`apple` of MembershipResource); null from servers before they existed. */
     val apple: Apple? = null
 ) {
@@ -57,9 +56,6 @@ data class MembershipOverview(
 
     @Serializable
     data class PurchasedGift(val id: Int, val code: String, val tierName: String, val redeemed: Boolean = false)
-
-    @Serializable
-    data class GiftOffer(val tier: String, val name: String, val priceLabel: String)
 
     /**
      * The App Store side of the membership. The server has no Google Play counterpart yet, so the Android app reads only

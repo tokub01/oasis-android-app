@@ -126,7 +126,6 @@ data class MolliePayment(
     val id: String,
     val status: String,
     val amount: String? = null,
-    val currency: String? = null,
     val refunded: String? = null,
     val method: String? = null,
     val description: String? = null,

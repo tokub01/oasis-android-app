@@ -41,9 +41,7 @@ data class PlayPurchase(
     val productIds: List<String>,
     /** Paid; false while the payment is still pending (for example cash payments or parental approval). */
     val isPurchased: Boolean,
-    val isAcknowledged: Boolean,
-    /** The obfuscated account id the purchase was started with (the member's account token). */
-    val accountId: String? = null
+    val isAcknowledged: Boolean
 ) {
     /** The first of our products in the purchase. */
     val productId: String? get() = productIds.firstOrNull { PlayProducts.entry(it) != null }

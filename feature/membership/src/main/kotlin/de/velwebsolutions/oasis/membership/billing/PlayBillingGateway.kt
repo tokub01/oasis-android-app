@@ -204,8 +204,7 @@ class PlayBillingGateway @Inject constructor(@ApplicationContext context: Contex
         purchaseToken = purchase.purchaseToken,
         productIds = purchase.products,
         isPurchased = purchase.purchaseState == Purchase.PurchaseState.PURCHASED,
-        isAcknowledged = purchase.isAcknowledged,
-        accountId = purchase.accountIdentifiers?.obfuscatedAccountId
+        isAcknowledged = purchase.isAcknowledged
     )
 
     private companion object {

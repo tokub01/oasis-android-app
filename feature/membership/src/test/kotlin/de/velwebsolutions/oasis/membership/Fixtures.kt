@@ -68,7 +68,17 @@ object Fixtures {
         offerToken = "offer-$id"
     )
 
-    val playCatalogue = PlayProducts.all.map { product(it.id, it.fallbackPrice) }
+    /** The prices the Play products were created with (PlayProducts' table). */
+    private val CATALOGUE_PRICES = mapOf(
+        PlayProducts.SOLIDAR_MONTHLY to "3,00 €",
+        PlayProducts.SOLIDAR_YEARLY to "30,00 €",
+        PlayProducts.OASE_MONTHLY to "5,00 €",
+        PlayProducts.OASE_YEARLY to "50,00 €",
+        PlayProducts.MAEZEN_MONTHLY to "12,00 €",
+        PlayProducts.MAEZEN_YEARLY to "120,00 €"
+    )
+
+    val playCatalogue = PlayProducts.all.map { product(it.id, CATALOGUE_PRICES.getValue(it.id)) }
 
     fun purchase(productId: String = PlayProducts.OASE_MONTHLY, purchased: Boolean = true, acknowledged: Boolean = false) =
         PlayPurchase("token-$productId", listOf(productId), isPurchased = purchased, isAcknowledged = acknowledged)

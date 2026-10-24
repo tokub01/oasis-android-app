@@ -20,7 +20,6 @@ class MembershipRepositoryTest {
         assertEquals(MembershipOverview.State.Trial, overview.state)
         assertEquals(20, overview.trialDaysLeft)
         assertNull(overview.subscription)
-        assertEquals(listOf("12 Monate für 30 €", "12 Monate für 50 €", "12 Monate für 120 €"), overview.giftOffers.map { it.priceLabel })
         assertEquals("11.11.2026", MembershipFormat.day(overview.trialEndsAt))
         assertEquals(true, overview.apple?.available)
         assertEquals("3f2b7c1e-8a4d-5b6e-9c0f-1a2b3c4d5e6f", overview.apple?.accountToken)
