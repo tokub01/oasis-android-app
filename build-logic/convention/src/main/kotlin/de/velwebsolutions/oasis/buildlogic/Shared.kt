@@ -61,6 +61,9 @@ internal fun Project.configureKotlin() {
  */
 internal fun Project.configureKover(sourceVariant: String) {
     extensions.configure<kotlinx.kover.gradle.plugin.dsl.KoverProjectExtension>("kover") {
+        // JaCoCo filters the bytecode the Kotlin and Compose compilers add (null checks, default arguments, when-tables,
+        // the $changed bookkeeping of composables), so lines and branches measure the code as written.
+        useJacoco("0.8.15")
         currentProject.createVariant("oasis") { add(sourceVariant) }
         reports.filters.excludes {
             classes(GeneratedClasses)
