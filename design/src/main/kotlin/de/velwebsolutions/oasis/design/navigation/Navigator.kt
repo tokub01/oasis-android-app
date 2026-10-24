@@ -34,6 +34,9 @@ class Navigator {
 
     val sheet: AppRoute? get() = sheetStack.firstOrNull()
 
+    /** False while the sheet's screen must not be swiped away (a composer with a draft asks first). */
+    var sheetDismissible by mutableStateOf(true)
+
     /** Opened when a route is a website ([WebRoute]); set by the app (Custom Tabs). */
     var openWeb: (String) -> Unit = {}
 
@@ -52,7 +55,10 @@ class Navigator {
         sheetStack.add(route)
     }
 
-    fun dismissSheet() = sheetStack.clear()
+    fun dismissSheet() {
+        sheetStack.clear()
+        sheetDismissible = true
+    }
 
     /** Go back one screen: inside the sheet first, otherwise on the current tab. Returns false at a root. */
     fun back(): Boolean {

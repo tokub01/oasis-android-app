@@ -14,6 +14,7 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -93,10 +94,16 @@ fun ComposeScreen(oasisSlug: String?, replyTo: Int?) {
     LaunchedEffect(Unit) { viewModel.loadIfNeeded() }
     BackHandler(enabled = state.hasDraft) { confirmDiscard = true }
 
+    // A draft keeps the sheet from being swiped away; "Schließen" and back ask first.
+    DisposableEffect(state.hasDraft) {
+        navigator.sheetDismissible = !state.hasDraft
+        onDispose { navigator.sheetDismissible = true }
+    }
+
     OasisScreen(
         title = if (state.isReply) "Antworten" else "Tropfen schreiben",
         closesItself = true,
-        actions = {
+        navigationAction = {
             if (navigator.sheet != null) {
                 OasisTextButton(
                     "Schließen",

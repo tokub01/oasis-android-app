@@ -37,6 +37,7 @@ import androidx.compose.material3.NavigationBar
 import androidx.compose.material3.NavigationBarItem
 import androidx.compose.material3.NavigationBarItemDefaults
 import androidx.compose.material3.Scaffold
+import androidx.compose.material3.SheetValue
 import androidx.compose.material3.Text
 import androidx.compose.material3.rememberModalBottomSheetState
 import androidx.compose.runtime.Composable
@@ -163,7 +164,10 @@ fun MainTabs(me: Me, viewModel: RootViewModel) {
     if (sheet != null) {
         ModalBottomSheet(
             onDismissRequest = { navigator.dismissSheet() },
-            sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true),
+            sheetState = rememberModalBottomSheetState(
+                skipPartiallyExpanded = true,
+                confirmValueChange = { it != SheetValue.Hidden || navigator.sheetDismissible },
+            ),
             containerColor = OasisColors.Sand,
             dragHandle = null
         ) {

@@ -61,6 +61,8 @@ fun OasisScreen(
     onDismissError: () -> Unit = {},
     /** Replaces "Schließen" in a sheet when the screen closes itself (e.g. the composer asks before discarding). */
     closesItself: Boolean = false,
+    /** The leading bar button of a screen that closes itself (the composer's "Schließen"). */
+    navigationAction: (@Composable () -> Unit)? = null,
     content: @Composable () -> Unit
 ) {
     val chrome = LocalScreenChrome.current
@@ -87,6 +89,7 @@ fun OasisScreen(
                                 }
 
                                 onClose != null && !closesItself -> OasisTextButton("Schließen", onClose)
+                                navigationAction != null -> navigationAction()
                             }
                         },
                         actions = actions,
