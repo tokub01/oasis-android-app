@@ -61,13 +61,15 @@ class MembershipScreensWiringTest {
 
     @Test
     fun `the overview shows the loaded membership`() {
-        show { OverviewScreen(OverviewViewModel(repository, events)) }
+        val viewModel = OverviewViewModel(repository, events)
+        show { OverviewScreen(viewModel) }
         compose.onNodeWithTag("membership.active").assertIsDisplayed()
     }
 
     @Test
     fun `the portal opens an invoice in its sheet and closes it`() {
-        show { PortalScreen(PortalViewModel(repository, files)) }
+        val viewModel = PortalViewModel(repository, files)
+        show { PortalScreen(viewModel) }
         compose.onNodeWithTag("portal.invoice.2").performClick()
         compose.waitForIdle()
         compose.onNodeWithTag("invoice.share").assertExists()
@@ -77,20 +79,23 @@ class MembershipScreensWiringTest {
 
     @Test
     fun `an invoice link shows the invoice right away`() {
-        show { InvoiceScreen(7, InvoiceViewModel(7, repository, files)) }
+        val viewModel = InvoiceViewModel(7, repository, files)
+        show { InvoiceScreen(7, viewModel) }
         compose.waitForIdle()
         compose.onNodeWithTag("invoice.share").assertExists()
     }
 
     @Test
     fun `the cancel page loads its contract`() {
-        show { CancelScreen(CancelViewModel(repository, files, events, Fixtures.session())) }
+        val viewModel = CancelViewModel(repository, files, events, Fixtures.session())
+        show { CancelScreen(viewModel) }
         compose.onNodeWithText("Mia Mitglied").performScrollTo().assertIsDisplayed()
     }
 
     @Test
     fun `the withdraw page loads its contract`() {
-        show { WithdrawScreen(WithdrawViewModel(repository, files, events, Fixtures.session())) }
+        val viewModel = WithdrawViewModel(repository, files, events, Fixtures.session())
+        show { WithdrawScreen(viewModel) }
         compose.onNodeWithText("14-tägiges gesetzliches Widerrufsrecht").performScrollTo().assertIsDisplayed()
     }
 
