@@ -135,8 +135,8 @@ fun SwipeContent(deck: SwipeDeck, onAction: (PostAction, Post) -> Unit) {
             Modifier
                 .fillMaxWidth()
                 .padding(horizontal = 16.dp)
-                .clearAndSetSemantics { contentDescription = "Karte ${position + 1} von ${cards.size}" }
-                .testTag("swipe.progress"),
+                .testTag("swipe.progress")
+                .clearAndSetSemantics { contentDescription = "Karte ${position + 1} von ${cards.size}" },
             horizontalArrangement = Arrangement.spacedBy(4.dp)
         ) {
             cards.forEach { card ->

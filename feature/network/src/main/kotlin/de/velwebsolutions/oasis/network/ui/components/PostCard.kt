@@ -1,11 +1,9 @@
 package de.velwebsolutions.oasis.network.ui.components
 
-import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
-import androidx.compose.foundation.combinedClickable
-import androidx.compose.foundation.interaction.MutableInteractionSource
+import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -49,6 +47,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.testTag
@@ -56,6 +55,7 @@ import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.semantics.clearAndSetSemantics
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.onClick
+import androidx.compose.ui.semantics.onLongClick
 import androidx.compose.ui.semantics.role
 import androidx.compose.ui.semantics.selected
 import androidx.compose.ui.semantics.semantics
@@ -93,7 +93,6 @@ import java.time.Instant
  * from the oasis), text, images, the carried Tropfen, "leise Zahlen" only for the author, the bundled conversation of
  * the Quelle, the action row and the "⋯" menu (also on a long press). Buttons a viewer may not use are not shown.
  */
-@OptIn(ExperimentalFoundationApi::class)
 @Composable
 fun PostCard(
     post: Post,
@@ -119,14 +118,20 @@ fun PostCard(
                 .fillMaxWidth()
                 .background(OasisColors.Paper, shape)
                 .border(1.dp, OasisColors.PaperLine, shape)
-                .combinedClickable(
-                    interactionSource = remember { MutableInteractionSource() },
-                    indication = null,
-                    enabled = viewer != null,
-                    onClickLabel = null,
-                    onLongClickLabel = "Aktionen zum Tropfen",
-                    onLongClick = { contextMenu = true },
-                    onClick = {}
+                .then(
+                    if (viewer == null) {
+                        Modifier
+                    } else {
+                        // A long press opens the menu like the iOS context menu; TalkBack offers it as an action.
+                        Modifier
+                            .pointerInput(post.id) { detectTapGestures(onLongPress = { contextMenu = true }) }
+                            .semantics {
+                                onLongClick("Aktionen zum Tropfen") {
+                                    contextMenu = true
+                                    true
+                                }
+                            }
+                    }
                 )
                 .padding(20.dp)
                 .testTag("post.card.${post.id}"),
@@ -473,6 +478,7 @@ private fun RowScope.ActionTile(
             .weight(1f)
             .defaultMinSize(minHeight = 48.dp)
             .pressable(onClick)
+            .testTag(tag)
             .clearAndSetSemantics {
                 contentDescription = label ?: title
                 role = Role.Button
@@ -481,8 +487,7 @@ private fun RowScope.ActionTile(
                     onClick()
                     true
                 }
-            }
-            .testTag(tag),
+            },
         horizontalAlignment = Alignment.CenterHorizontally,
         verticalArrangement = Arrangement.spacedBy(4.dp, Alignment.CenterVertically)
     ) {
