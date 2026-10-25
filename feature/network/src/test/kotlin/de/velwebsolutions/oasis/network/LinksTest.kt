@@ -55,3 +55,18 @@ class LinksTest {
         assertEquals(NetworkRoute.Tag("garten"), navigator.stack(MainTab.Source).last())
     }
 }
+
+/** Colours on night surfaces are solid (the app is always light; no see-through white on Night). */
+class SurfaceColorsTest {
+    @Test
+    fun `the soft circle of a night oasis is the solid night line`() {
+        assertEquals(
+            de.velwebsolutions.oasis.design.theme.OasisColors.NightLine,
+            de.velwebsolutions.oasis.network.ui.oases.softCircle("night")
+        )
+        assertEquals(
+            de.velwebsolutions.oasis.design.theme.OasisColors.Paper.copy(alpha = 0.25f),
+            de.velwebsolutions.oasis.network.ui.oases.softCircle("spring")
+        )
+    }
+}

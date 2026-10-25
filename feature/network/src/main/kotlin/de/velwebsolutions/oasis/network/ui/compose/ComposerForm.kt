@@ -39,6 +39,7 @@ import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import de.velwebsolutions.oasis.design.components.Banner
+import de.velwebsolutions.oasis.design.components.ConsentCheck
 import de.velwebsolutions.oasis.design.components.FieldError
 import de.velwebsolutions.oasis.design.components.OasisButton
 import de.velwebsolutions.oasis.design.components.OasisTextButton
@@ -53,7 +54,6 @@ import de.velwebsolutions.oasis.network.api.ImageUpload
 import de.velwebsolutions.oasis.network.api.PublishResult
 import de.velwebsolutions.oasis.network.ui.ImageConverter
 import de.velwebsolutions.oasis.network.ui.components.ChoiceMenu
-import de.velwebsolutions.oasis.network.ui.components.ToggleRow
 import de.velwebsolutions.oasis.network.ui.components.UnderlinedLink
 import de.velwebsolutions.oasis.network.ui.components.rememberImagePicker
 import kotlinx.coroutines.delay
@@ -195,13 +195,7 @@ private fun LinkConfirmation(links: List<ExternalLink>, state: ComposeUiState, c
             modifier = Modifier.semantics { heading() }
         )
         links.forEach { link -> UnderlinedLink(link.host, { navigator.open(WebRoute(link.url)) }) }
-        ToggleRow(
-            "Ich habe den Inhalt gelesen",
-            state.linkRead,
-            callbacks.onLinkRead,
-            Modifier.testTag("compose.linkRead"),
-            style = OasisType.Body
-        )
+        ConsentCheck("Ich habe den Inhalt gelesen", state.linkRead, callbacks.onLinkRead, Modifier.testTag("compose.linkRead"))
         state.fieldError("link_read")?.let { FieldError(it) }
     }
 }
