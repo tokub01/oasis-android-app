@@ -198,12 +198,13 @@ fun ConsentCheck(
         modifier
             .fillMaxWidth()
             .heightIn(min = 44.dp)
-            .toggleable(value = checked, enabled = enabled, role = Role.Checkbox, onValueChange = onCheckedChange),
+            .toggleable(value = checked, enabled = enabled, role = Role.Checkbox, onValueChange = onCheckedChange)
+            .padding(vertical = 10.dp),
         verticalAlignment = Alignment.Top
     ) {
-        OasisCheckbox(checked, onCheckedChange = null, enabled = enabled)
-        Spacer(Modifier.width(4.dp))
-        Box(Modifier.weight(1f).padding(top = 12.dp)) { label() }
+        OasisCheckbox(checked, onCheckedChange = null, modifier = Modifier.padding(top = 2.dp), enabled = enabled)
+        Spacer(Modifier.width(12.dp))
+        Box(Modifier.weight(1f)) { label() }
     }
 }
 
