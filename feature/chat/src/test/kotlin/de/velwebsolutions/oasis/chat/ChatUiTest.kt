@@ -126,7 +126,8 @@ class ChatUiTest {
         tapTag("chat.setup.passphraseToggle")
         tapTag("chat.setup.submit")
         tap("Zurück zum Entsperren")
-        tapTag("chat.setup.passphraseToggle")
+        tap("Lieber mit eigener Chat-Passphrase")
+        compose.onNodeWithTag("chat.setup.submit").assertDoesNotExist()
         switchTo { Setup(ChatAccessState(busy = true, formError = "Die Passphrase braucht mindestens 12 Zeichen.")) }
         capture("setup-passphrase-busy")
         compose.onNodeWithText("Schlüssel werden erstellt. Das dauert ein paar Sekunden …").assertExists()

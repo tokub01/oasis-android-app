@@ -116,8 +116,8 @@ internal fun ChatGate(content: @Composable () -> Unit) {
                 )
             }
 
-            // Every touch on an open chat screen counts as interaction for the idle lock (typing: ConversationViewModel).
-            ChatPhase.Open -> Box(
+            // Open. Every touch on an open chat screen counts as interaction for the idle lock (typing: ConversationViewModel).
+            else -> Box(
                 Modifier
                     .fillMaxSize()
                     .pointerInput(Unit) { awaitPointerEventScope { touchOnEveryEvent(vault) } }

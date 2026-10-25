@@ -295,7 +295,7 @@ class ChatScreenFlowsTest {
         compose.onNodeWithTag("chat.settings.audience").tap()
         tap("Niemand")
         waitFor("Gespeichert.")
-        compose.onNodeWithTag("chat.settings.friendRequests").tap()
+        compose.onNode(hasContentDescription("Freundschaftsanfragen erhalten")).tap()
         tap("Alle Geräte und Anmeldungen: Privatsphäre → Geräte")
         assertEquals(AccountRoute.Devices, stack().last())
         tap("Passphrase abschalten")
