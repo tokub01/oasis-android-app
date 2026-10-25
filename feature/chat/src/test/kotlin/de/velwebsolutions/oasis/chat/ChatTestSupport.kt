@@ -78,3 +78,20 @@ class HookedDispatcher(private val before: () -> Unit) : CoroutineDispatcher() {
         Dispatchers.Default.dispatch(context, block)
     }
 }
+
+/**
+ * Waits in real time (at most a few seconds) until [done] holds and the fake server answered every request, running
+ * what the answers resumed on the test dispatcher of [scheduler].
+ */
+suspend fun settle(scheduler: kotlinx.coroutines.test.TestCoroutineScheduler, server: FakeChatServer, done: () -> Boolean) {
+    kotlinx.coroutines.withContext(Dispatchers.Default) {
+        kotlinx.coroutines.delay(30)
+        kotlinx.coroutines.withTimeout(5_000) {
+            while (!(done() && server.inFlight.get() == 0)) {
+                kotlinx.coroutines.delay(10)
+                kotlinx.coroutines.withContext(Dispatchers.Main) { scheduler.runCurrent() }
+            }
+        }
+    }
+    scheduler.runCurrent()
+}

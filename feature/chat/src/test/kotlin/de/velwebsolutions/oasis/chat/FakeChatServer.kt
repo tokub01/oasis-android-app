@@ -65,7 +65,7 @@ class FakeChatServer : Interceptor {
 
     /** Called for every request before it is answered ("METHOD path"), e.g. to lock a vault mid-flight. */
     var onRequest: (String) -> Unit = {}
-    val serverTime = "2026-10-22T12:00:00Z"
+    var serverTime = "2026-10-22T12:00:00Z"
 
     fun client(userId: Int): ApiClient {
         val tokens = object : TokenProvider {
@@ -129,8 +129,14 @@ class FakeChatServer : Interceptor {
         put("username", users.getValue(id))
         put("display_name", name(id))
         put("public_keys", identities[id]?.get("public_keys") ?: JsonNull)
-        put("key_changed_at", JsonNull)
+        put("key_changed_at", keyChangedAt[id])
     }
+
+    /** Pages of the conversation list (every page lists all conversations, so page 2 repeats page 1). */
+    var lastPage = 1
+
+    /** `key_changed_at` per member (replaced identities). */
+    val keyChangedAt = mutableMapOf<Int, String>()
 
     private fun data(value: JsonElement) = buildJsonObject { put("data", value) }
 
@@ -284,6 +290,10 @@ class FakeChatServer : Interceptor {
                 """{"chat_invites_audience":"members","friend_requests":true,"choices":{"nobody":"Niemand","members":"Alle Mitglieder","following":"Menschen, denen du folgst","contacts":"Freund:innen"}}"""
             )
 
+            method == "PATCH" && first == "settings" -> return 200 to Json.parseToJsonElement(
+                """{"chat_invites_audience":"contacts","friend_requests":false,"choices":{"nobody":"Niemand","contacts":"Freund:innen"}}"""
+            )
+
             method == "POST" && first == "blocks" -> {
                 blocks += user to body.getValue("user_id").jsonPrimitive.int
                 return 200 to buildJsonObject { put("blocked", true) }
@@ -292,8 +302,8 @@ class FakeChatServer : Interceptor {
             method == "GET" && first == "conversations" && parts.size == 1 -> {
                 val mine = conversations.values.filter { user in it.members }.sortedByDescending { it.id }
                 return 200 to buildJsonObject {
-                    put("current_page", 1)
-                    put("last_page", 1)
+                    put("current_page", if (query["page"] == "2") 2 else 1)
+                    put("last_page", lastPage)
                     put("data", JsonArray(mine.map { conversationData(it, user) }))
                 }
             }

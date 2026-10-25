@@ -30,7 +30,7 @@ class ReportModel(
     val item: ChatMessageItem,
     senderName: String
 ) {
-    private val mutableState = MutableStateFlow(ReportState(quote = "$senderName: ${item.plaintext.orEmpty()}"))
+    private val mutableState = MutableStateFlow(ReportState(quote = "$senderName: ${item.plaintext}"))
     val state: StateFlow<ReportState> = mutableState.asStateFlow()
 
     fun setCategory(value: String) = mutableState.update { it.copy(category = value) }
@@ -47,7 +47,7 @@ class ReportModel(
         val trimmed = state.value.comment.trim()
         val reason = if (trimmed.isEmpty()) category else "$category\n\n$trimmed"
         try {
-            context.repository.report(conversationId, item.envelope, item.plaintext.orEmpty(), reason)
+            context.repository.report(conversationId, item.envelope, item.plaintext, reason)
             mutableState.update { it.copy(quote = null, error = null, sent = true) }
         } catch (error: Exception) {
             mutableState.update { it.copy(error = describeChatError(error)) }

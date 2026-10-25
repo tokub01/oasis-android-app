@@ -138,17 +138,15 @@ class ConversationDetailsViewModel @AssistedInject constructor(
     suspend fun unmute() = save("Du bekommst wieder Mitteilungen zu diesem Chat.") { context.repository.unmute(conversationId) }
 
     /** "Speichern" (owner; applies to new messages only). */
-    suspend fun saveLifetime() = save("Gespeichert. Gilt für neue Nachrichten.") {
-        context.repository.updateConversation(conversationId, lifetimeDays = state.value.lifetimeDays)
-    }
+    suspend fun saveLifetime() = save("Gespeichert. Gilt für neue Nachrichten.") { updateLifetime() }
 
-    /** "Namen speichern": the group name (owner). Not encrypted. */
-    suspend fun saveTitle() {
-        val trimmed = state.value.title.trim()
-        save("Der Name ist gespeichert.") {
-            context.repository.updateConversation(conversationId, setTitle = true, title = trimmed.ifEmpty { null })
-        }
-    }
+    private suspend fun updateLifetime() = context.repository.updateConversation(conversationId, lifetimeDays = state.value.lifetimeDays)
+
+    /** "Namen speichern": the group name (owner), empty clears it. Not encrypted. */
+    suspend fun saveTitle() = save("Der Name ist gespeichert.") { updateTitle(state.value.title.trim()) }
+
+    private suspend fun updateTitle(title: String) =
+        context.repository.updateConversation(conversationId, setTitle = true, title = title.ifEmpty { null })
 
     /** "Mitglied hinzufügen" (group owner) – the chat then gets a new key. */
     suspend fun addMember() = inScope {
@@ -170,9 +168,9 @@ class ConversationDetailsViewModel @AssistedInject constructor(
     }
 
     /** "Entfernen" (group owner, after the confirmation). */
-    suspend fun remove(row: MemberRow) = save("@${row.username} entfernt. Der Chat bekommt einen neuen Schlüssel.") {
-        context.repository.removeMember(conversationId, row.id)
-    }
+    suspend fun remove(row: MemberRow) = save("@${row.username} entfernt. Der Chat bekommt einen neuen Schlüssel.") { removeMember(row) }
+
+    private suspend fun removeMember(row: MemberRow) = context.repository.removeMember(conversationId, row.id)
 
     /** "Chat verlassen": the chat disappears from the list. Returns true on success. */
     suspend fun leave(): Boolean = inScope {

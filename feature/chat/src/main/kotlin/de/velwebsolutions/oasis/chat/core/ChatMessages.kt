@@ -17,7 +17,8 @@ data class ChatMessageItem(
     val senderId: String,
     val expiresAt: Instant?,
     val state: State,
-    val plaintext: String? = null
+    /** The text of a readable message; empty otherwise. */
+    val plaintext: String = ""
 ) {
     enum class State {
         Readable,

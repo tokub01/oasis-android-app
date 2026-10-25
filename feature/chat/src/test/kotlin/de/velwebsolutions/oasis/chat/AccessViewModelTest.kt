@@ -18,6 +18,7 @@ import kotlinx.coroutines.delay
 import kotlinx.coroutines.runBlocking
 import kotlinx.coroutines.test.runTest
 import kotlinx.coroutines.withContext
+import kotlinx.coroutines.withTimeout
 import kotlinx.serialization.json.Json
 import kotlinx.serialization.json.jsonPrimitive
 import org.junit.Assert.assertEquals
@@ -53,16 +54,21 @@ class AccessViewModelTest {
         server.failures[key] = status to """{"message":"kaputt"}"""
     }
 
-    /** One polling round of the view model: its delay passes in virtual time, the request in real time. */
-    private suspend fun poll() {
+    /**
+     * One polling round of the view model: its delay passes in virtual time, the request in real time. Waits (at most a
+     * few seconds) until [done] holds and no request is open, running what the answers resumed on the test dispatcher.
+     */
+    private suspend fun poll(done: () -> Boolean) {
         val scheduler = mainRule.dispatcher.scheduler
         scheduler.advanceTimeBy(15)
         scheduler.runCurrent()
-        // The answer comes on OkHttp's thread and resumes the round on the test dispatcher.
         withContext(Dispatchers.Default) {
-            delay(50)
-            while (server.inFlight.get() > 0) delay(10)
-            delay(50)
+            withTimeout(5_000) {
+                while (!(done() && server.inFlight.get() == 0)) {
+                    delay(10)
+                    withContext(Dispatchers.Main) { scheduler.runCurrent() }
+                }
+            }
         }
         scheduler.runCurrent()
     }
@@ -267,26 +273,32 @@ class AccessViewModelTest {
         model.requestLink()
         assertNotNull(model.state.value.linkCheck)
         // Not approved yet: the polling goes on.
-        val asked = mutableListOf<String>()
+        val asked = java.util.concurrent.CopyOnWriteArrayList<String>()
         server.onRequest = { asked += it }
-        poll()
-        poll()
+        poll { asked.count { it.startsWith("GET device-links/") } == 1 }
+        poll { asked.count { it.startsWith("GET device-links/") } == 2 }
         server.onRequest = {}
         assertEquals(asked.toString(), 2, asked.count { it.startsWith("GET device-links/") })
         assertNotNull(model.state.value.linkCheck)
 
         // Leaving the screen while a round waits for the server: the round ends quietly.
-        server.onRequest = { if (it.startsWith("GET device-links/")) model.stop() }
-        poll()
+        var stopped = false
+        server.onRequest = {
+            if (it.startsWith("GET device-links/")) {
+                model.stop()
+                stopped = true
+            }
+        }
+        poll { stopped }
         server.onRequest = {}
         assertNull(model.state.value.linkStatus)
         model.requestLink()
 
         // The loop ends with the request: gone on the server.
         server.deviceLinks.clear()
-        val gone = mutableListOf<String>()
+        val gone = java.util.concurrent.CopyOnWriteArrayList<String>()
         server.onRequest = { gone += it }
-        poll()
+        poll { model.state.value.linkCheck == null }
         server.onRequest = {}
         assertEquals(1, gone.count { it.startsWith("GET device-links/") })
         assertNull(model.state.value.linkCheck)

@@ -28,7 +28,6 @@ import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
-import kotlinx.coroutines.isActive
 import kotlinx.coroutines.launch
 import kotlinx.serialization.json.Json
 
@@ -178,7 +177,7 @@ class ConversationViewModel @AssistedInject constructor(
 
     private fun startTimers(token: Int) {
         jobs += viewModelScope.launch {
-            while (isActive) {
+            while (true) {
                 delay(sweepInterval)
                 if (!isCurrent(token)) return@launch
                 // Only a timeline in which something expired is published, so the screen does not redraw for nothing.
@@ -191,7 +190,7 @@ class ConversationViewModel @AssistedInject constructor(
         }
         // Fallback while Reverb is not connected: fetch the newest page (and key changes) regularly.
         jobs += viewModelScope.launch {
-            while (isActive) {
+            while (true) {
                 delay(pollInterval)
                 if (!isCurrent(token)) return@launch
                 if (!realtime.isConnected.value) poll()
@@ -221,13 +220,12 @@ class ConversationViewModel @AssistedInject constructor(
         if (!isCurrent(token)) return
         warnings = newWarnings
         conversation = current
-        renderNotices()
+        renderNotices(current)
         redecrypt()
         render()
     }
 
-    private fun renderNotices() {
-        val current = conversation ?: return
+    private fun renderNotices(current: ChatConversation) {
         val texts = warnings.toMutableList()
         if (!context.canParticipate) {
             texts.add(0, "Dein Konto ist gerade nur zum Lesen. Mit einer Mitgliedschaft kannst du wieder schreiben.")
@@ -245,24 +243,20 @@ class ConversationViewModel @AssistedInject constructor(
 
     /** Warnings about replaced identities, keys changed during this session and invalid bundles. */
     internal fun keyWarnings(conversation: ChatConversation, directory: ChatKeyring.Directory): List<String> {
-        fun name(id: String) = directory.user(id)?.name ?: "Jemand"
+        val names = directory.users.associate { it.id to it.name }
         val result = mutableListOf<String>()
         for (member in conversation.members) {
             if (member.userId == myId) continue
             val changed = directory.user(member.userId)?.keyChangedAt ?: continue
-            result +=
-                "${name(
-                    member.userId
-                )} hat am ${formatDate(changed)} neue Chat-Schlüssel erstellt. Vergleicht eure Sicherheitsnummer erneut."
+            result += "${names.getValue(member.userId)} hat am ${formatDate(changed)} neue Chat-Schlüssel erstellt. " +
+                "Vergleicht eure Sicherheitsnummer erneut."
         }
         for (id in directory.changedInSession) {
-            result +=
-                "Die Schlüssel von ${name(
-                    id
-                )} haben sich gerade geändert. Vergleicht eure Sicherheitsnummer, bevor du Vertrauliches schreibst."
+            result += "Die Schlüssel von ${names.getValue(id)} haben sich gerade geändert. " +
+                "Vergleicht eure Sicherheitsnummer, bevor du Vertrauliches schreibst."
         }
         for (id in directory.invalid) {
-            result += "Die Schlüssel von ${name(id)} sind ungültig. Diese Person bekommt keinen Schlüssel für den Chat."
+            result += "Die Schlüssel von ${names.getValue(id)} sind ungültig. Diese Person bekommt keinen Schlüssel für den Chat."
         }
         return result
     }
@@ -397,7 +391,7 @@ class ConversationViewModel @AssistedInject constructor(
             setDraft(remainder(state.value.draft, typed))
             receive(envelope)
             // Replying accepts a message request.
-            if (current.request == true) conversation = conversation?.copy(request = false)
+            if (current.request == true) acceptLocally()
             render { it.copy(spokenNotice = "Gesendet.") }
         } catch (error: Exception) {
             render { it.copy(composerError = describeChatError(error)) }
@@ -419,7 +413,7 @@ class ConversationViewModel @AssistedInject constructor(
         val incoming = timeline.items.filter { it.senderId != myId && it.state == ChatMessageItem.State.Readable }
         for (item in incoming.reversed()) {
             if (item.signature in dismissed) continue
-            val finding = ChatSafety.scanIncoming(item.plaintext.orEmpty(), vault.safety.lists) ?: continue
+            val finding = ChatSafety.scanIncoming(item.plaintext, vault.safety.lists) ?: continue
             val name = senderName(item.senderId)
             val early = incoming.count { it.senderId == item.senderId } <= 3
             val advice = when (finding.kind) {
@@ -469,11 +463,16 @@ class ConversationViewModel @AssistedInject constructor(
         }
     }
 
+    /** The request is accepted (by answering or "Annehmen"): a normal chat from now on, unless it was closed meanwhile. */
+    private fun acceptLocally() {
+        conversation = conversation?.copy(request = false)
+    }
+
     /** "Annehmen". */
     suspend fun acceptRequest() = inScope {
         try {
             context.repository.accept(conversationId)
-            conversation = conversation?.copy(request = false)
+            acceptLocally()
             render { it.copy(status = "Angenommen. Das ist jetzt ein normaler Chat.") }
         } catch (error: Exception) {
             render { it.copy(actionError = describeChatError(error)) }

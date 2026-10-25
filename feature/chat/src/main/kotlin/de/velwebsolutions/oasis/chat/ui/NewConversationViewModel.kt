@@ -58,9 +58,9 @@ class NewConversationViewModel @AssistedInject constructor(
     fun dismissStatus() = mutableState.update { it.copy(status = null) }
 
     /** Adds the person of a "Schreiben" button once. */
-    suspend fun applyPreselection() {
-        val username = preselected ?: return
-        if (preselectionDone || state.value.selected.isNotEmpty()) return
+    suspend fun applyPreselection() = inScope {
+        val username = preselected ?: return@inScope
+        if (preselectionDone || state.value.selected.isNotEmpty()) return@inScope
         preselectionDone = true
         setUsername(username)
         addFromInput()
