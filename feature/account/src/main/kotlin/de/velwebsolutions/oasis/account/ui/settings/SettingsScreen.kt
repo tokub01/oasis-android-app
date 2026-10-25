@@ -326,7 +326,8 @@ private fun TwoFactorSection(ui: SettingsUiState, settings: AccountSettings, vie
                 )
             }
 
-            TwoFactorState.Phase.Off -> {
+            // The remaining phase: off.
+            else -> {
                 Text(
                     "Schütze dein Konto zusätzlich mit einem Code aus einer Authenticator-App.",
                     style = OasisType.Small,
