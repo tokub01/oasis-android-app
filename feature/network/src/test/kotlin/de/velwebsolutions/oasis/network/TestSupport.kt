@@ -119,3 +119,17 @@ fun eventually(timeoutMillis: Long = 3_000, condition: () -> Boolean) {
     while (!condition() && System.currentTimeMillis() < end) Thread.sleep(10)
     assertTrue("condition not met within $timeoutMillis ms", condition())
 }
+
+/**
+ * Waits until [condition] holds. Answers come back from OkHttp's threads and Dispatchers.IO through the main looper, which
+ * Robolectric only runs when the test idles it; `waitUntil` alone does not always get there.
+ */
+fun androidx.compose.ui.test.junit4.ComposeTestRule.settle(timeoutMillis: Long = 15_000, condition: () -> Boolean) {
+    val end = System.currentTimeMillis() + timeoutMillis
+    while (!condition()) {
+        check(System.currentTimeMillis() < end) { "condition not met within $timeoutMillis ms" }
+        Thread.sleep(20)
+        mainClock.advanceTimeBy(50)
+        waitForIdle()
+    }
+}

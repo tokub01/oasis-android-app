@@ -68,11 +68,9 @@ fun <C> FeedScaffold(
     content: LazyListScope.(PostListState<C>, FeedHandlers) -> Unit
 ) {
     val state by viewModel.list.state.collectAsStateWithLifecycle()
-    val scrollToTop by viewModel.scrollToTop.collectAsStateWithLifecycle()
     val listState = rememberLazyListState()
     val handlers = viewModel.list.handlers(viewModel::launch)
     LaunchedEffect(Unit) { viewModel.list.loadIfNeeded() }
-    LaunchedEffect(scrollToTop) { if (scrollToTop > 0) listState.animateScrollToItem(0) }
     OasisScreen(
         title = title,
         actions = actions,

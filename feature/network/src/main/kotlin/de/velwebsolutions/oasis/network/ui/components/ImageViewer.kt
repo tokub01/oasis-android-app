@@ -94,6 +94,7 @@ private fun ZoomableImage(image: Post.Image) {
     Box(
         Modifier
             .fillMaxSize()
+            .testTag("imageViewer.image")
             .pointerInput(image.id) {
                 detectTapGestures(onDoubleTap = {
                     if (scale > 1f) {

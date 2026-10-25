@@ -48,7 +48,8 @@ fun rememberImagePicker(maxItems: Int = 1, onPicked: (List<Uri>) -> Unit): Image
     var photoUri by rememberSaveable { mutableStateOf<String?>(null) }
     val camera = rememberLauncherForActivityResult(ActivityResultContracts.TakePicture()) { saved ->
         val uri = photoUri
-        if (saved && uri != null) currentOnPicked(listOf(uri.toUri()))
+        // The answer only comes after a launch that set the file (rememberSaveable keeps it across a restart).
+        if (saved) currentOnPicked(listOf(uri!!.toUri()))
         photoUri = null
     }
     val hasCamera = remember { context.packageManager.hasSystemFeature(PackageManager.FEATURE_CAMERA_ANY) }
