@@ -14,3 +14,6 @@ dependencies {
     api(libs.turbine)
     api(libs.okhttp)
 }
+
+// Test helpers only: they run inside the tests of every other module and never ship, so they have no coverage bound.
+tasks.matching { it.name.startsWith("koverVerify") }.configureEach { enabled = false }
