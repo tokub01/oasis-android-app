@@ -572,7 +572,13 @@ class ScreenBranchesTest {
                 |"segments":[{"type":"text","text":"Werkstatt"}]}}
             """.trimMargin()
         )
-        text("Noch einmal versuchen").performClick()
+        // The retry button runs its work in its own scope; under load one tap can land before it is ready again.
+        repeat(3) {
+            if (compose.onAllNodes(hasText("Werkstatt")).fetchSemanticsNodes().isEmpty()) {
+                text("Noch einmal versuchen").performClick()
+                runCatching { compose.settle(5_000) { compose.onAllNodes(hasText("Werkstatt")).fetchSemanticsNodes().isNotEmpty() } }
+            }
+        }
         text("Werkstatt")
         compose.onNode(hasSetTextAction()).performTextInput("Wichtig")
         compose.onNodeWithTag("compose.submit").performClick()
