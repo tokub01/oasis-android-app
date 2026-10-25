@@ -21,6 +21,7 @@ import androidx.compose.ui.test.hasSetTextAction
 import androidx.compose.ui.test.hasTestTag
 import androidx.compose.ui.test.hasText
 import androidx.compose.ui.test.junit4.createComposeRule
+import androidx.compose.ui.test.longClick
 import androidx.compose.ui.test.onAllNodesWithContentDescription
 import androidx.compose.ui.test.onAllNodesWithTag
 import androidx.compose.ui.test.onFirst
@@ -75,6 +76,7 @@ import de.velwebsolutions.oasis.network.ui.components.feedSection
 import de.velwebsolutions.oasis.network.ui.compose.ComposeUiState
 import de.velwebsolutions.oasis.network.ui.compose.ComposeViewModel
 import de.velwebsolutions.oasis.network.ui.compose.ComposerCallbacks
+import de.velwebsolutions.oasis.network.ui.compose.ComposerForm
 import de.velwebsolutions.oasis.network.ui.compose.ToneHintNote
 import de.velwebsolutions.oasis.network.ui.feeds.SourceScreen
 import de.velwebsolutions.oasis.network.ui.feeds.SourceViewModel
@@ -91,6 +93,7 @@ import de.velwebsolutions.oasis.network.ui.oases.OasisDetailScreen
 import de.velwebsolutions.oasis.network.ui.oases.OasisFormScreen
 import de.velwebsolutions.oasis.network.ui.oases.OasisFormViewModel
 import de.velwebsolutions.oasis.network.ui.oases.OasisViewModel
+import de.velwebsolutions.oasis.network.ui.oases.oasisContent
 import de.velwebsolutions.oasis.network.ui.posts.CarryScreen
 import de.velwebsolutions.oasis.network.ui.posts.CarryViewModel
 import de.velwebsolutions.oasis.network.ui.posts.ComposeContent
@@ -109,6 +112,7 @@ import de.velwebsolutions.oasis.network.ui.profiles.ProfileScreen
 import de.velwebsolutions.oasis.network.ui.profiles.ProfileViewModel
 import de.velwebsolutions.oasis.network.ui.profiles.StatisticsScreen
 import de.velwebsolutions.oasis.network.ui.profiles.StatisticsViewModel
+import de.velwebsolutions.oasis.network.ui.profiles.profileContent
 import java.time.Instant
 import kotlinx.serialization.KSerializer
 import org.junit.After
@@ -727,5 +731,247 @@ class ScreenBranchesTest {
         switchTo { InvitationsScreen(invitations) }
         text("Du hast noch keine Einladungslinks erstellt.")
         text("2 warten auf eine laufende Mitgliedschaft.")
+    }
+
+    @Test
+    fun `cards for a reader who may not interact, the author's own card and a real long press`() {
+        val reader = base.copy(id = 40, viewer = viewer.copy(canInteract = false, canCarry = false, bookmarked = true))
+        val own = base.copy(id = 41, viewer = viewer.copy(isAuthor = true, canDelete = false, canCarry = false))
+        show { NetworkPage { feedSection(PostListState<NoContext>(posts = listOf(reader, own), state = Loadable.Loaded(Unit)), handlers) } }
+        compose.onNodeWithTag("post.card.40").performTouchInput { longClick(Offset(centerX, 4f)) }
+        text("Aus Merkliste entfernen").performClick()
+        compose.onAllNodesWithTag("post.menu")[1].performClick()
+        text("Melden").performClick()
+        compose.onAllNodesWithTag("post.react").onFirst().performClick()
+        assertEquals(listOf(PostAction.Unbookmark to 40, PostAction.React to 41), actions)
+    }
+
+    @Test
+    fun `parts of pages that only some states show`() {
+        val composer = data(ComposerContext.serializer(), Fixtures.composer).copy(kinds = emptyList())
+        val broken = de.velwebsolutions.oasis.network.ui.compose.PickedImage(
+            1,
+            de.velwebsolutions.oasis.network.api.ImageUpload(byteArrayOf(1, 2), "x.jpg", "image/jpeg")
+        )
+        val noCallbacks = ComposerCallbacks(
+            onBody = {}, onVisibility = {}, onKind = {}, onLinkRead = {}, onToneConfirmed = {}, onAddImage = {}, onRemoveImage = {},
+            onAlt = { _, _ -> }, checkTone = {}, publish = { null }
+        )
+        val oasis = data(
+            de.velwebsolutions.oasis.network.api.OasisDetail.serializer(),
+            oasisJson.replace("MEMBER", "false")
+        ).copy(canFollow = false)
+        val profile = data(de.velwebsolutions.oasis.network.api.Profile.serializer(), Fixtures.profile)
+            .copy(following = false, canFollow = false, friendship = null, acceptsFriendRequests = false)
+        val discover = PostListState<DiscoverContext>(state = Loadable.Loaded(Unit), nextCursor = "x")
+        val source = PostListState<SourceContext>(context = SourceContext(), state = Loadable.Loaded(Unit), nextCursor = "x")
+        val search = PostListState<SearchContext>(state = Loadable.Loaded(Unit))
+        show {
+            NetworkPage {
+                oasisContent(
+                    oasis, PostListState(state = Loadable.Loaded(Unit)), handlers, null, "", onMemberQuery = {}, onFollow = {},
+                    onUnfollow = {}, onCompose = {}
+                )
+            }
+        }
+        text("Gärtnern.")
+        compose.onNodeWithTag("oasis.follow").assertDoesNotExist()
+        switchTo {
+            NetworkPage {
+                profileContent(
+                    profile,
+                    PostListState(state = Loadable.Loaded(Unit)),
+                    handlers,
+                    de.velwebsolutions.oasis.network.ui.profiles.ProfileCallbacks({}, {})
+                )
+            }
+        }
+        compose.onNodeWithTag("profile.requestFriend").assertDoesNotExist()
+        switchTo { NetworkPage { discoverContent(discover, handlers) } }
+        switchTo { NetworkPage { sourceContent(source, "Mira", handlers, onSelectView = {}) } }
+        switchTo { NetworkPage { searchContent("garten", search, handlers, onQuery = {}, onSubmit = {}) } }
+        text("Menschen")
+        val notSearching = PostListState(context = SearchContext(searching = false), state = Loadable.Loaded(Unit))
+        switchTo { NetworkPage { searchContent("garten", notSearching, handlers, onQuery = {}, onSubmit = {}) } }
+        text("Such nach Namen oder @Benutzernamen.")
+    }
+
+    @Test
+    fun `a composer without kinds and with an image it cannot preview`() {
+        val composer = data(ComposerContext.serializer(), Fixtures.composer).copy(kinds = emptyList())
+        val broken = de.velwebsolutions.oasis.network.ui.compose.PickedImage(
+            1,
+            de.velwebsolutions.oasis.network.api.ImageUpload(byteArrayOf(1, 2), "x.jpg", "image/jpeg")
+        )
+        val noCallbacks = ComposerCallbacks(
+            onBody = {}, onVisibility = {}, onKind = {}, onLinkRead = {}, onToneConfirmed = {}, onAddImage = {}, onRemoveImage = {},
+            onAlt = { _, _ -> }, checkTone = {}, publish = { null }
+        )
+        show { ComposerForm(ComposeUiState(context = Loadable.Loaded(composer), images = listOf(broken)), noCallbacks) }
+        text("Bild 1 entfernen")
+        compose.onNodeWithTag("compose.kind").assertDoesNotExist()
+    }
+
+    @Test
+    fun `a picked banner that cannot be shown keeps its name`() {
+        val network = StubbedNetwork(stub("GET", "network/oases", Fixtures.oases))
+        val model = models.keep(OasisFormViewModel(null, network.repository))
+        show { OasisFormScreen(null, model) }
+        text("Bild hochladen")
+        model.launch { model.pickBanner(de.velwebsolutions.oasis.network.api.ImageUpload(byteArrayOf(1, 2), "kaputt.jpg", "image/jpeg")) }
+        text("Ausgewählt: kaputt.jpg")
+    }
+
+    @Test
+    fun `the search keyboard without a topic, before and after results`() {
+        val network = StubbedNetwork(stub("GET", "network/search", Fixtures.search))
+        val model = models.keep(de.velwebsolutions.oasis.network.ui.feeds.SearchViewModel("", network.repository))
+        show { de.velwebsolutions.oasis.network.ui.feeds.SearchScreen("", model) }
+        compose.onNode(hasSetTextAction()).performImeAction()
+        compose.onNode(hasSetTextAction()).performTextInput("ga")
+        waitFor { model.list.state.value.context != null }
+        compose.onNode(hasSetTextAction()).performImeAction()
+        assertTrue(navigator.stack(MainTab.Source).isEmpty())
+    }
+
+    @Test
+    fun `a member who knows the tour, and one already sent there in this session`() {
+        val page = pageJson(postJson(3), context = """{"show_all":false,"follows_anyone":true,"can_post":true}""")
+        val network = StubbedNetwork(stub("GET", "network/source", page))
+        network.session.update(Me(7, "mira", "Mira Sol", "MS", "mira@example.org"))
+        val known = models.keep(SourceViewModel(network.repository, network.session))
+        show(ScreenChrome()) { SourceScreen(known) }
+        text("Hallo Mira Sol.")
+        assertNull(navigator.sheet)
+        network.session.update(Me(7, "mira", "Mira Sol", "MS", "mira@example.org", onboarded = false))
+        val asked = models.keep(SourceViewModel(network.repository, network.session)).apply { askedWelcome = true }
+        switchTo { SourceScreen(asked) }
+        compose.waitForIdle()
+        assertNull(navigator.sheet)
+    }
+
+    @Test
+    fun `house rules open and close, and a member becomes host`() {
+        val members = """{"data":{"members":[],"hidden_members":0,"own_list_audience":null}}"""
+        val edit = """{"data":{"oasis":{"id":2,"slug":"garten","name":"Garten"},"house_rules":"","members":[{"id":3,"username":"aylin",
+            |"display_name":"Aylin","role":"member","role_label":"Mitglied"}],"options":{"visibilities":[],"colors":[]}}}
+        """.trimMargin()
+        val network = StubbedNetwork(
+            stub("GET", "network/oases/garten", oasisJson.replace("MEMBER", "true")),
+            stub("GET", "network/oases/garten/posts", pageJson()),
+            stub("GET", "network/oases/garten/members", members),
+            stub("GET", "network/oases/garten/edit", edit),
+            stub("PUT", "network/oases/garten/members/3/role", """{"message":"Gastgeberin.","data":{"still_host":true}}""")
+        )
+        val oasis = models.keep(OasisViewModel("garten", network.repository))
+        show { OasisDetailScreen("garten", oasis) }
+        text("Hausregeln dieser Oase")
+        compose.onNodeWithTag("oasis.rules").performClick()
+        text("Eine")
+        text("Hausregeln dieser Oase").performClick()
+        compose.mainClock.advanceTimeBy(1_000)
+        compose.waitForIdle()
+
+        val form = models.keep(OasisFormViewModel("garten", network.repository))
+        switchTo { OasisFormScreen("garten", form) }
+        text("Zu Gastgeber:in machen").performClick()
+        text("Gastgeberin.")
+    }
+
+    @Test
+    fun `the Tropfen page for every kind of reader`() {
+        val detail = data(de.velwebsolutions.oasis.network.api.PostDetail.serializer(), Fixtures.post)
+        val composer = data(ComposerContext.serializer(), Fixtures.composer)
+        val noCallbacks = ComposerCallbacks(
+            onBody = {}, onVisibility = {}, onKind = {}, onLinkRead = {}, onToneConfirmed = {}, onAddImage = {}, onRemoveImage = {},
+            onAlt = { _, _ -> }, checkTone = {}, publish = { null }
+        )
+        val variants = listOf(
+            detail.copy(post = detail.post.copy(editedAt = null, viewer = null)),
+            detail.copy(
+                post = detail.post.copy(editedAt = now, oasis = null, viewer = viewer.copy(canWriteReply = false, canReply = true)),
+                revisions = emptyList()
+            ),
+            detail.copy(post = detail.post.copy(viewer = viewer.copy(canWriteReply = false, canReply = false)))
+        )
+        var shown by mutableStateOf(variants[0])
+        show {
+            de.velwebsolutions.oasis.network.ui.posts.PostDetailContent(
+                shown,
+                ComposeUiState(context = Loadable.Loaded(composer)),
+                noCallbacks,
+                onAction = { _, _ ->
+                },
+                onRefresh = {},
+                onLoadReply = {}
+            )
+        }
+        text("Leise Zahlen")
+        variants.drop(1).forEach {
+            shown = it
+            compose.waitForIdle()
+        }
+        compose.onNodeWithTag("post.replyNeedsMembership").assertDoesNotExist()
+    }
+
+    @Test
+    fun `Antworten from a card focuses the reply field of its page`() {
+        val network = StubbedNetwork(stub("GET", "network/posts/12", Fixtures.post), stub("GET", "network/composer", Fixtures.composer))
+        NetworkSignals.replyFocus.value = 12
+        val model = models.keep(PostDetailViewModel(12, network.repository))
+        val reply = models.keep(ComposeViewModel(null, 12, null, network.repository, network.common, network.session))
+        show { PostDetailScreen(12, model, reply) }
+        waitFor { NetworkSignals.replyFocus.value == null }
+    }
+
+    @Test
+    fun `blocking a muted person without a sheet open`() {
+        val network = StubbedNetwork(
+            stub("GET", "network/profiles/jonas", Fixtures.profile.replace("\"has_muted\": false", "\"has_muted\": true")),
+            stub("GET", "network/profiles/jonas/posts", pageJson()),
+            stub("DELETE", "network/users/2/mute", """{"message":"Nicht mehr stumm."}"""),
+            stub("POST", "network/users/2/block", """{"message":"Blockiert."}""")
+        )
+        navigator.open(NetworkRoute.Profile("jonas"))
+        val model = models.keep(ProfileViewModel("jonas", network.repository))
+        show { ProfileScreen("jonas", model) }
+        compose.settle { compose.onAllNodes(hasTestTag("profile.menu")).fetchSemanticsNodes().isNotEmpty() }
+        compose.onNodeWithTag("profile.menu").performClick()
+        text("Nicht mehr stumm").performClick()
+        text("Nicht mehr stumm.")
+        closeToast()
+        compose.onNodeWithTag("profile.menu").performClick()
+        text("Blockieren …").performClick()
+        compose.onNodeWithTag("dialog.confirm").performClick()
+        waitFor { navigator.stack(MainTab.Source).isEmpty() }
+    }
+
+    @Test
+    fun `no friends at all, and invitations that cannot be made`() {
+        val overview = { remaining: Int, canCreate: Boolean ->
+            """{"data":{"invitations":[],"remaining":$remaining,"per_month":3,"valid_days":30,"free_months_this_year":0,
+            |"free_months_per_year":12,"free_months_waiting":0,"trial_days":30,"can_create":$canCreate}}
+            """.trimMargin()
+        }
+        val network = StubbedNetwork(
+            stub("GET", "network/friends", Fixtures.friends),
+            stub("GET", "network/invitations", overview(2, false))
+        )
+        show { FriendsScreen(models.keep(FriendsViewModel(network.repository))) }
+        text("Gerade keine offenen Anfragen.")
+        val cannot = models.keep(InvitationsViewModel(network.repository))
+        switchTo { InvitationsScreen(cannot) }
+        text("Du hast noch keine Einladungslinks erstellt.")
+
+        network.add("GET", "network/invitations", json = overview(1, true))
+        network.add("POST", "network/invitations", 422, """{"message":"Keine Links mehr.","errors":{"invitation":["Keine Links mehr."]}}""")
+        val budget = models.keep(InvitationsViewModel(network.repository))
+        switchTo { InvitationsScreen(budget) }
+        compose.settle { compose.onAllNodes(hasTestTag("invitations.create")).fetchSemanticsNodes().isNotEmpty() }
+        compose.onNodeWithTag("invitations.create").performClick()
+        text("Keine Links mehr.")
+        network.add("POST", "network/invitations", 500, """{"message":"Kaputt."}""")
+        compose.onNodeWithTag("invitations.create").performClick()
+        text("Kaputt.")
     }
 }

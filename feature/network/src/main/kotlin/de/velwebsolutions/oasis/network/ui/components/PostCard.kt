@@ -45,6 +45,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.hapticfeedback.HapticFeedbackType
@@ -114,6 +115,11 @@ fun PostCard(
     var cardHeight by remember { mutableStateOf(0.dp) }
     val density = LocalDensity.current
     val haptics = LocalHapticFeedback.current
+    val openMenuAt = { offset: Offset ->
+        haptics.performHapticFeedback(HapticFeedbackType.LongPress)
+        pressedAt = with(density) { DpOffset(offset.x.toDp(), offset.y.toDp()) }
+        contextMenu = true
+    }
     val viewer = post.viewer
     val shape = RoundedCornerShape(OasisRadius.M.dp)
     val reply = {
@@ -135,13 +141,7 @@ fun PostCard(
                         // A long press opens the menu like the iOS context menu; TalkBack offers it as an action.
                         Modifier
                             .onSizeChanged { cardHeight = with(density) { it.height.toDp() } }
-                            .pointerInput(post.id) {
-                                detectTapGestures(onLongPress = { offset ->
-                                    haptics.performHapticFeedback(HapticFeedbackType.LongPress)
-                                    pressedAt = with(density) { DpOffset(offset.x.toDp(), offset.y.toDp()) }
-                                    contextMenu = true
-                                })
-                            }
+                            .pointerInput(post.id) { detectTapGestures(onLongPress = openMenuAt) }
                             .semantics {
                                 onLongClick("Aktionen zum Tropfen") {
                                     pressedAt = DpOffset.Zero
@@ -503,14 +503,11 @@ private fun RowScope.ActionTile(
             .defaultMinSize(minHeight = 48.dp)
             .pressable(onClick)
             .testTag(tag)
+            // The tap itself comes from pressable(); TalkBack reads the label and the state.
             .clearAndSetSemantics {
                 contentDescription = label ?: title
                 role = Role.Button
                 selected = isOn
-                onClick {
-                    onClick()
-                    true
-                }
             },
         horizontalAlignment = Alignment.CenterHorizontally,
         verticalArrangement = Arrangement.spacedBy(4.dp, Alignment.CenterVertically)
@@ -618,15 +615,8 @@ private fun PostImages(post: Post) {
                             cell
                                 .clip(shape)
                                 .background(OasisColors.Dune)
-                                .pressable({ viewing = image })
-                                .semantics {
-                                    contentDescription = image.alt
-                                    role = Role.Image
-                                    onClick("Bild vergrößern") {
-                                        viewing = image
-                                        true
-                                    }
-                                }
+                                .clickable(onClickLabel = "Bild vergrößern", role = Role.Image) { viewing = image }
+                                .semantics { contentDescription = image.alt }
                         ) {
                             AuthorizedImage(
                                 image.url,
@@ -678,7 +668,8 @@ private fun CarriedView(carried: Post.Carried) {
             Text("Dieser Tropfen ist nicht mehr verfügbar.", style = OasisType.Small, color = OasisColors.Muted)
         }
 
-        Post.Carried.State.Visible -> carried.post?.let { CarriedOriginal(it.author, it.segments, it.id) }
+        // Visible: the original, when the server sent it.
+        else -> carried.post?.let { CarriedOriginal(it.author, it.segments, it.id) }
     }
 }
 

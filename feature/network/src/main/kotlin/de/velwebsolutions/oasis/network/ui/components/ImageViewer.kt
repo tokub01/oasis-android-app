@@ -31,6 +31,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.graphicsLayer
+import androidx.compose.ui.input.pointer.AwaitPointerEventScope
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.input.pointer.positionChanged
 import androidx.compose.ui.layout.ContentScale
@@ -86,39 +87,44 @@ fun ImageViewer(images: List<Post.Image>, start: Post.Image, onDismiss: () -> Un
     }
 }
 
+/** The zoom of one image: a double tap toggles it, two fingers pinch, and one finger moves a zoomed image. */
+private class Zoom {
+    var scale by mutableFloatStateOf(1f)
+    var offset by mutableStateOf(Offset.Zero)
+
+    fun toggle() {
+        if (scale > 1f) {
+            scale = 1f
+            offset = Offset.Zero
+        } else {
+            scale = 2.5f
+        }
+    }
+
+    /** Pinching zooms, and a zoomed image moves with one finger; otherwise the pager gets the swipe. */
+    suspend fun AwaitPointerEventScope.follow() {
+        awaitFirstDown(requireUnconsumed = false)
+        do {
+            val event = awaitPointerEvent()
+            if (event.changes.size > 1 || scale > 1f) {
+                scale = (scale * event.calculateZoom()).coerceIn(1f, 5f)
+                offset = if (scale > 1f) offset + event.calculatePan() else Offset.Zero
+                event.changes.forEach { if (it.positionChanged()) it.consume() }
+            }
+        } while (event.changes.any { it.pressed })
+    }
+}
+
 /** One image that zooms with two fingers or a double tap and can be moved while zoomed in. */
 @Composable
 private fun ZoomableImage(image: Post.Image) {
-    var scale by remember { mutableFloatStateOf(1f) }
-    var offset by remember { mutableStateOf(Offset.Zero) }
+    val zoom = remember { Zoom() }
     Box(
         Modifier
             .fillMaxSize()
             .testTag("imageViewer.image")
-            .pointerInput(image.id) {
-                detectTapGestures(onDoubleTap = {
-                    if (scale > 1f) {
-                        scale = 1f
-                        offset = Offset.Zero
-                    } else {
-                        scale = 2.5f
-                    }
-                })
-            }
-            .pointerInput(image.id) {
-                // Pinching zooms, and a zoomed image moves with one finger; otherwise the pager gets the swipe.
-                awaitEachGesture {
-                    awaitFirstDown(requireUnconsumed = false)
-                    do {
-                        val event = awaitPointerEvent()
-                        if (event.changes.size > 1 || scale > 1f) {
-                            scale = (scale * event.calculateZoom()).coerceIn(1f, 5f)
-                            offset = if (scale > 1f) offset + event.calculatePan() else Offset.Zero
-                            event.changes.forEach { if (it.positionChanged()) it.consume() }
-                        }
-                    } while (event.changes.any { it.pressed })
-                }
-            },
+            .pointerInput(image.id) { detectTapGestures(onDoubleTap = { zoom.toggle() }) }
+            .pointerInput(image.id) { awaitEachGesture { with(zoom) { follow() } } },
         contentAlignment = Alignment.Center
     ) {
         AuthorizedImage(
@@ -128,10 +134,10 @@ private fun ZoomableImage(image: Post.Image) {
             modifier = Modifier
                 .fillMaxSize()
                 .graphicsLayer {
-                    scaleX = scale
-                    scaleY = scale
-                    translationX = offset.x
-                    translationY = offset.y
+                    scaleX = zoom.scale
+                    scaleY = zoom.scale
+                    translationX = zoom.offset.x
+                    translationY = zoom.offset.y
                 }
         )
     }

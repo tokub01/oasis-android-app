@@ -165,15 +165,14 @@ fun ComposerForm(
         Options(state, callbacks)
         OasisButton(
             text = state.submitLabel,
+            // While it publishes the button shows its spinner and takes no further taps.
             onClick = {
-                if (!publishing) {
-                    publishing = true
-                    scope.launch {
-                        try {
-                            callbacks.publish()?.let(onPublished)
-                        } finally {
-                            publishing = false
-                        }
+                publishing = true
+                scope.launch {
+                    try {
+                        callbacks.publish()?.let(onPublished)
+                    } finally {
+                        publishing = false
                     }
                 }
             },
