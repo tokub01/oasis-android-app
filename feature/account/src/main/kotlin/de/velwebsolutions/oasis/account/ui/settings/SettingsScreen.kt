@@ -43,7 +43,6 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import de.velwebsolutions.oasis.account.api.AccountSettings
 import de.velwebsolutions.oasis.account.api.TwoFactorState
 import de.velwebsolutions.oasis.account.ui.components.AccountPage
-import de.velwebsolutions.oasis.account.ui.components.ConsentCheck
 import de.velwebsolutions.oasis.account.ui.components.DataExportButton
 import de.velwebsolutions.oasis.account.ui.components.LinkText
 import de.velwebsolutions.oasis.account.ui.components.QrCodeView
@@ -51,6 +50,7 @@ import de.velwebsolutions.oasis.account.ui.components.webUrl
 import de.velwebsolutions.oasis.design.components.AsyncOasisButton
 import de.velwebsolutions.oasis.design.components.Banner
 import de.velwebsolutions.oasis.design.components.BannerKind
+import de.velwebsolutions.oasis.design.components.ConsentCheck
 import de.velwebsolutions.oasis.design.components.FieldError
 import de.velwebsolutions.oasis.design.components.LoadableView
 import de.velwebsolutions.oasis.design.components.OasisButtonKind

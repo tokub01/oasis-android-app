@@ -165,7 +165,7 @@ class AuthViewModelTest {
             .stub("POST", "auth/email/verification-notification", "{}")
         val session = session(transport, backgroundScope)
         session.signIn("mira", "password")
-        val model = VerifyEmailViewModel(session, RemoteAuthApi(transport.client))
+        val model = VerifyEmailViewModel(session, RemoteAuthApi(transport.client), repository(transport))
         assertEquals("mira@demo.oasis.tld", model.email)
         model.check()
         assertTrue("still not confirmed", model.ui.value.checked)

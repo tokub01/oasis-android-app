@@ -140,31 +140,6 @@ fun LinkText(text: String, onClick: () -> Unit, modifier: Modifier = Modifier, b
     }
 }
 
-/** A checkbox with its text, like the web's consent boxes (terms, account deletion). */
-@Composable
-fun ConsentCheck(
-    checked: Boolean,
-    onCheckedChange: (Boolean) -> Unit,
-    modifier: Modifier = Modifier,
-    content: @Composable RowScope.() -> Unit
-) {
-    Row(
-        modifier
-            .fillMaxWidth()
-            .heightIn(min = 44.dp)
-            .clickable(role = Role.Checkbox) { onCheckedChange(!checked) }
-            .semantics { toggleableState = ToggleableState(checked) },
-        verticalAlignment = Alignment.CenterVertically
-    ) {
-        Checkbox(
-            checked = checked,
-            onCheckedChange = null,
-            colors = CheckboxDefaults.colors(checkedColor = OasisColors.Night, uncheckedColor = OasisColors.FieldLine)
-        )
-        content()
-    }
-}
-
 /**
  * Radio choices as pills, one per line (the web's labelled radios): privacy audiences, report categories, the
  * welcome tour's choices and vote options.

@@ -23,6 +23,7 @@ import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.SpanStyle
@@ -66,6 +67,9 @@ import de.velwebsolutions.oasis.design.theme.OasisRadius
 import de.velwebsolutions.oasis.design.theme.OasisType
 import java.time.Instant
 import kotlinx.coroutines.launch
+
+/** Quelle at 30 % on paper, as a solid colour (the app does not draw see-through surfaces). */
+private val ThisDeviceTint = Color(0xFFBDDDD6)
 
 /** Pull to refresh around a page that reloads its view model. */
 @OptIn(ExperimentalMaterial3Api::class)
@@ -160,7 +164,7 @@ private fun SignedIn(overview: DeviceOverview, viewModel: DevicesViewModel, onSi
         Column(
             Modifier
                 .fillMaxWidth()
-                .background(OasisColors.Spring.copy(alpha = 0.3f), RoundedCornerShape(OasisRadius.TILE.dp))
+                .background(ThisDeviceTint, RoundedCornerShape(OasisRadius.TILE.dp))
                 .padding(14.dp)
                 .semantics(mergeDescendants = true) {},
             verticalArrangement = Arrangement.spacedBy(4.dp)

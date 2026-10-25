@@ -1,5 +1,6 @@
 package de.velwebsolutions.oasis.account.api
 
+import de.velwebsolutions.oasis.core.model.Me
 import de.velwebsolutions.oasis.core.network.Confirmed
 import de.velwebsolutions.oasis.core.network.DataEnvelope
 import de.velwebsolutions.oasis.core.network.MessageResponse
@@ -73,6 +74,9 @@ internal interface AccountService {
 
     @POST("account/two-factor/confirm")
     suspend fun confirmTwoFactor(@Body body: CodeBody): SettingsChange
+
+    @POST("auth/email/verify-code")
+    suspend fun verifyEmailCode(@Body body: CodeBody): DataEnvelope<Me>
 
     @POST("account/two-factor/recovery-codes")
     suspend fun regenerateRecoveryCodes(): SettingsChange

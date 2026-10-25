@@ -223,7 +223,7 @@ class AccountEdgeCasesTest {
         val register = RegisterViewModel(session, auth)
         register.submit()
         assertTrue("without a form nothing is sent", transport.requests.none { it.path == "auth/register" && it.request.method == "POST" })
-        val verify = VerifyEmailViewModel(session, auth)
+        val verify = VerifyEmailViewModel(session, auth, repository(transport))
         assertEquals("mira@demo.oasis.tld", verify.email)
         verify.signOut()
         assertNull(verify.email)

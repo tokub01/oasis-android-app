@@ -504,4 +504,32 @@ class HintsViewModelTest {
         assertEquals(2, live.hints.value)
         live.stop()
     }
+
+    @Test
+    fun newAndUnknownHintKindsAreShownLikeAnyOther() = runTest {
+        val hint = { id: String, kind: String, label: String, url: String ->
+            """{"id":"$id","kind":"$kind","label":"$label","url":$url,"excerpt":"","unread":true,""" +
+                """"created_at":"2026-10-24T10:00:00.000000Z","group":"Heute"}"""
+        }
+        val page = listOf(
+            hint("n1", "name_change_requested", "Bitte ändere deinen Namen", "\"http:\\/\\/localhost\\/app\\/einstellungen\""),
+            hint("n2", "email_confirmed_by_team", "Das Team hat deine E-Mail-Adresse bestätigt", "null"),
+            hint("n3", "password_set_by_team", "Das Team hat dein Passwort gesetzt", "null"),
+            hint("n4", "kind_from_the_future", "Etwas Neues", "null")
+        ).joinToString(",", """{"data":[""", """],"meta":{"current_page":1,"last_page":1}}""")
+        val transport = StubTransport(
+            StubTransport.Stub("GET", "hints", json = page),
+            StubTransport.Stub(
+                "GET",
+                "hints/settings",
+                json = LiveJson.SETTINGS.replace("\"key\":\"friend_request\"", "\"key\":\"name_change_requested\"")
+            )
+        )
+        val inbox = HintsInboxViewModel(repository(transport), coordinator(transport, backgroundScope))
+        val hints = inbox.loaded().state.valueOrNull!!
+        assertEquals(listOf("n1", "n2", "n3", "n4"), hints.map { it.id })
+        assertEquals("http://localhost/app/einstellungen", hints.first().url)
+        val settings = settingsModel(transport).loaded().settings!!
+        assertTrue(settings.kinds.any { it.key == "name_change_requested" })
+    }
 }

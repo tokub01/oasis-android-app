@@ -26,8 +26,6 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
-import androidx.compose.material3.Switch
-import androidx.compose.material3.SwitchDefaults
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
@@ -56,6 +54,7 @@ import de.velwebsolutions.oasis.design.components.AsyncOasisButton
 import de.velwebsolutions.oasis.design.components.AuthorizedImage
 import de.velwebsolutions.oasis.design.components.AvatarTint
 import de.velwebsolutions.oasis.design.components.Banner
+import de.velwebsolutions.oasis.design.components.ConsentCheck
 import de.velwebsolutions.oasis.design.components.Eyebrow
 import de.velwebsolutions.oasis.design.components.FieldError
 import de.velwebsolutions.oasis.design.components.LoadableView
@@ -217,21 +216,10 @@ private fun ColumnScope.ProfileStep(ui: WelcomeUiState, tour: WelcomeTour, viewM
                 style = OasisType.Small,
                 color = OasisColors.Ink
             )
-            Row(verticalAlignment = Alignment.CenterVertically) {
-                Text(
-                    "So speichern – ich meine es genau so.",
-                    style = OasisType.Small,
-                    color = OasisColors.Ink,
-                    modifier = Modifier.weight(1f)
-                )
-                Switch(
-                    checked = ui.toneConfirmed,
-                    onCheckedChange = { on -> viewModel.edit { it.copy(toneConfirmed = on) } },
-                    colors = SwitchDefaults.colors(checkedTrackColor = OasisColors.Night, checkedThumbColor = OasisColors.OnNight),
-                    modifier = Modifier.semantics {
-                        contentDescription = "So speichern – ich meine es genau so."
-                    }.testTag("welcome.toneConfirmed")
-                )
+            ConsentCheck(ui.toneConfirmed, { on ->
+                viewModel.edit { it.copy(toneConfirmed = on) }
+            }, Modifier.testTag("welcome.toneConfirmed")) {
+                Text("So speichern – ich meine es genau so.", style = OasisType.Small, color = OasisColors.Ink)
             }
         }
     }

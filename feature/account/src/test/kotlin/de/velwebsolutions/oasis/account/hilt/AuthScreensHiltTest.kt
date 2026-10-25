@@ -1,5 +1,6 @@
 package de.velwebsolutions.oasis.account.hilt
 
+import androidx.compose.ui.test.assertIsNotEnabled
 import androidx.compose.ui.test.onNodeWithContentDescription
 import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.onNodeWithText
@@ -169,12 +170,27 @@ class AuthScreensHiltTest : HiltScreenTest() {
         show { VerifyEmailScreen() }
         waitForTag("verify.check")
         compose.onNodeWithTag("verify.check").tap()
-        waitForText("Deine Adresse ist noch nicht bestätigt.", substring = true)
+        waitForText("Deine Adresse ist noch nicht bestätigt. Gib den Code ein", substring = true)
+        stub(
+            "POST",
+            "auth/email/verify-code",
+            """{"message":"x","errors":{"code":["Dieser Code stimmt nicht oder ist abgelaufen."]}}""",
+            status = 422
+        )
+        type("Code aus der E-Mail", "12345")
+        compose.onNodeWithTag("verify.submit").assertIsNotEnabled()
+        type("Code aus der E-Mail", "6")
+        compose.onNodeWithTag("verify.submit").tap()
+        waitForText("Dieser Code stimmt nicht oder ist abgelaufen.")
+        shot("verify-code-refused")
+        stub("POST", "auth/email/verify-code", """{"message":"Too Many Attempts."}""", status = 429)
+        compose.onNodeWithTag("verify.submit").tap()
+        compose.waitUntil(5_000) { transport.requests.count { it.path == "auth/email/verify-code" } == 2 }
         compose.onNodeWithTag("verify.resend").tap()
         waitForRequest("POST", "auth/email/verification-notification")
         stub("POST", "auth/email/verification-notification", "{}")
         compose.onNodeWithTag("verify.resend").tap()
-        waitForText("Wir haben dir einen neuen Link geschickt.")
+        waitForText("Wir haben dir einen neuen Code und Link geschickt.")
         shot("verify")
         compose.onNodeWithText("Adresse ändern oder Konto löschen").tap()
         waitForTag("settings.saveProfile")
@@ -188,5 +204,41 @@ class AuthScreensHiltTest : HiltScreenTest() {
         waitForTag("verify.signout")
         compose.onNodeWithTag("verify.signout").tap()
         waitForRequest("POST", "auth/logout")
+    }
+
+    @Test
+    fun theCodeFromTheMailConfirmsTheAddress() {
+        signIn(MIRA.copy(emailVerified = false))
+        stub("POST", "auth/email/verify-code", """{"message":"Deine E-Mail-Adresse ist bestätigt.","data":${Fixtures.ME}}""")
+        show { VerifyEmailScreen() }
+        waitForTag("verify.submit")
+        shot("verify-code")
+        type("Code aus der E-Mail", " 123 456")
+        compose.onNodeWithTag("verify.submit").tap()
+        compose.waitUntil(5_000) { session.me?.emailVerified == true }
+        assertEquals(
+            kotlinx.serialization.json.JsonObject(mapOf("code" to kotlinx.serialization.json.JsonPrimitive("123 456"))),
+            transport.lastBody("auth/email/verify-code")
+        )
+    }
+
+    @Test
+    fun theNameCheckRefusesDisplayNameAndUsernameAtTheirFields() {
+        stub("GET", "auth/register", form)
+        stub(
+            "POST",
+            "auth/register",
+            """{"message":"x","errors":{"display_name":["Dieser Name ist nicht erlaubt."],"username":["Dieser Benutzername ist nicht erlaubt."]}}""",
+            status = 422
+        )
+        show { SignedOutScreen() }
+        compose.onNodeWithTag("register.button").tap()
+        waitForTag("register.submit")
+        compose.onNodeWithTag("register.birthDate").tap()
+        compose.onNodeWithTag("register.birthDate.take").press()
+        compose.onNodeWithTag("register.submit").tap()
+        waitForText("Dieser Name ist nicht erlaubt.")
+        waitForText("Dieser Benutzername ist nicht erlaubt.")
+        compose.onNodeWithText("Bitte prüfe die markierten Felder.").assertExists()
     }
 }
