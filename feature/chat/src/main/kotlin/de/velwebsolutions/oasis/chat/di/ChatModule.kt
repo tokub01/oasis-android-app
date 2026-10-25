@@ -45,10 +45,12 @@ private val Context.chatDataStore: DataStore<Preferences> by preferencesDataStor
 @Module
 @InstallIn(SingletonComponent::class)
 object ChatModule {
+    /** The crypto core on lazysodium-android. */
     @Provides
     @Singleton
     fun crypto(): ChatCrypto = ChatCrypto(AndroidSodium(SodiumAndroid()))
 
+    /** The chat API over the app's client. */
     @Provides
     @Singleton
     fun repository(client: ApiClient): ChatRepository = DefaultChatRepository(client)
@@ -67,15 +69,18 @@ object ChatModule {
         }
     }
 
+    /** The chat's DataStore. */
     @Provides
     @Singleton
     @ChatStore
     fun dataStore(@ApplicationContext context: Context): DataStore<Preferences> = context.chatDataStore
 
+    /** The biometric prompt of the visible activity. */
     @Provides
     @Singleton
     fun prompter(): BiometricPrompter = BiometricPrompter()
 
+    /** The biometric copy's secret in the Android Keystore. */
     @Provides
     @Singleton
     fun secrets(
@@ -84,6 +89,7 @@ object ChatModule {
         @ChatStore dataStore: DataStore<Preferences>
     ): DeviceSecretStore = KeystoreDeviceSecretStore(AndroidKeystoreBiometricKeys(context), prompter, dataStore)
 
+    /** "Nicht jetzt" and other small choices. */
     @Provides
     @Singleton
     fun preferences(@ChatStore dataStore: DataStore<Preferences>): ChatPreferences = DataStoreChatPreferences(dataStore)

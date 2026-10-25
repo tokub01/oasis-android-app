@@ -20,6 +20,7 @@ data class ChatMessageItem(
     /** The text of a readable message; empty otherwise. */
     val plaintext: String = ""
 ) {
+    /** Whether the message could be read. */
     enum class State {
         Readable,
 
@@ -38,6 +39,7 @@ data class DraftMeasure(val characters: Int, val bytes: Int, val tooLong: Boolea
 
 /** Encrypt, verify and keep messages in order. */
 object ChatMessages {
+    /** Characters (code points) and UTF-8 bytes of a draft against the message limits. */
     fun measure(text: String): DraftMeasure {
         val characters = text.codePointCount(0, text.length)
         val bytes = text.toByteArray(Charsets.UTF_8).size
@@ -86,6 +88,7 @@ object ChatMessages {
 
 /** In-memory list of one conversation's items, oldest first, de-duplicated by signature. Immutable: changes return a copy. */
 data class ChatTimeline(val items: List<ChatMessageItem> = emptyList()) {
+    /** Whether a message with this signature is shown already. */
     fun has(signature: String): Boolean = items.any { it.signature == signature }
 
     /** The timeline with [item] at the end, or null when it is null or already there. */
@@ -97,6 +100,7 @@ data class ChatTimeline(val items: List<ChatMessageItem> = emptyList()) {
         return ChatTimeline(fresh + items)
     }
 
+    /** The timeline with [item] in place of the message with the same signature. */
     fun replacing(item: ChatMessageItem): ChatTimeline = ChatTimeline(items.map { if (it.signature == item.signature) item else it })
 
     /** Without expired items (and their plaintext); null when nothing expired. */

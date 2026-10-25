@@ -101,13 +101,16 @@ class ConversationListViewModel @Inject constructor(context: ChatContext, privat
         return parts.joinToString(" · ")
     }
 
+    /** The row's title: group name or the other people's names. */
     fun title(conversation: ChatConversation): String = conversation.displayTitle(context.userId)
 
     /** "Sperren". */
     fun lock() = vault.lock()
 
+    /** The confirmation toast was shown. */
     fun dismissStatus() = mutableState.update { it.copy(status = null) }
 
+    /** The error toast was shown. */
     fun dismissActionError() = mutableState.update { it.copy(actionError = null) }
 
     // region Device links (approving side)

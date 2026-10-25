@@ -35,8 +35,10 @@ class NewConversationViewModel @AssistedInject constructor(
     @Assisted val preselected: String?,
     context: ChatContext
 ) : ChatViewModel(context) {
+    /** Creates the view model with an optional preselected username (Hilt). */
     @AssistedFactory
     interface Factory {
+        /** The view model, with the person of a "Schreiben" button. */
         fun create(preselected: String?): NewConversationViewModel
     }
 
@@ -47,14 +49,19 @@ class NewConversationViewModel @AssistedInject constructor(
 
     private var preselectionDone = false
 
+    /** "Zu zweit" or "Gruppe". */
     fun setKind(value: ConversationKind) = mutableState.update { it.copy(kind = value) }
 
+    /** The typed username. */
     fun setUsername(value: String) = mutableState.update { it.copy(username = value) }
 
+    /** The typed group name. */
     fun setTitle(value: String) = mutableState.update { it.copy(title = value) }
 
+    /** The picked lifetime. */
     fun setLifetimeDays(value: Int) = mutableState.update { it.copy(lifetimeDays = value) }
 
+    /** The confirmation toast was shown. */
     fun dismissStatus() = mutableState.update { it.copy(status = null) }
 
     /** Adds the person of a "Schreiben" button once. */
@@ -102,6 +109,7 @@ class NewConversationViewModel @AssistedInject constructor(
         }
     }
 
+    /** Removes a selected person ("@mira ✕"). */
     fun remove(user: PublicUser) = mutableState.update { current -> current.copy(selected = current.selected.filter { it.id != user.id }) }
 
     /** "Chat starten": returns the new conversation's id. */

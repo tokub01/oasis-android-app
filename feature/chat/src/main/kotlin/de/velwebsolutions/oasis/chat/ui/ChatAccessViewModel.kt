@@ -28,14 +28,19 @@ import kotlinx.coroutines.launch
 
 /** Which screen the chat gate shows. */
 sealed interface ChatPhase {
+    /** The identity is loading. */
     data object Loading : ChatPhase
 
+    /** "Chat einrichten". */
     data object Setup : ChatPhase
 
+    /** "Nachrichten entsperren". */
     data object Unlock : ChatPhase
 
+    /** The keys are open: the chat screen shows. */
     data object Open : ChatPhase
 
+    /** The identity could not be loaded. */
     data class Failed(val message: String) : ChatPhase
 }
 
@@ -87,8 +92,10 @@ class ChatAccessViewModel @Inject constructor(context: ChatContext) : ChatViewMo
         vault.unlockedFlow.drop(1).filter { unlocked -> !unlocked }.onEach { vaultLocked() }.launchIn(viewModelScope)
     }
 
+    /** The typed passphrase. */
     fun setPassphrase(value: String) = mutableState.update { it.copy(passphrase = value) }
 
+    /** The repeated passphrase. */
     fun setConfirmation(value: String) = mutableState.update { it.copy(confirmation = value) }
 
     private fun refreshIdentityFlags() = mutableState.update {
@@ -156,6 +163,7 @@ class ChatAccessViewModel @Inject constructor(context: ChatContext) : ChatViewMo
         it.copy(formError = null, passphrase = "", confirmation = "", phase = ChatPhase.Setup)
     }
 
+    /** "Zurück zum Entsperren". */
     suspend fun cancelReset() = inScope {
         mutableState.update { it.copy(phase = ChatPhase.Unlock) }
         prepareUnlock()
@@ -301,6 +309,7 @@ class ChatAccessViewModel @Inject constructor(context: ChatContext) : ChatViewMo
         }
     }
 
+    /** "Abbrechen" while waiting for the other device. */
     suspend fun cancelLink() = inScope {
         val link = pendingLink
         resetLink()

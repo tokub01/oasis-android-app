@@ -80,8 +80,10 @@ class ConversationViewModel @AssistedInject constructor(
     context: ChatContext,
     private val realtime: RealtimeService
 ) : ChatViewModel(context) {
+    /** Creates the view model for one conversation (Hilt). */
     @AssistedFactory
     interface Factory {
+        /** The view model of [conversationId]. */
         fun create(conversationId: String): ConversationViewModel
     }
 
@@ -107,6 +109,7 @@ class ConversationViewModel @AssistedInject constructor(
 
     private val myId: String get() = context.userId
 
+    /** The display name of a sender, "Unbekannt" for someone not in the directory. */
     fun senderName(userId: String): String = users[userId]?.name ?: "Unbekannt"
 
     /** Recomputes the derived fields after a change of the conversation, the keys or the timeline. */
@@ -273,6 +276,7 @@ class ConversationViewModel @AssistedInject constructor(
         render()
     }
 
+    /** "Ältere Nachrichten laden". */
     suspend fun loadOlder() = inScope {
         try {
             loadHistory()
@@ -493,10 +497,13 @@ class ConversationViewModel @AssistedInject constructor(
         }
     }
 
+    /** The confirmation toast was shown. */
     fun dismissStatus() = render { it.copy(status = null) }
 
+    /** The error toast was shown. */
     fun dismissActionError() = render { it.copy(actionError = null) }
 
+    /** TalkBack read the notice. */
     fun noticeSpoken() = render { it.copy(spokenNotice = null) }
 
     /** The report dialog for one message from someone else. */

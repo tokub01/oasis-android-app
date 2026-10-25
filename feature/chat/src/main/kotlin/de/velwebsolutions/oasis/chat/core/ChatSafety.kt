@@ -10,8 +10,10 @@ import java.util.regex.Pattern
  * server's word list; drafts for card numbers, IBANs, passwords and addresses, plus the same tone hint as Tropfen.
  */
 object ChatSafety {
+    /** What an incoming message looks like. */
     enum class Kind { Phishing, Solicitation, Harassment }
 
+    /** A finding of the incoming check with the banner's title. */
     data class Finding(val kind: Kind, val title: String)
 
     /** What a draft would reveal, and the slang address for the tone hint. */

@@ -72,26 +72,35 @@ class ConversationDetailsViewModel @AssistedInject constructor(
     @Assisted val conversationId: String,
     context: ChatContext
 ) : ChatViewModel(context) {
+    /** Creates the view model for one conversation (Hilt). */
     @AssistedFactory
     interface Factory {
+        /** The view model of [conversationId]. */
         fun create(conversationId: String): ConversationDetailsViewModel
     }
 
     private val mutableState = MutableStateFlow(ConversationDetailsState())
     val state: StateFlow<ConversationDetailsState> = mutableState.asStateFlow()
 
+    /** The picked mute duration. */
     fun setMuteDuration(value: String) = mutableState.update { it.copy(muteDuration = value) }
 
+    /** The picked lifetime. */
     fun setLifetimeDays(value: Int) = mutableState.update { it.copy(lifetimeDays = value) }
 
+    /** The typed group name. */
     fun setTitle(value: String) = mutableState.update { it.copy(title = value) }
 
+    /** The typed username to add. */
     fun setUsername(value: String) = mutableState.update { it.copy(username = value) }
 
+    /** The confirmation toast was shown. */
     fun dismissStatus() = mutableState.update { it.copy(status = null) }
 
+    /** The error toast was shown. */
     fun dismissError() = mutableState.update { it.copy(error = null) }
 
+    /** The conversation with its members and safety numbers. */
     suspend fun load() = inScope {
         try {
             render(context.repository.conversation(conversationId))

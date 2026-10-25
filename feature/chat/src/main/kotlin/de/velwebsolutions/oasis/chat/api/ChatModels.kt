@@ -148,6 +148,7 @@ data class SafetyLists(
     val lists: Map<String, List<String>> = emptyMap(),
     val tone: Tone = Tone()
 ) {
+    /** The tone hint's word lists: slang flagged anywhere, ordinary words only as an address. */
     @Serializable
     data class Tone(val always: List<String> = emptyList(), val address: List<String> = emptyList())
 
@@ -167,5 +168,6 @@ data class UnreadCount(val count: Int = 0)
 @Serializable
 data class OptionalIdentity(val data: StoredIdentity? = null)
 
+/** `{ "data": … | null }` of the device-link pickup: null until another device approved. */
 @Serializable
 data class OptionalLinkApproval(val data: LinkApproval? = null)

@@ -81,9 +81,11 @@ class ChatKeyring(private val context: ChatContext) {
         /** Ids whose bundle failed verification. */
         val invalid: List<String>
     ) {
+        /** The member with [id], if the directory lists them. */
         fun user(id: String): PublicUser? = users.firstOrNull { it.id == id }
     }
 
+    /** Loads the members' published keys, verifies and remembers them, and notes changed or invalid ones. */
     suspend fun loadDirectory(conversationId: String): Directory {
         val users = api.publicKeys(conversationId)
         val changed = mutableListOf<String>()

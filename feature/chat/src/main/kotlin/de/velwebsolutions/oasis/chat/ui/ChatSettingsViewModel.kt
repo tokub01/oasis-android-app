@@ -60,14 +60,19 @@ class ChatSettingsViewModel @Inject constructor(context: ChatContext) : ChatView
 
     private fun refreshPassphraseFlag() = mutableState.update { it.copy(hasPassphrase = vault.storedIdentity?.lockedIdentity != null) }
 
+    /** The new passphrase. */
     fun setPassphrase(value: String) = mutableState.update { it.copy(passphrase = value) }
 
+    /** The repeated passphrase. */
     fun setConfirmation(value: String) = mutableState.update { it.copy(confirmation = value) }
 
+    /** The confirmation toast was shown. */
     fun dismissStatus() = mutableState.update { it.copy(status = null) }
 
+    /** The error toast was shown. */
     fun dismissError() = mutableState.update { it.copy(error = null) }
 
+    /** The settings and this member's devices. */
     suspend fun load() = inScope {
         val settings = runCatching { context.repository.settings() }.getOrNull()
         mutableState.update { it.copy(settings = settings) }
@@ -86,10 +91,12 @@ class ChatSettingsViewModel @Inject constructor(context: ChatContext) : ChatView
 
     // region Who may write
 
+    /** "Chats beginnen dürfen". */
     suspend fun setAudience(value: String) = saveSetting("chat_invites_audience", SettingValue.Text(value)) {
         it.copy(chatInvitesAudience = value)
     }
 
+    /** "Freundschaftsanfragen erhalten". */
     suspend fun setFriendRequests(value: Boolean) = saveSetting("friend_requests", SettingValue.Flag(value)) {
         it.copy(friendRequests = value)
     }
@@ -128,6 +135,7 @@ class ChatSettingsViewModel @Inject constructor(context: ChatContext) : ChatView
         }
     }
 
+    /** "Entfernen" of a device (after the confirmation where needed). */
     suspend fun remove(row: DeviceUnlockRow) = inScope {
         try {
             context.devices.remove(row)
@@ -180,6 +188,7 @@ class ChatSettingsViewModel @Inject constructor(context: ChatContext) : ChatView
         }
     }
 
+    /** Forgets typed passphrases (leaving the screen). */
     fun clearInputs() = mutableState.update { it.copy(passphrase = "", confirmation = "") }
 
     // endregion

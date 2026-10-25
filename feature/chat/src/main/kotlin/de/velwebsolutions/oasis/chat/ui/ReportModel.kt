@@ -33,8 +33,10 @@ class ReportModel(
     private val mutableState = MutableStateFlow(ReportState(quote = "$senderName: ${item.plaintext}"))
     val state: StateFlow<ReportState> = mutableState.asStateFlow()
 
+    /** The picked problem. */
     fun setCategory(value: String) = mutableState.update { it.copy(category = value) }
 
+    /** The optional comment. */
     fun setComment(value: String) = mutableState.update { it.copy(comment = value) }
 
     /** "Melden". */
