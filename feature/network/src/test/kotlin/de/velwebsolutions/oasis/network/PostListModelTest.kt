@@ -11,15 +11,37 @@ import kotlinx.coroutines.CompletableDeferred
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.test.runCurrent
 import kotlinx.coroutines.test.runTest
+import org.junit.After
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
 import org.junit.Assert.assertNotNull
 import org.junit.Assert.assertNull
 import org.junit.Assert.assertTrue
+import org.junit.Before
 import org.junit.Test
+import org.junit.runner.RunWith
+import org.junit.runners.Parameterized
 
 /** Feeds and card actions (iOS `FeedTests`). */
-class PostListModelTest {
+@RunWith(Parameterized::class)
+class PostListModelTest(private val answersAtOnce: Boolean) {
+    companion object {
+        /** Each test runs with answers that suspend and with answers on the calling thread. */
+        @JvmStatic
+        @Parameterized.Parameters(name = "immediate={0}")
+        fun modes() = listOf(false, true)
+    }
+
+    @Before
+    fun answerMode() {
+        immediate = answersAtOnce
+    }
+
+    @After
+    fun suspendingAgain() {
+        immediate = false
+    }
+
     private fun bookmarks(network: StubbedNetwork, drops: Boolean = false) =
         PostListModel<NoContext>(network.repository, dropsUnbookmarked = drops) { _, cursor -> bookmarks(cursor) }
 

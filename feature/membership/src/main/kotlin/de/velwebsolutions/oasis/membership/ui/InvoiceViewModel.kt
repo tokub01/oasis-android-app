@@ -18,6 +18,7 @@ import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 
+/** The invoice page: the downloaded file and whether its sheet is open. */
 data class InvoiceUiState(val file: Loadable<File> = Loadable.Idle, val preview: File? = null)
 
 /** /app/mitgliedschaft/rechnungen/{id} opened from a link: downloads the invoice and shows it right away. */
@@ -27,6 +28,7 @@ class InvoiceViewModel @AssistedInject constructor(
     private val repository: MembershipRepository,
     private val files: MembershipFiles
 ) : ViewModel() {
+    /** Creates the view model for one id (Hilt assisted injection). */
     @AssistedFactory
     interface Factory {
         fun create(paymentId: Int): InvoiceViewModel
@@ -39,6 +41,7 @@ class InvoiceViewModel @AssistedInject constructor(
         viewModelScope.launch { load() }
     }
 
+    /** Loads the page again; a failed first load shows the error page, a failed refresh a snackbar. */
     suspend fun load() {
         mutableState.update { it.copy(file = Loadable.Loading) }
         try {
@@ -51,7 +54,9 @@ class InvoiceViewModel @AssistedInject constructor(
         }
     }
 
+    /** Opens the invoice sheet again. */
     fun showPreview() = mutableState.update { it.copy(preview = it.file.valueOrNull) }
 
+    /** Closes the invoice sheet. */
     fun closePreview() = mutableState.update { it.copy(preview = null) }
 }

@@ -17,11 +17,32 @@ import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
 import org.junit.Assert.assertNull
 import org.junit.Assert.assertTrue
+import org.junit.Before
 import org.junit.Rule
 import org.junit.Test
+import org.junit.runner.RunWith
+import org.junit.runners.Parameterized
 
 /** Profiles, the own profile form, friendships, the own numbers and invitations. */
-class ProfileViewModelsTest {
+@RunWith(Parameterized::class)
+class ProfileViewModelsTest(private val answersAtOnce: Boolean) {
+    companion object {
+        /** Each test runs with answers that suspend and with answers on the calling thread. */
+        @JvmStatic
+        @Parameterized.Parameters(name = "immediate={0}")
+        fun modes() = listOf(false, true)
+    }
+
+    @Before
+    fun answerMode() {
+        immediate = answersAtOnce
+    }
+
+    @After
+    fun suspendingAgain() {
+        immediate = false
+    }
+
     @get:Rule
     val main = MainDispatcherRule()
 
@@ -43,6 +64,7 @@ class ProfileViewModelsTest {
     fun `every profile button calls its endpoint and reloads`() = runTest {
         val ok = """{"message":"Erledigt."}"""
         val network = profileNetwork(
+            stub("POST", "network/profiles/jonas/follow", ok),
             stub("DELETE", "network/profiles/jonas/follow", ok),
             stub("POST", "network/profiles/jonas/friendship", ok),
             stub("POST", "network/profiles/jonas/friendship/accept", ok),
@@ -57,6 +79,7 @@ class ProfileViewModelsTest {
         model.loadIfNeeded()
         model.loadIfNeeded()
         val expected = listOf(
+            ProfileAction.Follow to "POST network/profiles/jonas/follow",
             ProfileAction.Unfollow to "DELETE network/profiles/jonas/follow",
             ProfileAction.RequestFriend to "POST network/profiles/jonas/friendship",
             ProfileAction.AcceptFriend to "POST network/profiles/jonas/friendship/accept",

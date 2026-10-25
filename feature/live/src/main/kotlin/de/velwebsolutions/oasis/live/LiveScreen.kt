@@ -63,21 +63,18 @@ import javax.inject.Inject
 /** Entry point of the Live module: the screen for each [LiveRoute] (mapped in the app). */
 @Composable
 fun LiveScreen(route: LiveRoute) {
-    when (route) {
-        LiveRoute.Inbox -> HintsInboxScreen()
-        LiveRoute.Settings -> HintSettingsScreen()
-    }
+    // Two routes: the list and its settings.
+    if (route == LiveRoute.Inbox) HintsInboxScreen() else HintSettingsScreen()
 }
 
 /** Hands the app shell's live state (bell, chat notice) to the composables of the header and the tab view. */
 @HiltViewModel
 internal class LiveShellViewModel @Inject constructor(val live: LiveCoordinator) : ViewModel()
 
-/** The bell in the header with the number of unread Hinweise. */
+/** The bell in the header with the number of unread Hinweise; [live] is the app's coordinator. */
 @Composable
-fun HintsButton() {
+fun HintsButton(live: LiveCoordinator = hiltViewModel<LiveShellViewModel>().live) {
     val navigator = LocalNavigator.current
-    val live = hiltViewModel<LiveShellViewModel>().live
     val unread by live.hints.collectAsStateWithLifecycle()
     HintsBell(unread) { navigator.open(LiveRoute.Inbox) }
 }
@@ -117,9 +114,8 @@ internal fun HintsBell(unread: Int, onClick: () -> Unit) {
 
 /** The in-app notice about a new chat message ("Neue Nachricht von …"), above the tab bar. */
 @Composable
-fun ChatToastOverlay() {
+fun ChatToastOverlay(live: LiveCoordinator = hiltViewModel<LiveShellViewModel>().live) {
     val navigator = LocalNavigator.current
-    val live = hiltViewModel<LiveShellViewModel>().live
     val toast by live.counts.toast.collectAsStateWithLifecycle()
     ChatToastContent(
         toast = toast,

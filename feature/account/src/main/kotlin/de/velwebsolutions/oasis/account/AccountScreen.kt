@@ -30,17 +30,29 @@ import de.velwebsolutions.oasis.design.navigation.Navigator
 fun AccountScreen(route: AccountRoute) {
     when (route) {
         AccountRoute.Settings -> SettingsScreen()
+
         AccountRoute.Privacy -> PrivacyCenterScreen()
+
         AccountRoute.PrivacyCheckup -> PrivacyCheckupScreen()
+
         AccountRoute.HiddenWords -> HiddenWordsScreen()
+
         AccountRoute.Devices -> DevicesScreen()
+
         AccountRoute.Welcome -> WelcomeScreen()
+
         AccountRoute.Safety -> SafetyScreen()
+
         is AccountRoute.Report -> ReportScreen(route.url)
+
         AccountRoute.Glossary -> GlossaryScreen()
+
         AccountRoute.Suspended -> SuspendedScreen()
+
         is AccountRoute.Complaint -> ComplaintScreen(route.decisionId)
-        AccountRoute.Votes -> VotesScreen()
+
+        // The remaining route: Abstimmungen.
+        else -> VotesScreen()
     }
 }
 

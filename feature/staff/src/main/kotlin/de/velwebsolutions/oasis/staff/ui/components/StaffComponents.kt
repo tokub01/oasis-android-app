@@ -72,8 +72,10 @@ import de.velwebsolutions.oasis.design.components.LoadableView
 import de.velwebsolutions.oasis.design.components.OasisButton
 import de.velwebsolutions.oasis.design.components.pressable
 import de.velwebsolutions.oasis.design.navigation.AccountRoute
+import de.velwebsolutions.oasis.design.navigation.AppRoute
 import de.velwebsolutions.oasis.design.navigation.DeepLink
 import de.velwebsolutions.oasis.design.navigation.LocalNavigator
+import de.velwebsolutions.oasis.design.navigation.Navigator
 import de.velwebsolutions.oasis.design.navigation.StaffRoute
 import de.velwebsolutions.oasis.design.navigation.WebRoute
 import de.velwebsolutions.oasis.design.theme.OasisColors
@@ -111,12 +113,14 @@ object StaffDate {
 
 /** The waiting-time state of a provisional lock (`ok`, `soon`, `overdue`) as the web colours it. */
 object DeadlineLook {
+    /** The banner colour for a waiting time state. */
     fun background(state: String?): Color = when (state) {
         "overdue" -> OasisColors.Sun.copy(alpha = 0.35f)
         "soon" -> OasisColors.Sun.copy(alpha = 0.2f)
         else -> OasisColors.Dune
     }
 
+    /** The text colour for a waiting time state. */
     fun foreground(state: String?): Color = if (state == "overdue") OasisColors.SunText else OasisColors.Night
 }
 
@@ -255,6 +259,12 @@ fun <T> StaffLoadable(state: Loadable<T>, onRetry: suspend () -> Unit, content: 
     }
 }
 
+/** Where a link of the staff pages leads: an Oasis page in the app, anything else in the in-app browser. */
+internal fun linkRoute(url: String): AppRoute = DeepLink.route(url) ?: WebRoute(url)
+
+/** Taps open [url] (built outside composition, so Compose does not memoize the click with extra branches). */
+private fun Modifier.opening(url: String, navigator: Navigator): Modifier = pressable({ navigator.open(linkRoute(url)) })
+
 /** Opens a link of the staff pages: Oasis links in the app, others in the in-app browser. */
 @Composable
 fun LinkText(url: String) {
@@ -263,7 +273,7 @@ fun LinkText(url: String) {
         url,
         style = OasisType.Small.copy(textDecoration = TextDecoration.Underline),
         color = OasisColors.Night,
-        modifier = Modifier.pressable({ navigator.open(DeepLink.route(url) ?: WebRoute(url)) })
+        modifier = Modifier.opening(url, navigator)
     )
 }
 

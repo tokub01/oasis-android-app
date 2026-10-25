@@ -61,6 +61,7 @@ fun PlayCheckoutScreen(viewModel: PlayCheckoutViewModel = hiltViewModel()) {
     )
 }
 
+/** The checkout without its view model, for the app and for tests. */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun PlayCheckoutContent(

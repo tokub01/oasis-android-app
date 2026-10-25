@@ -17,6 +17,7 @@ data class ModerationOverview(
     val activity: List<Activity> = emptyList(),
     val navigation: Navigation
 ) {
+    /** The figure cards. */
     @Serializable
     data class Figures(
         val active: Int,
@@ -29,6 +30,7 @@ data class ModerationOverview(
         val medianLabel: String
     )
 
+    /** Provisional locks waiting for a decision. */
     @Serializable
     data class WaitingLocks(
         val count: Int,
@@ -38,9 +40,11 @@ data class ModerationOverview(
         val reviewHours: Int
     )
 
+    /** One recent event of a case. */
     @Serializable
-    data class Activity(val id: Int, val caseId: Int, val type: Labelled, val actorName: String? = null, val createdAt: OasisInstant)
+    data class Activity(val caseId: Int, val type: Labelled, val actorName: String? = null, val createdAt: OasisInstant)
 
+    /** Who is signed in and which staff pages they may open. */
     @Serializable
     data class Navigation(val displayName: String, val role: Labelled, val canManageRoles: Boolean, val canAdministrate: Boolean)
 }
@@ -86,7 +90,6 @@ data class QueueFilter(
 /** A statement of reasons (DSA Art. 17). */
 @Serializable
 data class Decision(
-    val id: Int,
     val outcome: Labelled,
     val ground: Labelled,
     val isComplaintReview: Boolean = false,
@@ -121,6 +124,7 @@ data class ModerationCaseDetail(
     val grounds: List<Labelled> = emptyList(),
     val can: Permissions
 ) {
+    /** What was reported, and how. */
     @Serializable
     data class Report(
         /** content_report | chat_report | content_check */
@@ -130,6 +134,7 @@ data class ModerationCaseDetail(
         val check: Check? = null
     )
 
+    /** The automated check of a drop. */
     @Serializable
     data class Check(
         val sourceLabel: String,
@@ -140,24 +145,31 @@ data class ModerationCaseDetail(
         val heldAt: OasisInstant? = null
     )
 
+    /** One score of the automated check. */
     @Serializable
     data class Score(val key: String, val label: String, val percent: Int, val flagged: Boolean)
 
+    /** The account a case is about. */
     @Serializable
     data class Person(val displayName: String, val username: String)
 
+    /** The person a case is assigned to. */
     @Serializable
-    data class Assignee(val id: Int, val displayName: String)
+    data class Assignee(val id: Int)
 
+    /** A person the case can be assigned to. */
     @Serializable
     data class StaffMember(val id: Int, val displayName: String, val isMe: Boolean = false)
 
+    /** A complaint against a decision of the case. */
     @Serializable
     data class ComplaintSummary(val id: Int, val status: Labelled, val submittedAt: OasisInstant, val reviewerName: String? = null)
 
+    /** One entry of the case history. */
     @Serializable
-    data class Event(val id: Int, val type: Labelled, val actorName: String? = null, val createdAt: OasisInstant)
+    data class Event(val type: Labelled, val actorName: String? = null, val createdAt: OasisInstant)
 
+    /** The escalation of a case (child abuse or terror). */
     @Serializable
     data class Escalation(
         val type: Labelled,
@@ -171,9 +183,9 @@ data class ModerationCaseDetail(
         val quarantined: Boolean = false
     )
 
+    /** A secured piece of evidence. */
     @Serializable
     data class Evidence(
-        val id: Int,
         /** text | image */
         val kind: String,
         val createdAt: OasisInstant,
@@ -183,9 +195,11 @@ data class ModerationCaseDetail(
         val content: String? = null
     )
 
+    /** A way to escalate a case. */
     @Serializable
     data class EscalationOption(val value: String, val label: String, val description: String)
 
+    /** What the signed-in person may do with the case. */
     @Serializable
     data class Permissions(val assign: Boolean, val decide: Boolean, val administrate: Boolean)
 }
@@ -203,7 +217,6 @@ data class StatementOfReasons(
 /** A complaint for review (`GET staff/moderation/complaints/{id}`). */
 @Serializable
 data class ComplaintDetail(
-    val id: Int,
     val caseId: Int,
     val status: Labelled,
     val submittedAt: OasisInstant,
@@ -214,6 +227,7 @@ data class ComplaintDetail(
     val outcomes: List<Labelled> = emptyList(),
     val grounds: List<Labelled> = emptyList()
 ) {
+    /** The decision the complaint is against. */
     @Serializable
     data class OriginalDecision(
         val outcome: Labelled,
@@ -224,6 +238,7 @@ data class ComplaintDetail(
         val explanation: String
     )
 
+    /** The result of the review. */
     @Serializable
     data class Result(val reviewerName: String? = null, val reviewedAt: OasisInstant? = null, val explanation: String? = null)
 }
@@ -290,8 +305,6 @@ data class SuspensionList(
 @Serializable
 data class Suspension(
     val id: Int,
-    /** provisional | suspension | ban */
-    val type: String,
     val label: String,
     val user: Account,
     val startedAt: OasisInstant,
@@ -306,6 +319,7 @@ data class Suspension(
     val statementAt: OasisInstant? = null,
     val canRelease: Boolean? = null
 ) {
+    /** The locked account. */
     @Serializable
     data class Account(val displayName: String, val username: String, val activeStrikes: Int? = null)
 }

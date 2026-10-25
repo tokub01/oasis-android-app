@@ -226,8 +226,10 @@ object MollieFormat {
         "klarna" to "Klarna"
     )
 
+    /** Mollie's payment status in German. */
     fun status(value: String): String = statuses[value] ?: value
 
+    /** Mollie's payment method in German; null without one. */
     fun method(value: String?): String? = value?.let { methods[it] ?: it }
 
     /** "5.00" → "5,00 €" (with a no-break space before the euro sign, like the web). */
@@ -240,6 +242,7 @@ object MollieFormat {
         return format.format(number) + "\u00A0€"
     }
 
+    /** A Mollie timestamp as "22. Okt. 2026, 13:37"; a dash when missing or unreadable. */
     fun date(value: String?): String = value?.let(OasisJson::parseInstant)?.let(StaffDate::medium) ?: "–"
 }
 

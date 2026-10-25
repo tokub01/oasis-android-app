@@ -22,14 +22,24 @@ import de.velwebsolutions.oasis.staff.ui.moderation.SuspensionsScreen
 fun StaffScreen(route: StaffRoute) {
     when (route) {
         StaffRoute.Moderation -> ModerationOverviewScreen()
+
         is StaffRoute.ModerationCase -> CaseDetailScreen(route.id)
+
         is StaffRoute.ComplaintReview -> ComplaintReviewScreen(route.id)
+
         StaffRoute.Roles -> RolesScreen()
+
         StaffRoute.Suspensions -> SuspensionsScreen()
+
         StaffRoute.AdminDashboard -> AdminDashboardScreen()
+
         StaffRoute.AdminVotes -> AdminVotesScreen()
+
         StaffRoute.AdminPayments -> AdminPaymentsScreen()
+
         StaffRoute.AdminBreaches -> DataBreachesScreen()
-        StaffRoute.AdminSystem -> SystemScreen()
+
+        // StaffRoute.AdminSystem, the last route (an `else` instead of a check that could never fail).
+        else -> SystemScreen()
     }
 }

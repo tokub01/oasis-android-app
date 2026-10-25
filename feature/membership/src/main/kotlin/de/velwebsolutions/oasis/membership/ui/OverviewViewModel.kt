@@ -18,6 +18,7 @@ import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 
+/** The overview: the membership and another screen's outcome for the snackbar. */
 data class OverviewUiState(
     val overview: Loadable<MembershipOverview> = Loadable.Idle,
     /** Another screen's outcome (`role="status"`), shown as toast. */
@@ -47,6 +48,7 @@ class OverviewViewModel @Inject constructor(
         }
     }
 
+    /** Loads the page again; a failed first load shows the error page, a failed refresh a snackbar. */
     suspend fun load() {
         mutableState.update { it.copy(overview = it.overview.refreshing()) }
         try {
@@ -67,7 +69,9 @@ class OverviewViewModel @Inject constructor(
     /** Back from managing the Apple subscription: tier or cancellation may have changed there, so everything reloads. */
     fun subscriptionManaged() = events.changed()
 
+    /** Hides the confirmation once the snackbar showed it. */
     fun dismissMessage() = mutableState.update { it.copy(message = null) }
 
+    /** Hides the error once the snackbar showed it. */
     fun dismissError() = mutableState.update { it.copy(error = null) }
 }

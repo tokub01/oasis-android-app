@@ -1,8 +1,8 @@
 package de.velwebsolutions.oasis.live.push
 
 import de.velwebsolutions.oasis.core.network.ApiError
+import de.velwebsolutions.oasis.live.catching
 import de.velwebsolutions.oasis.live.data.LiveRepository
-import kotlin.coroutines.cancellation.CancellationException
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -47,24 +47,13 @@ class PushRegistrar(
     /** After sign-in (and at every start while signed in): register when allowed. */
     suspend fun signedIn(repository: LiveRepository) {
         this.repository = repository
-        isAvailable = try {
-            repository.appConfig().push.available
-        } catch (cancelled: CancellationException) {
-            throw cancelled
-        } catch (_: Exception) {
-            false
-        }
+        isAvailable = catching { repository.appConfig().push.available }.getOrDefault(false)
         refreshAuthorization()
-        if (!isAvailable || !isSupported || isOptedOut) return
-        if (authorization.value == PushAuthorization.Authorized) register()
+        registerIfAllowed()
     }
 
     /** Firebase handed out a new token (FirebaseMessagingService.onNewToken). */
-    suspend fun tokenChanged() {
-        if (repository != null && isAvailable && isSupported && !isOptedOut && authorization.value == PushAuthorization.Authorized) {
-            register()
-        }
-    }
+    suspend fun tokenChanged() = registerIfAllowed()
 
     /** On signing out: forget this installation. The server removes it together with the sign-in's API token. */
     fun signedOut() {
@@ -93,13 +82,9 @@ class PushRegistrar(
         val id = store.deviceId
         val repository = repository
         if (id != null && repository != null) {
-            try {
-                repository.removeAppDevice(id)
-            } catch (_: ApiError.NotFound) {
-                // Already gone (removed on the web).
-            } catch (cancelled: CancellationException) {
-                throw cancelled
-            } catch (_: Exception) {
+            val failure = catching { repository.removeAppDevice(id) }.exceptionOrNull()
+            // A device the server no longer knows was removed on the web already.
+            if (failure != null && failure !is ApiError.NotFound) {
                 store.optedOut = false
                 throw PushFailure(FAILED_TEXT)
             }
@@ -121,18 +106,19 @@ class PushRegistrar(
         mutableAuthorization.value = system.authorization()
     }
 
+    /** Registers when the server sends app pushes, the member wants them here and Android allows them. */
+    private suspend fun registerIfAllowed() {
+        if (isAvailable && !isOptedOut && authorization.value == PushAuthorization.Authorized) register()
+    }
+
+    /** Sends this installation's token; false without sign-in, support, token or a working server. */
     private suspend fun register(): Boolean {
         val repository = repository ?: return false
         if (!isSupported) return false
         val token = system.token() ?: return false
-        return try {
-            store.deviceId = repository.registerDevice(token).id
-            true
-        } catch (cancelled: CancellationException) {
-            throw cancelled
-        } catch (_: Exception) {
-            false
-        }
+        val device = catching { repository.registerDevice(token) }.getOrNull() ?: return false
+        store.deviceId = device.id
+        return true
     }
 
     companion object {

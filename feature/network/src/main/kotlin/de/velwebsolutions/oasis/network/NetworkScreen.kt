@@ -29,26 +29,48 @@ import de.velwebsolutions.oasis.network.ui.profiles.StatisticsScreen
 fun NetworkScreen(route: NetworkRoute) {
     when (route) {
         NetworkRoute.Source -> SourceScreen()
+
         NetworkRoute.Discover -> DiscoverScreen()
+
         NetworkRoute.Swipe -> SwipeScreen()
+
         is NetworkRoute.Post -> PostDetailScreen(route.id)
+
         is NetworkRoute.EditPost -> EditPostScreen(route.id)
+
         is NetworkRoute.CarryPost -> CarryScreen(route.id)
+
         is NetworkRoute.Compose -> ComposeScreen(route.oasisSlug, route.replyTo)
+
         NetworkRoute.Oases -> OasesScreen()
+
         is NetworkRoute.Oasis -> OasisDetailScreen(route.slug)
+
         NetworkRoute.CreateOasis -> OasisFormScreen(slug = null)
+
         is NetworkRoute.EditOasis -> OasisFormScreen(route.slug)
+
         is NetworkRoute.CloseOasis -> CloseOasisScreen(route.slug)
+
         is NetworkRoute.OasisStatistics -> OasisStatisticsScreen(route.slug)
+
         is NetworkRoute.Profile -> ProfileScreen(route.handle)
+
         NetworkRoute.EditProfile -> EditProfileScreen()
+
         NetworkRoute.Friends -> FriendsScreen()
+
         NetworkRoute.Statistics -> StatisticsScreen()
+
         NetworkRoute.Invitations -> InvitationsScreen()
+
         is NetworkRoute.Invitation -> InvitationScreen(route.token)
+
         is NetworkRoute.Search -> SearchScreen(route.query.orEmpty())
+
         is NetworkRoute.Tag -> TagScreen(route.tag)
-        NetworkRoute.Bookmarks -> BookmarksScreen()
+
+        // The last route (Merkliste) without a comparison: an exhaustive `when` would add an unreachable throw.
+        else -> BookmarksScreen()
     }
 }

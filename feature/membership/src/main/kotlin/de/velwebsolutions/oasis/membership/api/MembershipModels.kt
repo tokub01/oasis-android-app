@@ -20,7 +20,6 @@ data class MembershipOverview(
     val canCancel: Boolean = false,
     val canWithdraw: Boolean = false,
     val purchasedGifts: List<PurchasedGift> = emptyList(),
-    val giftOffers: List<GiftOffer> = emptyList(),
     /** In-app subscriptions through Apple (`apple` of MembershipResource); null from servers before they existed. */
     val apple: Apple? = null
 ) {
@@ -44,6 +43,7 @@ data class MembershipOverview(
         Expired
     }
 
+    /** A paid subscription. */
     @Serializable
     data class Subscription(
         val tierName: String,
@@ -52,14 +52,13 @@ data class MembershipOverview(
         val endsAt: OasisInstant? = null
     )
 
+    /** A redeemed gift voucher. */
     @Serializable
     data class Gift(val tierName: String, val expiresAt: OasisInstant? = null)
 
+    /** A voucher the member bought on the web, with its code. */
     @Serializable
     data class PurchasedGift(val id: Int, val code: String, val tierName: String, val redeemed: Boolean = false)
-
-    @Serializable
-    data class GiftOffer(val tier: String, val name: String, val priceLabel: String)
 
     /**
      * The App Store side of the membership. The server has no Google Play counterpart yet, so the Android app reads only
@@ -70,13 +69,9 @@ data class MembershipOverview(
     data class Apple(
         val available: Boolean = false,
         val accountToken: String? = null,
-        val products: List<Product> = emptyList(),
         val managedByApple: Boolean = false,
         val manageUrl: String? = null
-    ) {
-        @Serializable
-        data class Product(val id: String, val tier: String, val rhythm: String)
-    }
+    )
 }
 
 /** One paid contribution (`PaymentResource`). */

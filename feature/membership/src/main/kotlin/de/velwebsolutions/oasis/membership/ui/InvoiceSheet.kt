@@ -1,6 +1,5 @@
 package de.velwebsolutions.oasis.membership.ui
 
-import android.annotation.SuppressLint
 import android.webkit.WebView
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.material.icons.Icons
@@ -40,11 +39,21 @@ fun InvoiceSheet(file: File, onClose: () -> Unit) {
     }
 }
 
-@SuppressLint("SetJavaScriptEnabled")
 @Composable
 private fun InvoiceDocument(file: File) {
     val context = LocalContext.current
-    val webView = remember { arrayOfNulls<WebView>(1) }
+    // The API's HTML invoice, shown as it is, without scripts or file access; other files are only shared.
+    val webView = if (file.extension == "html") {
+        remember(file) {
+            WebView(context).apply {
+                settings.javaScriptEnabled = false
+                settings.allowFileAccess = false
+                loadDataWithBaseURL(null, file.readText(), "text/html", "UTF-8", null)
+            }
+        }
+    } else {
+        null
+    }
     val title = invoiceTitle(file)
     OasisScreen(
         title = title,
@@ -52,27 +61,15 @@ private fun InvoiceDocument(file: File) {
             IconButton({ FileSharing.shareFile(context, file, FileSharing.mimeType(file), "Teilen") }, Modifier.testTag("invoice.share")) {
                 Icon(Icons.Outlined.Share, contentDescription = "Teilen")
             }
-            if (file.extension == "html") {
-                IconButton({
-                    webView[0]?.let { InvoicePdf.print(context, it, file.nameWithoutExtension) }
-                }, Modifier.testTag("invoice.print")) {
+            if (webView != null) {
+                IconButton({ InvoicePdf.print(context, webView, file.nameWithoutExtension) }, Modifier.testTag("invoice.print")) {
                     Icon(Icons.Outlined.Print, contentDescription = "Drucken oder als PDF sichern")
                 }
             }
         }
     ) {
-        if (file.extension == "html") {
-            AndroidView(
-                factory = { viewContext ->
-                    WebView(viewContext).apply {
-                        settings.javaScriptEnabled = false
-                        settings.allowFileAccess = false
-                        loadDataWithBaseURL(null, file.readText(), "text/html", "UTF-8", null)
-                        webView[0] = this
-                    }
-                },
-                modifier = Modifier.fillMaxSize().testTag("invoice.document")
-            )
+        if (webView != null) {
+            AndroidView(factory = { webView }, modifier = Modifier.fillMaxSize().testTag("invoice.document"))
         } else {
             EmptyStateView(
                 file.name,

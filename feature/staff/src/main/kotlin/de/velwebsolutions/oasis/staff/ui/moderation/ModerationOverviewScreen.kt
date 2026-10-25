@@ -1,6 +1,7 @@
 package de.velwebsolutions.oasis.staff.ui.moderation
 
 import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -18,7 +19,7 @@ import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.testTag
-import androidx.compose.ui.semantics.onClick
+import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.SpanStyle
 import androidx.compose.ui.text.buildAnnotatedString
@@ -66,6 +67,7 @@ fun ModerationOverviewScreen(viewModel: ModerationOverviewViewModel = hiltViewMo
     ModerationOverviewContent(state, viewModel::load, viewModel::apply, viewModel::loadMore, viewModel::dismissError)
 }
 
+/** The start page without its view model, for the app and for tests. */
 @Composable
 fun ModerationOverviewContent(
     state: ModerationOverviewUiState,
@@ -165,12 +167,9 @@ private fun FigureGrid(figures: ModerationOverview.Figures, onFilter: (QueueFilt
                             .weight(1f)
                             .defaultMinSize(minHeight = 104.dp)
                             .background(if (alert) OasisColors.Sun else OasisColors.Paper, RoundedCornerShape(OasisRadius.S.dp))
-                            .pressable({ onFilter(card.filter) })
-                            .semantics(mergeDescendants = true) {
-                                onClick(label = "Zeigt diese Fälle in der Warteschlange") {
-                                    onFilter(card.filter)
-                                    true
-                                }
+                            .semantics(mergeDescendants = true) {}
+                            .clickable(onClickLabel = "Zeigt diese Fälle in der Warteschlange", role = Role.Button) {
+                                onFilter(card.filter)
                             }
                             .padding(14.dp),
                         verticalArrangement = Arrangement.spacedBy(3.dp)

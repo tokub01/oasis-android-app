@@ -41,7 +41,8 @@ object ImageConverter {
     /** Reads a picked or photographed image off the main thread and converts it. */
     suspend fun upload(context: Context, uri: Uri, name: String, maxEdge: Int = 2048): ImageUpload? = withContext(Dispatchers.IO) {
         val data =
-            runCatching { context.contentResolver.openInputStream(uri)?.use { it.readBytes() } }.getOrNull() ?: return@withContext null
+            // openInputStream only returns null when the provider crashed: that, like a missing file, ends in null.
+            runCatching { context.contentResolver.openInputStream(uri)!!.use { it.readBytes() } }.getOrNull() ?: return@withContext null
         withContext(Dispatchers.Default) { upload(data, name, maxEdge) }
     }
 
@@ -68,7 +69,8 @@ object ImageConverter {
     fun pixelSize(data: ByteArray): Pair<Int, Int>? {
         val options = BitmapFactory.Options().apply { inJustDecodeBounds = true }
         BitmapFactory.decodeByteArray(data, 0, data.size, options)
-        return if (options.outWidth > 0 && options.outHeight > 0) options.outWidth to options.outHeight else null
+        // Android sets both sides of a readable image, and -1 for both otherwise.
+        return if (options.outWidth > 0) options.outWidth to options.outHeight else null
     }
 
     /** Decodes (HEIC too), scales the longest edge down to [maxEdge] and encodes as JPEG at 85 %. */
@@ -82,8 +84,9 @@ object ImageConverter {
                 decoder.allocator = ImageDecoder.ALLOCATOR_SOFTWARE
             }
         }.getOrNull() ?: return null
+        // A decoded software bitmap always encodes; the result is not checked.
         return ByteArrayOutputStream().use { output ->
-            if (!bitmap.compress(Bitmap.CompressFormat.JPEG, JPEG_QUALITY, output)) return null
+            bitmap.compress(Bitmap.CompressFormat.JPEG, JPEG_QUALITY, output)
             bitmap.recycle()
             output.toByteArray()
         }

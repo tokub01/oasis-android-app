@@ -11,6 +11,7 @@ import de.velwebsolutions.oasis.membership.ui.AlreadyMember
 import de.velwebsolutions.oasis.membership.ui.PlayCheckoutViewModel
 import de.velwebsolutions.oasis.testing.MainDispatcherRule
 import de.velwebsolutions.oasis.testing.StubTransport.Stub
+import kotlinx.coroutines.async
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.test.runTest
 import org.junit.Assert.assertEquals
@@ -155,5 +156,102 @@ class PlayCheckoutTest {
         testScheduler.runCurrent()
         assertTrue("nothing is acknowledged while the server cannot check it", waiting.acknowledged.isEmpty())
         pending.cancel()
+    }
+
+    @Test
+    fun `members billed by Apple and servers without in-app purchases are offered nothing`() = runTest {
+        val apple = Fixtures.trialOverview.replace("\"state\":\"trial\"", "\"state\":\"subscription\"")
+            .replace("\"managed_by_apple\":false", "\"managed_by_apple\":true")
+        assertEquals(AlreadyMember.Apple, checkout(overview = apple).state.value.alreadyMember)
+        val web = Fixtures.trialOverview.replace("\"state\":\"trial\"", "\"state\":\"subscription\"")
+        assertEquals(AlreadyMember.Web, checkout(overview = web).state.value.alreadyMember)
+
+        val switchedOff = checkout(overview = Fixtures.trialOverview.replace("\"available\":true", "\"available\":false"))
+        assertEquals(emptyList<Any>(), switchedOff.state.value.offers.valueOrNull)
+    }
+
+    @Test
+    fun `a failed overview leaves the checkout on its error page`() = runTest {
+        val (repository, _) = Fixtures.repository(Stub("GET", "membership", status = 500, json = """{"message":"Server Error"}"""))
+        val gateway = FakeBillingGateway()
+        val verifier = FakeVerifier()
+        val viewModel = PlayCheckoutViewModel(repository, gateway, PlayDelivery(gateway, verifier), verifier, events, Fixtures.session())
+        viewModel.load()
+        assertTrue(viewModel.state.value.offers is de.velwebsolutions.oasis.core.model.Loadable.Failed)
+    }
+
+    @Test
+    fun `a tier Play only sells yearly still shows`() = runTest {
+        val gateway = FakeBillingGateway(catalogue = listOf(Fixtures.product(PlayProducts.MAEZEN_YEARLY, "120,00 €")))
+        val offers = checkout(gateway).state.value.offers.valueOrNull!!
+        assertEquals(listOf("maezen"), offers.map { it.tier })
+        assertNull(offers.single().product(PlayProducts.MONTHLY))
+    }
+
+    @Test
+    fun `Play missing on the device, a second tap while buying and dismissing the toasts`() = runTest {
+        val gateway = FakeBillingGateway(outcome = PurchaseOutcome.Unavailable)
+        val viewModel = checkout(gateway)
+        val product = Fixtures.product(PlayProducts.OASE_MONTHLY, "5,00 €")
+        assertFalse(viewModel.purchase(null, product))
+        assertEquals(PlayCheckoutViewModel.UNAVAILABLE, viewModel.state.value.error)
+        viewModel.dismissError()
+        assertNull(viewModel.state.value.error)
+
+        val gate = kotlinx.coroutines.CompletableDeferred<Unit>()
+        gateway.gate = gate
+        gateway.outcome = PurchaseOutcome.Cancelled
+        val first = async { viewModel.purchase(null, product) }
+        testScheduler.runCurrent()
+        assertEquals(product.id, viewModel.state.value.purchasing)
+        assertFalse("a second purchase does not start", viewModel.purchase(null, product))
+        gate.complete(Unit)
+        assertFalse(first.await())
+        assertEquals("Play opened once per accepted tap", 2, gateway.purchased.size)
+    }
+
+    @Test
+    fun `restoring a refused or still pending purchase says so instead of "nothing found"`() = runTest {
+        val refused = checkout(FakeBillingGateway(owned = listOf(Fixtures.purchase())), FakeVerifier.refusing("Abgelaufen."))
+        refused.restore()
+        assertEquals("Abgelaufen.", refused.state.value.error)
+        assertNull(refused.state.value.message)
+
+        val pending = checkout(FakeBillingGateway(owned = listOf(Fixtures.purchase(purchased = false))))
+        pending.restore()
+        assertEquals(PlayCheckoutViewModel.NOTHING_TO_RESTORE, pending.state.value.message)
+        pending.dismissMessage()
+        assertNull(pending.state.value.message)
+
+        val restored = checkout(FakeBillingGateway(owned = listOf(Fixtures.purchase())))
+        restored.restore()
+        assertEquals("Willkommen als Mitglied!", restored.state.value.message)
+    }
+
+    @Test
+    fun `a cancelled load is passed on`() = runTest {
+        val fake = FakeMembershipRepository().apply { overview = Result.failure(kotlinx.coroutines.CancellationException("left")) }
+        val cancelling =
+            PlayCheckoutViewModel(
+                fake,
+                FakeBillingGateway(),
+                PlayDelivery(FakeBillingGateway(), FakeVerifier()),
+                FakeVerifier(),
+                events,
+                Fixtures.session()
+            )
+        val failure = runCatching { cancelling.load() }.exceptionOrNull()
+        assertTrue(failure is kotlinx.coroutines.CancellationException)
+    }
+
+    @Test
+    fun `background delivery ends with Play's updates and skips refusals`() = runTest {
+        val gateway = object : de.velwebsolutions.oasis.membership.billing.BillingGateway by FakeBillingGateway(
+            owned = listOf(Fixtures.purchase())
+        ) {
+            override val purchaseUpdates = kotlinx.coroutines.flow.flowOf(Fixtures.purchase(PlayProducts.SOLIDAR_YEARLY))
+        }
+        PlayTransactions(gateway, PlayDelivery(gateway, FakeVerifier.refusing("Abgelaufen.")), events).observe()
+        assertEquals("a refused purchase changes nothing", 0, events.version.value)
     }
 }

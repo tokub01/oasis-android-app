@@ -19,6 +19,7 @@ import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 
+/** The invoices page: paid contributions, the invoice being downloaded or shown, and snackbars. */
 data class PortalUiState(
     val payments: Loadable<List<MembershipPayment>> = Loadable.Idle,
     val message: String? = null,
@@ -45,6 +46,7 @@ class PortalViewModel @Inject constructor(
         viewModelScope.launch { load() }
     }
 
+    /** Loads the page again; a failed first load shows the error page, a failed refresh a snackbar. */
     suspend fun load() {
         mutableState.update { it.copy(payments = it.payments.refreshing()) }
         try {
@@ -78,9 +80,12 @@ class PortalViewModel @Inject constructor(
         }
     }
 
+    /** Closes the invoice sheet. */
     fun closeInvoice() = mutableState.update { it.copy(invoiceFile = null) }
 
+    /** Hides the confirmation once the snackbar showed it. */
     fun dismissMessage() = mutableState.update { it.copy(message = null) }
 
+    /** Hides the error once the snackbar showed it. */
     fun dismissError() = mutableState.update { it.copy(error = null) }
 }

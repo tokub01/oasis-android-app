@@ -108,7 +108,7 @@ fun DateTimeField(
     error: String? = null,
     latest: Instant? = null
 ) {
-    var step by remember { mutableStateOf(0) }
+    var pickingDate by remember { mutableStateOf(false) }
     var chosenDay by remember { mutableStateOf<LocalDate?>(null) }
     val local = value.atZone(GermanTime.zone)
     val shape = RoundedCornerShape(OasisRadius.XS.dp)
@@ -119,7 +119,7 @@ fun DateTimeField(
                 .fillMaxWidth()
                 .defaultMinSize(minHeight = 48.dp)
                 .border(if (error == null) 1.dp else 2.dp, if (error == null) OasisColors.FieldLine else OasisColors.SunText, shape)
-                .pressable({ step = 1 })
+                .pressable({ pickingDate = true })
                 .padding(horizontal = 14.dp)
                 .semantics { contentDescription = "$label: ${GermanTime.dayAndTime(value)}" },
             verticalAlignment = Alignment.CenterVertically
@@ -129,36 +129,34 @@ fun DateTimeField(
         }
         if (error != null) FieldError(error)
     }
-    if (step == 1) {
+    if (pickingDate) {
         val dateState =
             rememberDatePickerState(initialSelectedDateMillis = local.toLocalDate().atStartOfDay(ZoneOffset.UTC).toInstant().toEpochMilli())
         DatePickerDialog(
-            onDismissRequest = { step = 0 },
+            onDismissRequest = { pickingDate = false },
             confirmButton = {
                 OasisTextButton("Weiter", {
-                    chosenDay =
-                        dateState.selectedDateMillis?.let { Instant.ofEpochMilli(it).atZone(ZoneOffset.UTC).toLocalDate() }
-                            ?: local.toLocalDate()
-                    step = 2
+                    // Material's date picker cannot clear the day it started with.
+                    chosenDay = Instant.ofEpochMilli(dateState.selectedDateMillis!!).atZone(ZoneOffset.UTC).toLocalDate()
+                    pickingDate = false
                 })
             },
-            dismissButton = { OasisTextButton("Abbrechen", { step = 0 }) }
+            dismissButton = { OasisTextButton("Abbrechen", { pickingDate = false }) }
         ) { DatePicker(dateState) }
     }
-    if (step == 2) {
+    val day = chosenDay
+    if (day != null) {
         val timeState = rememberTimePickerState(local.hour, local.minute, is24Hour = true)
         AlertDialog(
-            onDismissRequest = { step = 0 },
+            onDismissRequest = { chosenDay = null },
             confirmButton = {
                 OasisTextButton("Fertig", {
-                    val day = chosenDay ?: local.toLocalDate()
-                    var chosen = day.atTime(LocalTime.of(timeState.hour, timeState.minute)).atZone(GermanTime.zone).toInstant()
-                    if (latest != null && chosen.isAfter(latest)) chosen = latest
-                    onChange(chosen)
-                    step = 0
+                    val chosen = day.atTime(LocalTime.of(timeState.hour, timeState.minute)).atZone(GermanTime.zone).toInstant()
+                    onChange(if (latest != null && chosen.isAfter(latest)) latest else chosen)
+                    chosenDay = null
                 })
             },
-            dismissButton = { OasisTextButton("Abbrechen", { step = 0 }) },
+            dismissButton = { OasisTextButton("Abbrechen", { chosenDay = null }) },
             text = { TimePicker(timeState) }
         )
     }

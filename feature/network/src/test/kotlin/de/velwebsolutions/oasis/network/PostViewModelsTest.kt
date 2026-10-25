@@ -20,11 +20,32 @@ import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
 import org.junit.Assert.assertNull
 import org.junit.Assert.assertTrue
+import org.junit.Before
 import org.junit.Rule
 import org.junit.Test
+import org.junit.runner.RunWith
+import org.junit.runners.Parameterized
 
 /** The Tropfen page, editing and carrying, the feeds' view models and the card actions' endpoints. */
-class PostViewModelsTest {
+@RunWith(Parameterized::class)
+class PostViewModelsTest(private val answersAtOnce: Boolean) {
+    companion object {
+        /** Each test runs with answers that suspend and with answers on the calling thread. */
+        @JvmStatic
+        @Parameterized.Parameters(name = "immediate={0}")
+        fun modes() = listOf(false, true)
+    }
+
+    @Before
+    fun answerMode() {
+        immediate = answersAtOnce
+    }
+
+    @After
+    fun suspendingAgain() {
+        immediate = false
+    }
+
     @get:Rule
     val main = MainDispatcherRule()
 

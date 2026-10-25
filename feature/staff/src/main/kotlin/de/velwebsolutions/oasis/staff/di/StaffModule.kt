@@ -12,9 +12,11 @@ import de.velwebsolutions.oasis.staff.data.StaffFiles
 import de.velwebsolutions.oasis.staff.data.StaffRepository
 import javax.inject.Singleton
 
+/** The staff repository and the evidence files. */
 @Module
 @InstallIn(SingletonComponent::class)
 abstract class StaffModule {
+    /** The repository the screens use. */
     @Binds
     abstract fun repository(repository: DefaultStaffRepository): StaffRepository
 

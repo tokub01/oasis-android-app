@@ -58,6 +58,7 @@ fun SuspensionsScreen(viewModel: SuspensionsViewModel = hiltViewModel()) {
     SuspensionsContent(state, viewModel::load, viewModel::release, viewModel::dismissMessage, viewModel::dismissError)
 }
 
+/** The locks page without its view model, for the app and for tests. */
 @Composable
 fun SuspensionsContent(
     state: SuspensionsUiState,

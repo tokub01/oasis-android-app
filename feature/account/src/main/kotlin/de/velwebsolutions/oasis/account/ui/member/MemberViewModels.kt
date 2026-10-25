@@ -11,6 +11,7 @@ import de.velwebsolutions.oasis.account.api.GlossaryTerm
 import de.velwebsolutions.oasis.account.api.OpenVote
 import de.velwebsolutions.oasis.account.api.Suspension
 import de.velwebsolutions.oasis.account.api.VotesOverview
+import de.velwebsolutions.oasis.account.catching
 import de.velwebsolutions.oasis.account.data.AccountRepository
 import de.velwebsolutions.oasis.core.auth.Session
 import de.velwebsolutions.oasis.core.model.Loadable
@@ -19,7 +20,6 @@ import de.velwebsolutions.oasis.core.model.refreshing
 import de.velwebsolutions.oasis.core.network.ApiError
 import de.velwebsolutions.oasis.core.network.asApiError
 import javax.inject.Inject
-import kotlin.coroutines.cancellation.CancellationException
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -52,37 +52,40 @@ class SuspensionViewModel @Inject constructor(private val repository: AccountRep
     suspend fun load() {
         val firstLoad = ui.value.state.valueOrNull == null
         mutableUi.update { it.copy(state = it.state.refreshing()) }
-        try {
-            val suspension = repository.suspension()
-            mutableUi.update {
-                it.copy(state = Loadable.Loaded(suspension), statement = if (firstLoad) suspension.statement.orEmpty() else it.statement)
+        catching { repository.suspension() }
+            .onSuccess { suspension ->
+                mutableUi.update {
+                    it.copy(
+                        state = Loadable.Loaded(suspension),
+                        statement = if (firstLoad) suspension.statement.orEmpty() else it.statement
+                    )
+                }
             }
-        } catch (cancelled: CancellationException) {
-            throw cancelled
-        } catch (_: ApiError.NotFound) {
-            mutableUi.update { it.copy(state = Loadable.Failed(ApiError.NotFound)) }
-        } catch (error: Exception) {
-            mutableUi.update {
-                it.copy(state = it.state.failing(error), error = if (!firstLoad) error.asApiError().userMessage else it.error)
+            .onFailure { error ->
+                mutableUi.update {
+                    when {
+                        error is ApiError.NotFound -> it.copy(state = Loadable.Failed(ApiError.NotFound))
+                        firstLoad -> it.copy(state = it.state.failing(error))
+                        else -> it.copy(state = it.state.failing(error), error = error.asApiError().userMessage)
+                    }
+                }
             }
-        }
     }
 
     suspend fun save() {
         mutableUi.update { it.copy(statementError = null) }
-        try {
-            val saved = repository.saveStatement(ui.value.statement)
-            mutableUi.update { state ->
-                val suspension = state.state.valueOrNull?.copy(statementAt = saved.statementAt, statement = state.statement.trim())
-                state.copy(message = saved.message, state = suspension?.let { Loadable.Loaded(it) } ?: state.state)
+        catching { repository.saveStatement(ui.value.statement) }
+            .onSuccess { saved ->
+                mutableUi.update { state ->
+                    val suspension = state.state.valueOrNull?.copy(statementAt = saved.statementAt, statement = state.statement.trim())
+                    state.copy(message = saved.message, state = suspension?.let { Loadable.Loaded(it) } ?: state.state)
+                }
             }
-        } catch (cancelled: CancellationException) {
-            throw cancelled
-        } catch (error: Exception) {
-            val failure = error.asApiError()
-            val refusal = failure.message("statement")
-            mutableUi.update { if (refusal != null) it.copy(statementError = refusal) else it.copy(error = failure.userMessage) }
-        }
+            .onFailure { error ->
+                val failure = error.asApiError()
+                val refusal = failure.message("statement")
+                mutableUi.update { if (refusal != null) it.copy(statementError = refusal) else it.copy(error = failure.userMessage) }
+            }
     }
 
     /** „Weiter zu Oasis“ and pull to refresh: the app leaves the lock screen once `me` is no longer locked. */
@@ -131,38 +134,30 @@ class ComplaintViewModel @AssistedInject constructor(
 
     suspend fun load() {
         mutableUi.update { it.copy(state = it.state.refreshing()) }
-        try {
-            val decision = repository.complaintDecision(decisionId)
-            mutableUi.update { it.copy(state = Loadable.Loaded(decision)) }
-        } catch (cancelled: CancellationException) {
-            throw cancelled
-        } catch (error: Exception) {
-            mutableUi.update { it.copy(state = it.state.failing(error)) }
-        }
+        catching { repository.complaintDecision(decisionId) }
+            .onSuccess { decision -> mutableUi.update { it.copy(state = Loadable.Loaded(decision)) } }
+            .onFailure { error -> mutableUi.update { it.copy(state = it.state.failing(error)) } }
     }
 
     suspend fun submit() {
         mutableUi.update { it.copy(reasonError = null) }
-        try {
-            repository.submitComplaint(decisionId, ui.value.reason)
-            mutableUi.update { it.copy(submitted = true) }
-        } catch (cancelled: CancellationException) {
-            throw cancelled
-        } catch (error: Exception) {
-            val failure = error.asApiError()
-            val refusal = failure.message("reason")
-            mutableUi.update {
-                when {
-                    failure is ApiError.TooManyRequests -> it.copy(
-                        error = "Zu viele Beschwerden. Bitte versuche es in einer Minute erneut."
-                    )
+        catching { repository.submitComplaint(decisionId, ui.value.reason) }
+            .onSuccess { mutableUi.update { it.copy(submitted = true) } }
+            .onFailure { error ->
+                val failure = error.asApiError()
+                val refusal = failure.message("reason")
+                mutableUi.update {
+                    when {
+                        failure is ApiError.TooManyRequests -> it.copy(
+                            error = "Zu viele Beschwerden. Bitte versuche es in einer Minute erneut."
+                        )
 
-                    refusal != null -> it.copy(reasonError = refusal)
+                        refusal != null -> it.copy(reasonError = refusal)
 
-                    else -> it.copy(error = failure.userMessage)
+                        else -> it.copy(error = failure.userMessage)
+                    }
                 }
             }
-        }
     }
 
     fun dismissError() = mutableUi.update { it.copy(error = null) }
@@ -193,31 +188,27 @@ class VotesViewModel @Inject constructor(private val repository: AccountReposito
 
     suspend fun load() {
         mutableUi.update { it.copy(state = it.state.refreshing()) }
-        try {
-            val votes = repository.votes()
-            mutableUi.update { it.copy(state = Loadable.Loaded(votes)) }
-        } catch (cancelled: CancellationException) {
-            throw cancelled
-        } catch (error: Exception) {
-            mutableUi.update {
-                val failing = it.state.failing(error)
-                it.copy(state = failing, error = if (failing.valueOrNull != null) error.asApiError().userMessage else it.error)
+        catching { repository.votes() }
+            .onSuccess { votes -> mutableUi.update { it.copy(state = Loadable.Loaded(votes)) } }
+            .onFailure { error ->
+                mutableUi.update {
+                    val failing = it.state.failing(error)
+                    it.copy(state = failing, error = if (failing.valueOrNull != null) error.asApiError().userMessage else it.error)
+                }
             }
-        }
     }
 
     suspend fun cast(vote: OpenVote) {
         mutableUi.update { it.copy(errors = it.errors - vote.id) }
-        try {
-            val message = repository.cast(vote.id, ui.value.choices[vote.id])
-            mutableUi.update { it.copy(message = message) }
-            load()
-        } catch (cancelled: CancellationException) {
-            throw cancelled
-        } catch (error: Exception) {
-            val failure = error.asApiError()
-            mutableUi.update { it.copy(errors = it.errors + (vote.id to (failure.message("option") ?: failure.userMessage))) }
-        }
+        catching { repository.cast(vote.id, ui.value.choices[vote.id]) }
+            .onSuccess { message ->
+                mutableUi.update { it.copy(message = message) }
+                load()
+            }
+            .onFailure { error ->
+                val failure = error.asApiError()
+                mutableUi.update { it.copy(errors = it.errors + (vote.id to (failure.message("option") ?: failure.userMessage))) }
+            }
     }
 
     fun dismissMessage() = mutableUi.update { it.copy(message = null) }
@@ -237,12 +228,8 @@ class GlossaryViewModel @Inject constructor(private val repository: AccountRepos
 
     suspend fun load() {
         mutableState.update { it.refreshing() }
-        try {
-            mutableState.value = Loadable.Loaded(repository.glossary())
-        } catch (cancelled: CancellationException) {
-            throw cancelled
-        } catch (error: Exception) {
-            mutableState.update { it.failing(error) }
-        }
+        catching { repository.glossary() }
+            .onSuccess { terms -> mutableState.value = Loadable.Loaded(terms) }
+            .onFailure { error -> mutableState.update { it.failing(error) } }
     }
 }

@@ -29,12 +29,14 @@ import kotlinx.coroutines.launch
 
 /** One tier in both rhythms, in the checkout's order (Solidar, Oase, Mäzen). */
 data class CheckoutOffer(val tier: String, val monthly: PlayProduct?, val yearly: PlayProduct?) {
+    /** The product for "monat" or "jahr". */
     fun product(rhythm: String): PlayProduct? = if (rhythm == PlayProducts.YEARLY) yearly else monthly
 }
 
 /** Why the checkout sells nothing to this member. */
 enum class AlreadyMember { Web, Apple }
 
+/** The checkout: Play's offers, the chosen rhythm, a running purchase and snackbars. */
 data class CheckoutUiState(
     val offers: Loadable<List<CheckoutOffer>> = Loadable.Idle,
     /** "monat" or "jahr" (the server's rhythm keys). */
@@ -71,6 +73,7 @@ class PlayCheckoutViewModel @Inject constructor(
         viewModelScope.launch { load() }
     }
 
+    /** Loads the page again; a failed first load shows the error page, a failed refresh a snackbar. */
     suspend fun load() {
         mutableState.update { it.copy(offers = it.offers.refreshing()) }
         try {
@@ -94,11 +97,12 @@ class PlayCheckoutViewModel @Inject constructor(
     private suspend fun offers(): List<CheckoutOffer> {
         val products = gateway.products(PlayProducts.ids).orEmpty().associateBy(PlayProduct::id)
         return PlayProducts.tiers.map { tier ->
-            fun product(rhythm: String) = PlayProducts.all.firstOrNull { it.tier == tier && it.rhythm == rhythm }?.let { products[it.id] }
-            CheckoutOffer(tier, product(PlayProducts.MONTHLY), product(PlayProducts.YEARLY))
+            val byRhythm = PlayProducts.all.filter { it.tier == tier }.associate { it.rhythm to products[it.id] }
+            CheckoutOffer(tier, byRhythm[PlayProducts.MONTHLY], byRhythm[PlayProducts.YEARLY])
         }.filter { it.monthly != null || it.yearly != null }
     }
 
+    /** Shows the monthly or yearly prices. */
     fun selectRhythm(rhythm: String) = mutableState.update { it.copy(rhythm = rhythm) }
 
     /** "Abonnieren". Returns true once the server unlocked the membership. */
@@ -155,24 +159,23 @@ class PlayCheckoutViewModel @Inject constructor(
                 mutableState.update { it.copy(error = error.userMessage) }
                 continue
             }
-            when (result) {
-                is PlayDelivery.Result.Unlocked -> {
-                    unlocked = true
-                    mutableState.update { it.copy(message = result.update.message) }
-                    events.changed(message = result.update.message)
-                }
-
-                PlayDelivery.Result.AwaitingServer -> mutableState.update { it.copy(message = AWAITING_SERVER) }
-
-                PlayDelivery.Result.Skipped -> Unit
+            // Skipped purchases (pending, not ours) say nothing.
+            if (result is PlayDelivery.Result.Unlocked) {
+                unlocked = true
+                mutableState.update { it.copy(message = result.update.message) }
+                events.changed(message = result.update.message)
+            } else if (result == PlayDelivery.Result.AwaitingServer) {
+                mutableState.update { it.copy(message = AWAITING_SERVER) }
             }
         }
         if (unlocked) session.refreshMe()
         return unlocked
     }
 
+    /** Hides the confirmation once the snackbar showed it. */
     fun dismissMessage() = mutableState.update { it.copy(message = null) }
 
+    /** Hides the error once the snackbar showed it. */
     fun dismissError() = mutableState.update { it.copy(error = null) }
 
     companion object {

@@ -79,10 +79,8 @@ internal fun HintsInboxScreen(viewModel: HintsInboxViewModel = hiltViewModel()) 
             onRefresh = viewModel::load,
             onMarkAllRead = viewModel::markAllRead,
             onLoadMore = viewModel::loadMore,
-            onOpen = { hint ->
-                // The hint's link is a web URL: an app screen when there is one, otherwise the browser.
-                hint.url?.let { url -> navigator.open(DeepLink.route(url) ?: WebRoute(url)) }
-            },
+            // The hint's link is a web URL: an app screen when there is one, otherwise the browser.
+            onOpen = { url -> navigator.open(DeepLink.route(url) ?: WebRoute(url)) },
             onSettings = { navigator.open(LiveRoute.Settings) }
         )
     }
@@ -97,7 +95,7 @@ internal fun HintsInboxContent(
     onRefresh: suspend () -> Unit,
     onMarkAllRead: suspend () -> Unit,
     onLoadMore: () -> Unit,
-    onOpen: (Hint) -> Unit,
+    onOpen: (url: String) -> Unit,
     onSettings: () -> Unit
 ) {
     val scope = rememberCoroutineScope()
@@ -158,7 +156,7 @@ internal fun HintsInboxContent(
                             )
                         }
                         items(group.hints, key = { it.id }) { hint ->
-                            HintRow(hint, onOpen = { onOpen(hint) })
+                            HintRow(hint, onOpen)
                             if (hint.id == lastId) LaunchedEffect(hint.id) { onLoadMore() }
                         }
                     }
@@ -179,7 +177,7 @@ internal fun HintsInboxContent(
 
 /** One hint card: "Neu", the label as link, the excerpt and the time. */
 @Composable
-private fun HintRow(hint: Hint, onOpen: () -> Unit) {
+private fun HintRow(hint: Hint, onOpen: (url: String) -> Unit) {
     val shape = RoundedCornerShape(OasisRadius.S.dp)
     Column(
         Modifier
@@ -192,9 +190,10 @@ private fun HintRow(hint: Hint, onOpen: () -> Unit) {
         verticalArrangement = Arrangement.spacedBy(6.dp)
     ) {
         if (hint.unread) Pill("Neu", tone = PillTone.Sun)
-        if (hint.url != null) {
+        val url = hint.url
+        if (url != null) {
             Box(
-                Modifier.fillMaxWidth().heightIn(min = 44.dp).clickable(role = Role.Button, onClick = onOpen),
+                Modifier.fillMaxWidth().heightIn(min = 44.dp).clickable(role = Role.Button) { onOpen(url) },
                 contentAlignment = Alignment.CenterStart
             ) {
                 Text(hint.label, style = OasisType.BodyBold.copy(textDecoration = TextDecoration.Underline), color = OasisColors.Night)

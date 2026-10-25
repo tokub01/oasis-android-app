@@ -5,6 +5,7 @@ import androidx.lifecycle.viewModelScope
 import dagger.hilt.android.lifecycle.HiltViewModel
 import de.velwebsolutions.oasis.account.api.AccountSettings
 import de.velwebsolutions.oasis.account.api.SettingsChange
+import de.velwebsolutions.oasis.account.catching
 import de.velwebsolutions.oasis.account.data.AccountRepository
 import de.velwebsolutions.oasis.account.data.needsPasswordConfirmation
 import de.velwebsolutions.oasis.core.auth.Session
@@ -14,7 +15,6 @@ import de.velwebsolutions.oasis.core.model.refreshing
 import de.velwebsolutions.oasis.core.network.ApiError
 import de.velwebsolutions.oasis.core.network.asApiError
 import javax.inject.Inject
-import kotlin.coroutines.cancellation.CancellationException
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -72,62 +72,57 @@ class SettingsViewModel @Inject constructor(private val repository: AccountRepos
     suspend fun load() {
         val firstLoad = ui.value.settings == null
         mutableUi.update { it.copy(state = it.state.refreshing()) }
-        try {
-            apply(repository.settings(), fillFields = firstLoad)
-        } catch (cancelled: CancellationException) {
-            throw cancelled
-        } catch (error: Exception) {
-            mutableUi.update {
-                it.copy(state = it.state.failing(error), error = if (!firstLoad) error.asApiError().userMessage else it.error)
+        catching { apply(repository.settings(), fillFields = firstLoad) }
+            .onFailure { error ->
+                mutableUi.update {
+                    it.copy(state = it.state.failing(error), error = if (!firstLoad) error.asApiError().userMessage else it.error)
+                }
             }
-        }
     }
 
     /** „Profil speichern“: the session gets the refreshed member (a new address needs verification). */
     suspend fun saveProfile() {
         mutableUi.update { it.copy(fieldErrors = emptyMap()) }
-        try {
-            val change = repository.updateProfile(ui.value.displayName, ui.value.email)
-            mutableUi.update { it.copy(displayName = change.data.displayName, email = change.data.email, message = change.message) }
-            load()
-            session.update(change.data)
-        } catch (cancelled: CancellationException) {
-            throw cancelled
-        } catch (error: Exception) {
-            handle(error.asApiError())
-        }
+        catching { repository.updateProfile(ui.value.displayName, ui.value.email) }
+            .onSuccess { change ->
+                mutableUi.update { it.copy(displayName = change.data.displayName, email = change.data.email, message = change.message) }
+                load()
+                session.update(change.data)
+            }
+            .onFailure { error ->
+                handle(error.asApiError())
+            }
     }
 
     /** „Passwort ändern“; the fields are cleared in every case, like the web. */
     suspend fun changePassword() {
         val current = ui.value
         mutableUi.update { it.copy(fieldErrors = emptyMap()) }
-        try {
-            val message = repository.updatePassword(current.currentPassword, current.newPassword, current.newPasswordConfirmation)
-            mutableUi.update { it.copy(message = message) }
-        } catch (cancelled: CancellationException) {
-            throw cancelled
-        } catch (error: Exception) {
-            handle(error.asApiError())
+        val result = try {
+            catching { repository.updatePassword(current.currentPassword, current.newPassword, current.newPasswordConfirmation) }
         } finally {
             mutableUi.update { it.copy(currentPassword = "", newPassword = "", newPasswordConfirmation = "") }
         }
+        result
+            .onSuccess { message ->
+                mutableUi.update { it.copy(message = message) }
+            }
+            .onFailure { error ->
+                handle(error.asApiError())
+            }
     }
 
     /** The „Kurz bestätigen“ sheet; afterwards the waiting action runs again. Returns false on a wrong password. */
     suspend fun confirmPassword(password: String): Boolean {
         mutableUi.update { it.copy(fieldErrors = it.fieldErrors - "password") }
-        try {
-            apply(repository.confirmPassword(password), fillFields = false)
-        } catch (cancelled: CancellationException) {
-            throw cancelled
-        } catch (error: Exception) {
-            val failure = error.asApiError()
-            mutableUi.update {
-                it.copy(fieldErrors = it.fieldErrors + ("password" to (failure.message("password") ?: failure.userMessage)))
+        catching { apply(repository.confirmPassword(password), fillFields = false) }
+            .onFailure { error ->
+                val failure = error.asApiError()
+                mutableUi.update {
+                    it.copy(fieldErrors = it.fieldErrors + ("password" to (failure.message("password") ?: failure.userMessage)))
+                }
+                return false
             }
-            return false
-        }
         val action = ui.value.pendingAction
         if (action != null) {
             mutableUi.update { it.copy(pendingAction = null) }
@@ -141,7 +136,7 @@ class SettingsViewModel @Inject constructor(private val repository: AccountRepos
     /** Runs a protected action; true when the account was deleted (the session ends then). */
     suspend fun run(action: ProtectedAction): Boolean {
         mutableUi.update { it.copy(fieldErrors = emptyMap()) }
-        try {
+        catching {
             when (action) {
                 ProtectedAction.EnableTwoFactor -> applyChange(repository.enableTwoFactor())
 
@@ -157,12 +152,9 @@ class SettingsViewModel @Inject constructor(private val repository: AccountRepos
                 ProtectedAction.DeleteAccount -> {
                     repository.deleteAccount(ui.value.deleteConfirmed)
                     mutableUi.update { it.copy(accountDeleted = true) }
-                    return true
                 }
             }
-        } catch (cancelled: CancellationException) {
-            throw cancelled
-        } catch (error: Exception) {
+        }.onFailure { error ->
             val failure = error.asApiError()
             if (failure.needsPasswordConfirmation) {
                 mutableUi.update { it.copy(pendingAction = action) }
@@ -170,7 +162,7 @@ class SettingsViewModel @Inject constructor(private val repository: AccountRepos
                 handle(failure)
             }
         }
-        return false
+        return ui.value.accountDeleted
     }
 
     suspend fun signOut() = session.signOut()

@@ -3,19 +3,24 @@ package de.velwebsolutions.oasis.design.components
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.selection.toggleable
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.BasicTextField
 import androidx.compose.foundation.text.KeyboardActions
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.outlined.ErrorOutline
+import androidx.compose.material3.Checkbox
+import androidx.compose.material3.CheckboxDefaults
 import androidx.compose.material3.Icon
 import androidx.compose.material3.Switch
 import androidx.compose.material3.SwitchDefaults
@@ -24,6 +29,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.SolidColor
+import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.input.KeyboardCapitalization
@@ -129,18 +135,87 @@ fun SettingToggle(
             if (detail != null) Text(detail, style = OasisType.Small, color = OasisColors.Muted)
         }
         Spacer(Modifier.width(12.dp))
-        Switch(
+        OasisSwitch(
             checked = checked,
             onCheckedChange = onCheckedChange,
             enabled = enabled,
-            colors = SwitchDefaults.colors(
-                checkedTrackColor = OasisColors.Night,
-                checkedThumbColor = OasisColors.OnNight,
-                uncheckedTrackColor = OasisColors.Dune,
-                uncheckedBorderColor = OasisColors.DuneLine,
-                uncheckedThumbColor = OasisColors.FieldLine
-            ),
             modifier = Modifier.semantics { contentDescription = title }
         )
     }
+}
+
+/**
+ * The Oasis switch: off is a 2 dp ink frame with a dark knob on the field colour, on is filled night with a light knob
+ * (the Material default's light grey off state was easy to miss on paper). Same look as iOS' OasisSwitchStyle.
+ */
+@Composable
+fun OasisSwitch(checked: Boolean, onCheckedChange: ((Boolean) -> Unit)?, modifier: Modifier = Modifier, enabled: Boolean = true) {
+    Switch(
+        checked = checked,
+        onCheckedChange = onCheckedChange,
+        modifier = modifier,
+        enabled = enabled,
+        colors = SwitchDefaults.colors(
+            checkedTrackColor = OasisColors.Night,
+            checkedThumbColor = OasisColors.OnNight,
+            checkedBorderColor = OasisColors.Night,
+            uncheckedTrackColor = OasisColors.Field,
+            uncheckedBorderColor = OasisColors.Ink2,
+            uncheckedThumbColor = OasisColors.Ink2
+        )
+    )
+}
+
+/**
+ * The Oasis checkbox for consents and confirmations ("Ich akzeptiere …", "Ich habe den Inhalt gelesen"), like the web
+ * form: a dark 2 dp frame, filled night with a light tick when checked (iOS' OasisCheckboxStyle).
+ */
+@Composable
+fun OasisCheckbox(checked: Boolean, onCheckedChange: ((Boolean) -> Unit)?, modifier: Modifier = Modifier, enabled: Boolean = true) {
+    Checkbox(
+        checked = checked,
+        onCheckedChange = onCheckedChange,
+        modifier = modifier,
+        enabled = enabled,
+        colors = CheckboxDefaults.colors(
+            checkedColor = OasisColors.Night,
+            uncheckedColor = OasisColors.Ink2,
+            checkmarkColor = OasisColors.OnNight
+        )
+    )
+}
+
+/** A consent or confirmation: [OasisCheckbox] with its text, the whole row tappable (at least 44 dp high). */
+@Composable
+fun ConsentCheck(
+    checked: Boolean,
+    onCheckedChange: (Boolean) -> Unit,
+    modifier: Modifier = Modifier,
+    enabled: Boolean = true,
+    label: @Composable () -> Unit
+) {
+    Row(
+        modifier
+            .fillMaxWidth()
+            .heightIn(min = 44.dp)
+            .toggleable(value = checked, enabled = enabled, role = Role.Checkbox, onValueChange = onCheckedChange)
+            .padding(vertical = 10.dp),
+        verticalAlignment = Alignment.Top
+    ) {
+        OasisCheckbox(checked, onCheckedChange = null, modifier = Modifier.padding(top = 2.dp), enabled = enabled)
+        Spacer(Modifier.width(12.dp))
+        Box(Modifier.weight(1f)) { label() }
+    }
+}
+
+/** [ConsentCheck] with a plain text. */
+@Composable
+fun ConsentCheck(
+    text: String,
+    checked: Boolean,
+    onCheckedChange: (Boolean) -> Unit,
+    modifier: Modifier = Modifier,
+    enabled: Boolean = true
+) {
+    ConsentCheck(checked, onCheckedChange, modifier, enabled) { Text(text, style = OasisType.Body, color = OasisColors.Ink) }
 }

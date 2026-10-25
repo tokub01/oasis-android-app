@@ -22,6 +22,7 @@ import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 
+/** A contract page: the contract, the data export once fetched, and an error for the snackbar. */
 data class ContractUiState<D>(
     val details: Loadable<D> = Loadable.Idle,
     /** The data export, ready for the share sheet. */
@@ -46,12 +47,14 @@ abstract class ContractViewModel<D>(
     /** Called from the base class' constructor: implementations may only use what the base class holds. */
     protected abstract suspend fun details(): D
 
+    /** Ends the contract (cancel or withdraw) and returns the server's confirmation. */
     protected abstract suspend fun end(): Confirmed<MembershipOverview>
 
     init {
         viewModelScope.launch { load() }
     }
 
+    /** Loads the page again; a failed first load shows the error page, a failed refresh a snackbar. */
     suspend fun load() {
         mutableState.update { it.copy(details = Loadable.Loading) }
         try {
@@ -88,9 +91,11 @@ abstract class ContractViewModel<D>(
         }
     }
 
+    /** Hides the error once the snackbar showed it. */
     fun dismissError() = mutableState.update { it.copy(error = null) }
 }
 
+/** /app/mitgliedschaft/kuendigen: the § 312k BGB confirmation. */
 @HiltViewModel
 class CancelViewModel @Inject constructor(
     repository: MembershipRepository,
@@ -103,6 +108,7 @@ class CancelViewModel @Inject constructor(
     override suspend fun end() = repository.cancel()
 }
 
+/** /app/mitgliedschaft/widerrufen: the withdrawal within 14 days. */
 @HiltViewModel
 class WithdrawViewModel @Inject constructor(
     repository: MembershipRepository,

@@ -4,21 +4,46 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.ViewModelStore
 import de.velwebsolutions.oasis.core.auth.Session
+import de.velwebsolutions.oasis.core.network.ApiClient
+import de.velwebsolutions.oasis.core.network.ApiConfig
 import de.velwebsolutions.oasis.core.network.OasisJson
 import de.velwebsolutions.oasis.core.network.RemoteCommonApi
+import de.velwebsolutions.oasis.core.network.TokenProvider
 import de.velwebsolutions.oasis.network.api.Post
 import de.velwebsolutions.oasis.network.data.DefaultNetworkRepository
 import de.velwebsolutions.oasis.testing.StubTransport
 import de.velwebsolutions.oasis.testing.testTokenStore
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
+import okhttp3.Dispatcher
+import okhttp3.OkHttpClient
 import org.junit.Assert.assertTrue
 
 /** A repository over canned answers, with the transport to add answers and read the requests. */
 class StubbedNetwork(vararg stubs: StubTransport.Stub) {
     val transport = StubTransport(*stubs)
-    val repository = DefaultNetworkRepository(transport.client)
-    val common = RemoteCommonApi(transport.client)
+
+    /**
+     * The client of [transport]; with [immediate] OkHttp answers on the calling thread, so suspending calls return
+     * without suspending (the other half of every suspension point).
+     */
+    private val client: ApiClient = if (immediate) {
+        val tokens = object : TokenProvider {
+            override fun currentToken() = "token"
+
+            override fun onUnauthenticated() = Unit
+        }
+        val direct = Dispatcher(DirectExecutor)
+        ApiClient(
+            ApiConfig("http://localhost", "OasisApp/1.0 (Android; Android 16)"),
+            tokens,
+            OkHttpClient.Builder().dispatcher(direct).addInterceptor(transport).build()
+        )
+    } else {
+        transport.client
+    }
+    val repository = DefaultNetworkRepository(client)
+    val common = RemoteCommonApi(client)
 
     /** A signed-out session: enough for the composer, which refreshes `me` only after a held Tropfen. */
     val session = Session(testTokenStore(null), "Pixel Test", CoroutineScope(Dispatchers.Unconfined))
@@ -27,6 +52,20 @@ class StubbedNetwork(vararg stubs: StubTransport.Stub) {
 
     /** The last request to [path], with its body as text. */
     fun last(path: String): StubTransport.Recorded = transport.requests.last { it.path == path }
+}
+
+/** Whether [StubbedNetwork]s answer on the calling thread (set by tests that run in both modes). */
+@Volatile
+var immediate = false
+
+/** Runs tasks on the calling thread. */
+private object DirectExecutor : java.util.concurrent.AbstractExecutorService() {
+    override fun execute(command: Runnable) = command.run()
+    override fun shutdown() = Unit
+    override fun shutdownNow(): MutableList<Runnable> = mutableListOf()
+    override fun isShutdown() = false
+    override fun isTerminated() = false
+    override fun awaitTermination(timeout: Long, unit: java.util.concurrent.TimeUnit) = true
 }
 
 fun stub(method: String, path: String, json: String = "{}", status: Int = 200) = StubTransport.Stub(method, path, status, json)
@@ -79,4 +118,18 @@ fun eventually(timeoutMillis: Long = 3_000, condition: () -> Boolean) {
     val end = System.currentTimeMillis() + timeoutMillis
     while (!condition() && System.currentTimeMillis() < end) Thread.sleep(10)
     assertTrue("condition not met within $timeoutMillis ms", condition())
+}
+
+/**
+ * Waits until [condition] holds. Answers come back from OkHttp's threads and Dispatchers.IO through the main looper, which
+ * Robolectric only runs when the test idles it; `waitUntil` alone does not always get there.
+ */
+fun androidx.compose.ui.test.junit4.ComposeTestRule.settle(timeoutMillis: Long = 15_000, condition: () -> Boolean) {
+    val end = System.currentTimeMillis() + timeoutMillis
+    while (!condition()) {
+        check(System.currentTimeMillis() < end) { "condition not met within $timeoutMillis ms" }
+        Thread.sleep(20)
+        mainClock.advanceTimeBy(50)
+        waitForIdle()
+    }
 }

@@ -10,12 +10,12 @@ import de.velwebsolutions.oasis.core.network.Confirmed
 import de.velwebsolutions.oasis.core.network.asApiError
 import de.velwebsolutions.oasis.live.api.HintSettings
 import de.velwebsolutions.oasis.live.api.PushDevice
+import de.velwebsolutions.oasis.live.catching
 import de.velwebsolutions.oasis.live.data.LiveRepository
 import de.velwebsolutions.oasis.live.push.PushAuthorization
 import de.velwebsolutions.oasis.live.push.PushFailure
 import de.velwebsolutions.oasis.live.push.PushRegistrar
 import javax.inject.Inject
-import kotlin.coroutines.cancellation.CancellationException
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -40,10 +40,10 @@ data class HintSettingsUiState(
     val settings: HintSettings? get() = state.valueOrNull
 
     /** Whether this installation is in the device list. */
-    val isOnForThisDevice: Boolean get() = settings?.push?.devices?.any { it.type == "app" && it.current } ?: false
+    val isOnForThisDevice: Boolean get() = settings?.let { shown -> shown.push.devices.any { it.type == "app" && it.current } } == true
 
     /** Push hints can be switched on here: the server sends app pushes and this build can receive them. */
-    val pushAvailable: Boolean get() = settings?.push?.available == true && pushSupported
+    val pushAvailable: Boolean get() = settings?.let { it.push.available } == true && pushSupported
 }
 
 /**
@@ -57,8 +57,8 @@ class HintSettingsViewModel @Inject constructor(private val repository: LiveRepo
     private val mutableUi = MutableStateFlow(HintSettingsUiState(pushSupported = push.isSupported))
     val ui: StateFlow<HintSettingsUiState> = mutableUi.asStateFlow()
 
-    /** The settings as the server last confirmed them, to go back to after a failed change. */
-    private var saved: HintSettings? = null
+    /** The settings as the server last confirmed them, to go back to after a failed change (set by [load]). */
+    private var saved = HintSettings()
 
     init {
         viewModelScope.launch { load() }
@@ -66,18 +66,17 @@ class HintSettingsViewModel @Inject constructor(private val repository: LiveRepo
 
     suspend fun load() {
         mutableUi.update { it.copy(state = it.state.refreshing()) }
-        try {
-            val settings = repository.settings()
-            saved = settings
-            mutableUi.update { it.copy(state = Loadable.Loaded(settings)) }
-        } catch (cancelled: CancellationException) {
-            throw cancelled
-        } catch (error: Exception) {
-            mutableUi.update {
-                val failing = it.state.failing(error)
-                it.copy(state = failing, error = if (failing.valueOrNull != null) error.asApiError().userMessage else it.error)
+        catching { repository.settings() }
+            .onSuccess { settings ->
+                saved = settings
+                mutableUi.update { it.copy(state = Loadable.Loaded(settings)) }
             }
-        }
+            .onFailure { error ->
+                mutableUi.update {
+                    val failing = it.state.failing(error)
+                    it.copy(state = failing, error = if (failing.valueOrNull != null) error.asApiError().userMessage else it.error)
+                }
+            }
         refreshAuthorization()
     }
 
@@ -89,40 +88,43 @@ class HintSettingsViewModel @Inject constructor(private val repository: LiveRepo
 
     /** Shows a change at once; [save] or [saveChat] sends it. */
     fun edit(change: (HintSettings) -> HintSettings) {
-        mutableUi.update { state -> state.settings?.let { state.copy(state = Loadable.Loaded(change(it))) } ?: state }
+        mutableUi.update { state ->
+            val shown = state.settings ?: return@update state
+            state.copy(state = Loadable.Loaded(change(shown)))
+        }
     }
 
     /** Whether the quiet hours on screen differ from the saved ones (the time fields save after a short pause). */
     val quietHoursChanged: Boolean
-        get() = ui.value.settings?.quietFrom != saved?.quietFrom || ui.value.settings?.quietUntil != saved?.quietUntil
+        get() = ui.value.settings?.let { it.quietHours != saved.quietHours } == true
 
     /** Saves the kinds, the daily e-mail and the quiet hours as shown. */
     suspend fun save() {
         val settings = ui.value.settings ?: return
         if (ui.value.isSaving) return
         mutableUi.update { it.copy(isSaving = true) }
-        try {
-            val answer = repository.save(settings)
-            saved = answer.data
-            mutableUi.update { it.copy(isSaving = false, fieldErrors = emptyMap(), message = answer.message) }
+        val answer = try {
+            catching { repository.save(settings) }
+        } finally {
+            mutableUi.update { it.copy(isSaving = false) }
+        }
+        answer.onSuccess { confirmed ->
+            saved = confirmed.data
+            mutableUi.update { it.copy(fieldErrors = emptyMap(), message = confirmed.message) }
             // The quiet hours may have changed again meanwhile: they stay on screen and are saved, too.
             if (ui.value.settings == settings) {
-                mutableUi.update { it.copy(state = Loadable.Loaded(answer.data)) }
+                mutableUi.update { it.copy(state = Loadable.Loaded(confirmed.data)) }
             } else {
                 save()
             }
-        } catch (cancelled: CancellationException) {
-            mutableUi.update { it.copy(isSaving = false) }
-            throw cancelled
-        } catch (error: Exception) {
+        }.onFailure { error ->
             val failure = error.asApiError()
             val fields = failure.fieldMessages
             mutableUi.update { state ->
                 state.copy(
-                    isSaving = false,
                     fieldErrors = fields,
                     error = failure.userMessage,
-                    state = if (fields.isEmpty()) saved?.let { Loadable.Loaded(it) } ?: state.state else state.state
+                    state = if (fields.isEmpty()) Loadable.Loaded(saved) else state.state
                 )
             }
         }
@@ -137,51 +139,26 @@ class HintSettingsViewModel @Inject constructor(private val repository: LiveRepo
     /** Saves a chat switch (`chat_push`, `chat_email`) as shown, through the privacy settings. */
     suspend fun saveChat(key: String) {
         if (ui.value.isSaving) return
-        val index = ui.value.settings?.chat?.indexOfFirst { it.key == key }?.takeIf { it >= 0 } ?: return
-        val on = ui.value.settings?.chat?.get(index)?.enabled ?: return
+        val chat = ui.value.settings?.chat.orEmpty().firstOrNull { it.key == key } ?: return
+        val on = chat.enabled
         mutableUi.update { it.copy(isSaving = true) }
-        try {
-            val message = repository.setChatSwitch(key, on)
-            saved =
-                saved?.let { current ->
-                    current.copy(
-                        chat = current.chat.mapIndexed { i, chat ->
-                            if (i ==
-                                index
-                            ) {
-                                chat.copy(enabled = on)
-                            } else {
-                                chat
-                            }
-                        }
-                    )
-                }
-            mutableUi.update { it.copy(message = message) }
-        } catch (cancelled: CancellationException) {
-            throw cancelled
-        } catch (error: Exception) {
-            edit { settings ->
-                settings.copy(
-                    chat = settings.chat.mapIndexed { i, chat ->
-                        if (i ==
-                            index
-                        ) {
-                            chat.copy(enabled = !on)
-                        } else {
-                            chat
-                        }
-                    }
-                )
-            }
-            mutableUi.update { it.copy(error = error.asApiError().userMessage) }
+        val answer = try {
+            catching { repository.setChatSwitch(key, on) }
         } finally {
             mutableUi.update { it.copy(isSaving = false) }
+        }
+        answer.onSuccess { message ->
+            saved = saved.withChat(key, on)
+            mutableUi.update { it.copy(message = message) }
+        }.onFailure { error ->
+            edit { it.withChat(key, !on) }
+            mutableUi.update { it.copy(error = error.asApiError().userMessage) }
         }
     }
 
     /** Shows a chat switch at once and saves it. */
     fun toggleChat(key: String, on: Boolean) {
-        edit { settings -> settings.copy(chat = settings.chat.map { if (it.key == key) it.copy(enabled = on) else it }) }
+        edit { it.withChat(key, on) }
         viewModelScope.launch { saveChat(key) }
     }
 
@@ -191,16 +168,13 @@ class HintSettingsViewModel @Inject constructor(private val repository: LiveRepo
 
     /** "Entfernen" in the device list. */
     suspend fun remove(device: PushDevice) {
-        try {
-            val message = repository.removeDevice(device)
-            if (device.type == "app") push.forgetDevice(device.id)
-            mutableUi.update { it.copy(message = message) }
-            refreshDevices()
-        } catch (cancelled: CancellationException) {
-            throw cancelled
-        } catch (error: Exception) {
-            mutableUi.update { it.copy(error = error.asApiError().userMessage) }
-        }
+        catching { repository.removeDevice(device) }
+            .onSuccess { message ->
+                if (device.type == "app") push.forgetDevice(device.id)
+                mutableUi.update { it.copy(message = message) }
+                refreshDevices()
+            }
+            .onFailure { error -> mutableUi.update { it.copy(error = error.asApiError().userMessage) } }
     }
 
     /** The screen asked Android for the notification permission. */
@@ -229,29 +203,20 @@ class HintSettingsViewModel @Inject constructor(private val repository: LiveRepo
 
     /** Pause and its end change only the pause, never the switches on screen. */
     private suspend fun changePause(request: suspend () -> Confirmed<HintSettings>) {
-        try {
-            val answer = request()
-            edit { it.copy(pausedUntil = answer.data.pausedUntil) }
-            saved = saved?.copy(pausedUntil = answer.data.pausedUntil)
-            mutableUi.update { it.copy(message = answer.message) }
-        } catch (cancelled: CancellationException) {
-            throw cancelled
-        } catch (error: Exception) {
-            mutableUi.update { it.copy(error = error.asApiError().userMessage) }
-        }
+        catching { request() }
+            .onSuccess { answer ->
+                edit { it.copy(pausedUntil = answer.data.pausedUntil) }
+                saved = saved.copy(pausedUntil = answer.data.pausedUntil)
+                mutableUi.update { it.copy(message = answer.message) }
+            }
+            .onFailure { error -> mutableUi.update { it.copy(error = error.asApiError().userMessage) } }
     }
 
     /** The device list after a device was added or removed. */
     private suspend fun refreshDevices() {
-        val fresh = try {
-            repository.settings()
-        } catch (cancelled: CancellationException) {
-            throw cancelled
-        } catch (_: Exception) {
-            return
-        }
+        val fresh = catching { repository.settings() }.getOrNull() ?: return
         edit { it.copy(push = fresh.push) }
-        saved = saved?.copy(push = fresh.push)
+        saved = saved.copy(push = fresh.push)
     }
 
     companion object {
@@ -263,3 +228,10 @@ class HintSettingsViewModel @Inject constructor(private val repository: LiveRepo
         }
     }
 }
+
+/** The quiet hours as shown, to compare them with the saved ones. */
+private val HintSettings.quietHours: Pair<String, String> get() = quietFrom to quietUntil
+
+/** The settings with one chat switch (`chat_push`, `chat_email`) set. */
+private fun HintSettings.withChat(key: String, on: Boolean): HintSettings =
+    copy(chat = chat.map { if (it.key == key) it.copy(enabled = on) else it })

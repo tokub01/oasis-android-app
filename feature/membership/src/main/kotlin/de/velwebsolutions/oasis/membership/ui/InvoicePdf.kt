@@ -11,8 +11,9 @@ import android.webkit.WebView
  * with WebKit instead).
  */
 object InvoicePdf {
+    /** Opens the system print dialog for the invoice shown in [webView]. */
     fun print(context: Context, webView: WebView, name: String) {
-        val printManager = context.getSystemService(Context.PRINT_SERVICE) as? PrintManager ?: return
+        val printManager: PrintManager = context.getSystemService(PrintManager::class.java)
         val attributes = PrintAttributes.Builder().setMediaSize(PrintAttributes.MediaSize.ISO_A4).build()
         printManager.print(name, webView.createPrintDocumentAdapter(name), attributes)
     }

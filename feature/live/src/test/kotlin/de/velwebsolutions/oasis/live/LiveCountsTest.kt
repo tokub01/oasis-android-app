@@ -13,6 +13,7 @@ import kotlinx.serialization.json.JsonObject
 import kotlinx.serialization.json.JsonPrimitive
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertNull
+import org.junit.Assert.assertTrue
 import org.junit.Test
 
 /** The numbers at the bell and "Chats", and the in-app chat notice. */
@@ -84,6 +85,71 @@ class LiveCountsTest {
         assertEquals("Neue Nachricht von Lea", counts.toast.value?.text)
         advanceTimeBy(2.seconds)
         assertNull(counts.toast.value)
+        counts.stop()
+    }
+
+    @Test
+    fun ignoresOtherEventsAndNoticesWithoutAConversation() = runTest {
+        val counts = counts()
+        counts.handle(RealtimeEvent("MessageSent", JsonObject(mapOf("kind" to JsonPrimitive("chat")))))
+        assertNull(counts.toast.value)
+        counts.handle(RealtimeEvent("InboxActivity", JsonObject(mapOf("kind" to JsonPrimitive("chat")))))
+        assertEquals("Neue Chat-Nachricht", counts.toast.value?.text)
+        assertNull("without conversation the notice opens the chat list", counts.toast.value?.conversationId)
+        counts.handle(chat("keine Zahl", "Mia"))
+        assertNull(counts.toast.value?.conversationId)
+        counts.dismissToast()
+        counts.dismissToast()
+        assertNull(counts.toast.value)
+    }
+
+    @Test
+    fun aNewerNoticeKeepsItsOwnFifteenSeconds() = runTest {
+        val counts = counts()
+        counts.handle(chat("1", "Lea"))
+        advanceTimeBy(10.seconds)
+        counts.handle(chat("2", "Jonas"))
+        advanceTimeBy(10.seconds)
+        assertEquals("Neue Nachricht von Jonas", counts.toast.value?.text)
+        advanceTimeBy(6.seconds)
+        assertNull(counts.toast.value)
+    }
+
+    @Test
+    fun keepsTheNumbersWhenLoadingFailsAndDropsAnswersAfterStopping() = runTest {
+        val counts = counts()
+        counts.refresh()
+        assertEquals("nothing to load before start", 0, counts.hints.value)
+        var fail = false
+        lateinit var stopWhileLoading: () -> Unit
+        var stopNow = false
+        counts.start(
+            load = {
+                if (fail) error("offline")
+                if (stopNow) stopWhileLoading()
+                LiveCountsData(chats = 1, hints = 4)
+            },
+            realtime = FakeRealtime(),
+            userId = 3
+        )
+        runCurrent()
+        assertEquals(4, counts.hints.value)
+        fail = true
+        counts.refresh()
+        assertEquals("a failed refresh keeps the numbers", 4, counts.hints.value)
+        fail = false
+        stopNow = true
+        stopWhileLoading = { counts.stop() }
+        counts.refresh()
+        assertEquals("an answer after sign-out is dropped", 0, counts.hints.value)
+    }
+
+    @Test
+    fun cancellationOfARefreshPassesThrough() = runTest {
+        val counts = counts()
+        counts.start(load = { throw kotlinx.coroutines.CancellationException("gone") }, realtime = FakeRealtime(), userId = 1)
+        val failure = runCatching { counts.refresh() }.exceptionOrNull()
+        assertTrue(failure is kotlinx.coroutines.CancellationException)
         counts.stop()
     }
 }

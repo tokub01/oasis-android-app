@@ -18,13 +18,14 @@ import androidx.lifecycle.viewmodel.compose.LocalViewModelStoreOwner
  */
 @Composable
 fun ScopedViewModels(content: @Composable () -> Unit) {
-    val parent = LocalViewModelStoreOwner.current
+    // The activity, or the parent screen's owner in a test.
+    val parent = checkNotNull(LocalViewModelStoreOwner.current)
     val owner = remember(parent) { ScopedOwner(parent) }
     DisposableEffect(owner) { onDispose { owner.viewModelStore.clear() } }
     CompositionLocalProvider(LocalViewModelStoreOwner provides owner) { content() }
 }
 
-private class ScopedOwner(private val parent: ViewModelStoreOwner?) :
+private class ScopedOwner(private val parent: ViewModelStoreOwner) :
     ViewModelStoreOwner,
     HasDefaultViewModelProviderFactory {
     override val viewModelStore = ViewModelStore()

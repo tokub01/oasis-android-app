@@ -25,7 +25,7 @@ data class PushContent(val title: String, val body: String, val url: String?, va
 
     /** Chat messages (`tag` "oasis-chat", or a link into the chat) go to their own channel, everything else to Hinweise. */
     val channel: PushChannel
-        get() = if (tag == CHAT_TAG || url?.substringAfter("://")?.substringAfter('/')?.startsWith("app/nachrichten") == true) {
+        get() = if (tag == CHAT_TAG || url?.let { it.substringAfter("://").substringAfter('/').startsWith("app/nachrichten") } == true) {
             PushChannel.Chat
         } else {
             PushChannel.Hints
@@ -50,16 +50,16 @@ data class PushContent(val title: String, val body: String, val url: String?, va
 
 /**
  * The notification channels and the notifications of push hints. A tap opens the app with the hint's web URL in
- * [EXTRA_URL], which MainActivity hands to the navigator. Notifications of one kind are grouped (the web push `tag`,
+ * [EXTRA_URL], which the app (`AppHost`) hands to the navigator. Notifications of one kind are grouped (the web push `tag`,
  * iOS: `thread-id`).
  */
 object PushNotifications {
-    /** The intent extra MainActivity reads (`MainActivity.EXTRA_URL`). */
+    /** The intent extra the app reads (`AppHost.EXTRA_URL`). */
     const val EXTRA_URL = "de.velwebsolutions.oasis.url"
 
     /** Creates the channels "Hinweise" and "Chat-Nachrichten" once (no-op afterwards). */
     fun ensureChannel(context: Context) {
-        val manager = context.getSystemService(NotificationManager::class.java) ?: return
+        val manager: NotificationManager = context.getSystemService(NotificationManager::class.java)
         PushChannel.entries.forEach { kind ->
             if (manager.getNotificationChannel(kind.id) == null) {
                 val channel = NotificationChannel(kind.id, kind.title, NotificationManager.IMPORTANCE_DEFAULT)
@@ -97,6 +97,6 @@ object PushNotifications {
             .apply { content.tag?.let(::setGroup) }
             .apply { if (tap != null) setContentIntent(tap) }
             .build()
-        context.getSystemService(NotificationManager::class.java)?.notify(id, notification)
+        context.getSystemService(NotificationManager::class.java).notify(id, notification)
     }
 }

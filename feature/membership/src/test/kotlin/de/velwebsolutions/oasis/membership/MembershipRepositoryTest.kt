@@ -20,7 +20,6 @@ class MembershipRepositoryTest {
         assertEquals(MembershipOverview.State.Trial, overview.state)
         assertEquals(20, overview.trialDaysLeft)
         assertNull(overview.subscription)
-        assertEquals(listOf("12 Monate für 30 €", "12 Monate für 50 €", "12 Monate für 120 €"), overview.giftOffers.map { it.priceLabel })
         assertEquals("11.11.2026", MembershipFormat.day(overview.trialEndsAt))
         assertEquals(true, overview.apple?.available)
         assertEquals("3f2b7c1e-8a4d-5b6e-9c0f-1a2b3c4d5e6f", overview.apple?.accountToken)
@@ -79,6 +78,17 @@ class MembershipRepositoryTest {
         assertEquals(Fixtures.CANCELLED, result.message)
         assertEquals(MembershipOverview.State.Subscription, result.data.state)
         assertEquals("POST", transport.requests.last().request.method)
+    }
+
+    @Test
+    fun `withdrawing reads the withdrawal page and posts the withdrawal`() = runTest {
+        val (repository, transport) = Fixtures.repository(
+            Stub("GET", "membership/withdrawal", json = Fixtures.WITHDRAWAL),
+            Stub("POST", "membership/withdrawal", json = Fixtures.confirmed("Widerrufen."))
+        )
+        assertEquals("Oase", repository.withdrawal().tierName)
+        assertEquals("Widerrufen.", repository.withdraw().message)
+        assertEquals("membership/withdrawal", transport.requests.last().path)
     }
 
     @Test

@@ -455,9 +455,6 @@ fun ButtonFlow(modifier: Modifier = Modifier, spacing: Int = 8, content: @Compos
     )
 }
 
-/** Dims content while it is disabled. */
-fun Modifier.dimmed(disabled: Boolean): Modifier = alpha(if (disabled) 0.45f else 1f)
-
 /** Shares a web address with the system sheet (iOS `ShareLink`). */
 fun share(context: Context, url: String) {
     val send = Intent(Intent.ACTION_SEND).setType("text/plain").putExtra(Intent.EXTRA_TEXT, url)

@@ -6,6 +6,7 @@ import dagger.hilt.android.lifecycle.HiltViewModel
 import de.velwebsolutions.oasis.account.api.StarterOasis
 import de.velwebsolutions.oasis.account.api.WelcomeStep
 import de.velwebsolutions.oasis.account.api.WelcomeTour
+import de.velwebsolutions.oasis.account.catching
 import de.velwebsolutions.oasis.account.data.AccountRepository
 import de.velwebsolutions.oasis.core.auth.Session
 import de.velwebsolutions.oasis.core.model.Loadable
@@ -13,7 +14,6 @@ import de.velwebsolutions.oasis.core.model.failing
 import de.velwebsolutions.oasis.core.model.refreshing
 import de.velwebsolutions.oasis.core.network.asApiError
 import javax.inject.Inject
-import kotlin.coroutines.cancellation.CancellationException
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -55,27 +55,26 @@ class WelcomeViewModel @Inject constructor(private val repository: AccountReposi
     suspend fun load() {
         val firstLoad = ui.value.state.valueOrNull == null
         mutableUi.update { it.copy(state = it.state.refreshing()) }
-        try {
-            val tour = repository.welcome()
-            mutableUi.update {
-                if (firstLoad) {
-                    it.copy(
-                        state = Loadable.Loaded(tour),
-                        bio = tour.bio,
-                        location = tour.location,
-                        avatarColor = tour.avatarColor,
-                        profileAudience = tour.profileAudience,
-                        defaultPostVisibility = tour.defaultPostVisibility
-                    )
-                } else {
-                    it.copy(state = Loadable.Loaded(tour))
+        catching { repository.welcome() }
+            .onSuccess { tour ->
+                mutableUi.update {
+                    if (firstLoad) {
+                        it.copy(
+                            state = Loadable.Loaded(tour),
+                            bio = tour.bio,
+                            location = tour.location,
+                            avatarColor = tour.avatarColor,
+                            profileAudience = tour.profileAudience,
+                            defaultPostVisibility = tour.defaultPostVisibility
+                        )
+                    } else {
+                        it.copy(state = Loadable.Loaded(tour))
+                    }
                 }
             }
-        } catch (cancelled: CancellationException) {
-            throw cancelled
-        } catch (error: Exception) {
-            mutableUi.update { it.copy(state = it.state.failing(error)) }
-        }
+            .onFailure { error ->
+                mutableUi.update { it.copy(state = it.state.failing(error)) }
+            }
     }
 
     /** Live hint while typing (slang address, local word list); a change asks the question again. */
@@ -86,39 +85,35 @@ class WelcomeViewModel @Inject constructor(private val repository: AccountReposi
             mutableUi.update { it.copy(toneHint = null) }
             return
         }
-        try {
-            val tone = repository.profileTone(text)
-            mutableUi.update { it.copy(toneHint = tone.hint, toneQuestion = tone.nudge) }
-        } catch (cancelled: CancellationException) {
-            throw cancelled
-        } catch (_: Exception) {
-            // The hint is a courtesy; without it the profile is checked when it is saved.
-        }
+        // The hint is a courtesy; without it the profile is checked when it is saved.
+        catching { repository.profileTone(text) }
+            .onSuccess { tone ->
+                mutableUi.update { it.copy(toneHint = tone.hint, toneQuestion = tone.nudge) }
+            }
     }
 
     /** „Weiter“: saves the current step (oases save on tap) and moves on. */
     suspend fun next() {
         mutableUi.update { it.copy(fieldErrors = emptyMap(), error = null) }
         val current = ui.value
-        try {
+        catching {
             when (current.stepKey) {
                 "profil" -> repository.saveWelcomeProfile(current.bio, current.location, current.avatarColor, current.toneConfirmed)
                 "sichtbarkeit" -> repository.saveWelcomeVisibility(current.profileAudience, current.defaultPostVisibility)
             }
-            go(current.step + 1)
-        } catch (cancelled: CancellationException) {
-            throw cancelled
-        } catch (error: Exception) {
-            val failure = error.asApiError()
-            val fields = failure.fieldMessages
-            mutableUi.update {
-                when {
-                    fields.isEmpty() -> it.copy(error = failure.userMessage)
-                    it.stepKey == "profil" && fields["bio"] != null -> it.copy(fieldErrors = fields, toneQuestion = true)
-                    else -> it.copy(fieldErrors = fields)
+        }
+            .onSuccess { go(current.step + 1) }
+            .onFailure { error ->
+                val failure = error.asApiError()
+                val fields = failure.fieldMessages
+                mutableUi.update {
+                    when {
+                        fields.isEmpty() -> it.copy(error = failure.userMessage)
+                        it.stepKey == "profil" && fields["bio"] != null -> it.copy(fieldErrors = fields, toneQuestion = true)
+                        else -> it.copy(fieldErrors = fields)
+                    }
                 }
             }
-        }
     }
 
     fun skip() = go(ui.value.step + 1)
@@ -126,31 +121,30 @@ class WelcomeViewModel @Inject constructor(private val repository: AccountReposi
     fun back() = go(ui.value.step - 1)
 
     suspend fun toggle(oasis: StarterOasis) {
-        try {
-            val joined = repository.toggleStarterOasis(oasis.id)
-            mutableUi.update { state ->
-                val tour = state.state.valueOrNull ?: return@update state
-                state.copy(
-                    state = Loadable.Loaded(
-                        tour.copy(
-                            oases = tour.oases.map {
-                                if (it.id ==
-                                    oasis.id
-                                ) {
-                                    it.copy(joined = joined)
-                                } else {
-                                    it
+        catching { repository.toggleStarterOasis(oasis.id) }
+            .onSuccess { joined ->
+                mutableUi.update { state ->
+                    val tour = state.state.valueOrNull ?: return@update state
+                    state.copy(
+                        state = Loadable.Loaded(
+                            tour.copy(
+                                oases = tour.oases.map {
+                                    if (it.id ==
+                                        oasis.id
+                                    ) {
+                                        it.copy(joined = joined)
+                                    } else {
+                                        it
+                                    }
                                 }
-                            }
+                            )
                         )
                     )
-                )
+                }
             }
-        } catch (cancelled: CancellationException) {
-            throw cancelled
-        } catch (error: Exception) {
-            mutableUi.update { it.copy(error = error.asApiError().userMessage) }
-        }
+            .onFailure { error ->
+                mutableUi.update { it.copy(error = error.asApiError().userMessage) }
+            }
     }
 
     /**
@@ -159,14 +153,11 @@ class WelcomeViewModel @Inject constructor(private val repository: AccountReposi
      * the Quelle by itself once `me` is onboarded.
      */
     suspend fun finish(): Boolean? {
-        try {
-            repository.finishWelcome()
-        } catch (cancelled: CancellationException) {
-            throw cancelled
-        } catch (error: Exception) {
-            mutableUi.update { it.copy(error = error.asApiError().userMessage) }
-            return null
-        }
+        catching { repository.finishWelcome() }
+            .onFailure { error ->
+                mutableUi.update { it.copy(error = error.asApiError().userMessage) }
+                return null
+            }
         val wasOnboarded = ui.value.state.valueOrNull?.onboarded ?: true
         session.refreshMe()
         return wasOnboarded

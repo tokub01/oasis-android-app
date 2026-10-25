@@ -45,9 +45,6 @@ suspend fun NetworkRepository.perform(action: PostAction, post: Post): String = 
     PostAction.Block -> block(post.author.id)
 }
 
-/** This card after [action] on [post] (itself or a Tropfen of the same author); null when it disappears. */
-fun Post.applying(action: PostAction, post: Post): Post? = listOf(this).applying(action, post).firstOrNull()
-
 /**
  * The effect of a successful action on a loaded list, as the web shows it after querying the list again: reactions and
  * bookmarks toggle, deleted and removed Tropfen disappear, and muting or blocking hides the person's Tropfen.

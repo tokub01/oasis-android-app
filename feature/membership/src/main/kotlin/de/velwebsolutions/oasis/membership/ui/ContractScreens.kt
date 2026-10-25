@@ -56,6 +56,7 @@ fun CancelScreen(viewModel: CancelViewModel = hiltViewModel()) {
     CancelContent(state, viewModel::load, viewModel::confirm, viewModel::prepareExport, viewModel::dismissError)
 }
 
+/** The cancel page without its view model, for the app and for tests. */
 @Composable
 fun CancelContent(
     state: ContractUiState<CancellationDetails>,
@@ -114,6 +115,7 @@ fun WithdrawScreen(viewModel: WithdrawViewModel = hiltViewModel()) {
     WithdrawContent(state, viewModel::load, viewModel::confirm, viewModel::prepareExport, viewModel::dismissError)
 }
 
+/** The withdraw page without its view model, for the app and for tests. */
 @Composable
 fun WithdrawContent(
     state: ContractUiState<WithdrawalDetails>,
@@ -170,9 +172,9 @@ fun WithdrawContent(
 @Composable
 private fun <D> ContractState(state: Loadable<D>, onRetry: suspend () -> Unit, content: @Composable (D) -> Unit) {
     when (state) {
-        Loadable.Idle, Loadable.Loading -> LoadingView()
         is Loadable.Failed -> NotAvailable(state.error, onRetry)
         is Loadable.Loaded -> content(state.value)
+        else -> LoadingView()
     }
 }
 

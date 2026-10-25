@@ -68,7 +68,17 @@ object Fixtures {
         offerToken = "offer-$id"
     )
 
-    val playCatalogue = PlayProducts.all.map { product(it.id, it.fallbackPrice) }
+    /** The prices the Play products were created with (PlayProducts' table). */
+    private val CATALOGUE_PRICES = mapOf(
+        PlayProducts.SOLIDAR_MONTHLY to "3,00 €",
+        PlayProducts.SOLIDAR_YEARLY to "30,00 €",
+        PlayProducts.OASE_MONTHLY to "5,00 €",
+        PlayProducts.OASE_YEARLY to "50,00 €",
+        PlayProducts.MAEZEN_MONTHLY to "12,00 €",
+        PlayProducts.MAEZEN_YEARLY to "120,00 €"
+    )
+
+    val playCatalogue = PlayProducts.all.map { product(it.id, CATALOGUE_PRICES.getValue(it.id)) }
 
     fun purchase(productId: String = PlayProducts.OASE_MONTHLY, purchased: Boolean = true, acknowledged: Boolean = false) =
         PlayPurchase("token-$productId", listOf(productId), isPurchased = purchased, isAcknowledged = acknowledged)
@@ -81,6 +91,9 @@ class FakeBillingGateway(
     var owned: List<PlayPurchase> = emptyList()
 ) : BillingGateway {
     val purchased = mutableListOf<Pair<String, String?>>()
+
+    /** Holds a purchase until the test completes it. */
+    var gate: kotlinx.coroutines.CompletableDeferred<Unit>? = null
     val acknowledged = mutableListOf<String>()
     val updates = MutableSharedFlow<PlayPurchase>(extraBufferCapacity = 8)
 
@@ -88,6 +101,7 @@ class FakeBillingGateway(
 
     override suspend fun purchase(activity: Activity?, product: PlayProduct, accountId: String?): PurchaseOutcome {
         purchased += product.id to accountId
+        gate?.await()
         return outcome
     }
 
