@@ -36,6 +36,7 @@ import de.velwebsolutions.oasis.design.components.AvatarView
 import de.velwebsolutions.oasis.design.components.Banner
 import de.velwebsolutions.oasis.design.components.BannerKind
 import de.velwebsolutions.oasis.design.components.Bullets
+import de.velwebsolutions.oasis.design.components.ConsentCheck
 import de.velwebsolutions.oasis.design.components.CountBadge
 import de.velwebsolutions.oasis.design.components.DashedNote
 import de.velwebsolutions.oasis.design.components.EmptyStateView
@@ -48,8 +49,10 @@ import de.velwebsolutions.oasis.design.components.LocalScreenChrome
 import de.velwebsolutions.oasis.design.components.OasisButton
 import de.velwebsolutions.oasis.design.components.OasisButtonKind
 import de.velwebsolutions.oasis.design.components.OasisCard
+import de.velwebsolutions.oasis.design.components.OasisCheckbox
 import de.velwebsolutions.oasis.design.components.OasisLogo
 import de.velwebsolutions.oasis.design.components.OasisScreen
+import de.velwebsolutions.oasis.design.components.OasisSwitch
 import de.velwebsolutions.oasis.design.components.OasisTextButton
 import de.velwebsolutions.oasis.design.components.OasisTextField
 import de.velwebsolutions.oasis.design.components.PageHeader
@@ -350,5 +353,23 @@ class ComponentsTest {
             }
         }
         compose.onNodeWithText("X").assertExists()
+    }
+
+    @Test
+    fun `consents, checkboxes and switches stay visible in both states`() {
+        var accepted by mutableStateOf(false)
+        var on by mutableStateOf(true)
+        show {
+            ConsentCheck("Ich akzeptiere die Nutzungsbedingungen.", accepted, { accepted = it })
+            ConsentCheck("Gesperrt", false, {}, enabled = false)
+            ConsentCheck(true, {}, Modifier, true) { Text("Mit eigenem Text") }
+            OasisCheckbox(true, null)
+            OasisCheckbox(false, {}, enabled = false)
+            OasisSwitch(on, { on = it })
+            OasisSwitch(false, null, enabled = false)
+        }
+        compose.onNodeWithText("Ich akzeptiere die Nutzungsbedingungen.").performClick()
+        assertEquals(true, accepted)
+        compose.onRoot().captureRoboImage("build/outputs/roborazzi/design-consents.png")
     }
 }
