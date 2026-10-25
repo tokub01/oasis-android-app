@@ -10,23 +10,35 @@ import java.util.regex.Pattern
  * server's word list; drafts for card numbers, IBANs, passwords and addresses, plus the same tone hint as Tropfen.
  */
 object ChatSafety {
+    /** What an incoming message looks like. */
     enum class Kind { Phishing, Solicitation, Harassment }
 
+    /** A finding of the incoming check with the banner's title. */
     data class Finding(val kind: Kind, val title: String)
 
     /** What a draft would reveal, and the slang address for the tone hint. */
     data class Outgoing(val sensitive: List<String>, val tone: String?)
 
-    private const val ASKS_FOR_SECRETS =
-        """\b(schick|schicke|gib|sag|nenn|verrat|schreib|brauch\w*|wie\s+(?:ist|lautet))\b[^.!?\n]{0,40}\b(dein\w*|ihr\w*)\s+(passwort|kennwort|pin|tan|code|zugangsdaten|login\w*|kreditkarte\w*|kartennummer|karten-?daten|iban|bankdaten|kontonummer|adresse|anschrift|wohnort|handynummer)\b"""
-    private const val SOLICITATION =
-        """\b(taschengeld|tg[- ]?treffen|sugar\s?(daddy|baby|mommy|mami)|escort\w*|sex\s?date|sexdate|one\s?night\s?stand|nudes?|nacktbilder|nacktfotos|nacktvideos?|gegen\s+(bezahlung|geld|cash)|was\s+(kostest|nimmst)\s+du|bezahl\w*\s+dich|zeig\s+(mal\s+)?(dich|was)\s+nackt)\b"""
-    private const val DISCLOSES_SECRET =
-        """\b(mein\w*\s+)?(passwort|kennwort|password|pin|tan|zugangscode|bestätigungscode)\s*(ist|lautet|:|=)\s*\S+"""
-    private const val ADDRESS =
-        """\b[A-ZÄÖÜ][a-zäöüß-]+(stra(ß|ss)e|str\.|weg|allee|platz|gasse|ring|damm|ufer|chaussee)\s+\d{1,4}\s?[a-z]?\b|\b\d{5}\s+[A-ZÄÖÜ][a-zäöüß]{2,}"""
-    private const val CARD = """(?:\d[ -]?){13,19}"""
-    private const val IBAN = """\b[A-Z]{2}\d{2}(?:\s?[A-Z0-9]){11,30}\b"""
+    // Word boundaries, word characters and spaces spelled out with Unicode classes, so the patterns mean the same on
+    // Android's ICU engine (like iOS) and on the JVM of the unit tests, without engine flags. Digits are [0-9] like
+    // JavaScript's \d: no card number, IBAN or postcode uses other scripts' digits.
+    private const val S = "(?<![\\p{L}\\p{N}_])"
+    private const val E = "(?![\\p{L}\\p{N}_])"
+    private const val W = "[\\p{L}\\p{N}_]"
+    private const val SPACE = "[\\s\\p{Z}]"
+    private const val NOT_SPACE = "[^\\s\\p{Z}]"
+
+    private val ASKS_FOR_SECRETS =
+        "$S(schick|schicke|gib|sag|nenn|verrat|schreib|brauch$W*|wie$SPACE+(?:ist|lautet))$E[^.!?\\n]{0,40}$S(dein$W*|ihr$W*)$SPACE+(passwort|kennwort|pin|tan|code|zugangsdaten|login$W*|kreditkarte$W*|kartennummer|karten-?daten|iban|bankdaten|kontonummer|adresse|anschrift|wohnort|handynummer)$E"
+    private val SOLICITATION =
+        "$S(taschengeld|tg[- ]?treffen|sugar$SPACE?(daddy|baby|mommy|mami)|escort$W*|sex$SPACE?date|sexdate|one$SPACE?night$SPACE?stand|nudes?|nacktbilder|nacktfotos|nacktvideos?|gegen$SPACE+(bezahlung|geld|cash)|was$SPACE+(kostest|nimmst)$SPACE+du|bezahl$W*$SPACE+dich|zeig$SPACE+(mal$SPACE+)?(dich|was)$SPACE+nackt)$E"
+    private val DISCLOSES_SECRET =
+        "$S(mein$W*$SPACE+)?(passwort|kennwort|password|pin|tan|zugangscode|bestätigungscode)$SPACE*(ist|lautet|:|=)$SPACE*$NOT_SPACE+"
+
+    private val ADDRESS =
+        "$S[A-ZÄÖÜ][a-zäöüß-]+(stra(ß|ss)e|str\\.|weg|allee|platz|gasse|ring|damm|ufer|chaussee)$SPACE+[0-9]{1,4}$SPACE?[a-z]?$E|$S[0-9]{5}$SPACE+[A-ZÄÖÜ][a-zäöüß]{2,}"
+    private const val CARD = "(?:[0-9][ -]?){13,19}"
+    private val IBAN = "$S[A-Z]{2}[0-9]{2}(?:$SPACE?[A-Z0-9]){11,30}$E"
 
     /** Check a decrypted message from someone else. */
     fun scanIncoming(text: String, lists: Map<String, List<String>>): Finding? {
@@ -56,8 +68,8 @@ object ChatSafety {
     /** Card numbers: 13–19 digits passing the Luhn check. */
     fun containsCardNumber(text: String): Boolean {
         for (match in allMatches(regex(CARD, false), text)) {
-            val digits = match.filter { it in '0'..'9' }.map { it - '0' }
-            if (digits.size !in 13..19) continue
+            // The pattern found 13–19 digits with optional single spaces or hyphens between them.
+            val digits = match.filter { it != ' ' && it != '-' }.map { it - '0' }
             var sum = 0
             digits.reversed().forEachIndexed { index, value ->
                 var digit = value
@@ -75,15 +87,12 @@ object ChatSafety {
     /** IBANs with a valid mod-97 check sum. */
     fun containsIban(text: String): Boolean {
         for (match in allMatches(regex(IBAN, false), text.uppercase())) {
-            val iban = match.replace(Regex("""\s"""), "")
+            val iban = match.filter { it.isLetterOrDigit() }
             val rearranged = iban.drop(4) + iban.take(4)
             var rest = 0
             for (character in rearranged) {
-                val digits = when (character) {
-                    in '0'..'9' -> character.toString()
-                    in 'A'..'Z' -> (character.code - 55).toString()
-                    else -> continue
-                }
+                // Only A–Z and 0–9 are left: letters count as 10 (A) to 35 (Z).
+                val digits = if (character <= '9') character.toString() else (character.code - 55).toString()
                 for (digit in digits) rest = (rest * 10 + (digit - '0')) % 97
             }
             if (rest == 1) return true
@@ -117,18 +126,10 @@ object ChatSafety {
     /** Compiled patterns, so the draft check on every keystroke does not compile them again. */
     private val compiled = ConcurrentHashMap<String, Pattern>()
 
-    /**
-     * ICU semantics as on iOS: Unicode-aware `\b`, `\w` and case folding. Android's regex engine is ICU and Unicode-aware
-     * already (and rejects UNICODE_CHARACTER_CLASS); the JVM of the unit tests needs the flag for the same behaviour.
-     */
+    /** Case folding as on iOS: Unicode-aware, so "ÄRGER" matches "ärger". */
     private fun regex(pattern: String, caseInsensitive: Boolean): Pattern =
         compiled.getOrPut((if (caseInsensitive) "i" else "-") + pattern) {
-            val case = if (caseInsensitive) Pattern.CASE_INSENSITIVE or Pattern.UNICODE_CASE else 0
-            try {
-                Pattern.compile(pattern, case or Pattern.UNICODE_CHARACTER_CLASS)
-            } catch (_: IllegalArgumentException) {
-                Pattern.compile(pattern, case)
-            }
+            Pattern.compile(pattern, if (caseInsensitive) Pattern.CASE_INSENSITIVE or Pattern.UNICODE_CASE else 0)
         }
 
     private fun matches(pattern: Pattern, text: String): Boolean = pattern.matcher(text).find()

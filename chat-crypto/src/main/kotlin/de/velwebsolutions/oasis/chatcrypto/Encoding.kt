@@ -18,8 +18,10 @@ object ChatEncoding {
     sealed interface Field {
         val bytes: ByteArray
 
+        /** Raw bytes (keys, nonces, ciphertexts). */
         class Bytes(override val bytes: ByteArray) : Field
 
+        /** A string, signed as its UTF-8 bytes. */
         class Text(value: String) : Field {
             override val bytes: ByteArray = value.toByteArray(Charsets.UTF_8)
         }

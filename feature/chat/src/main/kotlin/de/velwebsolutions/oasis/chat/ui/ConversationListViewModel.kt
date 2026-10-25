@@ -16,9 +16,10 @@ import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.filter
+import kotlinx.coroutines.flow.launchIn
+import kotlinx.coroutines.flow.onEach
 import kotlinx.coroutines.flow.update
-import kotlinx.coroutines.isActive
-import kotlinx.coroutines.launch
 
 /** A device link request with the check number both devices show. */
 data class LinkRequestEntry(val request: DeviceLinkRequest, val check: String)
@@ -100,13 +101,16 @@ class ConversationListViewModel @Inject constructor(context: ChatContext, privat
         return parts.joinToString(" · ")
     }
 
+    /** The row's title: group name or the other people's names. */
     fun title(conversation: ChatConversation): String = conversation.displayTitle(context.userId)
 
     /** "Sperren". */
     fun lock() = vault.lock()
 
+    /** The confirmation toast was shown. */
     fun dismissStatus() = mutableState.update { it.copy(status = null) }
 
+    /** The error toast was shown. */
     fun dismissActionError() = mutableState.update { it.copy(actionError = null) }
 
     // region Device links (approving side)
@@ -149,14 +153,15 @@ class ConversationListViewModel @Inject constructor(context: ChatContext, privat
      * While the list is shown: reload on new chat activity (`private-inbox.{id}`, `InboxActivity` kind "chat"), poll while
      * offline, and refresh the link requests every few seconds (like the web).
      */
-    suspend fun liveUpdates() = coroutineScope {
-        launch {
-            realtime.subscribe("private-inbox.${context.userId}").collect { event ->
-                if (event.string("kind") == "chat") load()
-            }
-        }
+    suspend fun liveUpdates(): Nothing = coroutineScope {
+        realtime.subscribe("private-inbox.${context.userId}").filter { it.string("kind") == "chat" }.onEach { load() }.launchIn(this)
+        tick()
+    }
+
+    /** Every few seconds: the link requests, and the list itself every fifth time while offline. */
+    private suspend fun tick(): Nothing {
         var ticks = 0
-        while (isActive) {
+        while (true) {
             delay(4.seconds)
             ticks += 1
             refreshLinkRequests()

@@ -72,26 +72,35 @@ class ConversationDetailsViewModel @AssistedInject constructor(
     @Assisted val conversationId: String,
     context: ChatContext
 ) : ChatViewModel(context) {
+    /** Creates the view model for one conversation (Hilt). */
     @AssistedFactory
     interface Factory {
+        /** The view model of [conversationId]. */
         fun create(conversationId: String): ConversationDetailsViewModel
     }
 
     private val mutableState = MutableStateFlow(ConversationDetailsState())
     val state: StateFlow<ConversationDetailsState> = mutableState.asStateFlow()
 
+    /** The picked mute duration. */
     fun setMuteDuration(value: String) = mutableState.update { it.copy(muteDuration = value) }
 
+    /** The picked lifetime. */
     fun setLifetimeDays(value: Int) = mutableState.update { it.copy(lifetimeDays = value) }
 
+    /** The typed group name. */
     fun setTitle(value: String) = mutableState.update { it.copy(title = value) }
 
+    /** The typed username to add. */
     fun setUsername(value: String) = mutableState.update { it.copy(username = value) }
 
+    /** The confirmation toast was shown. */
     fun dismissStatus() = mutableState.update { it.copy(status = null) }
 
+    /** The error toast was shown. */
     fun dismissError() = mutableState.update { it.copy(error = null) }
 
+    /** The conversation with its members and safety numbers. */
     suspend fun load() = inScope {
         try {
             render(context.repository.conversation(conversationId))
@@ -138,17 +147,15 @@ class ConversationDetailsViewModel @AssistedInject constructor(
     suspend fun unmute() = save("Du bekommst wieder Mitteilungen zu diesem Chat.") { context.repository.unmute(conversationId) }
 
     /** "Speichern" (owner; applies to new messages only). */
-    suspend fun saveLifetime() = save("Gespeichert. Gilt für neue Nachrichten.") {
-        context.repository.updateConversation(conversationId, lifetimeDays = state.value.lifetimeDays)
-    }
+    suspend fun saveLifetime() = save("Gespeichert. Gilt für neue Nachrichten.") { updateLifetime() }
 
-    /** "Namen speichern": the group name (owner). Not encrypted. */
-    suspend fun saveTitle() {
-        val trimmed = state.value.title.trim()
-        save("Der Name ist gespeichert.") {
-            context.repository.updateConversation(conversationId, setTitle = true, title = trimmed.ifEmpty { null })
-        }
-    }
+    private suspend fun updateLifetime() = context.repository.updateConversation(conversationId, lifetimeDays = state.value.lifetimeDays)
+
+    /** "Namen speichern": the group name (owner), empty clears it. Not encrypted. */
+    suspend fun saveTitle() = save("Der Name ist gespeichert.") { updateTitle(state.value.title.trim()) }
+
+    private suspend fun updateTitle(title: String) =
+        context.repository.updateConversation(conversationId, setTitle = true, title = title.ifEmpty { null })
 
     /** "Mitglied hinzufügen" (group owner) – the chat then gets a new key. */
     suspend fun addMember() = inScope {
@@ -170,9 +177,9 @@ class ConversationDetailsViewModel @AssistedInject constructor(
     }
 
     /** "Entfernen" (group owner, after the confirmation). */
-    suspend fun remove(row: MemberRow) = save("@${row.username} entfernt. Der Chat bekommt einen neuen Schlüssel.") {
-        context.repository.removeMember(conversationId, row.id)
-    }
+    suspend fun remove(row: MemberRow) = save("@${row.username} entfernt. Der Chat bekommt einen neuen Schlüssel.") { removeMember(row) }
+
+    private suspend fun removeMember(row: MemberRow) = context.repository.removeMember(conversationId, row.id)
 
     /** "Chat verlassen": the chat disappears from the list. Returns true on success. */
     suspend fun leave(): Boolean = inScope {

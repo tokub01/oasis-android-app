@@ -56,6 +56,7 @@ class ChatVault(
     /** The stored identity, if known and set up. */
     val storedIdentity: StoredIdentity? get() = stored.identity
 
+    /** The answer of `GET /identity` (null: the chat is not set up yet). */
     fun setStoredIdentity(value: StoredIdentity?) {
         stored = Stored(true, value)
     }
@@ -127,13 +128,14 @@ class ChatVault(
     fun touch() {
         idleTimer?.cancel()
         if (!unlocked) return
-        val captured = generation
+        // Every lock and every touch cancels this timer, so when it fires the same session is still open.
         idleTimer = scope.launch {
             delay(idleLock)
-            if (unlocked && captured == generation) lock()
+            lock()
         }
     }
 
+    /** The key of one conversation version, while the vault is open. */
     fun conversationKey(conversationId: String, keyVersion: Int): ByteArray? = conversationKeys["$conversationId:$keyVersion"]
 
     /**
@@ -158,6 +160,7 @@ class ChatVault(
         return previous != null && !previous.signing.contentEquals(keys.signing)
     }
 
+    /** The verified public keys of a member, as far as known in this app session. */
     fun publicKeys(userId: String): VerifiedPublicKeys? = publicKeys[userId]
 }
 
@@ -165,11 +168,13 @@ class ChatVault(
 class ServerClock(private val localNow: () -> Instant = Instant::now) {
     @Volatile private var offsetMillis = 0L
 
+    /** Takes the offset to the server's clock from a `server_time` (ignored when unreadable). */
     fun sync(serverTime: String) {
         val date = OasisJson.parseInstant(serverTime) ?: return
         offsetMillis = date.toEpochMilli() - localNow().toEpochMilli()
     }
 
+    /** The server's time now. */
     fun now(): Instant = localNow().plusMillis(offsetMillis)
 
     /** Expiry of a message sent now, rounded down to whole seconds. */

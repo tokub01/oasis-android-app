@@ -191,7 +191,7 @@ class ChatFlowTest {
         val jonasView = conversation(jonas, id)
         jonasView.open()
         assertEquals(ChatMessageItem.State.Unverifiable, jonasView.state.value.timeline.items.first().state)
-        assertNull(jonasView.state.value.timeline.items.first().plaintext)
+        assertEquals("no text for an unverifiable message", "", jonasView.state.value.timeline.items.first().plaintext)
         miraView.close()
         jonasView.close()
     }
@@ -333,6 +333,7 @@ class ChatFlowTest {
         val settings = ChatSettingsViewModel(mira)
         settings.load()
         assertEquals(listOf("members", "contacts", "following", "nobody"), settings.state.value.settings?.choices?.map { it.first })
+        server.failures["PATCH settings"] = 500 to """{"message":"kaputt"}"""
         settings.setFriendRequests(false)
         assertEquals("a failed save puts the switch back", true, settings.state.value.settings?.friendRequests)
         assertNotNull(settings.state.value.error)

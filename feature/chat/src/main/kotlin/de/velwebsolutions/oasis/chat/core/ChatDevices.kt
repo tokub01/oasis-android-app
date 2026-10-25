@@ -116,6 +116,7 @@ class ChatDevices(private val context: ChatContext) {
         return context.keyring.adopt(identity, stored, generation)
     }
 
+    /** "Abbrechen": wipes the one-time key and withdraws the request (best effort). */
     suspend fun cancel(link: PendingLink) {
         link.keyPair.wipe()
         runCatching { api.rejectDeviceLink(link.id) }

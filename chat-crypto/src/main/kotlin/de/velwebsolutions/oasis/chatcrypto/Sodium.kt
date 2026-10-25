@@ -9,10 +9,7 @@ interface Sodium {
     /** `randombytes_buf`. */
     fun randomBytes(count: Int): ByteArray
 
-    /** `sodium_memzero`. */
-    fun memzero(bytes: ByteArray)
-
-    /** `sodium_memcmp` of two equal-length arrays (constant time); false for different lengths. */
+    /** `sodium_memcmp` of two equal-length arrays (constant time); the caller compares the lengths first. */
     fun memcmp(a: ByteArray, b: ByteArray): Boolean
 
     /** `sodium_bin2base64` with `sodium_base64_VARIANT_URLSAFE_NO_PADDING`. */

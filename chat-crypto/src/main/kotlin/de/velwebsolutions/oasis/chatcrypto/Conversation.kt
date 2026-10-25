@@ -192,7 +192,22 @@ fun ChatCrypto.decryptMessage(
 }
 
 internal fun messageAssociatedData(v: Int, conversationId: String, keyVersion: Int, senderId: String, expirySeconds: Long?): ByteArray =
-    canonicalBytes(MESSAGE_AD_LABEL, fields(v.toString(), conversationId, keyVersion.toString(), senderId, expirySeconds?.toString() ?: ""))
+    canonicalBytes(
+        MESSAGE_AD_LABEL,
+        fields(
+            v.toString(),
+            conversationId,
+            keyVersion.toString(),
+            senderId,
+            if (expirySeconds ==
+                null
+            ) {
+                ""
+            } else {
+                expirySeconds.toString()
+            }
+        )
+    )
 
 internal fun keyGrantSignedBytes(
     v: Int,

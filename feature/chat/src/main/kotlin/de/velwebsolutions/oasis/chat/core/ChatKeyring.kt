@@ -81,9 +81,11 @@ class ChatKeyring(private val context: ChatContext) {
         /** Ids whose bundle failed verification. */
         val invalid: List<String>
     ) {
+        /** The member with [id], if the directory lists them. */
         fun user(id: String): PublicUser? = users.firstOrNull { it.id == id }
     }
 
+    /** Loads the members' published keys, verifies and remembers them, and notes changed or invalid ones. */
     suspend fun loadDirectory(conversationId: String): Directory {
         val users = api.publicKeys(conversationId)
         val changed = mutableListOf<String>()
@@ -99,49 +101,40 @@ class ChatKeyring(private val context: ChatContext) {
         return Directory(users, changed, invalid)
     }
 
-    /** Open every grant addressed to the caller; only grants signed by the owner (`created_by`) count. */
-    suspend fun openGrants(conversation: ChatConversation): List<Int> {
-        val owner = vault.publicKeys(conversation.createdBy) ?: return emptyList()
-        val identity = vault.identity ?: return emptyList()
+    /** Open every grant addressed to the caller that is not open yet; only grants signed by the owner (`created_by`) count. */
+    suspend fun openGrants(conversation: ChatConversation) {
+        val owner = vault.publicKeys(conversation.createdBy) ?: return
+        val identity = vault.identity ?: return
         val generation = vault.generation
-        val grants = api.keyGrants(conversation.id)
-        val versions = mutableListOf<Int>()
-        for (grant in grants) {
-            if (vault.conversationKey(conversation.id, grant.keyVersion) != null) {
-                versions += grant.keyVersion
-                continue
-            }
+        for (grant in api.keyGrants(conversation.id)) {
+            if (vault.conversationKey(conversation.id, grant.keyVersion) != null) continue
             val opened = try {
                 crypto.openKeyGrant(grant, identity, owner.signing)
             } catch (_: ChatCryptoException) {
                 continue
             }
-            if (opened.conversationId != conversation.id || opened.recipientId != vault.userId ||
-                opened.granterId != conversation.createdBy
-            ) {
-                continue
-            }
-            if (vault.rememberConversationKey(conversation.id, opened.keyVersion, opened.conversationKey, generation)) {
-                versions += opened.keyVersion
-            }
+            val addressed = opened.conversationId == conversation.id && opened.recipientId == vault.userId &&
+                opened.granterId == conversation.createdBy
+            // A lock since the start wiped the identity, so nothing opens afterwards; the vault checks once more.
+            if (addressed) vault.rememberConversationKey(conversation.id, opened.keyVersion, opened.conversationKey, generation)
         }
-        return versions
     }
 
     /** Owner: a fresh random key for the current version, granted to every active member, then activated. */
     suspend fun distributeKey(conversation: ChatConversation): ChatConversation {
-        val missing = conversation.members.filter { vault.publicKeys(it.userId) == null }
+        val recipients = conversation.members.mapNotNull { member -> vault.publicKeys(member.userId)?.let { member to it } }
+        val missing = conversation.members.filter { member -> recipients.none { it.first == member } }
         if (missing.isNotEmpty()) throw ChatKeyringException.MissingMemberKeys(missing.map { it.username })
         val identity = vault.identity ?: throw ChatCryptoException.InvalidInput("identity must be an identity object.")
         val generation = vault.generation
         val key = crypto.createConversationKey()
-        val grants = conversation.members.map { member ->
+        val grants = recipients.map { (member, keys) ->
             crypto.createKeyGrant(
                 conversationKey = key,
                 conversationId = conversation.id,
                 keyVersion = conversation.keyVersion,
                 recipientId = member.userId,
-                recipientEncryptionPublicKey = checkNotNull(vault.publicKeys(member.userId)).encryption,
+                recipientEncryptionPublicKey = keys.encryption,
                 granterId = vault.userId,
                 identity = identity
             )
@@ -156,6 +149,6 @@ class ChatKeyring(private val context: ChatContext) {
     fun safetyNumber(userId: String): String? {
         val identity = vault.identity ?: return null
         val other = vault.publicKeys(userId) ?: return null
-        return runCatching { crypto.fingerprint(identity.signingPublicKey, other.signing) }.getOrNull()
+        return crypto.fingerprint(identity.signingPublicKey, other.signing)
     }
 }

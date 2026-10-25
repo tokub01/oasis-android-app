@@ -28,8 +28,10 @@ import kotlinx.serialization.json.put
 
 /** A value of `PATCH /chat/settings`: the audience (text) or the friend-request switch (flag). */
 sealed interface SettingValue {
+    /** A text setting (the audience). */
     data class Text(val value: String) : SettingValue
 
+    /** A switch (friend requests). */
     data class Flag(val value: Boolean) : SettingValue
 }
 
@@ -38,43 +40,58 @@ sealed interface SettingValue {
  * every crypto object; the server's integer ids are sent as numbers where it expects them (`user_id`, `member_ids`).
  */
 interface ChatRepository {
+    /** The stored identity, or null before the chat is set up. */
     suspend fun identity(): StoredIdentity?
 
     /** Publishes the keys; [locked] null = no passphrase copy (device unlock only). */
     suspend fun saveIdentity(locked: LockedIdentity?, publicKeys: PublicKeyBundle): StoredIdentity
 
+    /** The member's biometric copies (app and browser). */
     suspend fun deviceUnlocks(): List<DeviceUnlockRow>
 
+    /** Stores this device's biometric copy under its credential id. */
     suspend fun saveDeviceUnlock(credentialId: String, prfSalt: String, label: String, locked: LockedIdentity): DeviceUnlockRow
 
+    /** Removes a biometric copy. */
     suspend fun deleteDeviceUnlock(id: String)
 
+    /** Asks the member's other devices to let this one in. */
     suspend fun requestDeviceLink(publicKey: String, label: String): CreatedDeviceLink
 
     /** Null until approved; afterwards the approval exactly once. */
     suspend fun deviceLink(id: String): LinkApproval?
 
+    /** Open requests of other devices. */
     suspend fun deviceLinks(): List<DeviceLinkRequest>
 
+    /** Hands the keys, locked for the request, to the asking device. */
     suspend fun approveDeviceLink(id: String, locked: LockedIdentity, sealedKey: String)
 
+    /** Rejects or withdraws a link request. */
     suspend fun rejectDeviceLink(id: String)
 
     /** Exact username; empty for unknown, not chat-ready, blocked or not reachable accounts. */
     suspend fun findUser(username: String): List<PublicUser>
 
+    /** "Wer darf dir schreiben?" and friend requests. */
     suspend fun settings(): ChatSettings
 
+    /** Saves one setting and returns all of them. */
     suspend fun updateSetting(key: String, value: SettingValue): ChatSettings
 
+    /** Blocks a member. */
     suspend fun block(userId: String)
 
+    /** The word lists of the on-device safety checks. */
     suspend fun safety(): SafetyLists
 
+    /** One page of the member's conversations, newest first. */
     suspend fun conversations(page: Int = 1): ConversationPage
 
+    /** Starts a chat (direct or group) with the given members. */
     suspend fun createConversation(type: String, title: String?, memberIds: List<String>, lifetimeDays: Int): ChatConversation
 
+    /** One conversation (also syncs the server clock). */
     suspend fun conversation(id: String): ChatConversation
 
     /** Owner only. Pass only what changes; [setTitle] true sends [title] (null clears the group name). */
@@ -85,32 +102,43 @@ interface ChatRepository {
         title: String? = null
     ): ChatConversation
 
+    /** The published keys of a conversation's (also past) members. */
     suspend fun publicKeys(conversationId: String): List<PublicUser>
 
+    /** Adds a group member (owner); the chat then needs a new key. */
     suspend fun addMember(conversationId: String, userId: String): ChatConversation
 
+    /** Removes a group member (owner); the chat then needs a new key. */
     suspend fun removeMember(conversationId: String, userId: String): ChatConversation
 
+    /** The key grants addressed to the member. */
     suspend fun keyGrants(conversationId: String): List<KeyGrant>
 
+    /** Stores the owner's grants of a new key version. */
     suspend fun storeKeyGrants(conversationId: String, keyVersion: Int, grants: List<KeyGrant>)
 
+    /** Activates a key version once all grants are stored. */
     suspend fun activateKey(conversationId: String, keyVersion: Int): ChatConversation
 
+    /** 50 messages before [beforeId] (the newest without it). */
     suspend fun messages(conversationId: String, beforeId: String? = null): MessagePage
 
+    /** Sends one encrypted envelope. */
     suspend fun sendMessage(conversationId: String, envelope: MessageEnvelope)
 
     /** The chat is open: everything so far counts as seen. Returns the unread count. */
     suspend fun markRead(conversationId: String): Int
 
+    /** Accepts a message request. */
     suspend fun accept(conversationId: String)
 
     /** Mute the chat for oneself: `8h`, `1w` or `always` (the choices of the web's details screen). */
     suspend fun mute(conversationId: String, duration: String): ChatConversation
 
+    /** Ends the member's mute of a chat. */
     suspend fun unmute(conversationId: String): ChatConversation
 
+    /** Leaves a chat (it disappears from the list). */
     suspend fun leave(conversationId: String)
 
     /** Consent-based report: one decrypted message with its signed envelope. */
@@ -159,13 +187,13 @@ class DefaultChatRepository(client: ApiClient) : ChatRepository {
 
     override suspend fun deviceLinks() = service.deviceLinks().data
 
-    override suspend fun approveDeviceLink(id: String, locked: LockedIdentity, sealedKey: String) = service.approveDeviceLink(
-        id,
-        buildJsonObject {
-            put("locked_identity", locked.json())
-            put("sealed_key", sealedKey)
-        }
-    )
+    override suspend fun approveDeviceLink(id: String, locked: LockedIdentity, sealedKey: String) =
+        service.approveDeviceLink(id, approval(locked, sealedKey))
+
+    private fun approval(locked: LockedIdentity, sealedKey: String) = buildJsonObject {
+        put("locked_identity", locked.json())
+        put("sealed_key", sealedKey)
+    }
 
     override suspend fun rejectDeviceLink(id: String) = service.rejectDeviceLink(id)
 
@@ -193,7 +221,7 @@ class DefaultChatRepository(client: ApiClient) : ChatRepository {
         service.createConversation(
             buildJsonObject {
                 put("type", type)
-                put("title", title?.let(::JsonPrimitive) ?: JsonNull)
+                put("title", title)
                 put("member_ids", JsonArray(memberIds.mapNotNull { it.toLongOrNull()?.let(::JsonPrimitive) }))
                 put("lifetime_days", lifetimeDays)
             }
@@ -205,7 +233,7 @@ class DefaultChatRepository(client: ApiClient) : ChatRepository {
         id,
         buildJsonObject {
             if (lifetimeDays != null) put("lifetime_days", lifetimeDays)
-            if (setTitle) put("title", title?.let(::JsonPrimitive) ?: JsonNull)
+            if (setTitle) put("title", title)
         }
     ).data
 
@@ -218,13 +246,13 @@ class DefaultChatRepository(client: ApiClient) : ChatRepository {
 
     override suspend fun keyGrants(conversationId: String) = service.keyGrants(conversationId).data
 
-    override suspend fun storeKeyGrants(conversationId: String, keyVersion: Int, grants: List<KeyGrant>) = service.storeKeyGrants(
-        conversationId,
-        buildJsonObject {
-            put("key_version", keyVersion)
-            put("grants", grants.json())
-        }
-    )
+    override suspend fun storeKeyGrants(conversationId: String, keyVersion: Int, grants: List<KeyGrant>) =
+        service.storeKeyGrants(conversationId, grantsBody(keyVersion, grants))
+
+    private fun grantsBody(keyVersion: Int, grants: List<KeyGrant>) = buildJsonObject {
+        put("key_version", keyVersion)
+        put("grants", grants.json())
+    }
 
     override suspend fun activateKey(conversationId: String, keyVersion: Int) =
         service.activateKey(conversationId, buildJsonObject { put("key_version", keyVersion) }).data
@@ -245,14 +273,14 @@ class DefaultChatRepository(client: ApiClient) : ChatRepository {
 
     override suspend fun leave(conversationId: String) = service.leave(conversationId)
 
-    override suspend fun report(conversationId: String, envelope: MessageEnvelope, plaintext: String, reason: String) = service.report(
-        conversationId,
-        buildJsonObject {
-            put("envelope", envelope.toJsonObject())
-            put("plaintext", plaintext)
-            put("reason", reason)
-        }
-    )
+    override suspend fun report(conversationId: String, envelope: MessageEnvelope, plaintext: String, reason: String) =
+        service.report(conversationId, reportBody(envelope, plaintext, reason))
+
+    private fun reportBody(envelope: MessageEnvelope, plaintext: String, reason: String) = buildJsonObject {
+        put("envelope", envelope.toJsonObject())
+        put("plaintext", plaintext)
+        put("reason", reason)
+    }
 
     private companion object {
         /** Crypto objects as declared (camelCase `publicKeys`, nothing renamed). */

@@ -17,8 +17,7 @@ import kotlinx.serialization.Serializable
  */
 @Serializable
 data class StoredIdentity(
-    @SerialName("user_id") @Serializable(with = FlexibleIdSerializer::class) val userId: String,
-    @SerialName("locked_identity") val lockedIdentity: LockedIdentity? = null,
+    @SerialName("locked_identity") val lockedIdentity: LockedIdentity?,
     @SerialName("public_keys") val publicKeys: PublicKeyBundle
 )
 
@@ -29,7 +28,10 @@ interface ChatPerson {
 
     /** "Mira Sol" or "@mira" (`memberName` in ui/dom.js). */
     val name: String
-        get() = displayName?.takeIf { it.isNotEmpty() } ?: "@$username"
+        get() {
+            val shown = displayName
+            return if (shown.isNullOrEmpty()) "@$username" else shown
+        }
 }
 
 /** A member with their published keys (`PublicUser`). */
@@ -89,14 +91,9 @@ data class ConversationPage(
     @SerialName("last_page") val lastPage: Int = 1
 )
 
-/** One stored message: the signed envelope as sent, plus server metadata. */
+/** One stored message: the signed envelope as sent (the server's metadata is not needed). */
 @Serializable
-data class MessageRecord(
-    @Serializable(with = FlexibleIdSerializer::class) val id: String,
-    val envelope: MessageEnvelope,
-    @SerialName("created_at") val createdAt: String,
-    @SerialName("expires_at") val expiresAt: String
-)
+data class MessageRecord(val envelope: MessageEnvelope)
 
 /** `GET …/messages`: 50 newest first and the cursor for older ones. */
 @Serializable
@@ -110,7 +107,6 @@ data class MessagePage(
 data class DeviceUnlockRow(
     @Serializable(with = FlexibleIdSerializer::class) val id: String,
     @SerialName("credential_id") val credentialId: String,
-    @SerialName("prf_salt") val prfSalt: String,
     val label: String,
     @SerialName("locked_identity") val lockedIdentity: LockedIdentity,
     @SerialName("created_at") val createdAt: String
@@ -121,16 +117,12 @@ data class DeviceUnlockRow(
 data class DeviceLinkRequest(
     @Serializable(with = FlexibleIdSerializer::class) val id: String,
     @SerialName("public_key") val publicKey: String,
-    val label: String,
-    @SerialName("created_at") val createdAt: String? = null
+    val label: String
 )
 
 /** The answer to creating a link request. */
 @Serializable
-data class CreatedDeviceLink(
-    @Serializable(with = FlexibleIdSerializer::class) val id: String,
-    @SerialName("expires_at") val expiresAt: String
-)
+data class CreatedDeviceLink(@Serializable(with = FlexibleIdSerializer::class) val id: String)
 
 /** "Wer darf dir schreiben?" and friend requests, with the choices this member may pick. */
 @Serializable
@@ -156,6 +148,7 @@ data class SafetyLists(
     val lists: Map<String, List<String>> = emptyMap(),
     val tone: Tone = Tone()
 ) {
+    /** The tone hint's word lists: slang flagged anywhere, ordinary words only as an address. */
     @Serializable
     data class Tone(val always: List<String> = emptyList(), val address: List<String> = emptyList())
 
@@ -175,5 +168,6 @@ data class UnreadCount(val count: Int = 0)
 @Serializable
 data class OptionalIdentity(val data: StoredIdentity? = null)
 
+/** `{ "data": … | null }` of the device-link pickup: null until another device approved. */
 @Serializable
 data class OptionalLinkApproval(val data: LinkApproval? = null)

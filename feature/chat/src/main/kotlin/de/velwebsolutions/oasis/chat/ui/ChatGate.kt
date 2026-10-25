@@ -19,6 +19,7 @@ import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.input.pointer.AwaitPointerEventScope
 import androidx.compose.ui.input.pointer.PointerEventPass
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.platform.testTag
@@ -34,6 +35,7 @@ import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.compose.LifecycleEventEffect
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import de.velwebsolutions.oasis.chat.core.ChatVault
 import de.velwebsolutions.oasis.chat.core.MIN_PASSPHRASE_LENGTH
 import de.velwebsolutions.oasis.core.network.ApiError
 import de.velwebsolutions.oasis.design.components.AsyncOasisButton
@@ -114,18 +116,11 @@ internal fun ChatGate(content: @Composable () -> Unit) {
                 )
             }
 
-            // Every touch on an open chat screen counts as interaction for the idle lock (typing: ConversationViewModel).
-            ChatPhase.Open -> Box(
+            // Open. Every touch on an open chat screen counts as interaction for the idle lock (typing: ConversationViewModel).
+            else -> Box(
                 Modifier
                     .fillMaxSize()
-                    .pointerInput(Unit) {
-                        awaitPointerEventScope {
-                            while (true) {
-                                awaitPointerEvent(PointerEventPass.Initial)
-                                vault.touch()
-                            }
-                        }
-                    }
+                    .pointerInput(Unit) { awaitPointerEventScope { touchOnEveryEvent(vault) } }
             ) { content() }
         }
         StatusToast(shown, null, onDismissMessage = { shown = null }, onDismissError = {})
@@ -418,5 +413,13 @@ private fun RichBullets(items: List<AnnotatedString>) {
                 Text(item, style = OasisType.Body, color = OasisColors.Ink2)
             }
         }
+    }
+}
+
+/** Every pointer event on an open chat screen restarts the idle lock (before the screen itself handles it). */
+private suspend fun AwaitPointerEventScope.touchOnEveryEvent(vault: ChatVault): Nothing {
+    while (true) {
+        awaitPointerEvent(PointerEventPass.Initial)
+        vault.touch()
     }
 }

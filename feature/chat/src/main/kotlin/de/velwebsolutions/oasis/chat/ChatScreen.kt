@@ -1,8 +1,6 @@
 package de.velwebsolutions.oasis.chat
 
 import android.app.Activity
-import android.content.Context
-import android.content.ContextWrapper
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.getValue
@@ -40,7 +38,8 @@ import kotlinx.coroutines.flow.stateIn
 fun ChatScreen(route: ChatRoute) {
     val root: ChatRootViewModel = hiltViewModel()
     val me by root.me.collectAsStateWithLifecycle()
-    val activity = LocalContext.current.findActivity()
+    // The biometric prompt needs the activity; inside a wrapped context (previews) there is none.
+    val activity = LocalContext.current as? Activity
     DisposableEffect(activity) {
         activity?.let(root.prompter::attach)
         onDispose { activity?.let(root.prompter::detach) }
@@ -54,11 +53,17 @@ fun ChatScreen(route: ChatRoute) {
         ChatGate {
             when (route) {
                 ChatRoute.Conversations -> ConversationListScreen()
+
                 is ChatRoute.Conversation -> ConversationScreen(route.id)
+
                 ChatRoute.NewConversation -> NewConversationScreen(username = null)
+
                 is ChatRoute.NewConversationWith -> NewConversationScreen(username = route.username)
+
                 is ChatRoute.Details -> ConversationDetailsScreen(route.conversationId)
-                ChatRoute.Settings, ChatRoute.Devices -> ChatSettingsScreen()
+
+                // Settings and Devices (the web's two anchors of the same page).
+                else -> ChatSettingsScreen()
             }
         }
     }
@@ -70,10 +75,4 @@ class ChatRootViewModel @Inject constructor(session: Session, val prompter: Biom
     val me: StateFlow<Me?> = session.state
         .map { (it as? SessionState.SignedIn)?.me }
         .stateIn(viewModelScope, SharingStarted.Eagerly, session.me)
-}
-
-private tailrec fun Context.findActivity(): Activity? = when (this) {
-    is Activity -> this
-    is ContextWrapper -> baseContext.findActivity()
-    else -> null
 }

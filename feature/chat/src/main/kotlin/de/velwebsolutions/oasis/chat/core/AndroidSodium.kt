@@ -1,8 +1,7 @@
 package de.velwebsolutions.oasis.chat.core
 
-import com.goterl.lazysodium.SodiumAndroid
+import com.goterl.lazysodium.Sodium as NativeSodium
 import com.sun.jna.Memory
-import com.sun.jna.Native
 import com.sun.jna.NativeLong
 import de.velwebsolutions.oasis.chatcrypto.Sodium
 import de.velwebsolutions.oasis.chatcrypto.SodiumConstants.AEAD_XCHACHA20POLY1305_IETF_ABYTES
@@ -18,34 +17,33 @@ import de.velwebsolutions.oasis.chatcrypto.SodiumKeyPair
 
 /**
  * [Sodium] in the app through lazysodium-android (libsodium for arm64-v8a, armeabi-v7a, x86 and x86_64, loaded with
- * JNA). The same calls as the JVM test binding `JvmSodium` in the chat-crypto test fixture, which the unit tests use.
+ * JNA): [native] is `SodiumAndroid` in the app. The unit tests pass lazysodium-java's `SodiumJava`, which has the same
+ * class and the same calls, so this binding runs on the JVM too.
  */
-class AndroidSodium : Sodium {
-    private val native = SodiumAndroid()
-
+class AndroidSodium(private val native: NativeSodium) : Sodium {
     init {
-        check(native.sodium_init() >= 0) { "libsodium could not be initialised." }
+        // 0 on the first call, 1 when already initialised; lazysodium has loaded the library at this point.
+        native.sodium_init()
     }
 
     override fun randomBytes(count: Int): ByteArray = ByteArray(count).also { native.randombytes_buf(it, count) }
 
-    override fun memzero(bytes: ByteArray) {
-        native.sodium_memzero(bytes, bytes.size)
-    }
-
-    override fun memcmp(a: ByteArray, b: ByteArray): Boolean = a.size == b.size && native.sodium_memcmp(a, b, a.size) == 0
+    override fun memcmp(a: ByteArray, b: ByteArray): Boolean = native.sodium_memcmp(a, b, a.size) == 0
 
     override fun toBase64(bytes: ByteArray): String {
         val length = native.sodium_base64_encoded_len(bytes.size, BASE64_VARIANT_URLSAFE_NO_PADDING)
         val output = ByteArray(length)
         native.sodium_bin2base64(output, length, bytes, bytes.size, BASE64_VARIANT_URLSAFE_NO_PADDING)
-        return String(output, 0, output.indexOf(0).let { if (it < 0) length else it }, Charsets.US_ASCII)
+        // The encoded length counts libsodium's terminating NUL.
+        return String(output, 0, length - 1, Charsets.US_ASCII)
     }
 
     override fun fromBase64(text: String): ByteArray? {
         val input = text.toByteArray(Charsets.UTF_8)
         val output = ByteArray(input.size * 3 / 4 + 3)
-        val written = Memory(Native.SIZE_T_SIZE.toLong()).apply { clear() }
+        // size_t has 4 or 8 bytes; on the little-endian platforms the binding ships for, 8 zeroed bytes read as a long
+        // give the written length either way.
+        val written = Memory(Long.SIZE_BYTES.toLong()).apply { clear() }
         // No `b64_end`: libsodium then rejects trailing unparsed characters, like libsodium.js.
         val result = native.sodium_base642bin(
             output,
@@ -58,8 +56,7 @@ class AndroidSodium : Sodium {
             BASE64_VARIANT_URLSAFE_NO_PADDING
         )
         if (result != 0) return null
-        val length = if (Native.SIZE_T_SIZE == 8) written.getLong(0).toInt() else written.getInt(0)
-        return output.copyOf(length)
+        return output.copyOf(written.getLong(0).toInt())
     }
 
     override fun aeadEncrypt(message: ByteArray, associatedData: ByteArray, nonce: ByteArray, key: ByteArray): ByteArray {

@@ -355,7 +355,7 @@ internal fun MessageBubble(item: ChatMessageItem, mine: Boolean, senderName: Str
             val color = if (mine) OasisColors.OnNight else OasisColors.Ink
             Text(if (mine) "Du" else senderName, style = OasisType.SmallBold, color = color)
             val (text, italic) = when (item.state) {
-                ChatMessageItem.State.Readable -> item.plaintext.orEmpty() to false
+                ChatMessageItem.State.Readable -> item.plaintext to false
                 ChatMessageItem.State.NoKey -> "Für diese Nachricht hast du keinen Schlüssel." to true
                 ChatMessageItem.State.Unverifiable -> "Diese Nachricht ließ sich nicht prüfen und wird nicht angezeigt." to true
             }

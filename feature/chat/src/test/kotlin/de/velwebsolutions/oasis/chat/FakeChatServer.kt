@@ -56,7 +56,16 @@ class FakeChatServer : Interceptor {
     val reports = mutableListOf<JsonObject>()
     val blocks = mutableListOf<Pair<Int, Int>>()
     private var nextId = 100
-    val serverTime = "2026-10-22T12:00:00Z"
+
+    /** Answers that replace the normal route once each, keyed "METHOD path" (path below chat/, e.g. "GET identity"). */
+    val failures = mutableMapOf<String, Pair<Int, String>>()
+
+    /** Requests being answered right now (tests wait for 0). */
+    val inFlight = java.util.concurrent.atomic.AtomicInteger()
+
+    /** Called for every request before it is answered ("METHOD path"), e.g. to lock a vault mid-flight. */
+    var onRequest: (String) -> Unit = {}
+    var serverTime = "2026-10-22T12:00:00Z"
 
     fun client(userId: Int): ApiClient {
         val tokens = object : TokenProvider {
@@ -120,20 +129,38 @@ class FakeChatServer : Interceptor {
         put("username", users.getValue(id))
         put("display_name", name(id))
         put("public_keys", identities[id]?.get("public_keys") ?: JsonNull)
-        put("key_changed_at", JsonNull)
+        put("key_changed_at", keyChangedAt[id])
     }
+
+    /** Pages of the conversation list (every page lists all conversations, so page 2 repeats page 1). */
+    var lastPage = 1
+
+    /** `key_changed_at` per member (replaced identities). */
+    val keyChangedAt = mutableMapOf<Int, String>()
 
     private fun data(value: JsonElement) = buildJsonObject { put("data", value) }
 
-    @Synchronized
     override fun intercept(chain: Interceptor.Chain): Response {
+        inFlight.incrementAndGet()
+        try {
+            return answer(chain)
+        } finally {
+            inFlight.decrementAndGet()
+        }
+    }
+
+    @Synchronized
+    private fun answer(chain: Interceptor.Chain): Response {
         val request = chain.request()
         val user = request.header("Authorization")?.removePrefix("Bearer t")?.toIntOrNull() ?: 0
         val path = request.url.encodedPath.substringAfter("/api/v1/chat/")
         val text = request.body?.let { Buffer().also(it::writeTo).readUtf8() }.orEmpty()
         val body = if (text.isEmpty()) JsonObject(emptyMap()) else Json.parseToJsonElement(text).jsonObject
         val query = request.url.queryParameterNames.associateWith { request.url.queryParameter(it) }
-        val (status, json) = route(request.method, path.split("/").filter { it.isNotEmpty() }, user, body, query)
+        val key = "${request.method} $path"
+        onRequest(key)
+        val (status, json) = failures.remove(key)?.let { (code, text) -> code to Json.parseToJsonElement(text) }
+            ?: route(request.method, path.split("/").filter { it.isNotEmpty() }, user, body, query)
         return Response.Builder()
             .request(request)
             .protocol(Protocol.HTTP_1_1)
@@ -263,6 +290,10 @@ class FakeChatServer : Interceptor {
                 """{"chat_invites_audience":"members","friend_requests":true,"choices":{"nobody":"Niemand","members":"Alle Mitglieder","following":"Menschen, denen du folgst","contacts":"Freund:innen"}}"""
             )
 
+            method == "PATCH" && first == "settings" -> return 200 to Json.parseToJsonElement(
+                """{"chat_invites_audience":"contacts","friend_requests":false,"choices":{"nobody":"Niemand","contacts":"Freund:innen"}}"""
+            )
+
             method == "POST" && first == "blocks" -> {
                 blocks += user to body.getValue("user_id").jsonPrimitive.int
                 return 200 to buildJsonObject { put("blocked", true) }
@@ -271,8 +302,8 @@ class FakeChatServer : Interceptor {
             method == "GET" && first == "conversations" && parts.size == 1 -> {
                 val mine = conversations.values.filter { user in it.members }.sortedByDescending { it.id }
                 return 200 to buildJsonObject {
-                    put("current_page", 1)
-                    put("last_page", 1)
+                    put("current_page", if (query["page"] == "2") 2 else 1)
+                    put("last_page", lastPage)
                     put("data", JsonArray(mine.map { conversationData(it, user) }))
                 }
             }
@@ -351,6 +382,20 @@ class FakeChatServer : Interceptor {
                         }
                     )
                 }
+            }
+
+            "POST" to "members" -> {
+                conversation.members += body.getValue("user_id").jsonPrimitive.int
+                conversation.keyVersion += 1
+                conversation.rotationRequired = true
+                200 to data(conversationData(conversation, user))
+            }
+
+            "DELETE" to "members" -> {
+                conversation.members.remove(parts[3].toInt())
+                conversation.keyVersion += 1
+                conversation.rotationRequired = true
+                200 to data(conversationData(conversation, user))
             }
 
             "POST" to "read" -> 200 to buildJsonObject { put("count", 0) }

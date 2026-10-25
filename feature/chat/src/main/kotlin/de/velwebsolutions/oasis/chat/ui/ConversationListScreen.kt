@@ -88,7 +88,7 @@ internal fun ConversationListScreen() {
             meta = model::meta,
             onRefresh = model::load,
             onLoadMore = model::loadMore,
-            onOpen = { conversation -> conversation.id.toIntOrNull()?.let { navigator.open(ChatRoute.Conversation(it)) } },
+            onOpen = { conversation -> navigator.open(ChatRoute.Conversation(conversation.id.toInt())) },
             onNew = { navigator.open(ChatRoute.NewConversation) },
             onApprove = model::approve,
             onReject = model::reject
