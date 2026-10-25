@@ -7,8 +7,11 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.IntrinsicSize
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.ExperimentalMaterial3Api
@@ -89,12 +92,14 @@ fun PlayCheckoutContent(
                     "egal welche Stufe."
             )
             val rhythms = listOf(PlayProducts.MONTHLY to "Monatlich", PlayProducts.YEARLY to "Jährlich · 2 Monate geschenkt")
-            SingleChoiceSegmentedButtonRow(Modifier.fillMaxWidth().testTag("checkout.rhythm")) {
+            // Both segments as high as the taller label, so "Jährlich · 2 Monate geschenkt" may wrap without a step.
+            SingleChoiceSegmentedButtonRow(Modifier.fillMaxWidth().height(IntrinsicSize.Min).testTag("checkout.rhythm")) {
                 rhythms.forEachIndexed { index, (rhythm, label) ->
                     SegmentedButton(
                         selected = state.rhythm == rhythm,
                         onClick = { onSelectRhythm(rhythm) },
                         shape = SegmentedButtonDefaults.itemShape(index, rhythms.size),
+                        modifier = Modifier.fillMaxHeight(),
                         colors = SegmentedButtonDefaults.colors(
                             activeContainerColor = OasisColors.Night,
                             activeContentColor = OasisColors.OnNight,
