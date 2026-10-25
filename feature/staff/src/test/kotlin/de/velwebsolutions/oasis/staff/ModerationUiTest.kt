@@ -5,7 +5,10 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.semantics.SemanticsActions
 import androidx.compose.ui.test.assertIsDisplayed
+import androidx.compose.ui.test.assertIsNotEnabled
+import androidx.compose.ui.test.hasAnyAncestor
 import androidx.compose.ui.test.hasSetTextAction
+import androidx.compose.ui.test.hasTestTag
 import androidx.compose.ui.test.isToggleable
 import androidx.compose.ui.test.junit4.createComposeRule
 import androidx.compose.ui.test.onAllNodesWithText
@@ -525,5 +528,42 @@ class ModerationUiTest {
         }
         compose.onNodeWithText("Wartet seit 0 Std. von höchstens 48").performScrollTo().assertIsDisplayed()
         compose.onAllNodesWithText("Vorwurf: ", substring = true)[0].assertExists()
+    }
+
+    @Test
+    fun `the operator account confirms addresses, sends links and sets a new password`() {
+        val roles = Decoded.roles
+        val unconfirmed = roles.data[0].copy(accessManageable = true, emailVerified = false)
+        val confirmed = roles.data[2].copy(accessManageable = true, emailVerified = true)
+        repository.roles = Result.success(roles.copy(data = listOf(unconfirmed, roles.data[1], confirmed)))
+        val viewModel = RolesViewModel(repository)
+        ui.show { RolesScreen(viewModel) }
+        compose.onNodeWithText("Als Betreiberkonto kannst du E-Mail-Adressen bestätigen", substring = true).assertIsDisplayed()
+        compose.onNodeWithText("E-Mail bestätigt").performScrollTo().assertIsDisplayed()
+        compose.onNodeWithTag("roles.confirmEmail.${roles.data[1].id}").assertDoesNotExist()
+        ui.shot("roles-access")
+        compose.onNodeWithTag("roles.confirmEmail.${unconfirmed.id}").performScrollTo().performClick()
+        compose.waitForIdle()
+        assertTrue(repository.calls.contains("confirm ${unconfirmed.id}"))
+        compose.onNodeWithTag("roles.passwordLink.${unconfirmed.id}").performScrollTo().performClick()
+        compose.waitForIdle()
+        assertTrue(repository.calls.contains("link ${unconfirmed.id}"))
+        compose.onNodeWithTag("roles.setPassword.${confirmed.id}").performScrollTo().assertIsNotEnabled()
+        compose.onNode(hasSetTextAction() and hasAnyAncestor(hasTestTag("roles.password.${confirmed.id}"))).performScrollTo()
+            .performTextInput("ein-langes-passwort")
+        // The snackbar of the last action would cover the button.
+        viewModel.dismissMessage()
+        compose.waitForIdle()
+        compose.onNodeWithTag("roles.setPassword.${confirmed.id}").performScrollTo().performClick()
+        compose.waitForIdle()
+        assertTrue(repository.calls.contains("password ${confirmed.id} ein-langes-passwort"))
+    }
+
+    @Test
+    fun `without operator rights there is no access section`() {
+        val viewModel = RolesViewModel(repository)
+        ui.show { RolesScreen(viewModel) }
+        compose.onNodeWithText("Als Betreiberkonto kannst du E-Mail-Adressen bestätigen", substring = true).assertDoesNotExist()
+        compose.onNodeWithText("Link für neues Passwort senden").assertDoesNotExist()
     }
 }

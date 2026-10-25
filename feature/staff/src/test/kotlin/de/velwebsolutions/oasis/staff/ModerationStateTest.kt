@@ -287,4 +287,37 @@ class ModerationStateTest {
         val failure = runCatching { ModerationOverviewViewModel(repository).load() }.exceptionOrNull()
         assertTrue(failure is kotlinx.coroutines.CancellationException)
     }
+
+    @Test
+    fun `the operator confirms addresses, sends password links and sets passwords`() = runTest {
+        val viewModel = RolesViewModel(repository)
+        val user = Decoded.roles.data.first().copy(accessManageable = true, emailVerified = false)
+        viewModel.confirmEmail(user)
+        assertEquals("Bestätigt.", viewModel.state.value.message)
+        assertTrue(viewModel.state.value.users.valueOrNull!!.first { it.id == user.id }.emailVerified)
+        viewModel.sendPasswordLink(user)
+        assertEquals("Link gesendet.", viewModel.state.value.message)
+
+        viewModel.typePassword(user.id, "kurz")
+        repository.access = FakeStaffRepository.invalid("password" to "Mindestens 12 Zeichen.")
+        viewModel.setPassword(user)
+        assertEquals("Mindestens 12 Zeichen.", viewModel.state.value.errors[user.id])
+        assertEquals("a refused password stays in the field", "kurz", viewModel.state.value.passwords[user.id])
+
+        repository.access = FakeStaffRepository.invalid("email" to "Schon bestätigt.")
+        viewModel.confirmEmail(user)
+        assertEquals("Schon bestätigt.", viewModel.state.value.errors[user.id])
+        repository.access = FakeStaffRepository.failure("Nur das Betreiberkonto.")
+        viewModel.sendPasswordLink(user)
+        assertEquals("Nur das Betreiberkonto.", viewModel.state.value.errors[user.id])
+
+        repository.access = null
+        viewModel.typePassword(user.id, "ein-langes-passwort")
+        viewModel.setPassword(user)
+        assertTrue(repository.calls.contains("password ${user.id} ein-langes-passwort"))
+        assertEquals(null, viewModel.state.value.passwords[user.id])
+        assertEquals(null, viewModel.state.value.errors[user.id])
+        viewModel.setPassword(user)
+        assertTrue("without a typed password the server names what is missing", repository.calls.contains("password ${user.id} "))
+    }
 }

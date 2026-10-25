@@ -283,7 +283,11 @@ data class RoleUser(
     val role: Labelled,
     val editable: Boolean,
     val note: String? = null,
-    val choosableRoles: List<String> = emptyList()
+    val choosableRoles: List<String> = emptyList(),
+    /** Whether the address is confirmed. */
+    val emailVerified: Boolean = false,
+    /** Confirm e-mail, password link and new password: only the operator account, never for itself. */
+    val accessManageable: Boolean = false
 )
 
 /** `GET staff/moderation/roles` – a page of accounts plus the role names. */
