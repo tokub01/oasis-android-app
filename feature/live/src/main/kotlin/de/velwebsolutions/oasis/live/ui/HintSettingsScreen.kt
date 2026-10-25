@@ -292,18 +292,18 @@ private fun TimeField(
         if (error != null) FieldError(error)
     }
     if (picking) {
-        val parts = value.split(":").mapNotNull { it.toIntOrNull() }
-        val state =
-            rememberTimePickerState(initialHour = parts.getOrElse(0) { 0 }, initialMinute = parts.getOrElse(1) { 0 }, is24Hour = true)
+        val (hour, minute) = hourAndMinute(value)
+        val state = rememberTimePickerState(initialHour = hour, initialMinute = minute, is24Hour = true)
+        val close = { picking = false }
         AlertDialog(
-            onDismissRequest = { picking = false },
+            onDismissRequest = close,
             confirmButton = {
                 OasisTextButton("Übernehmen", {
                     picking = false
                     onChange(timeText(state.hour, state.minute))
                 })
             },
-            dismissButton = { OasisTextButton("Abbrechen", { picking = false }) },
+            dismissButton = { OasisTextButton("Abbrechen", close) },
             title = { Text(label, style = OasisType.heading(), color = OasisColors.Night) },
             text = {
                 TimePicker(
@@ -318,6 +318,12 @@ private fun TimeField(
             containerColor = OasisColors.Paper
         )
     }
+}
+
+/** Hour and minute of a time like "22:00"; a missing part counts as 0. */
+internal fun hourAndMinute(text: String): Pair<Int, Int> {
+    val parts = text.split(":").mapNotNull { it.toIntOrNull() }
+    return parts.getOrElse(0) { 0 } to parts.getOrElse(1) { 0 }
 }
 
 /** "07:05" from hour and minute – always Latin digits, whatever the device's language (the web's `H:i`). */

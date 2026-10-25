@@ -3,6 +3,7 @@ package de.velwebsolutions.oasis.account.ui.auth
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import dagger.hilt.android.lifecycle.HiltViewModel
+import de.velwebsolutions.oasis.account.catching
 import de.velwebsolutions.oasis.account.data.AccountRepository
 import de.velwebsolutions.oasis.core.auth.AuthApi
 import de.velwebsolutions.oasis.core.auth.Registration
@@ -13,7 +14,6 @@ import de.velwebsolutions.oasis.core.network.ApiError
 import de.velwebsolutions.oasis.core.network.asApiError
 import java.time.LocalDate
 import javax.inject.Inject
-import kotlin.coroutines.cancellation.CancellationException
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -21,14 +21,7 @@ import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 
 /** Runs [block] and returns its error as [ApiError] (cancellation passes through). */
-internal suspend fun attempt(block: suspend () -> Unit): ApiError? = try {
-    block()
-    null
-} catch (cancelled: CancellationException) {
-    throw cancelled
-} catch (error: Exception) {
-    error.asApiError()
-}
+internal suspend fun attempt(block: suspend () -> Unit): ApiError? = catching(block).exceptionOrNull()?.asApiError()
 
 /** The sign-in form (/anmelden). */
 data class SignInUiState(val login: String = "", val password: String = "", val error: ApiError? = null, val trialDays: Int? = null) {
@@ -46,13 +39,7 @@ class SignInViewModel @Inject constructor(private val session: Session, private 
 
     init {
         viewModelScope.launch {
-            val days = try {
-                auth.registrationForm().trialDays
-            } catch (cancelled: CancellationException) {
-                throw cancelled
-            } catch (_: Exception) {
-                null
-            }
+            val days = catching { auth.registrationForm().trialDays }.getOrNull()
             mutableUi.update { it.copy(trialDays = days) }
         }
     }
@@ -197,14 +184,9 @@ class RegisterViewModel @Inject constructor(private val session: Session, privat
     fun setBirthDate(date: LocalDate) = mutableUi.update { it.copy(birthDate = date, birthDateMissing = false) }
 
     suspend fun loadForm() {
-        try {
-            val form = auth.registrationForm()
-            mutableUi.update { it.copy(form = form) }
-        } catch (cancelled: CancellationException) {
-            throw cancelled
-        } catch (error: Exception) {
-            mutableUi.update { it.copy(error = error.asApiError()) }
-        }
+        catching { auth.registrationForm() }
+            .onSuccess { form -> mutableUi.update { it.copy(form = form) } }
+            .onFailure { error -> mutableUi.update { it.copy(error = error.asApiError()) } }
     }
 
     suspend fun submit() {
@@ -220,14 +202,8 @@ class RegisterViewModel @Inject constructor(private val session: Session, privat
         if (error != null) {
             mutableUi.update { it.copy(error = error) }
             // A refused form token (too old) is replaced, so a second try can succeed.
-            try {
-                val fresh = auth.registrationForm()
-                mutableUi.update { it.copy(form = fresh) }
-            } catch (cancelled: CancellationException) {
-                throw cancelled
-            } catch (_: Exception) {
-                // Keep the old form; the error is on screen already.
-            }
+            // Without a fresh one the old form stays; the error is on screen already.
+            catching { auth.registrationForm() }.onSuccess { fresh -> mutableUi.update { it.copy(form = fresh) } }
         }
     }
 

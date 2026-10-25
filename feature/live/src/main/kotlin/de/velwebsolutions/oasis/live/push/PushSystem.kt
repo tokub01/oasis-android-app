@@ -7,6 +7,8 @@ import android.content.Intent
 import android.content.pm.PackageManager
 import android.os.Build
 import android.provider.Settings
+import androidx.core.content.edit
+import com.google.android.gms.tasks.Task
 import com.google.firebase.FirebaseApp
 import com.google.firebase.messaging.FirebaseMessaging
 import kotlin.coroutines.resume
@@ -52,13 +54,13 @@ class PreferencesPushStore(context: Context) : PushStore {
     override var deviceId: Int?
         get() = preferences.getInt(DEVICE_ID, -1).takeIf { it >= 0 }
         set(value) {
-            preferences.edit().apply { if (value == null) remove(DEVICE_ID) else putInt(DEVICE_ID, value) }.apply()
+            preferences.edit { if (value == null) remove(DEVICE_ID) else putInt(DEVICE_ID, value) }
         }
 
     override var optedOut: Boolean
         get() = preferences.getBoolean(OPTED_OUT, false)
         set(value) {
-            preferences.edit().putBoolean(OPTED_OUT, value).apply()
+            preferences.edit { putBoolean(OPTED_OUT, value) }
         }
 
     private companion object {
@@ -66,6 +68,9 @@ class PreferencesPushStore(context: Context) : PushStore {
         const val OPTED_OUT = "opted-out"
     }
 }
+
+/** The token of a finished Firebase task, or null when Firebase could not hand one out. */
+internal fun tokenOf(task: Task<String>): String? = if (task.isSuccessful) task.result else null
 
 /**
  * The real system: notification permission (asked at runtime from Android 13 on), Firebase Cloud Messaging only when
@@ -75,7 +80,7 @@ class AndroidPushSystem(private val context: Context) : PushSystem {
     private val preferences = context.getSharedPreferences("oasis.push", Context.MODE_PRIVATE)
 
     override val isConfigured: Boolean
-        get() = runCatching { FirebaseApp.getApps(context).isNotEmpty() }.getOrDefault(false)
+        get() = FirebaseApp.getApps(context).isNotEmpty()
 
     override fun authorization(): PushAuthorization {
         val allowed = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
@@ -96,19 +101,18 @@ class AndroidPushSystem(private val context: Context) : PushSystem {
     }
 
     override fun permissionAnswered(granted: Boolean) {
-        preferences.edit().putBoolean(ASKED, true).apply()
+        preferences.edit { putBoolean(ASKED, true) }
     }
 
     // Firebase 26 marks the token calls deprecated; they are still the documented way to read and drop the FCM token.
     @Suppress("DEPRECATION")
     override suspend fun token(): String? {
         if (!isConfigured) return null
+        // isConfigured guarantees Firebase's default app, so getInstance() cannot fail here.
         return suspendCancellableCoroutine { continuation ->
-            runCatching {
-                FirebaseMessaging.getInstance().token.addOnCompleteListener { task ->
-                    continuation.resume(if (task.isSuccessful) task.result else null)
-                }
-            }.onFailure { continuation.resume(null) }
+            FirebaseMessaging.getInstance().token.addOnCompleteListener { task ->
+                continuation.resume(tokenOf(task))
+            }
         }
     }
 
@@ -116,9 +120,7 @@ class AndroidPushSystem(private val context: Context) : PushSystem {
     override suspend fun deleteToken() {
         if (!isConfigured) return
         suspendCancellableCoroutine { continuation ->
-            runCatching {
-                FirebaseMessaging.getInstance().deleteToken().addOnCompleteListener { continuation.resume(Unit) }
-            }.onFailure { continuation.resume(Unit) }
+            FirebaseMessaging.getInstance().deleteToken().addOnCompleteListener { continuation.resume(Unit) }
         }
     }
 

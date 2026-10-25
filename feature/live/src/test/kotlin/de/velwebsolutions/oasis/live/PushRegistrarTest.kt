@@ -100,4 +100,120 @@ class PushRegistrarTest {
             assertEquals(PushRegistrar.DENIED_TEXT, failure.message)
         }
     }
+
+    @Test
+    fun registersANewTokenOnlyWhileEverythingAllowsIt() = runTest {
+        val transport = transport()
+        val system = FakePushSystem()
+        val store = MemoryPushStore()
+        val registrar = registrar(system, store)
+        registrar.tokenChanged()
+        assertEquals("not signed in yet", 0, system.tokenRequests)
+
+        system.status = PushAuthorization.Denied
+        registrar.signedIn(repository(transport))
+        assertNull("no permission, no registration", store.deviceId)
+
+        registrar.refreshAuthorization()
+        registrar.tokenChanged()
+        assertEquals(0, system.tokenRequests)
+        system.status = PushAuthorization.Authorized
+        registrar.refreshAuthorization()
+        store.optedOut = true
+        registrar.tokenChanged()
+        assertEquals(0, system.tokenRequests)
+        store.optedOut = false
+        registrar.tokenChanged()
+        assertEquals(5, store.deviceId)
+
+        registrar.signedOut()
+        registrar.tokenChanged()
+        assertEquals("after sign-out nothing is sent", 1, transport.requests.count { it.path == "push/devices" })
+    }
+
+    @Test
+    fun readsNoPushWhenTheConfigFailsAndRefusesWithoutToken() = runTest {
+        val broken = StubTransport(StubTransport.Stub("GET", "app-config", status = 500, json = """{"message":"Server Error"}"""))
+        val registrar = registrar()
+        registrar.signedIn(repository(broken))
+        assertFalse(registrar.isAvailable)
+
+        val noToken = registrar(FakePushSystem(token = null))
+        noToken.signedIn(repository(transport()))
+        try {
+            noToken.enableOnThisDevice()
+            fail("expected a failure without token")
+        } catch (failure: PushFailure) {
+            assertEquals(PushRegistrar.FAILED_TEXT, failure.message)
+        }
+
+        val refusing = transport().apply { add("POST", "push/devices", status = 422, json = """{"message":"x"}""") }
+        val refused = registrar()
+        refused.signedIn(repository(refusing))
+        assertNull(refused.deviceId)
+
+        val offline = registrar()
+        try {
+            offline.enableOnThisDevice()
+            fail("expected a failure without sign-in")
+        } catch (failure: PushFailure) {
+            assertEquals(PushRegistrar.FAILED_TEXT, failure.message)
+        }
+    }
+
+    @Test
+    fun cancellationOfTheConfigPassesThrough() = runTest {
+        val cancelling = object : de.velwebsolutions.oasis.live.data.LiveRepository by repository(transport()) {
+            override suspend fun appConfig() = throw kotlinx.coroutines.CancellationException("gone")
+        }
+        val failure = runCatching { registrar().signedIn(cancelling) }.exceptionOrNull()
+        assertTrue(failure is kotlinx.coroutines.CancellationException)
+    }
+
+    @Test
+    fun switchesOffWithoutRegistrationAndWhenTheServerForgotTheDevice() = runTest {
+        val system = FakePushSystem()
+        val notRegistered = registrar(system)
+        assertEquals("Push-Hinweise sind auf diesem Gerät ausgeschaltet.", notRegistered.disableOnThisDevice())
+        assertTrue(notRegistered.isOptedOut)
+
+        val gone = transport().apply { add("DELETE", "push/devices/5", status = 404, json = """{"message":"Not Found"}""") }
+        val store = MemoryPushStore(deviceId = 5)
+        val withoutSignIn = registrar(store = MemoryPushStore(deviceId = 5))
+        withoutSignIn.disableOnThisDevice()
+        val registrar = registrar(store = store)
+        registrar.signedIn(repository(gone))
+        assertEquals("removed on the web already", "Push-Hinweise sind auf diesem Gerät ausgeschaltet.", registrar.disableOnThisDevice())
+        assertNull(store.deviceId)
+    }
+
+    @Test
+    fun staysOnWhenSwitchingOffFails() = runTest {
+        val failing = transport().apply { add("DELETE", "push/devices/5", status = 500, json = """{"message":"Server Error"}""") }
+        val store = MemoryPushStore()
+        val registrar = registrar(store = store)
+        registrar.signedIn(repository(failing))
+        try {
+            registrar.disableOnThisDevice()
+            fail("expected a failure")
+        } catch (failure: PushFailure) {
+            assertEquals(PushRegistrar.FAILED_TEXT, failure.message)
+        }
+        assertFalse(registrar.isOptedOut)
+        assertEquals(5, store.deviceId)
+    }
+
+    @Test
+    fun forgetsOnlyThisInstallationsDeviceAndOpensTheSettings() {
+        val system = FakePushSystem()
+        val store = MemoryPushStore(deviceId = 5)
+        val registrar = registrar(system, store)
+        registrar.forgetDevice(9)
+        assertEquals(5, store.deviceId)
+        registrar.forgetDevice(5)
+        assertNull(store.deviceId)
+        registrar.forgetDevice(5)
+        registrar.openSystemSettings()
+        assertEquals(1, system.openedSettings)
+    }
 }

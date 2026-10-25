@@ -38,7 +38,7 @@ class LiveUiTest {
 
     @Test
     fun showsTheHintsUnderTheirHeadingsWithNeuAndOpensOne() {
-        val opened = mutableListOf<Hint>()
+        val opened = mutableListOf<String>()
         var readAll = 0
         compose.setContent {
             HintsInboxContent(
@@ -54,7 +54,7 @@ class LiveUiTest {
         compose.onNodeWithText("Heute").assertIsDisplayed()
         compose.onNodeWithText("Neu").assertIsDisplayed()
         compose.onNodeWithText("Neue Person in deiner Karawane · Emil Novak").performClick()
-        assertEquals("eab9c863-d27a-5296-a62f-d55d1cdf8beb", opened.single().id)
+        assertEquals("http://localhost/profil/emil", opened.single())
         compose.onNodeWithTag("hints.readAll").performClick()
         compose.waitUntil { readAll == 1 }
     }

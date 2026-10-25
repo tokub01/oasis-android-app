@@ -19,7 +19,7 @@ import kotlinx.coroutines.flow.StateFlow
 class LiveCoordinator internal constructor(
     private val repository: LiveRepository,
     private val realtime: RealtimeService,
-    val push: PushRegistrar,
+    private val push: PushRegistrar,
     val counts: LiveCounts
 ) {
     @Inject constructor(

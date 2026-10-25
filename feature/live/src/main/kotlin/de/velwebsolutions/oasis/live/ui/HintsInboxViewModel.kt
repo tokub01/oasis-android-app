@@ -9,9 +9,9 @@ import de.velwebsolutions.oasis.core.model.refreshing
 import de.velwebsolutions.oasis.core.network.asApiError
 import de.velwebsolutions.oasis.live.LiveCoordinator
 import de.velwebsolutions.oasis.live.api.Hint
+import de.velwebsolutions.oasis.live.catching
 import de.velwebsolutions.oasis.live.data.LiveRepository
 import javax.inject.Inject
-import kotlin.coroutines.cancellation.CancellationException
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -32,10 +32,10 @@ data class HintsInboxUiState(
 ) {
     /** The loaded hints under their headings, in list order. */
     val groups: List<HintGroup>
-        get() = (state.valueOrNull ?: emptyList()).groupBy { it.group }.map { (title, hints) -> HintGroup(title, hints) }
+        get() = state.valueOrNull.orEmpty().groupBy { it.group }.map { (title, hints) -> HintGroup(title, hints) }
 
     /** Whether a loaded hint still shows "Neu". */
-    val showsUnread: Boolean get() = state.valueOrNull?.any { it.unread } ?: false
+    val showsUnread: Boolean get() = state.valueOrNull.orEmpty().any { it.unread }
 }
 
 /**
@@ -57,19 +57,18 @@ class HintsInboxViewModel @Inject constructor(private val repository: LiveReposi
 
     suspend fun load() {
         mutableUi.update { it.copy(state = it.state.refreshing()) }
-        try {
-            val first = repository.hints(1)
-            page = 1
-            mutableUi.update { it.copy(state = Loadable.Loaded(first.data), hasMore = first.nextCursor != null) }
-            live.refresh()
-        } catch (cancelled: CancellationException) {
-            throw cancelled
-        } catch (error: Exception) {
-            mutableUi.update {
-                val failing = it.state.failing(error)
-                it.copy(state = failing, error = if (failing.valueOrNull != null) error.asApiError().userMessage else it.error)
+        catching { repository.hints(1) }
+            .onSuccess { first ->
+                page = 1
+                mutableUi.update { it.copy(state = Loadable.Loaded(first.data), hasMore = first.nextCursor != null) }
+                live.refresh()
             }
-        }
+            .onFailure { error ->
+                mutableUi.update {
+                    val failing = it.state.failing(error)
+                    it.copy(state = failing, error = if (failing.valueOrNull != null) error.asApiError().userMessage else it.error)
+                }
+            }
     }
 
     /** The next page (a page may hold fewer than 20 visible hints, or none, when content was removed). */
@@ -79,45 +78,30 @@ class HintsInboxViewModel @Inject constructor(private val repository: LiveReposi
         if (!current.hasMore || current.isLoadingMore) return
         mutableUi.update { it.copy(isLoadingMore = true) }
         viewModelScope.launch {
-            try {
-                val next = repository.hints(page + 1)
-                page += 1
-                val known = hints.map { it.id }.toSet()
-                mutableUi.update {
-                    it.copy(
-                        state = Loadable.Loaded(hints + next.data.filterNot { hint -> hint.id in known }),
-                        hasMore =
-                            next.nextCursor != null
-                    )
+            catching { repository.hints(page + 1) }
+                .onSuccess { next ->
+                    page += 1
+                    val known = hints.map { it.id }.toSet()
+                    val added = next.data.filterNot { hint -> hint.id in known }
+                    mutableUi.update { it.copy(state = Loadable.Loaded(hints + added), hasMore = next.nextCursor != null) }
+                    live.refresh()
                 }
-                live.refresh()
-            } catch (cancelled: CancellationException) {
-                throw cancelled
-            } catch (error: Exception) {
-                mutableUi.update { it.copy(error = error.asApiError().userMessage) }
-            } finally {
-                mutableUi.update { it.copy(isLoadingMore = false) }
-            }
+                .onFailure { error -> mutableUi.update { it.copy(error = error.asApiError().userMessage) } }
+            mutableUi.update { it.copy(isLoadingMore = false) }
         }
     }
 
     /** "Alle als gelesen markieren": also hints on later pages; the "Neu" marks of the list go too, like the web. */
     suspend fun markAllRead() {
-        try {
-            val message = repository.markAllRead()
-            mutableUi.update { state ->
-                state.copy(
-                    message = message,
-                    state =
-                        state.state.valueOrNull?.let { hints -> Loadable.Loaded(hints.map { it.copy(unread = false) }) } ?: state.state
-                )
+        catching { repository.markAllRead() }
+            .onSuccess { message ->
+                mutableUi.update { state ->
+                    val read = state.state.valueOrNull?.let { hints -> Loadable.Loaded(hints.map { it.copy(unread = false) }) }
+                    state.copy(message = message, state = read ?: state.state)
+                }
+                live.refresh()
             }
-            live.refresh()
-        } catch (cancelled: CancellationException) {
-            throw cancelled
-        } catch (error: Exception) {
-            mutableUi.update { it.copy(error = error.asApiError().userMessage) }
-        }
+            .onFailure { error -> mutableUi.update { it.copy(error = error.asApiError().userMessage) } }
     }
 
     fun dismissMessage() = mutableUi.update { it.copy(message = null) }

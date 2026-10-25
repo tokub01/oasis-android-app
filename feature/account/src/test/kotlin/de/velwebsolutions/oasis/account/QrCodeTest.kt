@@ -75,4 +75,13 @@ class QrCodeTest {
         assertEquals(43.toByte(), all[1])
         assertEquals(1.toByte(), all[2])
     }
+
+    @Test
+    fun growsToTheVersionTheTextNeedsAndRefusesMoreThanVersion40() {
+        fun fitting(version: Int) = (QrCode.dataCapacityBits(version) - 4 - (if (version <= 9) 8 else 16)) / 8
+        for (version in listOf(1, 7, 9, 10, 32, 40)) {
+            assertEquals(version, QrCode.encode("a".repeat(fitting(version)))!!.version)
+        }
+        assertEquals(null, QrCode.encode("a".repeat(fitting(40) + 1)))
+    }
 }

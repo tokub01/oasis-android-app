@@ -8,13 +8,13 @@ import de.velwebsolutions.oasis.account.api.PrivacyCentre
 import de.velwebsolutions.oasis.account.api.PrivacySection
 import de.velwebsolutions.oasis.account.api.PrivacySettingItem
 import de.velwebsolutions.oasis.account.api.PrivacyValue
+import de.velwebsolutions.oasis.account.catching
 import de.velwebsolutions.oasis.account.data.AccountRepository
 import de.velwebsolutions.oasis.core.model.Loadable
 import de.velwebsolutions.oasis.core.model.failing
 import de.velwebsolutions.oasis.core.model.refreshing
 import de.velwebsolutions.oasis.core.network.asApiError
 import javax.inject.Inject
-import kotlin.coroutines.cancellation.CancellationException
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -58,17 +58,16 @@ class PrivacyViewModel @Inject constructor(private val repository: AccountReposi
 
     suspend fun load() {
         mutableUi.update { it.copy(state = it.state.refreshing()) }
-        try {
-            val centre = repository.privacy()
-            mutableUi.update { it.copy(state = Loadable.Loaded(centre)) }
-        } catch (cancelled: CancellationException) {
-            throw cancelled
-        } catch (error: Exception) {
-            mutableUi.update {
-                val failing = it.state.failing(error)
-                it.copy(state = failing, error = if (failing.valueOrNull != null) error.asApiError().userMessage else it.error)
+        catching { repository.privacy() }
+            .onSuccess { centre ->
+                mutableUi.update { it.copy(state = Loadable.Loaded(centre)) }
             }
-        }
+            .onFailure { error ->
+                mutableUi.update {
+                    val failing = it.state.failing(error)
+                    it.copy(state = failing, error = if (failing.valueOrNull != null) error.asApiError().userMessage else it.error)
+                }
+            }
     }
 
     /** Shows a new value at once; [save] sends it. */
@@ -77,19 +76,21 @@ class PrivacyViewModel @Inject constructor(private val repository: AccountReposi
     /** Saves a value shown with [show]; a refused one goes back to [previous] with the reason at the setting. */
     suspend fun save(key: String, value: PrivacyValue, previous: PrivacyValue) {
         mutableUi.update { it.copy(errors = it.errors - key, isSaving = true) }
-        try {
-            val saved = repository.updatePrivacy(key, value)
-            replace(key) { saved.data }
-            mutableUi.update { it.copy(message = saved.message) }
-        } catch (cancelled: CancellationException) {
-            throw cancelled
-        } catch (error: Exception) {
-            replace(key) { it.copy(value = previous) }
-            val failure = error.asApiError()
-            mutableUi.update { it.copy(errors = it.errors + (key to (failure.message("value") ?: failure.userMessage))) }
+        val result = try {
+            catching { repository.updatePrivacy(key, value) }
         } finally {
             mutableUi.update { it.copy(isSaving = false) }
         }
+        result
+            .onSuccess { saved ->
+                replace(key) { saved.data }
+                mutableUi.update { it.copy(message = saved.message) }
+            }
+            .onFailure { error ->
+                replace(key) { it.copy(value = previous) }
+                val failure = error.asApiError()
+                mutableUi.update { it.copy(errors = it.errors + (key to (failure.message("value") ?: failure.userMessage))) }
+            }
     }
 
     /** A control changed: show it and save it. */
@@ -101,15 +102,14 @@ class PrivacyViewModel @Inject constructor(private val repository: AccountReposi
 
     /** „Tropfen begrenzen“. */
     suspend fun limitPastPosts() {
-        try {
-            val message = repository.limitPastPosts()
-            mutableUi.update { it.copy(message = message) }
-            load()
-        } catch (cancelled: CancellationException) {
-            throw cancelled
-        } catch (error: Exception) {
-            mutableUi.update { it.copy(error = error.asApiError().userMessage) }
-        }
+        catching { repository.limitPastPosts() }
+            .onSuccess { message ->
+                mutableUi.update { it.copy(message = message) }
+                load()
+            }
+            .onFailure { error ->
+                mutableUi.update { it.copy(error = error.asApiError().userMessage) }
+            }
     }
 
     fun next() = mutableUi.update { it.copy(step = minOf(it.step + 1, it.checkupSections.size + 1)) }
@@ -155,42 +155,39 @@ class HiddenWordsViewModel @Inject constructor(private val repository: AccountRe
 
     suspend fun load() {
         mutableUi.update { it.copy(state = it.state.refreshing()) }
-        try {
-            val words = repository.hiddenWords()
-            mutableUi.update { it.copy(state = Loadable.Loaded(words)) }
-        } catch (cancelled: CancellationException) {
-            throw cancelled
-        } catch (error: Exception) {
-            mutableUi.update {
-                val failing = it.state.failing(error)
-                it.copy(state = failing, error = if (failing.valueOrNull != null) error.asApiError().userMessage else it.error)
+        catching { repository.hiddenWords() }
+            .onSuccess { words ->
+                mutableUi.update { it.copy(state = Loadable.Loaded(words)) }
             }
-        }
+            .onFailure { error ->
+                mutableUi.update {
+                    val failing = it.state.failing(error)
+                    it.copy(state = failing, error = if (failing.valueOrNull != null) error.asApiError().userMessage else it.error)
+                }
+            }
     }
 
     suspend fun add() {
         mutableUi.update { it.copy(wordError = null) }
-        try {
-            val change = repository.addHiddenWord(ui.value.word)
-            mutableUi.update { it.copy(state = Loadable.Loaded(change.data), message = change.message, word = "") }
-        } catch (cancelled: CancellationException) {
-            throw cancelled
-        } catch (error: Exception) {
-            val failure = error.asApiError()
-            val refusal = failure.message("word")
-            mutableUi.update { if (refusal != null) it.copy(wordError = refusal) else it.copy(error = failure.userMessage) }
-        }
+        catching { repository.addHiddenWord(ui.value.word) }
+            .onSuccess { change ->
+                mutableUi.update { it.copy(state = Loadable.Loaded(change.data), message = change.message, word = "") }
+            }
+            .onFailure { error ->
+                val failure = error.asApiError()
+                val refusal = failure.message("word")
+                mutableUi.update { if (refusal != null) it.copy(wordError = refusal) else it.copy(error = failure.userMessage) }
+            }
     }
 
     suspend fun remove(word: String) {
-        try {
-            val change = repository.removeHiddenWord(word)
-            mutableUi.update { it.copy(state = Loadable.Loaded(change.data), message = change.message) }
-        } catch (cancelled: CancellationException) {
-            throw cancelled
-        } catch (error: Exception) {
-            mutableUi.update { it.copy(error = error.asApiError().userMessage) }
-        }
+        catching { repository.removeHiddenWord(word) }
+            .onSuccess { change ->
+                mutableUi.update { it.copy(state = Loadable.Loaded(change.data), message = change.message) }
+            }
+            .onFailure { error ->
+                mutableUi.update { it.copy(error = error.asApiError().userMessage) }
+            }
     }
 
     fun dismissMessage() = mutableUi.update { it.copy(message = null) }

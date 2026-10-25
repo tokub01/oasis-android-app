@@ -10,8 +10,6 @@ import kotlinx.serialization.Serializable
 @Serializable
 data class Hint(
     val id: String,
-    /** `follow`, `reply`, … (NoticeKind) or `account` for Konto-Hinweise. */
-    val kind: String,
     val label: String,
     val url: String? = null,
     val excerpt: String = "",

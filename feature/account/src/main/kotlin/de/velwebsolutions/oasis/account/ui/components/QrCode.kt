@@ -121,7 +121,7 @@ class QrCode private constructor(val version: Int, val mask: Int, private val mo
             return result
         }
 
-        private fun dataCapacityBits(version: Int): Int = (rawDataModules(version) / 8 - ECC_PER_BLOCK_M[version] * BLOCKS_M[version]) * 8
+        internal fun dataCapacityBits(version: Int): Int = (rawDataModules(version) / 8 - ECC_PER_BLOCK_M[version] * BLOCKS_M[version]) * 8
 
         private fun countBits(version: Int): Int = if (version <= 9) 8 else 16
 
