@@ -31,8 +31,10 @@ import de.velwebsolutions.oasis.design.components.Banner
 import de.velwebsolutions.oasis.design.components.BannerKind
 import de.velwebsolutions.oasis.design.components.LocalScreenChrome
 import de.velwebsolutions.oasis.design.components.OasisButtonKind
+import de.velwebsolutions.oasis.design.components.OasisKeyboard
 import de.velwebsolutions.oasis.design.components.OasisScreen
 import de.velwebsolutions.oasis.design.components.OasisTextButton
+import de.velwebsolutions.oasis.design.components.OasisTextField
 import de.velwebsolutions.oasis.design.components.ScreenChrome
 import de.velwebsolutions.oasis.design.navigation.LocalNavigator
 import de.velwebsolutions.oasis.design.navigation.WebRoute
@@ -132,50 +134,79 @@ internal fun VerifyEmailContentScreen(onSettings: () -> Unit) {
     val viewModel: VerifyEmailViewModel = hiltViewModel()
     val ui by viewModel.ui.collectAsStateWithLifecycle()
     OasisScreen(title = "E-Mail bestätigen") {
-        VerifyEmailContent(viewModel.email, ui, viewModel::check, viewModel::resend, onSettings, viewModel::signOut)
+        VerifyEmailContent(
+            viewModel.email,
+            ui,
+            VerifyEmailActions(
+                viewModel::setCode,
+                viewModel::submitCode,
+                viewModel::check,
+                viewModel::resend,
+                onSettings,
+                viewModel::signOut
+            )
+        )
     }
 }
 
 @Composable
-internal fun VerifyEmailContent(
-    email: String?,
-    ui: VerifyEmailUiState,
-    onCheck: suspend () -> Unit,
-    onResend: suspend () -> Unit,
-    onSettings: () -> Unit,
-    onSignOut: suspend () -> Unit
-) {
+internal fun VerifyEmailContent(email: String?, ui: VerifyEmailUiState, actions: VerifyEmailActions) {
     AuthCard("Fast geschafft.", "Bitte bestätige deine E-Mail-Adresse.") {
         Text(
             buildAnnotatedString {
-                append("Wir haben dir einen Link an ")
+                append("Wir haben dir einen Code und einen Link an ")
                 withStyle(SpanStyle(fontWeight = FontWeight.Bold)) { append(email ?: "deine Adresse") }
-                append(" geschickt. Sobald du ihn öffnest, startet dein Test.")
+                append(" geschickt. Gib den Code hier ein oder öffne den Link – dann startet dein Test.")
             },
             style = OasisType.Body,
             color = OasisColors.Ink2
         )
-        if (ui.sent) Banner("Wir haben dir einen neuen Link geschickt.", kind = BannerKind.Success)
+        if (ui.sent) Banner("Wir haben dir einen neuen Code und Link geschickt.", kind = BannerKind.Success)
+        val codeError = ui.error?.message("code")
+        OasisTextField(
+            "Code aus der E-Mail",
+            ui.code,
+            actions.onCode,
+            modifier = Modifier.testTag("verify.code"),
+            error = codeError,
+            keyboardOptions = OasisKeyboard.OneTimeCode
+        )
+        AsyncOasisButton("Bestätigen", actions.onSubmitCode, modifier = Modifier.testTag("verify.submit"), enabled = ui.canSubmitCode)
         if (ui.checked) {
             Banner(
-                "Deine Adresse ist noch nicht bestätigt. Öffne den Link in der E-Mail und versuch es dann noch einmal.",
+                "Deine Adresse ist noch nicht bestätigt. Gib den Code ein oder öffne den Link in der E-Mail und versuch es dann noch einmal.",
                 kind = BannerKind.Info
             )
         }
-        ui.error?.let { Banner(it.userMessage) }
-        AsyncOasisButton("Ich habe bestätigt", onCheck, modifier = Modifier.testTag("verify.check"))
+        if (ui.error != null && codeError == null) Banner(ui.error.userMessage)
         AsyncOasisButton(
-            "Link noch einmal schicken",
-            onResend,
+            "Ich habe den Link geöffnet",
+            actions.onCheck,
+            modifier = Modifier.testTag("verify.check"),
+            kind = OasisButtonKind.Secondary
+        )
+        AsyncOasisButton(
+            "Neuen Code schicken",
+            actions.onResend,
             modifier = Modifier.testTag("verify.resend"),
             kind = OasisButtonKind.Secondary
         )
         Column(Modifier.fillMaxWidth(), horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.Center) {
-            LinkText("Adresse ändern oder Konto löschen", onSettings)
-            SignOutText(onSignOut)
+            LinkText("Adresse ändern oder Konto löschen", actions.onSettings)
+            SignOutText(actions.onSignOut)
         }
     }
 }
+
+/** What the e-mail confirmation can do; the screen connects it to the view model. */
+internal class VerifyEmailActions(
+    val onCode: (String) -> Unit,
+    val onSubmitCode: suspend () -> Unit,
+    val onCheck: suspend () -> Unit,
+    val onResend: suspend () -> Unit,
+    val onSettings: () -> Unit,
+    val onSignOut: suspend () -> Unit
+)
 
 @Composable
 private fun SignOutText(onSignOut: suspend () -> Unit) {

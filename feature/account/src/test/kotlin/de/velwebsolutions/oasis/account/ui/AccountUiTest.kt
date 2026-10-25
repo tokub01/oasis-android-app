@@ -26,6 +26,7 @@ import de.velwebsolutions.oasis.account.ui.auth.SignInContent
 import de.velwebsolutions.oasis.account.ui.auth.SignInUiState
 import de.velwebsolutions.oasis.account.ui.auth.TwoFactorContent
 import de.velwebsolutions.oasis.account.ui.auth.TwoFactorUiState
+import de.velwebsolutions.oasis.account.ui.auth.VerifyEmailActions
 import de.velwebsolutions.oasis.account.ui.auth.VerifyEmailContent
 import de.velwebsolutions.oasis.account.ui.auth.VerifyEmailUiState
 import de.velwebsolutions.oasis.account.ui.components.AccountPage
@@ -230,7 +231,7 @@ class AccountUiTest {
     @Test
     fun verifyEmailNamesTheAddressAndExplainsAMissingConfirmation() {
         compose.setContent {
-            VerifyEmailContent("mira@demo.oasis.tld", VerifyEmailUiState(checked = true), {}, {}, {}, {})
+            VerifyEmailContent("mira@demo.oasis.tld", VerifyEmailUiState(checked = true), VerifyEmailActions({}, {}, {}, {}, {}, {}))
         }
         compose.onNodeWithText("Fast geschafft.").assertIsDisplayed()
         compose.onNodeWithText("mira@demo.oasis.tld", substring = true).assertIsDisplayed()

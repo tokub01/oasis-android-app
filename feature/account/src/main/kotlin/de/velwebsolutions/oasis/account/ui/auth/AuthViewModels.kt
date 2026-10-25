@@ -214,17 +214,38 @@ class RegisterViewModel @Inject constructor(private val session: Session, privat
 }
 
 /** The e-mail confirmation screen. */
-data class VerifyEmailUiState(val sent: Boolean = false, val checked: Boolean = false, val error: ApiError? = null)
+data class VerifyEmailUiState(val sent: Boolean = false, val checked: Boolean = false, val code: String = "", val error: ApiError? = null) {
+    /** Six digits typed (spaces and dashes of a pasted code do not count). */
+    val canSubmitCode: Boolean get() = code.count { it.isDigit() } >= CODE_DIGITS
+
+    private companion object {
+        const val CODE_DIGITS = 6
+    }
+}
 
 /** Shown to signed-in members whose e-mail address is not confirmed yet (/email/bestaetigen). */
 @HiltViewModel
-class VerifyEmailViewModel @Inject constructor(private val session: Session, private val auth: AuthApi) : ViewModel() {
+class VerifyEmailViewModel @Inject constructor(
+    private val session: Session,
+    private val auth: AuthApi,
+    private val repository: AccountRepository
+) : ViewModel() {
     private val mutableUi = MutableStateFlow(VerifyEmailUiState())
     val ui: StateFlow<VerifyEmailUiState> = mutableUi.asStateFlow()
 
     val email: String? get() = session.me?.email
 
-    /** „Ich habe bestätigt“: reload `me`; the app moves on by itself once the address is confirmed. */
+    fun setCode(value: String) = mutableUi.update { it.copy(code = value) }
+
+    /** „Bestätigen“: the code of the mail confirms the address; the app moves on with the confirmed member. */
+    suspend fun submitCode() {
+        mutableUi.update { it.copy(error = null) }
+        catching { repository.verifyEmailCode(ui.value.code.trim()) }
+            .onSuccess(session::update)
+            .onFailure { error -> mutableUi.update { it.copy(error = error.asApiError()) } }
+    }
+
+    /** „Ich habe den Link geöffnet“: reload `me`; the app moves on by itself once the address is confirmed. */
     suspend fun check() {
         session.refreshMe()
         mutableUi.update { it.copy(checked = session.me?.emailVerified == false) }

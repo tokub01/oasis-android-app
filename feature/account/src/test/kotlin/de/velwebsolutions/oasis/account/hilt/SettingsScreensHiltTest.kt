@@ -174,4 +174,16 @@ class SettingsScreensHiltTest : HiltScreenTest() {
         compose.onNodeWithTag("settings.export").tap()
         waitForRequest("GET", "account/export")
     }
+
+    @Test
+    fun theNameCheckRefusesTheDisplayNameAtItsField() {
+        signIn()
+        stub("GET", "account", Fixtures.account)
+        stub("PUT", "account/profile", """{"message":"x","errors":{"display_name":["Dieser Name ist nicht erlaubt."]}}""", status = 422)
+        show { AccountScreen(AccountRoute.Settings) }
+        waitForTag("settings.saveProfile")
+        type("Anzeigename", "!")
+        compose.onNodeWithTag("settings.saveProfile").tap()
+        waitForText("Dieser Name ist nicht erlaubt.")
+    }
 }

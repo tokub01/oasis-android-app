@@ -31,6 +31,7 @@ import de.velwebsolutions.oasis.account.api.WelcomeTour
 import de.velwebsolutions.oasis.account.api.WelcomeVisibilityBody
 import de.velwebsolutions.oasis.account.api.WordBody
 import de.velwebsolutions.oasis.core.auth.RegistrationForm
+import de.velwebsolutions.oasis.core.model.Me
 import de.velwebsolutions.oasis.core.model.ToneHint
 import de.velwebsolutions.oasis.core.network.ApiClient
 import de.velwebsolutions.oasis.core.network.ApiError
@@ -67,6 +68,9 @@ interface AccountRepository {
     suspend fun export(): ByteArray
 
     suspend fun deleteAccount(confirmed: Boolean)
+
+    /** The six-digit code of the confirmation mail; answers with the member, now confirmed. */
+    suspend fun verifyEmailCode(code: String): Me
 
     /** „Zwei-Faktor verloren“, step 1 (guest): the neutral answer of the web form. */
     suspend fun requestTwoFactorRecovery(email: String, password: String, form: RegistrationForm): String
@@ -157,6 +161,8 @@ class DefaultAccountRepository @Inject constructor(private val client: ApiClient
     override suspend fun export() = client.download(client.url("account/export").toString())
 
     override suspend fun deleteAccount(confirmed: Boolean) = service.deleteAccount(DeleteBody(confirmed))
+
+    override suspend fun verifyEmailCode(code: String) = service.verifyEmailCode(CodeBody(code)).data
 
     override suspend fun requestTwoFactorRecovery(email: String, password: String, form: RegistrationForm): String {
         val fields = mapOf("email" to email, "password" to password, form.honeypotField to "", form.tokenField to form.formToken)
