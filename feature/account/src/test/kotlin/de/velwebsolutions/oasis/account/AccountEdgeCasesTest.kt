@@ -273,6 +273,34 @@ class AccountEdgeCasesTest {
         assertTrue(json.encodeToString(PrivacySettingItem.serializer(), item("true")).contains("\"value\":true"))
     }
 
+    @Test
+    fun theWelcomeTourWithoutTourAndWithBothToneAnswers() = runTest {
+        val transport = StubTransport()
+            .stub("GET", "onboarding", serverError, status = 500)
+            .stub("POST", "onboarding/oases/1", """{"joined":true}""")
+            .stub("POST", "onboarding/finish", "{}")
+            .stub("POST", "network/tone", """{"data":{"hint":null,"nudge":false}}""")
+        val welcome = WelcomeViewModel(repository(transport), session(transport, backgroundScope))
+        assertTrue(welcome.ui.value.steps.isEmpty())
+        assertEquals("profil", welcome.ui.value.stepKey)
+        welcome.toggle(Fixtures.starterOasis)
+        assertEquals("a tour that never loaded counts as onboarded", true, welcome.finish())
+        welcome.edit { it.copy(bio = "Hallo") }
+        welcome.textChanged()
+        assertFalse(welcome.ui.value.toneQuestion)
+        transport.stub("POST", "network/tone", """{"data":{"hint":"Alter","nudge":true}}""")
+        welcome.textChanged()
+        assertTrue(welcome.ui.value.toneQuestion)
+    }
+
+    @Test
+    fun aWrongPasswordWithoutFieldIsShownAtThePassword() = runTest {
+        val transport = StubTransport().stub("POST", "account/confirm-password", serverError, status = 500)
+        val settings = SettingsViewModel(repository(transport), session(transport, backgroundScope))
+        assertFalse(settings.confirmPassword("x"))
+        assertEquals("Server Error", settings.ui.value.fieldErrors["password"])
+    }
+
     companion object {
         const val SUSPENSION =
             """{"data":{"type":"temporary","label":"Gesperrt","started_at":"2026-10-22T10:00:00.000000Z","accusation":"Beleidigung","statement":"Alt"}}"""

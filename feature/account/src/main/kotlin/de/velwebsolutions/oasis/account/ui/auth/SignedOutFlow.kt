@@ -91,7 +91,8 @@ private val StepsSaver = listSaver<SnapshotStateList<SignedOutStep>, String>(
 internal fun SignedOutFlow() {
     val navigator = LocalNavigator.current
     val steps = rememberSaveable(saver = StepsSaver) { mutableStateListOf() }
-    val pop: () -> Unit = { if (steps.isNotEmpty()) steps.removeAt(steps.lastIndex) }
+    // Only offered while a step is open (system back and the arrow of the top bar).
+    val pop: () -> Unit = { steps.removeAt(steps.lastIndex) }
     val legal: (String) -> Unit = { url -> navigator.open(WebRoute(url)) }
     BackHandler(enabled = steps.isNotEmpty(), onBack = pop)
     ScopedViewModels {

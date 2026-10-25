@@ -116,8 +116,9 @@ class SafetyScreensHiltTest : HiltScreenTest() {
         compose.onNodeWithTag("safety.restrictions.jonas").tap()
         waitForRequest("DELETE", "safety/restrictions/9")
         compose.onAllNodesText("Jonas Weber")[1].tap()
+        compose.onAllNodesText("Jonas Weber")[2].tap()
         compose.onNodeWithText("Zur Merkliste").tap()
-        assertEquals(listOf(NetworkRoute.Profile("jonas"), NetworkRoute.Bookmarks), stack())
+        assertEquals(listOf(NetworkRoute.Profile("jonas"), NetworkRoute.Profile("jonas"), NetworkRoute.Bookmarks), stack())
     }
 
     @Test

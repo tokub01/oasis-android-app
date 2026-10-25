@@ -72,6 +72,7 @@ import de.velwebsolutions.oasis.design.navigation.NetworkRoute
 import de.velwebsolutions.oasis.design.theme.OasisColors
 import de.velwebsolutions.oasis.design.theme.OasisRadius
 import de.velwebsolutions.oasis.design.theme.OasisType
+import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 
@@ -137,10 +138,12 @@ internal fun WelcomeContent(ui: WelcomeUiState, viewModel: WelcomeViewModel, fin
 @OptIn(ExperimentalLayoutApi::class)
 @Composable
 private fun Header(ui: WelcomeUiState, tour: WelcomeTour, finish: suspend () -> Unit) {
+    val scope = rememberCoroutineScope()
+    val once = remember(scope) { OneAtATime(scope) }
     Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
         FlowRow(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween, verticalArrangement = Arrangement.Center) {
             Eyebrow("Willkommen · Schritt ${ui.step} von ${tour.steps.size}", Modifier.align(Alignment.CenterVertically))
-            LaterButton(finish)
+            OasisTextButton("Später – direkt zur Quelle", { once.run(finish) }, Modifier.testTag("welcome.later"))
         }
         Text(
             tour.steps.getOrNull(ui.step - 1)?.title.orEmpty(),
@@ -156,23 +159,21 @@ private fun Header(ui: WelcomeUiState, tour: WelcomeTour, finish: suspend () -> 
     }
 }
 
-@Composable
-private fun LaterButton(finish: suspend () -> Unit) {
-    val scope = rememberCoroutineScope()
-    var running by remember { mutableStateOf(false) }
-    OasisTextButton(
-        "Später – direkt zur Quelle",
-        {
-            if (!running) {
-                running = true
-                scope.launch {
-                    finish()
-                    running = false
-                }
+/** Runs one action at a time: taps while it runs are ignored (the text button has no busy state of its own). */
+internal class OneAtATime(private val scope: CoroutineScope) {
+    private var running = false
+
+    fun run(action: suspend () -> Unit) {
+        if (running) return
+        running = true
+        scope.launch {
+            try {
+                action()
+            } finally {
+                running = false
             }
-        },
-        Modifier.testTag("welcome.later")
-    )
+        }
+    }
 }
 
 @Composable

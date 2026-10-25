@@ -295,6 +295,12 @@ private fun BirthDateField(ui: RegisterUiState, serverError: String?, onPick: ()
     }
 }
 
+/** Days up to [today] (UTC midnight in milliseconds): a birth date lies in the past. */
+@OptIn(ExperimentalMaterial3Api::class)
+internal class PastDates(private val today: Long) : SelectableDates {
+    override fun isSelectableDate(utcTimeMillis: Long) = utcTimeMillis <= today
+}
+
 /** The calendar for the birth date; "Übernehmen" sets it. It starts at a plausible age, never after today. */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -303,15 +309,14 @@ private fun BirthDateDialog(current: LocalDate?, onDismiss: () -> Unit, onTake: 
     val today = LocalDate.now().atStartOfDay(ZoneOffset.UTC).toInstant().toEpochMilli()
     val state = rememberDatePickerState(
         initialSelectedDateMillis = start.atStartOfDay(ZoneOffset.UTC).toInstant().toEpochMilli(),
-        selectableDates = object : SelectableDates {
-            override fun isSelectableDate(utcTimeMillis: Long) = utcTimeMillis <= today
-        }
+        selectableDates = PastDates(today)
     )
     DatePickerDialog(
         onDismissRequest = onDismiss,
         confirmButton = {
             OasisTextButton("Übernehmen", {
-                state.selectedDateMillis?.let { onTake(Instant.ofEpochMilli(it).atZone(ZoneOffset.UTC).toLocalDate()) } ?: onDismiss()
+                // The picker starts with a date selected and cannot deselect it.
+                onTake(Instant.ofEpochMilli(state.selectedDateMillis!!).atZone(ZoneOffset.UTC).toLocalDate())
             }, Modifier.testTag("register.birthDate.take"))
         },
         dismissButton = { OasisTextButton("Abbrechen", onDismiss) },

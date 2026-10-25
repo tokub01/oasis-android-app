@@ -91,6 +91,8 @@ class WelcomeScreenHiltTest : HiltScreenTest() {
         compose.mainClock.advanceTimeBy(1_000)
         compose.onNodeWithTag("welcome.next").tap()
         waitForRequest("PUT", "onboarding/profile")
+        // A second tap while the first is on its way does nothing.
+        compose.onNodeWithTag("welcome.later").tap()
         compose.onNodeWithTag("welcome.later").tap()
         waitForRequest("POST", "onboarding/finish")
         stub("POST", "onboarding/finish", "{}")

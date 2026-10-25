@@ -1,5 +1,7 @@
 package de.velwebsolutions.oasis.account.ui.components
 
+import android.content.ContentResolver
+import android.net.Uri
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.Canvas
@@ -64,6 +66,7 @@ import de.velwebsolutions.oasis.design.components.OasisTextButton
 import de.velwebsolutions.oasis.design.theme.OasisColors
 import de.velwebsolutions.oasis.design.theme.OasisRadius
 import de.velwebsolutions.oasis.design.theme.OasisType
+import java.io.IOException
 import java.time.Instant
 import kotlinx.coroutines.launch
 
@@ -213,8 +216,8 @@ fun FlowChoices(
 
 /** A row with text on the left and a small action on the right, separated by a line (device and safety lists). */
 @Composable
-fun ListRow(modifier: Modifier = Modifier, leading: @Composable () -> Unit, trailing: @Composable () -> Unit) {
-    Column(modifier, verticalArrangement = Arrangement.spacedBy(12.dp)) {
+fun ListRow(leading: @Composable () -> Unit, trailing: @Composable () -> Unit) {
+    Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
         HorizontalDivider(color = OasisColors.DuneLine)
         Row(horizontalArrangement = Arrangement.spacedBy(12.dp), verticalAlignment = Alignment.CenterVertically) {
             Box(Modifier.weight(1f)) { leading() }
@@ -272,6 +275,19 @@ fun ConfirmDialog(question: String, confirm: String, onConfirm: () -> Unit, onDi
     )
 }
 
+/** Writes [bytes] to the file the member picked; false when the storage refuses it. */
+internal fun writeFile(resolver: ContentResolver, uri: Uri, bytes: ByteArray): Boolean {
+    val stream = runCatching { resolver.openOutputStream(uri) }.getOrNull() ?: return false
+    return try {
+        stream.write(bytes)
+        true
+    } catch (_: IOException) {
+        false
+    } finally {
+        stream.close()
+    }
+}
+
 /**
  * „Daten herunterladen“ (the web's direct download of `oasis-daten.zip`): fetches the ZIP, then lets the member save it
  * where they like (the system's file picker). Used in Einstellungen and on the lock screen.
@@ -282,11 +298,11 @@ fun DataExportButton(download: suspend () -> ByteArray, failed: (String) -> Unit
     val scope = rememberCoroutineScope()
     var file by remember { mutableStateOf<ByteArray?>(null) }
     val save = rememberLauncherForActivityResult(ActivityResultContracts.CreateDocument("application/zip")) { uri ->
+        // Nothing to save when the picker was cancelled, or when it answers a recreated screen that lost the file.
         val bytes = file
         if (uri == null || bytes == null) return@rememberLauncherForActivityResult
         scope.launch {
-            val written = runCatching { context.contentResolver.openOutputStream(uri)?.use { it.write(bytes) } != null }.getOrDefault(false)
-            if (!written) failed("Die Datei konnte nicht gespeichert werden.")
+            if (!writeFile(context.contentResolver, uri, bytes)) failed("Die Datei konnte nicht gespeichert werden.")
         }
     }
     if (file != null) {
