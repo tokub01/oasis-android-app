@@ -15,6 +15,8 @@ import de.velwebsolutions.oasis.network.api.ImageUpload
 import de.velwebsolutions.oasis.network.api.PostDraft
 import de.velwebsolutions.oasis.network.api.PublishResult
 import de.velwebsolutions.oasis.network.data.NetworkRepository
+import de.velwebsolutions.oasis.network.ui.apiError
+import de.velwebsolutions.oasis.network.ui.attempt
 import java.util.concurrent.ConcurrentHashMap
 import java.util.concurrent.atomic.AtomicLong
 import kotlinx.coroutines.CancellationException
@@ -133,16 +135,13 @@ class ComposeViewModel @AssistedInject constructor(
 
     suspend fun load() {
         mutableState.update { it.copy(context = Loadable.Loading) }
-        try {
-            val loaded = repository.composer(current.oasisSlug, current.replyTo, current.carried)
+        val result = attempt { repository.composer(current.oasisSlug, current.replyTo, current.carried) }
+        result.onSuccess { loaded ->
             val offered = loaded.visibilities.map { it.value }
             val visibility = loaded.defaultVisibility.takeIf { offered.isEmpty() || it in offered } ?: offered.first()
             mutableState.update { it.copy(visibility = visibility, context = Loadable.Loaded(loaded)) }
-        } catch (error: CancellationException) {
-            throw error
-        } catch (error: Exception) {
-            mutableState.update { it.copy(context = Loadable.Failed(ApiError.from(error))) }
         }
+        result.apiError?.let { error -> mutableState.update { it.copy(context = Loadable.Failed(error)) } }
     }
 
     /** Loads the context unless it is there already (the reply form on a Tropfen page). */
@@ -157,17 +156,15 @@ class ComposeViewModel @AssistedInject constructor(
             mutableState.update { it.copy(toneHint = null, toneNudge = false) }
             return
         }
-        val result = try {
-            common.toneHint(text, "post")
-        } catch (error: CancellationException) {
-            throw error
-        } catch (_: Exception) {
-            return
-        }
-        if (text == current.body) mutableState.update { it.copy(toneHint = result.hint, toneNudge = result.nudge) }
+        // A failed check shows nothing; an answer for an older text is dropped.
+        val result = attempt { common.toneHint(text, "post") }.getOrNull() ?: return
+        if (text != current.body) return
+        mutableState.update { it.copy(toneHint = result.hint, toneNudge = result.nudge) }
     }
 
-    fun add(upload: ImageUpload) {
+    /** Adds a picked image (null when it could not be read) while there is room. */
+    fun add(upload: ImageUpload?) {
+        upload ?: return
         if (current.images.size >= current.maxImages) return
         mutableState.update { it.copy(images = it.images + PickedImage(nextImageId.incrementAndGet(), upload)) }
         saveDraft()
@@ -185,15 +182,7 @@ class ComposeViewModel @AssistedInject constructor(
         val capped = prefix(alt, MAX_ALT_LENGTH)
         mutableState.update { state ->
             state.copy(
-                images = state.images.mapIndexed { position, image ->
-                    if (position ==
-                        index
-                    ) {
-                        image.copy(alt = capped)
-                    } else {
-                        image
-                    }
-                }
+                images = state.images.mapIndexed { position, image -> if (position == index) image.copy(alt = capped) else image }
             )
         }
         saveDraft()
@@ -216,27 +205,21 @@ class ComposeViewModel @AssistedInject constructor(
             images = state.images.map { it.upload },
             alts = state.images.map { it.alt }
         )
-        return try {
-            val result = repository.publish(draft)
-            mutableState.update {
-                it.copy(body = "", images = emptyList(), linkRead = false, toneConfirmed = false, toneNudge = false, toneHint = null)
-            }
-            saveDraft()
-            NetworkSignals.didPublish(result.data, result.message)
-            // A held Tropfen locks the account at once; the app then shows why (account area).
-            if (result.suspended) session.refreshMe()
-            result
-        } catch (error: CancellationException) {
-            throw error
-        } catch (error: Exception) {
-            val failure = ApiError.from(error)
-            mutableState.update {
-                it.copy(error = failure, toneNudge = it.toneNudge || failure.message("body")?.startsWith(TONE_QUESTION) == true)
-            }
-            null
-        } finally {
-            mutableState.update { it.copy(isPublishing = false) }
+        val outcome = attempt { repository.publish(draft) }
+        mutableState.update { it.copy(isPublishing = false) }
+        outcome.apiError?.let { failure ->
+            val asked = failure.message("body").orEmpty().startsWith(TONE_QUESTION)
+            mutableState.update { it.copy(error = failure, toneNudge = it.toneNudge || asked) }
         }
+        val result = outcome.getOrNull() ?: return null
+        mutableState.update {
+            it.copy(body = "", images = emptyList(), linkRead = false, toneConfirmed = false, toneNudge = false, toneHint = null)
+        }
+        saveDraft()
+        NetworkSignals.didPublish(result.data, result.message)
+        // A held Tropfen locks the account at once; the app then shows why (account area).
+        if (result.suspended) session.refreshMe()
+        return result
     }
 
     private fun saveDraft() {

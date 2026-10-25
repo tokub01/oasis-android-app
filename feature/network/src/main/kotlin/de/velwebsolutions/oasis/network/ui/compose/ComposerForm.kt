@@ -66,7 +66,8 @@ class ComposerCallbacks(
     val onKind: (String) -> Unit,
     val onLinkRead: (Boolean) -> Unit,
     val onToneConfirmed: (Boolean) -> Unit,
-    val onAddImage: (ImageUpload) -> Unit,
+    /** A picked image, or null when it could not be read. */
+    val onAddImage: (ImageUpload?) -> Unit,
     val onRemoveImage: (Int) -> Unit,
     val onAlt: (Int, String) -> Unit,
     val checkTone: suspend () -> Unit,
@@ -164,15 +165,14 @@ fun ComposerForm(
         Options(state, callbacks)
         OasisButton(
             text = state.submitLabel,
+            // While it publishes the button shows its spinner and takes no further taps.
             onClick = {
-                if (!publishing) {
-                    publishing = true
-                    scope.launch {
-                        try {
-                            callbacks.publish()?.let(onPublished)
-                        } finally {
-                            publishing = false
-                        }
+                publishing = true
+                scope.launch {
+                    try {
+                        callbacks.publish()?.let(onPublished)
+                    } finally {
+                        publishing = false
                     }
                 }
             },
@@ -217,7 +217,7 @@ private fun ImagesSection(state: ComposeUiState, callbacks: ComposerCallbacks, l
             onLoading(true)
             try {
                 uris.forEachIndexed { offset, uri ->
-                    ImageConverter.upload(context, uri, "bild-${state.images.size + offset + 1}")?.let(callbacks.onAddImage)
+                    callbacks.onAddImage(ImageConverter.upload(context, uri, "bild-${state.images.size + offset + 1}"))
                 }
             } finally {
                 onLoading(false)

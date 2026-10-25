@@ -63,4 +63,14 @@ class ImageConverterTest {
         assertEquals("foto.png", ImageConverter.upload(context, Uri.fromFile(file), "foto")?.filename)
         assertNull(ImageConverter.upload(context, Uri.fromFile(File(context.cacheDir, "fehlt.png")), "foto"))
     }
+
+    @Test
+    fun `short, foreign and broken data, and a file too large to pass through`() {
+        assertNull(ImageConverter.passthroughType(byteArrayOf(0xFF.toByte())))
+        assertNull(ImageConverter.passthroughType("RIFF0000WAVE".toByteArray()))
+        val brokenPng = byteArrayOf(0x89.toByte(), 0x50, 0x4E, 0x47, 1, 2, 3)
+        assertNull(ImageConverter.upload(brokenPng, "x"))
+        val large = png(40, 20) + ByteArray(7_000_000)
+        assertEquals("gross.jpg", ImageConverter.upload(large, "gross")?.filename)
+    }
 }

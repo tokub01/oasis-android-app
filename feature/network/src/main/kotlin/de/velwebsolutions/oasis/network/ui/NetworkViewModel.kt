@@ -46,15 +46,11 @@ abstract class NetworkViewModel : ViewModel() {
     }
 
     /** Runs an action whose answer is the server's confirmation; an error goes to [error]. Returns whether it worked. */
-    protected suspend fun confirm(action: suspend () -> String): Boolean = try {
-        mutableStatus.value = action()
-        mutableError.value = null
-        true
-    } catch (error: CancellationException) {
-        throw error
-    } catch (error: Exception) {
-        mutableError.value = ApiError.from(error)
-        false
+    protected suspend fun confirm(action: suspend () -> String): Boolean {
+        val result = attempt(action)
+        result.onSuccess { mutableStatus.value = it }
+        mutableError.value = result.apiError
+        return result.isSuccess
     }
 
     /**
@@ -63,13 +59,9 @@ abstract class NetworkViewModel : ViewModel() {
      */
     protected suspend fun <T> MutableStateFlow<Loadable<T>>.load(fetch: suspend () -> T): T? {
         value = value.refreshing()
-        return try {
-            fetch().also { value = Loadable.Loaded(it) }
-        } catch (error: CancellationException) {
-            throw error
-        } catch (error: Exception) {
-            if (value.valueOrNull == null) value = Loadable.Failed(ApiError.from(error)) else mutableError.value = ApiError.from(error)
-            null
-        }
+        val result = attempt(fetch)
+        result.onSuccess { value = Loadable.Loaded(it) }
+        result.apiError?.let { error -> if (value.valueOrNull == null) value = Loadable.Failed(error) else mutableError.value = error }
+        return result.getOrNull()
     }
 }

@@ -18,11 +18,32 @@ import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
 import org.junit.Assert.assertNull
 import org.junit.Assert.assertTrue
+import org.junit.Before
 import org.junit.Rule
 import org.junit.Test
+import org.junit.runner.RunWith
+import org.junit.runners.Parameterized
 
 /** The screens' view models: the Tropfen page, profiles, oases, search, Durchblättern and the Quelle. */
-class ScreenViewModelTest {
+@RunWith(Parameterized::class)
+class ScreenViewModelTest(private val answersAtOnce: Boolean) {
+    companion object {
+        /** Each test runs with answers that suspend and with answers on the calling thread. */
+        @JvmStatic
+        @Parameterized.Parameters(name = "immediate={0}")
+        fun modes() = listOf(false, true)
+    }
+
+    @Before
+    fun answerMode() {
+        immediate = answersAtOnce
+    }
+
+    @After
+    fun suspendingAgain() {
+        immediate = false
+    }
+
     @get:Rule
     val main = MainDispatcherRule()
 

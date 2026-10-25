@@ -15,7 +15,10 @@ import de.velwebsolutions.oasis.network.data.NetworkRepository
 import de.velwebsolutions.oasis.network.ui.BusyCards
 import de.velwebsolutions.oasis.network.ui.NetworkViewModel
 import de.velwebsolutions.oasis.network.ui.PostAction
+import de.velwebsolutions.oasis.network.ui.apiError
 import de.velwebsolutions.oasis.network.ui.applying
+import de.velwebsolutions.oasis.network.ui.attempt
+import de.velwebsolutions.oasis.network.ui.loadable
 import de.velwebsolutions.oasis.network.ui.perform
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -65,16 +68,14 @@ class PostDetailViewModel @AssistedInject constructor(@Assisted val id: Int, pri
         val undo = action.undo
         val optimistic = undo != null
         if (optimistic) apply(action, post)
-        try {
-            mutableStatus.value = repository.perform(action, post)
-            mutableError.value = null
-        } catch (error: CancellationException) {
-            throw error
-        } catch (error: Exception) {
+        val result = attempt { repository.perform(action, post) }
+        mutableError.value = result.apiError
+        val message = result.getOrNull()
+        if (message == null) {
             if (undo != null) apply(undo, post)
-            mutableError.value = ApiError.from(error)
             return
         }
+        mutableStatus.value = message
         val current = detail.value.valueOrNull
         if (optimistic || current == null) return
         if (post.id == current.post.id) {
@@ -101,9 +102,10 @@ class PostDetailViewModel @AssistedInject constructor(@Assisted val id: Int, pri
     /** The effect on the page: the Tropfen itself when it was the target or its author's state changed, and the replies. */
     private fun apply(action: PostAction, post: Post) {
         val current = detail.value.valueOrNull ?: return
-        val authorState = action == PostAction.Restrict || action == PostAction.Unrestrict || action == PostAction.Unmute
-        val updated = if (post.id == current.post.id || authorState) current.post.applying(action, post) ?: current.post else current.post
-        mutableDetail.value = Loadable.Loaded(current.copy(post = updated, replies = current.replies.applying(action, post)))
+        val page = (listOf(current.post) + current.replies).applying(action, post)
+        // The Tropfen of the page stays when its author is muted or blocked from one of the replies.
+        val shown = page.firstOrNull { it.id == current.post.id } ?: current.post
+        mutableDetail.value = Loadable.Loaded(current.copy(post = shown, replies = page.filterNot { it.id == current.post.id }))
     }
 }
 
@@ -136,26 +138,17 @@ class EditPostViewModel @AssistedInject constructor(@Assisted val id: Int, priva
 
     suspend fun load() {
         mutableForm.value = Loadable.Loading
-        try {
-            val loaded = repository.editForm(id)
-            mutableText.value = loaded.body
-            mutableForm.value = Loadable.Loaded(loaded)
-        } catch (error: CancellationException) {
-            throw error
-        } catch (error: Exception) {
-            mutableForm.value = Loadable.Failed(ApiError.from(error))
-        }
+        val result = attempt { repository.editForm(id) }
+        result.onSuccess { mutableText.value = it.body }
+        mutableForm.value = result.loadable()
     }
 
     suspend fun save() {
-        mutableError.value = null
-        try {
-            NetworkSignals.didPublish(null, repository.updatePost(id, text.value))
+        val result = attempt { repository.updatePost(id, text.value) }
+        mutableError.value = result.apiError
+        result.onSuccess { message ->
+            NetworkSignals.didPublish(null, message)
             mutableSaved.value = true
-        } catch (error: CancellationException) {
-            throw error
-        } catch (error: Exception) {
-            mutableError.value = ApiError.from(error)
         }
     }
 }
@@ -174,12 +167,6 @@ class CarryViewModel @AssistedInject constructor(@Assisted val id: Int, private 
 
     suspend fun load() {
         mutableSource.value = Loadable.Loading
-        try {
-            mutableSource.value = Loadable.Loaded(repository.carrySource(id))
-        } catch (error: CancellationException) {
-            throw error
-        } catch (error: Exception) {
-            mutableSource.value = Loadable.Failed(ApiError.from(error))
-        }
+        mutableSource.value = attempt { repository.carrySource(id) }.loadable()
     }
 }

@@ -85,21 +85,15 @@ fun OasisFormScreen(
     val context = LocalContext.current
     val editing = slug != null
     val picker = rememberImagePicker { uris ->
-        viewModel.launch { ImageConverter.upload(context, uris.first(), "banner", maxEdge = 3000)?.let { viewModel.pickBanner(it) } }
+        viewModel.launch { viewModel.pickBanner(ImageConverter.upload(context, uris.first(), "banner", maxEdge = 3000)) }
     }
 
     LaunchedEffect(Unit) { viewModel.loadIfNeeded() }
     LaunchedEffect(state.outcome) {
-        when (val outcome = state.outcome) {
-            OasisFormOutcome.Close -> navigator.back()
-
-            is OasisFormOutcome.Open -> {
-                navigator.back()
-                navigator.open(NetworkRoute.Oasis(outcome.slug))
-            }
-
-            null -> return@LaunchedEffect
-        }
+        val outcome = state.outcome ?: return@LaunchedEffect
+        // Back to the oasis (edited), or the new oasis in place of the form.
+        navigator.back()
+        if (outcome is OasisFormOutcome.Open) navigator.open(NetworkRoute.Oasis(outcome.slug))
         viewModel.consumeOutcome()
     }
 
@@ -177,7 +171,9 @@ fun OasisFormScreen(
                     }
                 }
                 val edit = state.edit
-                if (edit != null && slug != null) {
+                // Only an edited oasis has an edit form (and with it its slug).
+                if (edit != null) {
+                    val slug = edit.oasis.slug
                     block("close") {
                         val navigator = LocalNavigator.current
                         PaperBox(border = OasisColors.SunText) {

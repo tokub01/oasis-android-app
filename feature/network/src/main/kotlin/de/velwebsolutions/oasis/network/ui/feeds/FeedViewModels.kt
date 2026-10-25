@@ -21,7 +21,9 @@ import de.velwebsolutions.oasis.network.ui.BusyCards
 import de.velwebsolutions.oasis.network.ui.NetworkViewModel
 import de.velwebsolutions.oasis.network.ui.PostAction
 import de.velwebsolutions.oasis.network.ui.PostListModel
+import de.velwebsolutions.oasis.network.ui.apiError
 import de.velwebsolutions.oasis.network.ui.applying
+import de.velwebsolutions.oasis.network.ui.attempt
 import de.velwebsolutions.oasis.network.ui.perform
 import javax.inject.Inject
 import kotlinx.coroutines.CancellationException
@@ -165,16 +167,11 @@ class SwipeViewModel @Inject constructor(private val repository: NetworkReposito
     private suspend fun run(action: PostAction, post: Post) {
         val undo = action.undo
         if (undo != null) apply(action, post)
-        try {
-            mutableStatus.value = repository.perform(action, post)
-            mutableError.value = null
-            if (undo == null) apply(action, post)
-        } catch (error: CancellationException) {
-            throw error
-        } catch (error: Exception) {
-            if (undo != null) apply(undo, post)
-            mutableError.value = ApiError.from(error)
-        }
+        val result = attempt { repository.perform(action, post) }
+        result.onSuccess { mutableStatus.value = it }
+        mutableError.value = result.apiError
+        // Reactions and bookmarks already changed: roll them back on failure; the rest follows the confirmation.
+        if (result.isSuccess == (undo == null)) apply(undo ?: action, post)
     }
 
     private fun apply(action: PostAction, post: Post) {

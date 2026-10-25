@@ -309,13 +309,10 @@ fun ComposeEntry(prompt: String, modifier: Modifier = Modifier, accessibilityLab
             .background(OasisColors.Paper, shape)
             .border(1.dp, OasisColors.PaperLine, shape)
             .pressable(onClick)
+            // The tap comes from pressable(); TalkBack reads the label.
             .clearAndSetSemantics {
                 contentDescription = accessibilityLabel ?: prompt
                 role = Role.Button
-                onClick {
-                    onClick()
-                    true
-                }
             }
             .padding(16.dp),
         verticalAlignment = Alignment.CenterVertically

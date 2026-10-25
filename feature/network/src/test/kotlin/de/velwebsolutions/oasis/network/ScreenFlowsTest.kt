@@ -114,7 +114,7 @@ class ScreenFlowsTest {
 
     /** Waits until the text is on screen (answers arrive on OkHttp's threads). */
     private fun text(text: String, substring: Boolean = false): SemanticsNodeInteraction {
-        compose.waitUntil(15_000) { compose.onAllNodes(hasText(text, substring = substring)).fetchSemanticsNodes().isNotEmpty() }
+        compose.settle { compose.onAllNodes(hasText(text, substring = substring)).fetchSemanticsNodes().isNotEmpty() }
         return compose.onNodeWithText(text, substring = substring)
     }
 
@@ -217,7 +217,7 @@ class ScreenFlowsTest {
         val model6 = models.keep(SwipeViewModel(network.repository))
         show { SwipeScreen(model6) }
         text("Was es Neues gibt").assertIsDisplayed()
-        compose.waitUntil(15_000) { compose.onAllNodes(hasText("Wischen oder tippen")).fetchSemanticsNodes().isNotEmpty() }
+        compose.settle { compose.onAllNodes(hasText("Wischen oder tippen")).fetchSemanticsNodes().isNotEmpty() }
         capture("swipe")
     }
 
@@ -412,7 +412,10 @@ class ScreenFlowsTest {
 
         val model18 = models.keep(StatisticsViewModel(network.repository))
         switchTo { StatisticsScreen(model18) }
-        text("Deine Zahlen").assertIsDisplayed()
+        compose.settle {
+            compose.onAllNodes(androidx.compose.ui.test.hasContentDescription("In deiner Karawane", substring = true))
+                .fetchSemanticsNodes().isNotEmpty()
+        }
         capture("statistics")
 
         val model19 = models.keep(InvitationsViewModel(network.repository))
