@@ -247,41 +247,6 @@ fun OnNightButton(text: String, onClick: () -> Unit, modifier: Modifier = Modifi
     }
 }
 
-/** A switch with its label; the whole row toggles (iOS `Toggle`). */
-@Composable
-fun ToggleRow(
-    title: String,
-    checked: Boolean,
-    onCheckedChange: (Boolean) -> Unit,
-    modifier: Modifier = Modifier,
-    style: TextStyle = OasisType.Small,
-    tint: Color = OasisColors.Spring,
-    enabled: Boolean = true
-) {
-    Row(
-        modifier
-            .fillMaxWidth()
-            .toggleable(value = checked, enabled = enabled, role = Role.Switch, onValueChange = onCheckedChange)
-            .padding(vertical = 6.dp),
-        verticalAlignment = Alignment.CenterVertically
-    ) {
-        Text(title, style = style, color = OasisColors.Ink, modifier = Modifier.weight(1f))
-        Spacer(Modifier.width(12.dp))
-        Switch(
-            checked = checked,
-            onCheckedChange = null,
-            enabled = enabled,
-            colors = SwitchDefaults.colors(
-                checkedTrackColor = tint,
-                checkedThumbColor = OasisColors.Paper,
-                uncheckedTrackColor = OasisColors.Dune,
-                uncheckedBorderColor = OasisColors.DuneLine,
-                uncheckedThumbColor = OasisColors.FieldLine
-            )
-        )
-    }
-}
-
 /** A menu picker (iOS `Picker` with `.menu` style): the chosen label with a chevron, the choices in a dropdown. */
 @Composable
 fun ChoiceMenu(label: String, choices: List<Choice>, selection: String, onSelect: (String) -> Unit, modifier: Modifier = Modifier) {

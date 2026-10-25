@@ -20,6 +20,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.clipToBounds
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.semantics.clearAndSetSemantics
@@ -154,8 +155,11 @@ fun OasisBanner(oasis: OasisSummary, modifier: Modifier = Modifier, height: Dp =
                 Modifier
                     .offset(x = height * 0.3f, y = height * 0.5f)
                     .requiredSize(height * 1.4f)
-                    .background(OasisColors.Paper.copy(alpha = 0.25f), CircleShape)
+                    .background(softCircle(oasis.color), CircleShape)
             )
         }
     }
 }
+
+/** The soft circle on an oasis colour; on the night surface a fixed line colour instead of see-through white. */
+internal fun softCircle(color: String): Color = if (color == "night") OasisColors.NightLine else OasisColors.Paper.copy(alpha = 0.25f)

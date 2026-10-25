@@ -18,12 +18,12 @@ import androidx.compose.ui.text.style.TextDecoration
 import androidx.compose.ui.text.withLink
 import androidx.compose.ui.text.withStyle
 import androidx.compose.ui.unit.dp
+import de.velwebsolutions.oasis.design.components.ConsentCheck
 import de.velwebsolutions.oasis.design.navigation.LocalNavigator
 import de.velwebsolutions.oasis.design.navigation.WebRoute
 import de.velwebsolutions.oasis.design.theme.OasisColors
 import de.velwebsolutions.oasis.design.theme.OasisRadius
 import de.velwebsolutions.oasis.design.theme.OasisType
-import de.velwebsolutions.oasis.network.ui.components.ToggleRow
 import de.velwebsolutions.oasis.network.ui.components.rememberBaseUrl
 
 /**
@@ -64,6 +64,8 @@ fun ToneQuestion(text: String, confirmation: String, isConfirmed: Boolean, onCon
         verticalArrangement = Arrangement.spacedBy(8.dp)
     ) {
         Text(text, style = OasisType.Small, color = OasisColors.Ink)
-        ToggleRow(confirmation, isConfirmed, onConfirmedChange, Modifier.testTag(tag))
+        ConsentCheck(isConfirmed, onConfirmedChange, Modifier.testTag(tag)) {
+            Text(confirmation, style = OasisType.Small, color = OasisColors.Ink)
+        }
     }
 }

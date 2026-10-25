@@ -9,6 +9,7 @@ import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import de.velwebsolutions.oasis.design.components.AsyncOasisButton
 import de.velwebsolutions.oasis.design.components.Bullets
+import de.velwebsolutions.oasis.design.components.ConsentCheck
 import de.velwebsolutions.oasis.design.components.FieldError
 import de.velwebsolutions.oasis.design.components.LoadableView
 import de.velwebsolutions.oasis.design.components.OasisButtonKind
@@ -21,7 +22,6 @@ import de.velwebsolutions.oasis.design.theme.OasisType
 import de.velwebsolutions.oasis.network.ui.components.NetworkPage
 import de.velwebsolutions.oasis.network.ui.components.PaperBox
 import de.velwebsolutions.oasis.network.ui.components.StatGrid
-import de.velwebsolutions.oasis.network.ui.components.ToggleRow
 import de.velwebsolutions.oasis.network.ui.components.WeekChart
 import de.velwebsolutions.oasis.network.ui.components.WeekRow
 import de.velwebsolutions.oasis.network.ui.components.block
@@ -61,13 +61,11 @@ fun CloseOasisScreen(
                                 "Das lässt sich nicht rückgängig machen."
                             )
                         )
-                        ToggleRow(
+                        ConsentCheck(
                             "Ja, ich möchte die Oase endgültig schließen.",
                             confirmed,
                             viewModel::setConfirmed,
-                            Modifier.testTag("closeOasis.confirm"),
-                            style = OasisType.Body,
-                            tint = OasisColors.SunText
+                            Modifier.testTag("closeOasis.confirm")
                         )
                         (error?.message("confirm") ?: error?.userMessage)?.let { FieldError(it) }
                         AsyncOasisButton(
