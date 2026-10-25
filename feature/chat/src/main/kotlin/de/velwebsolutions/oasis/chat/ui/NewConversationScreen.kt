@@ -26,6 +26,7 @@ import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.isTraversalGroup
 import androidx.compose.ui.semantics.semantics
+import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.unit.dp
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
@@ -68,10 +69,10 @@ internal fun NewConversationScreen(username: String?) {
             onAdd = model::addFromInput,
             onRemove = model::remove,
             onCreate = {
-                val id = model.create()?.toIntOrNull()
-                if (id != null) {
+                // The new chat replaces this screen.
+                model.create()?.let { id ->
                     navigator.back()
-                    navigator.open(ChatRoute.Conversation(id))
+                    navigator.open(ChatRoute.Conversation(id.toInt()))
                 }
             }
         )
@@ -109,7 +110,8 @@ internal fun NewConversationContent(
                 state.username,
                 onUsername,
                 hint = "Genau wie im Profil, ohne @. Nur wer den Chat schon eingerichtet hat, kann hinzugefügt werden.",
-                keyboardOptions = OasisKeyboard.Username,
+                // "Fertig" adds the person, like iOS' submit.
+                keyboardOptions = OasisKeyboard.Username.copy(imeAction = ImeAction.Done),
                 keyboardActions = KeyboardActions(onDone = { scope.launch { onAdd() } }),
                 modifier = Modifier.testTag("chat.new.username")
             )

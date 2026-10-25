@@ -384,6 +384,20 @@ class FakeChatServer : Interceptor {
                 }
             }
 
+            "POST" to "members" -> {
+                conversation.members += body.getValue("user_id").jsonPrimitive.int
+                conversation.keyVersion += 1
+                conversation.rotationRequired = true
+                200 to data(conversationData(conversation, user))
+            }
+
+            "DELETE" to "members" -> {
+                conversation.members.remove(parts[3].toInt())
+                conversation.keyVersion += 1
+                conversation.rotationRequired = true
+                200 to data(conversationData(conversation, user))
+            }
+
             "POST" to "read" -> 200 to buildJsonObject { put("count", 0) }
 
             "POST" to "accept" -> {
