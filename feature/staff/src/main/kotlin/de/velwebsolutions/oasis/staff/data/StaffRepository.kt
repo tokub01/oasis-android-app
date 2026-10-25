@@ -17,6 +17,7 @@ import de.velwebsolutions.oasis.staff.api.MollieLookup
 import de.velwebsolutions.oasis.staff.api.NewBreach
 import de.velwebsolutions.oasis.staff.api.NewVote
 import de.velwebsolutions.oasis.staff.api.NoteBody
+import de.velwebsolutions.oasis.staff.api.PasswordBody
 import de.velwebsolutions.oasis.staff.api.PaymentPage
 import de.velwebsolutions.oasis.staff.api.PaymentRecord
 import de.velwebsolutions.oasis.staff.api.QueueFilter
@@ -65,6 +66,15 @@ interface StaffRepository {
     suspend fun roles(page: Int): RolePage
 
     suspend fun changeRole(userId: Int, role: String): Confirmed<RoleUser>
+
+    /** Operator account only: marks the account's address as confirmed. */
+    suspend fun confirmEmail(userId: Int): Confirmed<RoleUser>
+
+    /** Operator account only: sends the account the link to choose a new password. */
+    suspend fun sendPasswordLink(userId: Int): Confirmed<RoleUser>
+
+    /** Operator account only: sets a new password; the account is signed out everywhere and told by mail. */
+    suspend fun setPassword(userId: Int, password: String): Confirmed<RoleUser>
 
     suspend fun suspensions(): SuspensionList
 
@@ -145,6 +155,12 @@ class DefaultStaffRepository @Inject constructor(private val client: ApiClient) 
     override suspend fun roles(page: Int) = service.roles(page)
 
     override suspend fun changeRole(userId: Int, role: String) = service.changeRole(userId, RoleBody(role))
+
+    override suspend fun confirmEmail(userId: Int) = service.confirmEmail(userId)
+
+    override suspend fun sendPasswordLink(userId: Int) = service.sendPasswordLink(userId)
+
+    override suspend fun setPassword(userId: Int, password: String) = service.setPassword(userId, PasswordBody(password))
 
     override suspend fun suspensions() = service.suspensions().data
 

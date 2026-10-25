@@ -37,6 +37,10 @@ data class SearchBody(val q: String)
 @Serializable
 data class RefundBody(val amount: String, val reason: String)
 
+/** `{"password": …}`. */
+@Serializable
+data class PasswordBody(val password: String)
+
 /** `{"note": …}`. */
 @Serializable
 data class NoteBody(val note: String)
@@ -94,6 +98,15 @@ interface StaffService {
 
     @PUT("staff/moderation/roles/{id}")
     suspend fun changeRole(@Path("id") userId: Int, @Body body: RoleBody): Confirmed<RoleUser>
+
+    @POST("staff/moderation/roles/{id}/email-confirmation")
+    suspend fun confirmEmail(@Path("id") userId: Int): Confirmed<RoleUser>
+
+    @POST("staff/moderation/roles/{id}/password-link")
+    suspend fun sendPasswordLink(@Path("id") userId: Int): Confirmed<RoleUser>
+
+    @PUT("staff/moderation/roles/{id}/password")
+    suspend fun setPassword(@Path("id") userId: Int, @Body body: PasswordBody): Confirmed<RoleUser>
 
     @GET("staff/moderation/suspensions")
     suspend fun suspensions(): DataEnvelope<SuspensionList>

@@ -69,13 +69,21 @@ class StaffRepositoryCallsTest {
         val (repository, transport) = Fixtures.repository(
             Stub("POST", "staff/moderation/complaints/1/review", json = Fixtures.confirmed(Fixtures.complaint, "Geprüft.")),
             Stub("PUT", "staff/moderation/roles/3", json = confirmedFirst(Fixtures.roles, "Rolle geändert.")),
-            Stub("POST", "staff/moderation/suspensions/1/release", json = """{"message":"Freigegeben."}""")
+            Stub("POST", "staff/moderation/suspensions/1/release", json = """{"message":"Freigegeben."}"""),
+            Stub("POST", "staff/moderation/roles/3/email-confirmation", json = confirmedFirst(Fixtures.roles, "Bestätigt.")),
+            Stub("POST", "staff/moderation/roles/3/password-link", json = confirmedFirst(Fixtures.roles, "Link gesendet.")),
+            Stub("PUT", "staff/moderation/roles/3/password", json = confirmedFirst(Fixtures.roles, "Gesetzt."))
         )
         assertEquals("Geprüft.", repository.review(1, "upheld", "Bleibt.", statement).message)
         assertEquals("Bleibt.", field(transport.lastObject("staff/moderation/complaints/1/review"), "explanation"))
         assertEquals("Rolle geändert.", repository.changeRole(3, "moderator").message)
         assertEquals("moderator", field(transport.lastObject("staff/moderation/roles/3"), "role"))
         assertEquals("Freigegeben.", repository.release(1))
+        assertEquals("Bestätigt.", repository.confirmEmail(3).message)
+        assertEquals(true, repository.confirmEmail(3).data.emailVerified)
+        assertEquals("Link gesendet.", repository.sendPasswordLink(3).message)
+        assertEquals("Gesetzt.", repository.setPassword(3, "geheim-123").message)
+        assertEquals("geheim-123", field(transport.lastObject("staff/moderation/roles/3/password"), "password"))
     }
 
     @Test

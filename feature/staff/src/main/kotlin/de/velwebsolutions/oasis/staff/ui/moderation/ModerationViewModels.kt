@@ -348,7 +348,9 @@ data class RolesUiState(
     val error: String? = null,
     /** User id → why the server refused the new role, shown at the row. */
     val errors: Map<Int, String> = emptyMap(),
-    val hasMore: Boolean = false
+    val hasMore: Boolean = false,
+    /** New password typed per account (operator account only). */
+    val passwords: Map<Int, String> = emptyMap()
 )
 
 /** Role management (like /moderation/roles). */
@@ -405,6 +407,27 @@ class RolesViewModel @Inject constructor(private val repository: StaffRepository
     suspend fun save(user: RoleUser) {
         val role = mutableState.value.chosen[user.id] ?: user.role.value
         val result = attempt { repository.changeRole(user.id, role) }
+        answer(user, "role", result)
+    }
+
+    /** Types the new password of [userId] (set with [setPassword]). */
+    fun typePassword(userId: Int, password: String) = mutableState.update { it.copy(passwords = it.passwords + (userId to password)) }
+
+    /** Operator account only: confirms the address of [user]. */
+    suspend fun confirmEmail(user: RoleUser) = answer(user, "email", attempt { repository.confirmEmail(user.id) })
+
+    /** Operator account only: sends [user] the link to choose a new password. */
+    suspend fun sendPasswordLink(user: RoleUser) = answer(user, "email", attempt { repository.sendPasswordLink(user.id) })
+
+    /** Operator account only: sets the typed password; it is cleared once the server took it. */
+    suspend fun setPassword(user: RoleUser) {
+        val result = attempt { repository.setPassword(user.id, mutableState.value.passwords[user.id].orEmpty()) }
+        answer(user, "password", result)
+        if (result.isSuccess) mutableState.update { it.copy(passwords = it.passwords - user.id) }
+    }
+
+    /** The server's answer for one row: the updated person and a confirmation, or the refusal at the row. */
+    private fun answer(user: RoleUser, field: String, result: Result<Confirmed<RoleUser>>) {
         result.onSuccess { answer ->
             mutableState.update { state ->
                 state.copy(
@@ -417,7 +440,7 @@ class RolesViewModel @Inject constructor(private val repository: StaffRepository
             }
         }
         result.apiError?.let { failure ->
-            mutableState.update { it.copy(errors = it.errors + (user.id to (failure.message("role") ?: failure.userMessage))) }
+            mutableState.update { it.copy(errors = it.errors + (user.id to (failure.message(field) ?: failure.userMessage))) }
         }
     }
 

@@ -10,6 +10,8 @@
    },
    "editable": true,
    "note": null,
+   "email_verified": true,
+   "access_manageable": false,
    "choosable_roles": [
     "member",
     "moderator"
@@ -25,6 +27,8 @@
    },
    "editable": true,
    "note": null,
+   "email_verified": true,
+   "access_manageable": false,
    "choosable_roles": [
     "member",
     "moderator"
@@ -40,6 +44,8 @@
    },
    "editable": true,
    "note": null,
+   "email_verified": true,
+   "access_manageable": false,
    "choosable_roles": [
     "member",
     "moderator"
@@ -55,6 +61,8 @@
    },
    "editable": true,
    "note": null,
+   "email_verified": true,
+   "access_manageable": false,
    "choosable_roles": [
     "member",
     "moderator"
@@ -70,6 +78,8 @@
    },
    "editable": true,
    "note": null,
+   "email_verified": true,
+   "access_manageable": false,
    "choosable_roles": [
     "member",
     "moderator"
@@ -85,6 +95,8 @@
    },
    "editable": true,
    "note": null,
+   "email_verified": true,
+   "access_manageable": false,
    "choosable_roles": [
     "member",
     "moderator"
@@ -100,6 +112,8 @@
    },
    "editable": true,
    "note": null,
+   "email_verified": true,
+   "access_manageable": false,
    "choosable_roles": [
     "member",
     "moderator"
@@ -115,6 +129,8 @@
    },
    "editable": true,
    "note": null,
+   "email_verified": true,
+   "access_manageable": false,
    "choosable_roles": [
     "member",
     "moderator"
@@ -130,6 +146,8 @@
    },
    "editable": true,
    "note": null,
+   "email_verified": true,
+   "access_manageable": false,
    "choosable_roles": [
     "member",
     "moderator"
@@ -145,6 +163,8 @@
    },
    "editable": true,
    "note": null,
+   "email_verified": true,
+   "access_manageable": false,
    "choosable_roles": [
     "member",
     "moderator"
@@ -160,6 +180,8 @@
    },
    "editable": false,
    "note": "Das bist du",
+   "email_verified": true,
+   "access_manageable": false,
    "choosable_roles": [
     "member",
     "moderator",
@@ -176,6 +198,8 @@
    },
    "editable": true,
    "note": null,
+   "email_verified": true,
+   "access_manageable": false,
    "choosable_roles": [
     "member",
     "moderator"

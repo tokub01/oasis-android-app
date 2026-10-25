@@ -124,6 +124,25 @@ class FakeStaffRepository : StaffRepository {
         )
     }
 
+    /** The answer of the operator's access actions; by default the person comes back confirmed. */
+    var access: Result<Confirmed<RoleUser>>? = null
+
+    private fun accessAnswer(userId: Int, message: String) = access
+        ?: Result.success(
+            Confirmed(
+                Decoded.roles.data.first {
+                    it.id == userId
+                }.copy(emailVerified = true, accessManageable = true),
+                message
+            )
+        )
+
+    override suspend fun confirmEmail(userId: Int) = answer("confirm $userId", accessAnswer(userId, "Bestätigt."))
+
+    override suspend fun sendPasswordLink(userId: Int) = answer("link $userId", accessAnswer(userId, "Link gesendet."))
+
+    override suspend fun setPassword(userId: Int, password: String) = answer("password $userId $password", accessAnswer(userId, "Gesetzt."))
+
     override suspend fun suspensions() = answer("suspensions", suspensions)
 
     override suspend fun release(suspensionId: Int) = answer("release $suspensionId", release)
