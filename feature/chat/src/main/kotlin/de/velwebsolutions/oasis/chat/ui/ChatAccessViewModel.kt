@@ -13,14 +13,17 @@ import de.velwebsolutions.oasis.core.network.ApiError
 import javax.inject.Inject
 import kotlin.time.Duration
 import kotlin.time.Duration.Companion.seconds
+import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.drop
+import kotlinx.coroutines.flow.filter
+import kotlinx.coroutines.flow.launchIn
+import kotlinx.coroutines.flow.onEach
 import kotlinx.coroutines.flow.update
-import kotlinx.coroutines.isActive
 import kotlinx.coroutines.launch
 
 /** Which screen the chat gate shows. */
@@ -81,9 +84,7 @@ class ChatAccessViewModel @Inject constructor(context: ChatContext) : ChatViewMo
 
     init {
         // The vault locks while a chat screen is shown (Sperren, idle, background): back to the unlock screen.
-        viewModelScope.launch {
-            vault.unlockedFlow.drop(1).collect { unlocked -> if (!unlocked) vaultLocked() }
-        }
+        vault.unlockedFlow.drop(1).filter { unlocked -> !unlocked }.onEach { vaultLocked() }.launchIn(viewModelScope)
     }
 
     fun setPassphrase(value: String) = mutableState.update { it.copy(passphrase = value) }
@@ -225,9 +226,9 @@ class ChatAccessViewModel @Inject constructor(context: ChatContext) : ChatViewMo
     }
 
     /** Starts the biometric prompt by itself when the unlock screen shows (and again when the app comes back). */
-    suspend fun autoUnlockWithDevice() {
+    suspend fun autoUnlockWithDevice() = inScope {
         val current = state.value
-        if (!current.canUnlockWithDevice || autoUnlockTried || current.busy || current.phase != ChatPhase.Unlock) return
+        if (!current.canUnlockWithDevice || autoUnlockTried || current.busy || current.phase != ChatPhase.Unlock) return@inScope
         autoUnlockTried = true
         unlockWithDevice(quietOnCancel = true)
     }
@@ -317,10 +318,9 @@ class ChatAccessViewModel @Inject constructor(context: ChatContext) : ChatViewMo
     private fun startPolling() {
         pollJob?.cancel()
         pollJob = viewModelScope.launch {
-            while (isActive) {
+            do {
                 delay(pollInterval)
-                if (pollOnce()) return@launch
-            }
+            } while (!pollOnce())
         }
     }
 
@@ -338,6 +338,9 @@ class ChatAccessViewModel @Inject constructor(context: ChatContext) : ChatViewMo
                 offerDeviceUnlockIfUseful()
             }
             true
+        } catch (cancelled: CancellationException) {
+            // A new request or "Abbrechen" stopped this round; the newer request must stay.
+            throw cancelled
         } catch (error: Exception) {
             resetLink()
             val text = if (error == ApiError.NotFound) {

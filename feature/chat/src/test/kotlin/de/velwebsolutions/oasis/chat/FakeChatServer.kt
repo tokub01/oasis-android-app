@@ -60,6 +60,9 @@ class FakeChatServer : Interceptor {
     /** Answers that replace the normal route once each, keyed "METHOD path" (path below chat/, e.g. "GET identity"). */
     val failures = mutableMapOf<String, Pair<Int, String>>()
 
+    /** Requests being answered right now (tests wait for 0). */
+    val inFlight = java.util.concurrent.atomic.AtomicInteger()
+
     /** Called for every request before it is answered ("METHOD path"), e.g. to lock a vault mid-flight. */
     var onRequest: (String) -> Unit = {}
     val serverTime = "2026-10-22T12:00:00Z"
@@ -131,8 +134,17 @@ class FakeChatServer : Interceptor {
 
     private fun data(value: JsonElement) = buildJsonObject { put("data", value) }
 
-    @Synchronized
     override fun intercept(chain: Interceptor.Chain): Response {
+        inFlight.incrementAndGet()
+        try {
+            return answer(chain)
+        } finally {
+            inFlight.decrementAndGet()
+        }
+    }
+
+    @Synchronized
+    private fun answer(chain: Interceptor.Chain): Response {
         val request = chain.request()
         val user = request.header("Authorization")?.removePrefix("Bearer t")?.toIntOrNull() ?: 0
         val path = request.url.encodedPath.substringAfter("/api/v1/chat/")
