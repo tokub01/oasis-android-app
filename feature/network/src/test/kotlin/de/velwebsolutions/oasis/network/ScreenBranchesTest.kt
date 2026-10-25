@@ -711,7 +711,8 @@ class ScreenBranchesTest {
                 """.trimMargin()
             )
         )
-        show { FriendsScreen(models.keep(FriendsViewModel(network.repository))) }
+        val friends = models.keep(FriendsViewModel(network.repository))
+        show { FriendsScreen(friends) }
         text("Gerade keine offenen Anfragen.")
         text("Noch keine. Auf einem Profil findest du „Freundschaft anfragen“.")
         text("Zurückziehen").performClick()
@@ -957,7 +958,8 @@ class ScreenBranchesTest {
             stub("GET", "network/friends", Fixtures.friends),
             stub("GET", "network/invitations", overview(2, false))
         )
-        show { FriendsScreen(models.keep(FriendsViewModel(network.repository))) }
+        val friends = models.keep(FriendsViewModel(network.repository))
+        show { FriendsScreen(friends) }
         text("Gerade keine offenen Anfragen.")
         val cannot = models.keep(InvitationsViewModel(network.repository))
         switchTo { InvitationsScreen(cannot) }
