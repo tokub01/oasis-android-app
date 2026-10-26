@@ -56,7 +56,6 @@ internal fun LoginCodeScreen(channel: LoginCodeChannel, login: String, onTwoFact
                 onChannel = viewModel::setChannel,
                 onSend = viewModel::send,
                 onSignIn = { viewModel.signIn()?.let(onTwoFactor) },
-                onChangeLogin = viewModel::changeLogin,
                 onPasswordSignIn = onPasswordSignIn
             )
         )
@@ -74,7 +73,6 @@ internal class LoginCodeActions(
     val onChannel: (LoginCodeChannel) -> Unit,
     val onSend: suspend () -> Unit,
     val onSignIn: suspend () -> Unit,
-    val onChangeLogin: () -> Unit,
     /** Back to the sign-in with password (the first screen of the flow). */
     val onPasswordSignIn: () -> Unit
 )
@@ -144,11 +142,6 @@ internal fun LoginCodeContent(ui: LoginCodeUiState, actions: LoginCodeActions) {
                 kind = OasisButtonKind.Secondary
             )
             Column(Modifier.fillMaxWidth(), horizontalAlignment = Alignment.CenterHorizontally) {
-                LinkText(
-                    "Andere E-Mail-Adresse oder anderen Benutzernamen eingeben",
-                    actions.onChangeLogin,
-                    Modifier.testTag("logincode.change")
-                )
                 LinkText("Mit Passwort anmelden", actions.onPasswordSignIn, Modifier.testTag("logincode.password"))
             }
         }

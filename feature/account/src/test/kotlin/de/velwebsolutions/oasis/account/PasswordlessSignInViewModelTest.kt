@@ -192,7 +192,7 @@ class PasswordlessSignInViewModelTest {
     }
 
     @Test
-    fun refusalsOfTheCodeRequestStayAndTheLoginCanBeChanged() = runTest {
+    fun refusalsOfTheCodeRequestStayAndANewCodeClearsTheField() = runTest {
         val transport = StubTransport()
             .stub("POST", "auth/login-code", """{"message":"x","errors":{"channel":["SMS ist gerade nicht verfügbar."]}}""", status = 422)
         val model = LoginCodeViewModel(LoginCodeChannel.Sms, "mira", session(transport, backgroundScope), RemoteAuthApi(transport.client))
@@ -206,11 +206,10 @@ class PasswordlessSignInViewModelTest {
         transport.add("POST", "auth/login-code", 204, "")
         model.send()
         model.setCode("1")
-        model.changeLogin()
+        model.send()
         val ui = model.ui.value
-        assertFalse(ui.sent)
+        assertTrue(ui.sent)
         assertEquals("", ui.code)
         assertNull(ui.error)
-        assertEquals("mira", ui.login)
     }
 }

@@ -97,9 +97,6 @@ class LoginCodeViewModel @AssistedInject constructor(
         return challenge
     }
 
-    /** Back to the login field (another address or username). */
-    fun changeLogin() = mutableUi.update { it.copy(sent = false, code = "", error = null) }
-
     /** Creates the view model for the channel and the login the sign-in screen hands over. */
     @AssistedFactory
     interface Factory {

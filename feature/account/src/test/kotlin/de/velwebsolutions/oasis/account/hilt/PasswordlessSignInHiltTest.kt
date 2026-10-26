@@ -106,9 +106,7 @@ class PasswordlessSignInHiltTest : DeviceScreenTest() {
         compose.onNodeWithTag("logincode.signin").tap()
         waitForTag("twofactor.code")
         back()
-        waitForTag("logincode.change")
-        compose.onNodeWithTag("logincode.change").tap()
-        waitForTag("logincode.send")
+        waitForTag("logincode.password")
         compose.onNodeWithTag("logincode.password").tap()
         waitForTag("signin.button")
     }
