@@ -30,7 +30,7 @@ class PlayCheckoutTest {
     private suspend fun checkout(
         gateway: FakeBillingGateway = FakeBillingGateway(),
         verifier: PlayPurchaseVerifier = FakeVerifier(),
-        overview: String = Fixtures.trialOverview
+        overview: String = Fixtures.noMembershipOverview
     ): PlayCheckoutViewModel {
         val (repository, _) = Fixtures.repository(Stub("GET", "membership", json = overview))
         return PlayCheckoutViewModel(repository, gateway, PlayDelivery(gateway, verifier), verifier, events, Fixtures.session()).also {
@@ -160,13 +160,13 @@ class PlayCheckoutTest {
 
     @Test
     fun `members billed by Apple and servers without in-app purchases are offered nothing`() = runTest {
-        val apple = Fixtures.trialOverview.replace("\"state\":\"trial\"", "\"state\":\"subscription\"")
+        val apple = Fixtures.noMembershipOverview.replace("\"state\":\"expired\"", "\"state\":\"subscription\"")
             .replace("\"managed_by_apple\":false", "\"managed_by_apple\":true")
         assertEquals(AlreadyMember.Apple, checkout(overview = apple).state.value.alreadyMember)
-        val web = Fixtures.trialOverview.replace("\"state\":\"trial\"", "\"state\":\"subscription\"")
+        val web = Fixtures.noMembershipOverview.replace("\"state\":\"expired\"", "\"state\":\"subscription\"")
         assertEquals(AlreadyMember.Web, checkout(overview = web).state.value.alreadyMember)
 
-        val switchedOff = checkout(overview = Fixtures.trialOverview.replace("\"available\":true", "\"available\":false"))
+        val switchedOff = checkout(overview = Fixtures.noMembershipOverview.replace("\"available\":true", "\"available\":false"))
         assertEquals(emptyList<Any>(), switchedOff.state.value.offers.valueOrNull)
     }
 

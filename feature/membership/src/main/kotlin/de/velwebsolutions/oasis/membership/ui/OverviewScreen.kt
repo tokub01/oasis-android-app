@@ -13,7 +13,6 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.outlined.CardGiftcard
 import androidx.compose.material.icons.outlined.Check
 import androidx.compose.material.icons.outlined.Lock
-import androidx.compose.material.icons.outlined.Schedule
 import androidx.compose.material.icons.outlined.Share
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
@@ -147,7 +146,7 @@ private fun OverviewSections(overview: MembershipOverview, onSubscriptionManaged
     }
 }
 
-/** The status card (livewire/membership/partials/status.blade.php): subscription, gift, trial or read-only mode. */
+/** The status card (livewire/membership/partials/status.blade.php): subscription, gift, or no membership yet. */
 @Composable
 fun StatusCard(overview: MembershipOverview, onSubscriptionManaged: () -> Unit = {}) {
     SectionCard("Status", Modifier.testTag("membership.statusCard")) {
@@ -155,8 +154,6 @@ fun StatusCard(overview: MembershipOverview, onSubscriptionManaged: () -> Unit =
             MembershipOverview.State.Subscription -> SubscriptionStatus(overview, onSubscriptionManaged)
 
             MembershipOverview.State.Gift -> GiftStatus(overview)
-
-            MembershipOverview.State.Trial -> TrialStatus(overview)
 
             // State.Expired, the last state.
             else -> ExpiredStatus(overview)
@@ -258,36 +255,12 @@ private fun GiftStatus(overview: MembershipOverview) {
 }
 
 @Composable
-private fun TrialStatus(overview: MembershipOverview) {
-    val navigator = LocalNavigator.current
-    StatusPill("Kostenloser Test", Icons.Outlined.Schedule, Modifier.testTag("membership.trial"), StatusTone.Dune)
-    if (overview.isFoundingMember) FoundingPill()
-    Text(
-        boldMarkdown(
-            "Du hast noch **${MembershipFormat.days(overview.trialDaysLeft ?: 0)}** in deinem kostenlosen 30-Tage-Test (endet am " +
-                "${MembershipFormat.day(overview.trialEndsAt)})."
-        ),
-        style = OasisType.Body,
-        color = OasisColors.Ink
-    )
-    val seats = if (overview.remainingFoundingSeats > 0) {
-        " Noch ${MembershipFormat.count(overview.remainingFoundingSeats)} Plätze mit dauerhafter Preisgarantie verfügbar."
-    } else {
-        ""
-    }
-    Text("Der Test endet von selbst. Es entstehen dir keine Kosten.$seats", style = OasisType.Small, color = OasisColors.Muted)
-    if (overview.canBuy) {
-        OasisButton("Mitgliedschaft wählen", { navigator.open(MembershipRoute.Checkout) }, Modifier.testTag("membership.choose"))
-    }
-}
-
-@Composable
 private fun ExpiredStatus(overview: MembershipOverview) {
     val navigator = LocalNavigator.current
-    StatusPill("Test abgelaufen · Lesemodus", Icons.Outlined.Lock, Modifier.testTag("membership.expired"), StatusTone.Sun)
+    StatusPill("Noch keine Mitgliedschaft", Icons.Outlined.Lock, Modifier.testTag("membership.expired"), StatusTone.Sun)
     Text(
-        "Dein kostenloser Test ist beendet. Dein Konto befindet sich im Lesemodus: Du kannst alle Inhalte lesen, dein Konto exportieren " +
-            "und löschen. Um wieder Beiträge zu verfassen und Nachrichten zu senden, wähle einen Mitgliedsbeitrag.",
+        "Oasis ist werbefrei und wird von den Mitgliedern getragen, deshalb gibt es keinen kostenlosen Zugang. Wähle deinen Beitrag, " +
+            "dann geht es los. Bis dahin kannst du in den Einstellungen deine Daten herunterladen oder dein Konto löschen.",
         style = OasisType.Body,
         color = OasisColors.Ink
     )

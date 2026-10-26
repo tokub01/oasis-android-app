@@ -58,16 +58,8 @@ class BillingTypesTest {
     }
 
     @Test
-    fun `the trial banner counts from now and dates may be missing`() {
+    fun `dates may be missing`() {
         assertEquals("", MembershipFormat.day(null))
-        assertEquals("1 Tag", MembershipFormat.days(1))
-        assertEquals("1.000", MembershipFormat.count(1000))
-        val now = Instant.now()
-        assertNull(MembershipFormat.trialBannerDaysLeft(null, null, now))
-        assertNull(MembershipFormat.trialBannerDaysLeft(now.minusSeconds(60), null, now))
-        assertNull(MembershipFormat.trialBannerDaysLeft(now.plus(3, ChronoUnit.DAYS), "oase", now))
-        assertEquals(3, MembershipFormat.trialBannerDaysLeft(now.plus(3, ChronoUnit.DAYS).minusSeconds(60), null, now))
-        assertEquals(10, MembershipFormat.trialBannerDaysLeft(Instant.now().plus(10, ChronoUnit.DAYS).minusSeconds(60), null))
     }
 
     @Test

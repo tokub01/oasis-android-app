@@ -24,7 +24,7 @@ import kotlinx.coroutines.launch
 internal suspend fun attempt(block: suspend () -> Unit): ApiError? = catching(block).exceptionOrNull()?.asApiError()
 
 /** The sign-in form (/anmelden). */
-data class SignInUiState(val login: String = "", val password: String = "", val error: ApiError? = null, val trialDays: Int? = null) {
+data class SignInUiState(val login: String = "", val password: String = "", val error: ApiError? = null) {
     val canSubmit: Boolean get() = login.isNotEmpty() && password.isNotEmpty()
 }
 
@@ -33,16 +33,9 @@ data class SignInUiState(val login: String = "", val password: String = "", val 
  * out (or ends the sign-in under Geräte), which is what „Angemeldet bleiben“ does on the web.
  */
 @HiltViewModel
-class SignInViewModel @Inject constructor(private val session: Session, private val auth: AuthApi) : ViewModel() {
+class SignInViewModel @Inject constructor(private val session: Session) : ViewModel() {
     private val mutableUi = MutableStateFlow(SignInUiState())
     val ui: StateFlow<SignInUiState> = mutableUi.asStateFlow()
-
-    init {
-        viewModelScope.launch {
-            val days = catching { auth.registrationForm().trialDays }.getOrNull()
-            mutableUi.update { it.copy(trialDays = days) }
-        }
-    }
 
     fun setLogin(value: String) = mutableUi.update { it.copy(login = value) }
 
@@ -161,9 +154,7 @@ data class RegisterUiState(
     val error: ApiError? = null,
     /** The birth date is missing (checked here, because the request always carries one). */
     val birthDateMissing: Boolean = false
-) {
-    val trialDays: Int get() = form?.trialDays ?: 30
-}
+)
 
 /**
  * Registration, step 1 of 3 of /testen (CreateNewUser): name, username, e-mail, password, birth date (16+), terms.

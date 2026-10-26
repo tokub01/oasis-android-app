@@ -13,8 +13,6 @@ data class MembershipOverview(
     val state: State = State.Expired,
     val subscription: Subscription? = null,
     val gift: Gift? = null,
-    val trialDaysLeft: Int? = null,
-    val trialEndsAt: OasisInstant? = null,
     val isFoundingMember: Boolean = false,
     val remainingFoundingSeats: Int = 0,
     val canCancel: Boolean = false,
@@ -34,11 +32,7 @@ data class MembershipOverview(
         @SerialName("gift")
         Gift,
 
-        /** The free trial is running. */
-        @SerialName("trial")
-        Trial,
-
-        /** Trial over, read-only mode. */
+        /** No membership: Oasis is closed until one is chosen (there is no free trial). */
         @SerialName("expired")
         Expired
     }

@@ -64,12 +64,12 @@ class MembershipViewModelTest {
 
     @Test
     fun `a failed refresh keeps the overview and says why`() = runTest {
-        val (repository, transport) = Fixtures.repository(Stub("GET", "membership", json = Fixtures.trialOverview))
+        val (repository, transport) = Fixtures.repository(Stub("GET", "membership", json = Fixtures.noMembershipOverview))
         val viewModel = OverviewViewModel(repository, MembershipEvents())
         viewModel.load()
         transport.add("GET", "membership", status = 500, json = """{"message":"Server Error"}""")
         viewModel.load()
-        assertEquals(MembershipOverview.State.Trial, viewModel.state.value.overview.valueOrNull?.state)
+        assertEquals(MembershipOverview.State.Expired, viewModel.state.value.overview.valueOrNull?.state)
         assertEquals("Server Error", viewModel.state.value.error)
     }
 

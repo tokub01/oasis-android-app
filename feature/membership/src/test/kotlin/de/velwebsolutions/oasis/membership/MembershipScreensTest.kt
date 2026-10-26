@@ -26,7 +26,6 @@ import de.velwebsolutions.oasis.membership.ui.OverviewContent
 import de.velwebsolutions.oasis.membership.ui.OverviewUiState
 import de.velwebsolutions.oasis.membership.ui.PlayCheckoutContent
 import de.velwebsolutions.oasis.membership.ui.PlayCheckoutViewModel
-import de.velwebsolutions.oasis.membership.ui.TrialBannerView
 import java.time.Instant
 import org.junit.Assert.assertEquals
 import org.junit.Rule
@@ -56,9 +55,13 @@ class MembershipScreensTest {
     }
 
     @Test
-    fun `a trial member is offered the checkout`() {
-        show { OverviewContent(OverviewUiState(Loadable.Loaded(Fixtures.overview(Fixtures.trialOverview))), onRefresh = {}) }
-        compose.onNodeWithText("Kostenloser Test").assertIsDisplayed()
+    fun `a member without membership is offered the checkout`() {
+        show { OverviewContent(OverviewUiState(Loadable.Loaded(Fixtures.overview(Fixtures.noMembershipOverview))), onRefresh = {}) }
+        compose.onNodeWithText("Noch keine Mitgliedschaft").assertIsDisplayed()
+        compose.onNodeWithText(
+            "Oasis ist werbefrei und wird von den Mitgliedern getragen, deshalb gibt es keinen kostenlosen Zugang. Wähle deinen " +
+                "Beitrag, dann geht es los. Bis dahin kannst du in den Einstellungen deine Daten herunterladen oder dein Konto löschen."
+        ).assertIsDisplayed()
         compose.onNodeWithTag("membership.choose").performScrollTo().performClick()
         assertEquals(MembershipRoute.Checkout, navigator.stack(MainTab.Profile).last())
     }
@@ -116,11 +119,5 @@ class MembershipScreensTest {
         compose.waitForIdle()
         assertEquals(1, confirmed)
         assertEquals(listOf(MembershipRoute.Overview), navigator.stack(MainTab.Profile).toList())
-    }
-
-    @Test
-    fun `the trial banner counts the days`() {
-        show { TrialBannerView(20) }
-        compose.onNodeWithText("Noch 20 Tage in deinem Test. Der Test endet von selbst.").assertIsDisplayed()
     }
 }

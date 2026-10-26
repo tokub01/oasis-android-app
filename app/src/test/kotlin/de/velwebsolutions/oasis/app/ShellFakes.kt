@@ -59,7 +59,7 @@ class FakeAuth(var me: Me = mira, var error: Exception? = null) : AuthApi {
 
     override suspend fun twoFactor(challenge: String, code: String?, recoveryCode: String?) = login("", "", "")
 
-    override suspend fun registrationForm() = RegistrationForm("hp", "tf", "t", 30)
+    override suspend fun registrationForm() = RegistrationForm("hp", "tf", "t")
 
     override suspend fun register(registration: Registration, form: RegistrationForm, deviceName: String) = login("", "", "")
 
@@ -84,9 +84,6 @@ object FakeScreens : AppScreens {
 
     @Composable
     override fun Destination(route: AppRoute) = OasisScreen(title = "Screen $route") { Text("Inhalt $route") }
-
-    @Composable
-    override fun Banner(me: Me) = Text("Banner ${me.username}")
 
     @Composable
     override fun Bell() = Text("Glocke")

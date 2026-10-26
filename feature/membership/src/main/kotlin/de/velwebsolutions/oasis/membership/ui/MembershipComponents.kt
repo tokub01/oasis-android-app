@@ -52,24 +52,24 @@ import de.velwebsolutions.oasis.design.theme.OasisType
 import kotlinx.coroutines.launch
 
 /** The tone of a [StatusPill]. */
-enum class StatusTone { Spring, Sun, Dune }
+enum class StatusTone { Spring, Sun }
 
 /**
  * The soft status pills of the status card ("Aktive Mitgliedschaft", "Gründungsmitglied mit Preisgarantie" …), as the
- * web's partial draws them (`bg-spring/15 text-spring-text`, `bg-sun/30 text-sun-ink`, `bg-dune`); the design's `Pill`
+ * web's partial draws them (`bg-spring/15 text-spring-text`, `bg-sun/30 text-sun-ink`); the design's `Pill`
  * has no such light tones.
  */
 @Composable
 fun StatusPill(text: String, icon: ImageVector, modifier: Modifier, tone: StatusTone = StatusTone.Spring) {
     val foreground = when (tone) {
         StatusTone.Spring -> OasisColors.SpringText
-        StatusTone.Sun -> OasisColors.SunInk
-        StatusTone.Dune -> OasisColors.Night
+
+        // StatusTone.Sun
+        else -> OasisColors.SunInk
     }
     val background = when (tone) {
         StatusTone.Spring -> OasisColors.Spring.copy(alpha = 0.15f)
-        StatusTone.Sun -> OasisColors.Sun.copy(alpha = 0.3f)
-        StatusTone.Dune -> OasisColors.Dune
+        else -> OasisColors.Sun.copy(alpha = 0.3f)
     }
     Row(
         modifier.background(background, CircleShape).padding(horizontal = 12.dp, vertical = 5.dp),

@@ -212,7 +212,7 @@ class AccountEdgeCasesTest {
             .stub("POST", "auth/logout", "{}")
         val session = session(transport, backgroundScope)
         val auth = de.velwebsolutions.oasis.core.auth.RemoteAuthApi(transport.client)
-        val signIn = SignInViewModel(session, auth)
+        val signIn = SignInViewModel(session)
         assertNull(signIn.signIn())
         signIn.setLogin("mira")
         signIn.setPassword("geheim")

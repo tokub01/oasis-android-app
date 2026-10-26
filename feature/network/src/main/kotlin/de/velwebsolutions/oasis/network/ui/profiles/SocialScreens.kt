@@ -345,7 +345,7 @@ fun InvitationsScreen(viewModel: InvitationsViewModel = hiltViewModel<Invitation
                     SideCard("Was Eingeladene bekommen", tone = PanelTone.Dune) {
                         Bullets(
                             listOf(
-                                "${info.trialDays} Tage kostenlos testen, ohne Zahlungsdaten.",
+                                "Eine werbefreie Oase, getragen von den Mitgliedern.",
                                 "Ihr folgt euch nach der Anmeldung automatisch.",
                                 "Keine Werbung, kein Feed, der festhält."
                             )

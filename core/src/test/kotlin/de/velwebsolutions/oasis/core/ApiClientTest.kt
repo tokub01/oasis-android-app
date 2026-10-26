@@ -14,7 +14,7 @@ import org.junit.Test
 
 class ApiClientTest {
     private val me = """{"id":7,"username":"mira","display_name":"Mira Sommer","initials":"MS","email":"mira@example.org",
-        "email_verified":true,"is_staff":false,"trial_ends_at":"2026-11-02T10:00:00.000000Z"}"""
+        "email_verified":true,"is_staff":false,"has_paid_access":false}"""
 
     @Test
     fun `signs in with snake case body and decodes me`() = runTest {
@@ -24,7 +24,7 @@ class ApiClientTest {
         val signedIn = result as SignInResult.SignedIn
         assertEquals("abc", signedIn.token)
         assertEquals("Mira Sommer", signedIn.me.displayName)
-        assertEquals(1_793_613_600L, signedIn.me.trialEndsAt?.epochSecond)
+        assertEquals(false, signedIn.me.mayUseOasis)
         val body = stub.lastBody("auth/login")!!.jsonObject
         assertEquals("Pixel", body["device_name"]!!.jsonPrimitive.content)
         val request = stub.requests.single().request

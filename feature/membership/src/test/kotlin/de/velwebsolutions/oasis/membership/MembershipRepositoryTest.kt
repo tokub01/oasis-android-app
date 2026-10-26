@@ -14,13 +14,11 @@ import org.junit.Test
 
 class MembershipRepositoryTest {
     @Test
-    fun `decodes the trial overview`() = runTest {
-        val (repository, _) = Fixtures.repository(Stub("GET", "membership", json = Fixtures.trialOverview))
+    fun `decodes the overview of a member without membership`() = runTest {
+        val (repository, _) = Fixtures.repository(Stub("GET", "membership", json = Fixtures.noMembershipOverview))
         val overview = repository.overview()
-        assertEquals(MembershipOverview.State.Trial, overview.state)
-        assertEquals(20, overview.trialDaysLeft)
+        assertEquals(MembershipOverview.State.Expired, overview.state)
         assertNull(overview.subscription)
-        assertEquals("11.11.2026", MembershipFormat.day(overview.trialEndsAt))
         assertEquals(true, overview.apple?.available)
         assertEquals("3f2b7c1e-8a4d-5b6e-9c0f-1a2b3c4d5e6f", overview.apple?.accountToken)
         assertEquals(false, overview.apple?.managedByApple)
@@ -107,14 +105,7 @@ class MembershipRepositoryTest {
 
 class MembershipFormatTest {
     @Test
-    fun `trial banner counts days up and hides for members`() {
-        val now = java.time.Instant.ofEpochSecond(1_800_000_000)
-        assertEquals(20, MembershipFormat.trialBannerDaysLeft(now.plusSeconds((86_400 * 19.2).toLong()), null, now))
-        assertEquals(1, MembershipFormat.trialBannerDaysLeft(now.plusSeconds(3600), null, now))
-        assertNull(MembershipFormat.trialBannerDaysLeft(now.plusSeconds(86_400), "oase", now))
-        assertNull(MembershipFormat.trialBannerDaysLeft(now.minusSeconds(1), null, now))
-        assertEquals("1 Tag", MembershipFormat.days(1))
-        assertEquals("2 Tage", MembershipFormat.days(2))
-        assertEquals("1.000", MembershipFormat.count(1000))
+    fun `days as the web writes them`() {
+        assertEquals("11.11.2026", MembershipFormat.day(java.time.Instant.parse("2026-11-11T13:32:15Z")))
     }
 }

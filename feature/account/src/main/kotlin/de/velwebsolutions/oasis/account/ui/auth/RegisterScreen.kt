@@ -22,6 +22,7 @@ import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.outlined.CalendarMonth
 import androidx.compose.material.icons.outlined.Check
+import androidx.compose.material.icons.outlined.FavoriteBorder
 import androidx.compose.material.icons.outlined.Schedule
 import androidx.compose.material3.DatePicker
 import androidx.compose.material3.DatePickerDefaults
@@ -44,10 +45,12 @@ import androidx.compose.ui.focus.FocusDirection
 import androidx.compose.ui.platform.LocalFocusManager
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.semantics.Role
+import androidx.compose.ui.semantics.clearAndSetSemantics
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.heading
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.semantics.stateDescription
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.unit.dp
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
@@ -72,11 +75,10 @@ import java.time.ZoneOffset
 import java.time.format.DateTimeFormatter
 import kotlinx.coroutines.launch
 
-private val Expectations = listOf(
-    "Voller Zugang zu allen Funktionen",
-    "Deine Leute finden oder einladen",
-    "Oasen entdecken, die zu dir passen",
-    "Am Ende entscheidest du: Mitglied werden oder nicht"
+private val Steps = listOf(
+    "Konto anlegen",
+    "E-Mail-Adresse mit dem Code bestätigen",
+    "Beitrag wählen – bezahlt wird über Google Play"
 )
 
 private val GermanDay = DateTimeFormatter.ofPattern("dd.MM.yyyy")
@@ -86,7 +88,7 @@ private val GermanDay = DateTimeFormatter.ofPattern("dd.MM.yyyy")
 internal fun RegisterScreen(onSignIn: () -> Unit, onLegal: (String) -> Unit) {
     val viewModel: RegisterViewModel = hiltViewModel()
     val ui by viewModel.ui.collectAsStateWithLifecycle()
-    OasisScreen(title = "${ui.trialDays} Tage testen") {
+    OasisScreen(title = "Konto erstellen") {
         RegisterContent(ui, viewModel::edit, viewModel::setBirthDate, viewModel::submit, onSignIn, onLegal)
     }
 }
@@ -126,12 +128,12 @@ internal fun RegisterContent(
                     }
                 }
                 Text(
-                    "${ui.trialDays} Tage Oasis, kostenlos.",
+                    "Werde Teil der Oase.",
                     style = OasisType.display(34),
                     color = OasisColors.Night,
                     modifier = Modifier.semantics { heading() }
                 )
-                Text("Keine Zahlungsdaten. Der Test endet von selbst.", style = OasisType.Body, color = OasisColors.Ink2)
+                Text("Werbefrei und ohne Algorithmus, getragen von den Mitgliedern.", style = OasisType.Body, color = OasisColors.Ink2)
                 val formError = error?.message("form")
                 when {
                     formError != null -> Banner(formError)
@@ -216,16 +218,17 @@ internal fun RegisterContent(
                     error?.message("terms")?.let { FieldError(it) }
                 }
                 AsyncOasisButton(
-                    "Konto erstellen und Test starten",
+                    "Konto erstellen",
                     onSubmit,
                     modifier = Modifier.testTag("register.submit"),
                     kind = OasisButtonKind.Accent,
                     enabled = ui.form != null
                 )
                 Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                    Icon(Icons.Outlined.Schedule, contentDescription = null, tint = OasisColors.Ink2, modifier = Modifier.size(18.dp))
+                    Icon(Icons.Outlined.FavoriteBorder, contentDescription = null, tint = OasisColors.Ink2, modifier = Modifier.size(18.dp))
                     Text(
-                        "Dein Test endet nach ${ui.trialDays} Tagen von selbst. Zwei Tage vorher erinnern wir dich per E-Mail.",
+                        "Oasis gibt es nur mit Mitgliedschaft – ohne Werbung, ohne Verkauf deiner Daten. Den Beitrag wählst du nach der " +
+                            "Bestätigung deiner Adresse.",
                         style = OasisType.Small,
                         color = OasisColors.Ink2
                     )
@@ -235,7 +238,7 @@ internal fun RegisterContent(
                     LinkText("Anmelden", onSignIn, bold = false)
                 }
             }
-            NightCard(ui.trialDays)
+            NightCard()
         }
     }
     if (pickingBirthDate) {
@@ -342,17 +345,22 @@ private fun BirthDateDialog(current: LocalDate?, onDismiss: () -> Unit, onTake: 
     }
 }
 
-/** What the trial brings, on Nachtwasser. */
+/** How joining works, on Nachtwasser. */
 @Composable
-private fun NightCard(trialDays: Int) {
+private fun NightCard() {
     Column(
         Modifier.fillMaxWidth().background(OasisColors.Night, RoundedCornerShape(OasisRadius.XL.dp)).padding(24.dp),
         verticalArrangement = Arrangement.spacedBy(14.dp)
     ) {
-        Text("Was dich in den $trialDays Tagen erwartet", style = OasisType.display(26), color = OasisColors.OnNight)
-        Expectations.forEach { item ->
+        Text("So geht es los", style = OasisType.display(26), color = OasisColors.OnNight)
+        Steps.forEachIndexed { index, item ->
             Row(horizontalArrangement = Arrangement.spacedBy(10.dp), verticalAlignment = Alignment.CenterVertically) {
-                Icon(Icons.Outlined.Check, contentDescription = null, tint = OasisColors.OnNight)
+                Box(
+                    Modifier.size(24.dp).border(2.dp, OasisColors.OnNight, CircleShape).clearAndSetSemantics {},
+                    contentAlignment = Alignment.Center
+                ) {
+                    Text("${index + 1}", style = OasisType.Caption.copy(fontWeight = FontWeight.Bold), color = OasisColors.OnNight)
+                }
                 Text(item, style = OasisType.Body, color = OasisColors.OnNight)
             }
         }

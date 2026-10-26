@@ -94,7 +94,7 @@ class MembershipUiTest {
     private val lifecycle = TestLifecycle()
     private val files = MembershipFiles(context.cacheDir)
     private val subscription = Fixtures.overview(Fixtures.subscriptionOverview)
-    private val trial = Fixtures.overview(Fixtures.trialOverview)
+    private val noMembership = Fixtures.overview(Fixtures.noMembershipOverview)
 
     private fun show(withClient: Boolean = true, content: @Composable () -> Unit) {
         compose.setContent {
@@ -134,7 +134,7 @@ class MembershipUiTest {
         state = OverviewUiState(Loadable.Failed(ApiError.Server(500, "Server Error")))
         compose.onNodeWithText("Noch einmal versuchen").assertIsDisplayed()
         shot("overview-error")
-        state = OverviewUiState(Loadable.Loaded(trial), message = "Erledigt.", error = "Nicht gelungen.")
+        state = OverviewUiState(Loadable.Loaded(noMembership), message = "Erledigt.", error = "Nicht gelungen.")
         compose.onRoot().performTouchInput { swipeDown(startY = height * 0.3f, endY = height * 0.9f) }
         compose.waitForIdle()
         assertTrue(refreshed > 0)
@@ -217,18 +217,16 @@ class MembershipUiTest {
     }
 
     @Test
-    fun `a trial member without founding seats and switched-off purchases`() {
-        overview(trial.copy(remainingFoundingSeats = 0, trialDaysLeft = null, isFoundingMember = true, apple = null))
-        compose.onNodeWithText("Der Test endet von selbst. Es entstehen dir keine Kosten.").performScrollTo().assertIsDisplayed()
-        compose.onNodeWithTag("membership.founding").assertIsDisplayed()
+    fun `a founding member without membership and switched-off purchases`() {
+        overview(noMembership.copy(isFoundingMember = true, apple = null))
+        compose.onNodeWithText("Noch keine Mitgliedschaft").performScrollTo().assertIsDisplayed()
         compose.onNodeWithTag("membership.choose").assertDoesNotExist()
-        shot("overview-trial")
+        shot("overview-no-membership")
     }
 
     @Test
-    fun `read-only mode offers the membership when Play may sell`() {
-        val expired = trial.copy(state = MembershipOverview.State.Expired)
-        overview(expired)
+    fun `without membership the overview offers it when Play may sell`() {
+        overview(noMembership)
         compose.onNodeWithTag("membership.expired").assertIsDisplayed()
         shot("overview-expired")
         compose.onNodeWithTag("membership.choose").performScrollTo().performClick()
@@ -236,8 +234,8 @@ class MembershipUiTest {
     }
 
     @Test
-    fun `read-only mode without in-app purchases`() {
-        overview(trial.copy(state = MembershipOverview.State.Expired, apple = null))
+    fun `without membership and without in-app purchases`() {
+        overview(noMembership.copy(apple = null))
         compose.onNodeWithTag("membership.choose").assertDoesNotExist()
     }
 
@@ -457,17 +455,6 @@ class MembershipUiTest {
     }
 
     @Test
-    fun `the trial banner for the signed-in member`() {
-        val me = Me(1, "mia", "Mia", "M", "mia@example.test", trialEndsAt = Instant.now().plus(5, ChronoUnit.DAYS).minusSeconds(60))
-        var member by mutableStateOf(me)
-        show { TrialBanner(member) }
-        compose.onNodeWithTag("membership.trialBanner").assertIsDisplayed()
-        shot("trial-banner")
-        member = me.copy(membershipTier = "oase")
-        compose.onNodeWithTag("membership.trialBanner").assertDoesNotExist()
-    }
-
-    @Test
     fun `a web subscription that can no longer be cancelled, and Apple's switch off`() {
         overview(subscription.copy(canCancel = false, isFoundingMember = false, apple = MembershipOverview.Apple(available = false)))
         compose.onNodeWithTag("membership.portal").assertExists()
@@ -482,7 +469,7 @@ class MembershipUiTest {
     }
 
     @Test
-    fun `a gift for a founding member and a trial for everyone else`() {
+    fun `a gift for a founding member and no membership for everyone else`() {
         var state by mutableStateOf(
             subscription.copy(state = MembershipOverview.State.Gift, gift = MembershipOverview.Gift("Oase", null), isFoundingMember = true)
         )
@@ -490,8 +477,8 @@ class MembershipUiTest {
         compose.onNodeWithTag("membership.founding").performScrollTo().assertIsDisplayed()
         state = state.copy(isFoundingMember = false)
         compose.onNodeWithTag("membership.founding").assertDoesNotExist()
-        state = trial.copy(isFoundingMember = false, apple = MembershipOverview.Apple(available = false))
-        compose.onNodeWithTag("membership.trial").assertIsDisplayed()
+        state = noMembership.copy(isFoundingMember = false, apple = MembershipOverview.Apple(available = false))
+        compose.onNodeWithTag("membership.expired").assertIsDisplayed()
         compose.onNodeWithTag("membership.choose").assertDoesNotExist()
         compose.onNodeWithTag("membership.founding").assertDoesNotExist()
     }

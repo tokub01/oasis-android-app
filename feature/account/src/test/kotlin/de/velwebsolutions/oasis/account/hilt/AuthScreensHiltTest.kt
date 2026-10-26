@@ -35,7 +35,7 @@ class AuthScreensHiltTest : HiltScreenTest() {
         stub("GET", "auth/register", form)
         stub("POST", "auth/login", """{"message":"x","errors":{"login":["Diese Zugangsdaten stimmen nicht."]}}""", status = 422)
         show { SignedOutScreen() }
-        waitForText("14 Tage kostenlos testen")
+        waitForText("Mitglied werden")
         shot("signin")
         type("E-Mail oder Benutzername", "mira")
         compose.onNodeWithContentDescription("E-Mail oder Benutzername").performImeAction()
@@ -88,7 +88,7 @@ class AuthScreensHiltTest : HiltScreenTest() {
         stub("GET", "auth/register", """{"message":"Server Error"}""", status = 500)
         stub("POST", "auth/forgot-password", """{"message":"x","errors":{"email":["Bitte gib eine E-Mail-Adresse ein."]}}""", status = 422)
         show { SignedOutScreen() }
-        waitForText("30 Tage kostenlos testen")
+        waitForText("Mitglied werden")
         compose.onNodeWithTag("forgot.button").tap()
         waitForTag("forgot.submit")
         type("E-Mail-Adresse deines Kontos", "x")

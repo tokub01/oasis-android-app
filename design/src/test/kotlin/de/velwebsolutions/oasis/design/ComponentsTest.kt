@@ -216,9 +216,7 @@ class ComponentsTest {
             OasisTheme {
                 Column {
                     CompositionLocalProvider(
-                        LocalScreenChrome provides ScreenChrome(onBack = {
-                            backs++
-                        }, banner = { Text("Test läuft") })
+                        LocalScreenChrome provides ScreenChrome(onBack = { backs++ })
                     ) {
                         OasisScreen("Gepusht", Modifier.weight(1f), message = message, error = error, onDismissMessage = {
                             message = null
@@ -255,7 +253,6 @@ class ComponentsTest {
         compose.onAllNodesWithContentDescription("Schließen")[0].assertExists()
         compose.onNodeWithText("Eigenes X").assertIsDisplayed()
         compose.onNodeWithText("Kopf").assertIsDisplayed()
-        compose.onNodeWithText("Test läuft").assertIsDisplayed()
         compose.onNodeWithTag("status.error").assertExists()
         compose.onRoot().captureRoboImage("build/outputs/roborazzi/design-screens.png")
         assertEquals(1, backs)

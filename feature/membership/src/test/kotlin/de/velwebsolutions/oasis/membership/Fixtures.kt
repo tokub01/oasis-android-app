@@ -23,8 +23,9 @@ import kotlinx.coroutines.flow.MutableSharedFlow
 
 /** Real answers of the Laravel resources (copied from http://localhost/api/v1/membership… for demo accounts, as on iOS). */
 object Fixtures {
-    val trialOverview = """
-        {"data":{"state":"trial","subscription":null,"gift":null,"trial_days_left":20,"trial_ends_at":"2026-11-11T13:32:15.000000Z","trial_banner_days_left":20,"is_founding_member":false,"remaining_founding_seats":1000,"can_cancel":false,"can_withdraw":false,"purchased_gifts":[],"gift_offers":[{"tier":"solidar","name":"Solidar","price_label":"12 Monate für 30 €"},{"tier":"oase","name":"Oase","price_label":"12 Monate für 50 €"},{"tier":"maezen","name":"Mäzen","price_label":"12 Monate für 120 €"}],"checkout_enabled":true,"referral":{"earned_this_year":0,"waiting":0,"months_per_year":12},"apple":{"available":true,"account_token":"3f2b7c1e-8a4d-5b6e-9c0f-1a2b3c4d5e6f","products":[{"id":"de.velwebsolutions.oasis.solidar.monat","tier":"solidar","rhythm":"monat"},{"id":"de.velwebsolutions.oasis.oase.jahr","tier":"oase","rhythm":"jahr"}],"managed_by_apple":false,"manage_url":"https:\/\/apps.apple.com\/account\/subscriptions"}}}
+    /** A member without membership (there is no free trial): only "Mitglied werden" is open. */
+    val noMembershipOverview = """
+        {"data":{"state":"expired","subscription":null,"gift":null,"is_founding_member":false,"remaining_founding_seats":1000,"can_cancel":false,"can_withdraw":false,"purchased_gifts":[],"gift_offers":[{"tier":"solidar","name":"Solidar","price_label":"12 Monate für 30 €"},{"tier":"oase","name":"Oase","price_label":"12 Monate für 50 €"},{"tier":"maezen","name":"Mäzen","price_label":"12 Monate für 120 €"}],"checkout_enabled":true,"referral":{"earned_this_year":0,"waiting":0,"months_per_year":12},"apple":{"available":true,"account_token":"3f2b7c1e-8a4d-5b6e-9c0f-1a2b3c4d5e6f","products":[{"id":"de.velwebsolutions.oasis.solidar.monat","tier":"solidar","rhythm":"monat"},{"id":"de.velwebsolutions.oasis.oase.jahr","tier":"oase","rhythm":"jahr"}],"managed_by_apple":false,"manage_url":"https:\/\/apps.apple.com\/account\/subscriptions"}}}
     """.trimIndent()
 
     val subscriptionOverview = """

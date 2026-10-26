@@ -101,7 +101,6 @@ class AppWiringTest {
                 CompositionLocalProvider(LocalNavigator provides navigator, LocalApiClient provides apiClient) {
                     Column {
                         routes.forEach { route -> Column(Modifier.height(80.dp)) { AppDestination(route) } }
-                        FeatureScreens.Banner(mira)
                         FeatureScreens.Bell()
                         FeatureScreens.ChatNotice()
                         Column(Modifier.height(80.dp)) { FeatureScreens.Destination(NetworkRoute.Oases) }

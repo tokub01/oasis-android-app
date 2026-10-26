@@ -120,7 +120,7 @@ class AccountRepositoryTest {
             "auth/two-factor-recovery",
             """{"message":"Wenn die Angaben stimmen, bekommst du eine E-Mail."}"""
         )
-        val form = RegistrationForm(honeypotField = "website_url", tokenField = "form_started", formToken = "abc", trialDays = 30)
+        val form = RegistrationForm(honeypotField = "website_url", tokenField = "form_started", formToken = "abc")
         val message = repository(transport).requestTwoFactorRecovery("mira@demo.oasis.tld", "geheim-geheim", form)
         assertEquals("Wenn die Angaben stimmen, bekommst du eine E-Mail.", message)
         assertEquals(

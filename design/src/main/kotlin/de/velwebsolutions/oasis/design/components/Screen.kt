@@ -41,16 +41,14 @@ data class ScreenChrome(
     /** Back one screen (pushed screens); null at a root. */
     val onBack: (() -> Unit)? = null,
     /** Closes the sheet; set on the first screen of a sheet. */
-    val onClose: (() -> Unit)? = null,
-    /** Shown below the bar of every screen in a tab (the trial countdown). */
-    val banner: (@Composable () -> Unit)? = null
+    val onClose: (() -> Unit)? = null
 )
 
 /** The chrome of the current screen. */
 val LocalScreenChrome = staticCompositionLocalOf { ScreenChrome() }
 
 /**
- * The frame of every screen: sand background, the bar the [ScreenChrome] asks for, the trial banner, and the status
+ * The frame of every screen: sand background, the bar the [ScreenChrome] asks for, and the status
  * toast for the screen's confirmation and error. [title] is the screen's name (shown in the bar of pushed screens and
  * read by TalkBack); [actions] are its toolbar buttons.
  */
@@ -115,7 +113,6 @@ fun OasisScreen(
                         windowInsets = if (chrome.onClose != null) WindowInsets(0) else TopAppBarDefaults.windowInsets
                     )
                 }
-                chrome.banner?.invoke()
             }
         }
     ) { padding ->

@@ -140,4 +140,13 @@ class ModelsTest {
         assertEquals(ApiError.Transport("kaputt"), IllegalStateException("kaputt").asApiError())
         assertEquals(ApiError.Transport("java.lang.IllegalStateException"), IllegalStateException().asApiError())
     }
+
+    @Test
+    fun `only members with a paid or gifted membership may use Oasis`() {
+        val me = de.velwebsolutions.oasis.core.model.Me(1, "m", "M", "M", "m@example.org")
+        assertTrue(me.mayUseOasis)
+        assertFalse(me.copy(hasPaidAccess = false).mayUseOasis)
+        // Servers before the members-only change send no field: the app stays open.
+        assertTrue(me.copy(hasPaidAccess = null).mayUseOasis)
+    }
 }

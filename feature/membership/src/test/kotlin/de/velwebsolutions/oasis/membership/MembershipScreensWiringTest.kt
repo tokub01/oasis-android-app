@@ -101,7 +101,7 @@ class MembershipScreensWiringTest {
 
     private fun checkout(gateway: FakeBillingGateway): PlayCheckoutViewModel {
         val verifier = FakeVerifier()
-        repository.overview = Result.success(Fixtures.overview(Fixtures.trialOverview))
+        repository.overview = Result.success(Fixtures.overview(Fixtures.noMembershipOverview))
         return PlayCheckoutViewModel(repository, gateway, PlayDelivery(gateway, verifier), verifier, events, Fixtures.session())
     }
 

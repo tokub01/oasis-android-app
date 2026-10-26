@@ -49,6 +49,11 @@ class RootViewModel @Inject constructor(
         viewModelScope.launch { live.foreground() }
     }
 
+    /** Ask the server again for the member (back in the foreground without a membership). */
+    fun refreshMe() {
+        viewModelScope.launch { session.refreshMe() }
+    }
+
     /** "Abmelden" in the "Mehr" menu. */
     fun signOut() {
         liveUserId = null

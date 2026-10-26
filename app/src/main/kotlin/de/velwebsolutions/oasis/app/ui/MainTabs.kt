@@ -109,7 +109,6 @@ fun MainTabs(me: Me, viewModel: RootViewModel) {
 
     val header: @Composable (@Composable RowScope.() -> Unit) -> Unit = { actions -> AppHeader(me, viewModel, actions) }
     val screens = LocalAppScreens.current
-    val banner: @Composable () -> Unit = { screens.Banner(me) }
     val tabStates = rememberSaveableStateHolder()
 
     Scaffold(
@@ -152,7 +151,7 @@ fun MainTabs(me: Me, viewModel: RootViewModel) {
                 val root = Navigator.rootRoute(tab) ?: NetworkRoute.Profile(me.username)
                 RouteStack(root, navigator.stack(tab).toList(), onBack = {
                     navigator.back()
-                }, rootChrome = ScreenChrome(rootHeader = header, banner = banner), banner = banner)
+                }, rootChrome = ScreenChrome(rootHeader = header))
             }
             StatusToast(confirmation, null, onDismissMessage = viewModel::clearConfirmation, onDismissError = {})
             screens.ChatNotice()
@@ -175,8 +174,7 @@ fun MainTabs(me: Me, viewModel: RootViewModel) {
                     root = sheet,
                     stack = navigator.sheetStack.drop(1),
                     onBack = { navigator.back() },
-                    rootChrome = ScreenChrome(onClose = { navigator.dismissSheet() }),
-                    banner = null
+                    rootChrome = ScreenChrome(onClose = { navigator.dismissSheet() })
                 )
             }
         }
@@ -187,13 +185,14 @@ fun MainTabs(me: Me, viewModel: RootViewModel) {
 @OptIn(ExperimentalMaterial3Api::class)
 internal fun sheetMayChange(target: SheetValue, dismissible: Boolean): Boolean = target != SheetValue.Hidden || dismissible
 
-/** A screen with nothing else around it (lock screen, welcome tour); pushed screens go onto the source tab's stack. */
+/**
+ * A screen without the tabs (lock screen, welcome tour, "Mitglied werden"); pushed screens go onto the selected tab's
+ * stack. [rootChrome] frames its first screen.
+ */
 @Composable
-fun StandaloneStack(root: AppRoute) {
+fun StandaloneStack(root: AppRoute, rootChrome: ScreenChrome = ScreenChrome()) {
     val navigator = LocalNavigator.current
-    RouteStack(root, navigator.stack(navigator.selectedTab).toList(), onBack = {
-        navigator.back()
-    }, rootChrome = ScreenChrome(), banner = null)
+    RouteStack(root, navigator.stack(navigator.selectedTab).toList(), onBack = { navigator.back() }, rootChrome = rootChrome)
 }
 
 /** One entry of a displayed stack; the position keeps entries unique when a route is pushed twice. */
@@ -201,13 +200,7 @@ private data class StackEntry(val index: Int, val route: AppRoute)
 
 /** A root screen with the routes pushed above it, each in its own saved state and view-model store. */
 @Composable
-private fun RouteStack(
-    root: AppRoute,
-    stack: List<AppRoute>,
-    onBack: () -> Unit,
-    rootChrome: ScreenChrome,
-    banner: (@Composable () -> Unit)?
-) {
+private fun RouteStack(root: AppRoute, stack: List<AppRoute>, onBack: () -> Unit, rootChrome: ScreenChrome) {
     val entries = (listOf(root) + stack).mapIndexed(::StackEntry)
     NavDisplay(
         backStack = entries,
@@ -215,7 +208,7 @@ private fun RouteStack(
         entryDecorators = listOf(rememberSaveableStateHolderNavEntryDecorator(), rememberViewModelStoreNavEntryDecorator()),
         entryProvider = { entry ->
             NavEntry(entry, contentKey = "${entry.index}:${entry.route}") {
-                val chrome = if (entry.index == 0) rootChrome else ScreenChrome(onBack = onBack, banner = banner)
+                val chrome = if (entry.index == 0) rootChrome else ScreenChrome(onBack = onBack)
                 CompositionLocalProvider(LocalScreenChrome provides chrome) {
                     LocalAppScreens.current.Destination(entry.route)
                 }

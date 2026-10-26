@@ -44,7 +44,7 @@ class CommonApiTest {
             StubTransport.Stub(
                 "GET",
                 "auth/register",
-                json = """{"data":{"honeypot_field":"website","token_field":"form_token","form_token":"ft","trial_days":30}}"""
+                json = """{"data":{"honeypot_field":"website","token_field":"form_token","form_token":"ft"}}"""
             ),
             StubTransport.Stub("POST", "auth/register", json = """{"token":"t","data":$me}"""),
             StubTransport.Stub("POST", "auth/forgot-password", json = """{"message":"Wenn es das Konto gibt, kommt eine Mail."}"""),
@@ -55,7 +55,7 @@ class CommonApiTest {
         val auth = RemoteAuthApi(stub.client)
         assertEquals("t", (auth.twoFactor("ch", null, "rec-1") as SignInResult.SignedIn).token)
         val form = auth.registrationForm()
-        assertEquals(RegistrationForm("website", "form_token", "ft", 30), form)
+        assertEquals(RegistrationForm("website", "form_token", "ft"), form)
         auth.register(
             Registration("Mira", "mira", "m@example.org", LocalDate.of(2000, 1, 2), "pw", "pw", acceptsTerms = true),
             form,

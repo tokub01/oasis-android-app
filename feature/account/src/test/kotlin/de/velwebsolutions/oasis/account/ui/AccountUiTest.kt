@@ -61,7 +61,7 @@ class AccountUiTest {
         var registers = 0
         compose.setContent {
             SignInContent(
-                ui = SignInUiState(login = "mira", password = "geheim", trialDays = 30),
+                ui = SignInUiState(login = "mira", password = "geheim"),
                 onLogin = { typed += "login:$it" },
                 onPassword = { typed += "password:$it" },
                 onSignIn = { signIns += 1 },
@@ -75,7 +75,7 @@ class AccountUiTest {
         compose.onNodeWithTag("signin.button").performScrollTo().performClick()
         compose.waitUntil { signIns == 1 }
         compose.onNodeWithText("Passwort vergessen?").performScrollTo().assertIsDisplayed()
-        compose.onNodeWithText("30 Tage kostenlos testen").performScrollTo().performClick()
+        compose.onNodeWithText("Mitglied werden").performScrollTo().performClick()
         assertEquals(1, registers)
     }
 
@@ -127,7 +127,7 @@ class AccountUiTest {
         val legal = mutableListOf<String>()
         compose.setContent {
             RegisterContent(
-                RegisterUiState(form = RegistrationForm("website_url", "form_started", "abc", 30), birthDateMissing = true),
+                RegisterUiState(form = RegistrationForm("website_url", "form_started", "abc"), birthDateMissing = true),
                 {},
                 {},
                 {},
@@ -135,8 +135,10 @@ class AccountUiTest {
                 { legal += it }
             )
         }
-        compose.onNodeWithText("30 Tage Oasis, kostenlos.").assertIsDisplayed()
+        compose.onNodeWithText("Werde Teil der Oase.").assertIsDisplayed()
         compose.onNodeWithText("Bitte prüfe die markierten Felder.").assertIsDisplayed()
+        compose.onNodeWithText("So geht es los").performScrollTo().assertIsDisplayed()
+        compose.onNodeWithText("Beitrag wählen – bezahlt wird über Google Play").performScrollTo().assertIsDisplayed()
         compose.onNodeWithText("Das Geburtsdatum ist erforderlich.").performScrollTo().assertIsDisplayed()
         compose.onNodeWithText("AGB").performScrollTo().performClick()
         assertEquals(listOf("agb"), legal)

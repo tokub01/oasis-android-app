@@ -105,7 +105,6 @@ class ShellUiTest {
         live.chats.value = 3
         live.hints.value = 2
         compose.onNodeWithText("Inhalt ${NetworkRoute.Source}").assertIsDisplayed()
-        compose.onNodeWithText("Banner mira").assertIsDisplayed()
         compose.onNodeWithText("Glocke").assertIsDisplayed()
         compose.onNodeWithText("Chat-Hinweis").assertExists()
         compose.onRoot().captureRoboImage("build/outputs/roborazzi/app-tabs.png")
@@ -205,5 +204,45 @@ class ShellUiTest {
         start()
         compose.onNodeWithTag("more.menu").performClick()
         compose.onAllNodes(androidx.compose.ui.test.hasText("Moderation")).assertCountEquals(0)
+    }
+
+    @Test
+    fun `without a membership only Mitglied werden, the membership, the settings and sign-out are open`() {
+        val model = start(mira.copy(hasPaidAccess = false))
+        compose.onNodeWithText("Inhalt ${MembershipRoute.Checkout}").assertIsDisplayed()
+        compose.onAllNodes(androidx.compose.ui.test.hasTestTag("tab.source")).assertCountEquals(0)
+        compose.onRoot().captureRoboImage("build/outputs/roborazzi/app-paywall.png")
+        listOf(
+            "Mitgliedschaft & Gutschein" to MembershipRoute.Overview,
+            "Einstellungen" to AccountRoute.Settings
+        ).forEach { (title, route) ->
+            compose.onNodeWithTag("paywall.menu").performClick()
+            compose.onNodeWithText(title).performClick()
+            compose.onNodeWithText("Inhalt $route").assertIsDisplayed()
+            compose.runOnIdle { navigator.back() }
+        }
+        compose.onNodeWithTag("paywall.menu").performClick()
+        compose.onNodeWithText("Abmelden").performClick()
+        compose.onNodeWithText("Anmelden-Screen").assertIsDisplayed()
+        assertEquals("SignedOut", model.state.value.javaClass.simpleName)
+    }
+
+    @Test
+    fun `a membership bought elsewhere opens the app when it comes back`() {
+        val auth = FakeAuth(mira.copy(hasPaidAccess = false))
+        val session = Session(InMemoryTokenStore("t"), "Pixel", TestScope()).apply { this.auth = auth }
+        val model = RootViewModel(session, live, FakePurchases())
+        compose.setContent {
+            OasisTheme {
+                CompositionLocalProvider(LocalNavigator provides navigator, LocalAppScreens provides FakeScreens) { RootScreen(model) }
+            }
+        }
+        compose.onNodeWithText("Inhalt ${MembershipRoute.Checkout}").assertIsDisplayed()
+        auth.me = mira
+        compose.activityRule.scenario.moveToState(androidx.lifecycle.Lifecycle.State.STARTED)
+        compose.activityRule.scenario.moveToState(androidx.lifecycle.Lifecycle.State.RESUMED)
+        compose.waitUntil(5_000) {
+            compose.onAllNodes(androidx.compose.ui.test.hasTestTag("tab.source")).fetchSemanticsNodes().isNotEmpty()
+        }
     }
 }

@@ -21,9 +21,9 @@ sealed interface SignInResult {
     data class TwoFactorRequired(val challenge: String) : SignInResult
 }
 
-/** Registration form values from the server (bot traps, trial length). */
+/** Registration form values from the server (bot traps). */
 @Serializable
-data class RegistrationForm(val honeypotField: String, val tokenField: String, val formToken: String, val trialDays: Int)
+data class RegistrationForm(val honeypotField: String, val tokenField: String, val formToken: String)
 
 /** What a new account needs (same fields as /testen). */
 data class Registration(

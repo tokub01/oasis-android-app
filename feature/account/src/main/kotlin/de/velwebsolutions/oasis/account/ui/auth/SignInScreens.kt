@@ -96,7 +96,7 @@ internal fun SignInContent(
         HorizontalDivider(color = OasisColors.PaperLine)
         Text("Noch kein Konto?", style = OasisType.Body, color = OasisColors.Ink2)
         OasisButton(
-            "${ui.trialDays ?: 30} Tage kostenlos testen",
+            "Mitglied werden",
             onRegister,
             modifier = Modifier.testTag("register.button"),
             kind = OasisButtonKind.Accent

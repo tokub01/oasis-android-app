@@ -71,7 +71,6 @@ data class InvitationOverview(
     val freeMonthsThisYear: Int = 0,
     val freeMonthsPerYear: Int = 0,
     val freeMonthsWaiting: Int = 0,
-    val trialDays: Int = 0,
     val canCreate: Boolean = false
 ) {
     @Serializable

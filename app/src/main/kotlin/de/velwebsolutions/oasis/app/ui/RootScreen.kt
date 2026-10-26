@@ -12,7 +12,10 @@ import de.velwebsolutions.oasis.design.components.LoadingView
 import de.velwebsolutions.oasis.design.components.oasisScreenBackground
 import de.velwebsolutions.oasis.design.navigation.AccountRoute
 
-/** The whole app: restores the session, then shows sign-in, the e-mail confirmation, the lock screen or the tabs. */
+/**
+ * The whole app: restores the session, then shows sign-in, the e-mail confirmation, the lock screen, "Mitglied werden"
+ * (no membership yet), the welcome tour or the tabs.
+ */
 @Composable
 fun RootScreen(viewModel: RootViewModel = hiltViewModel()) {
     val state by viewModel.state.collectAsStateWithLifecycle()
@@ -24,6 +27,9 @@ fun RootScreen(viewModel: RootViewModel = hiltViewModel()) {
                 !me.emailVerified -> screens.VerifyEmail()
 
                 me.isSuspended -> StandaloneStack(AccountRoute.Suspended)
+
+                // Members-only: without a paid or gifted membership only "Mitglied werden" and the account pages.
+                !me.mayUseOasis -> PaywallScreen(viewModel)
 
                 // New members start with the welcome tour, like the web's Quelle sends them to /app/willkommen.
                 !me.onboarded -> StandaloneStack(AccountRoute.Welcome)
