@@ -5,15 +5,20 @@ import androidx.lifecycle.viewModelScope
 import dagger.hilt.android.lifecycle.HiltViewModel
 import de.velwebsolutions.oasis.account.catching
 import de.velwebsolutions.oasis.account.data.AccountRepository
+import de.velwebsolutions.oasis.account.platform.PasskeyAuthenticator
+import de.velwebsolutions.oasis.account.platform.PasskeyFailure
+import de.velwebsolutions.oasis.account.platform.credentialObject
 import de.velwebsolutions.oasis.core.auth.AuthApi
 import de.velwebsolutions.oasis.core.auth.Registration
 import de.velwebsolutions.oasis.core.auth.RegistrationForm
 import de.velwebsolutions.oasis.core.auth.Session
+import de.velwebsolutions.oasis.core.auth.SignInMethods
 import de.velwebsolutions.oasis.core.auth.SignInResult
 import de.velwebsolutions.oasis.core.network.ApiError
 import de.velwebsolutions.oasis.core.network.asApiError
 import java.time.LocalDate
 import javax.inject.Inject
+import kotlin.coroutines.cancellation.CancellationException
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -24,22 +29,48 @@ import kotlinx.coroutines.launch
 internal suspend fun attempt(block: suspend () -> Unit): ApiError? = catching(block).exceptionOrNull()?.asApiError()
 
 /** The sign-in form (/anmelden). */
-data class SignInUiState(val login: String = "", val password: String = "", val error: ApiError? = null) {
+data class SignInUiState(
+    val login: String = "",
+    val password: String = "",
+    val error: ApiError? = null,
+    /** The ways without a password the server offers; null until `auth/methods` answered (then: e-mail code only). */
+    val methods: SignInMethods? = null,
+    /** The last password was refused: the screen offers a code by e-mail instead. */
+    val passwordRefused: Boolean = false,
+    /** A passkey sign-in that did not work, for the snackbar. */
+    val notice: String? = null
+) {
     val canSubmit: Boolean get() = login.isNotEmpty() && password.isNotEmpty()
+
+    /** „Code per SMS“ only while the server can send SMS. */
+    val offersSms: Boolean get() = methods?.smsAvailable == true
+
+    /** „Mit Passkey anmelden“, if the device can, too. */
+    val offersPasskeys: Boolean get() = methods?.passkeys == true
 }
 
 /**
  * Sign-in with e-mail or username and password, like /anmelden. The app keeps the device token until the member signs
- * out (or ends the sign-in under Geräte), which is what „Angemeldet bleiben“ does on the web.
+ * out (or ends the sign-in under Geräte), which is what „Angemeldet bleiben“ does on the web. Without a password: a code
+ * by e-mail or SMS (its own step) or a passkey.
  */
 @HiltViewModel
-class SignInViewModel @Inject constructor(private val session: Session) : ViewModel() {
+class SignInViewModel @Inject constructor(private val session: Session, private val auth: AuthApi) : ViewModel() {
     private val mutableUi = MutableStateFlow(SignInUiState())
     val ui: StateFlow<SignInUiState> = mutableUi.asStateFlow()
+
+    init {
+        viewModelScope.launch { loadMethods() }
+    }
 
     fun setLogin(value: String) = mutableUi.update { it.copy(login = value) }
 
     fun setPassword(value: String) = mutableUi.update { it.copy(password = value) }
+
+    /** Which ways without a password to offer; without an answer only the e-mail code (always on the server). */
+    suspend fun loadMethods() {
+        catching { auth.methods() }.onSuccess { methods -> mutableUi.update { it.copy(methods = methods) } }
+    }
 
     /** Signs in; returns the two-factor challenge when the code is needed next. */
     suspend fun signIn(): String? {
@@ -52,9 +83,32 @@ class SignInViewModel @Inject constructor(private val session: Session) : ViewMo
             if (result is SignInResult.TwoFactorRequired) challenge = result.challenge
             mutableUi.update { it.copy(password = "") }
         }
-        mutableUi.update { it.copy(error = error) }
+        mutableUi.update { it.copy(error = error, passwordRefused = error is ApiError.Validation) }
         return challenge
     }
+
+    /**
+     * „Mit Passkey anmelden“: the server's options go to the system sheet, its assertion back to the server. A cancelled
+     * sheet stays silent; everything else ends in [SignInUiState.notice].
+     */
+    suspend fun signInWithPasskey(passkeys: PasskeyAuthenticator) {
+        mutableUi.update { it.copy(notice = null) }
+        val notice = try {
+            val ceremony = auth.passkeyOptions()
+            val assertion = passkeys.authenticate(ceremony.options.toString())
+            session.signInWithPasskey(ceremony.challenge, credentialObject(assertion))
+            null
+        } catch (cancelled: CancellationException) {
+            throw cancelled
+        } catch (failure: PasskeyFailure) {
+            failure.userMessage
+        } catch (error: Exception) {
+            error.asApiError().userMessage
+        }
+        mutableUi.update { it.copy(notice = notice) }
+    }
+
+    fun dismissNotice() = mutableUi.update { it.copy(notice = null) }
 }
 
 /** The second factor (/zwei-faktor-anmeldung). */

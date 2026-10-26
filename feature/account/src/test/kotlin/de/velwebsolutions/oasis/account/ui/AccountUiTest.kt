@@ -22,6 +22,7 @@ import de.velwebsolutions.oasis.account.api.PrivacySettingItem
 import de.velwebsolutions.oasis.account.api.PrivacyValue
 import de.velwebsolutions.oasis.account.ui.auth.RegisterContent
 import de.velwebsolutions.oasis.account.ui.auth.RegisterUiState
+import de.velwebsolutions.oasis.account.ui.auth.SignInActions
 import de.velwebsolutions.oasis.account.ui.auth.SignInContent
 import de.velwebsolutions.oasis.account.ui.auth.SignInUiState
 import de.velwebsolutions.oasis.account.ui.auth.TwoFactorContent
@@ -62,11 +63,15 @@ class AccountUiTest {
         compose.setContent {
             SignInContent(
                 ui = SignInUiState(login = "mira", password = "geheim"),
-                onLogin = { typed += "login:$it" },
-                onPassword = { typed += "password:$it" },
-                onSignIn = { signIns += 1 },
-                onForgotPassword = {},
-                onRegister = { registers += 1 }
+                actions = SignInActions(
+                    onLogin = { typed += "login:$it" },
+                    onPassword = { typed += "password:$it" },
+                    onSignIn = { signIns += 1 },
+                    onForgotPassword = {},
+                    onRegister = { registers += 1 },
+                    onLoginCode = {},
+                    onPasskey = null
+                )
             )
         }
         compose.onNodeWithText("Willkommen zurück.").assertIsDisplayed()
@@ -87,11 +92,7 @@ class AccountUiTest {
                     login = "mira",
                     error = ApiError.Validation("x", mapOf("login" to listOf("Diese Zugangsdaten stimmen nicht.")))
                 ),
-                {},
-                {},
-                {},
-                {},
-                {}
+                SignInActions({}, {}, {}, {}, {}, {}, null)
             )
         }
         compose.onNodeWithText("Diese Zugangsdaten stimmen nicht.").assertIsDisplayed()

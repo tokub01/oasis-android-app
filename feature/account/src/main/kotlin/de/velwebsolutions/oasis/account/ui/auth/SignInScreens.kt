@@ -1,10 +1,13 @@
 package de.velwebsolutions.oasis.account.ui.auth
 
+import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardActions
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.outlined.CheckCircle
@@ -23,8 +26,10 @@ import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.unit.dp
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import de.velwebsolutions.oasis.account.platform.rememberPasskeyAuthenticator
 import de.velwebsolutions.oasis.account.ui.components.AuthCard
 import de.velwebsolutions.oasis.account.ui.components.LinkText
+import de.velwebsolutions.oasis.core.auth.LoginCodeChannel
 import de.velwebsolutions.oasis.design.components.AsyncOasisButton
 import de.velwebsolutions.oasis.design.components.Banner
 import de.velwebsolutions.oasis.design.components.BannerKind
@@ -34,35 +39,50 @@ import de.velwebsolutions.oasis.design.components.OasisKeyboard
 import de.velwebsolutions.oasis.design.components.OasisScreen
 import de.velwebsolutions.oasis.design.components.OasisTextField
 import de.velwebsolutions.oasis.design.theme.OasisColors
+import de.velwebsolutions.oasis.design.theme.OasisRadius
 import de.velwebsolutions.oasis.design.theme.OasisType
 import kotlinx.coroutines.launch
 
-/** Sign-in with e-mail or username and password, like /anmelden. */
+/** Sign-in with e-mail or username and password, like /anmelden; without a password by code or passkey. */
 @Composable
-internal fun SignInScreen(onTwoFactor: (String) -> Unit, onForgotPassword: () -> Unit, onRegister: () -> Unit) {
+internal fun SignInScreen(
+    onTwoFactor: (String) -> Unit,
+    onForgotPassword: () -> Unit,
+    onRegister: () -> Unit,
+    onLoginCode: (LoginCodeChannel, String) -> Unit
+) {
     val viewModel: SignInViewModel = hiltViewModel()
     val ui by viewModel.ui.collectAsStateWithLifecycle()
-    OasisScreen(title = null) {
+    val passkeys = rememberPasskeyAuthenticator()
+    OasisScreen(title = null, error = ui.notice, onDismissError = viewModel::dismissNotice) {
         SignInContent(
             ui = ui,
-            onLogin = viewModel::setLogin,
-            onPassword = viewModel::setPassword,
-            onSignIn = { viewModel.signIn()?.let(onTwoFactor) },
-            onForgotPassword = onForgotPassword,
-            onRegister = onRegister
+            actions = SignInActions(
+                onLogin = viewModel::setLogin,
+                onPassword = viewModel::setPassword,
+                onSignIn = { viewModel.signIn()?.let(onTwoFactor) },
+                onForgotPassword = onForgotPassword,
+                onRegister = onRegister,
+                onLoginCode = { channel -> onLoginCode(channel, ui.login) },
+                onPasskey = if (ui.offersPasskeys && passkeys.isAvailable) ({ viewModel.signInWithPasskey(passkeys) }) else null
+            )
         )
     }
 }
 
+/** What the sign-in form can do; [onPasskey] is null while passkeys are not on offer. */
+internal class SignInActions(
+    val onLogin: (String) -> Unit,
+    val onPassword: (String) -> Unit,
+    val onSignIn: suspend () -> Unit,
+    val onForgotPassword: () -> Unit,
+    val onRegister: () -> Unit,
+    val onLoginCode: (LoginCodeChannel) -> Unit,
+    val onPasskey: (suspend () -> Unit)?
+)
+
 @Composable
-internal fun SignInContent(
-    ui: SignInUiState,
-    onLogin: (String) -> Unit,
-    onPassword: (String) -> Unit,
-    onSignIn: suspend () -> Unit,
-    onForgotPassword: () -> Unit,
-    onRegister: () -> Unit
-) {
+internal fun SignInContent(ui: SignInUiState, actions: SignInActions) {
     val focus = LocalFocusManager.current
     val scope = rememberCoroutineScope()
     val error = ui.error
@@ -71,7 +91,7 @@ internal fun SignInContent(
         OasisTextField(
             "E-Mail oder Benutzername",
             ui.login,
-            onLogin,
+            actions.onLogin,
             modifier = Modifier.testTag("login.field"),
             error = error?.message("login"),
             keyboardOptions = OasisKeyboard.Username.copy(imeAction = ImeAction.Next),
@@ -80,27 +100,58 @@ internal fun SignInContent(
         OasisTextField(
             "Passwort",
             ui.password,
-            onPassword,
+            actions.onPassword,
             modifier = Modifier.testTag("password.field"),
             error = error?.message("password"),
             isSecure = true,
             keyboardOptions = OasisKeyboard.Password.copy(imeAction = ImeAction.Go),
-            keyboardActions = KeyboardActions(onGo = { scope.launch { onSignIn() } })
+            keyboardActions = KeyboardActions(onGo = { scope.launch { actions.onSignIn() } })
         )
         Row(horizontalArrangement = Arrangement.spacedBy(6.dp), verticalAlignment = Alignment.CenterVertically) {
             Icon(Icons.Outlined.CheckCircle, contentDescription = null, tint = OasisColors.Muted, modifier = Modifier.size(16.dp))
             Text("Du bleibst auf diesem Gerät angemeldet, bis du dich abmeldest.", style = OasisType.Caption, color = OasisColors.Muted)
         }
-        AsyncOasisButton("Anmelden", onSignIn, modifier = Modifier.testTag("signin.button"), enabled = ui.canSubmit)
-        LinkText("Passwort vergessen?", onForgotPassword, Modifier.testTag("forgot.button"))
+        AsyncOasisButton("Anmelden", actions.onSignIn, modifier = Modifier.testTag("signin.button"), enabled = ui.canSubmit)
+        if (ui.passwordRefused) {
+            Column(
+                Modifier
+                    .fillMaxWidth()
+                    .background(OasisColors.Dune, RoundedCornerShape(OasisRadius.S.dp))
+                    .padding(horizontal = 16.dp, vertical = 8.dp)
+                    .testTag("signin.codeHint")
+            ) {
+                Text("Passwort vergessen?", style = OasisType.Body, color = OasisColors.Ink)
+                LinkText("Melde dich mit einem Code per E-Mail an.", { actions.onLoginCode(LoginCodeChannel.Email) })
+            }
+        }
+        LinkText("Passwort vergessen?", actions.onForgotPassword, Modifier.testTag("forgot.button"))
+        PasswordlessWays(ui, actions)
         HorizontalDivider(color = OasisColors.PaperLine)
         Text("Noch kein Konto?", style = OasisType.Body, color = OasisColors.Ink2)
         OasisButton(
             "Mitglied werden",
-            onRegister,
+            actions.onRegister,
             modifier = Modifier.testTag("register.button"),
             kind = OasisButtonKind.Accent
         )
+    }
+}
+
+/** „Mit Passkey anmelden“, „Ohne Passwort: Code per E-Mail“ and – while SMS is set up – „Code per SMS“. */
+@Composable
+private fun PasswordlessWays(ui: SignInUiState, actions: SignInActions) {
+    HorizontalDivider(color = OasisColors.PaperLine)
+    actions.onPasskey?.let { passkey ->
+        AsyncOasisButton(
+            "Mit Passkey anmelden",
+            passkey,
+            modifier = Modifier.testTag("signin.passkey"),
+            kind = OasisButtonKind.Secondary
+        )
+    }
+    Column {
+        LinkText("Ohne Passwort: Code per E-Mail", { actions.onLoginCode(LoginCodeChannel.Email) }, Modifier.testTag("signin.codeEmail"))
+        if (ui.offersSms) LinkText("Code per SMS", { actions.onLoginCode(LoginCodeChannel.Sms) }, Modifier.testTag("signin.codeSms"))
     }
 }
 

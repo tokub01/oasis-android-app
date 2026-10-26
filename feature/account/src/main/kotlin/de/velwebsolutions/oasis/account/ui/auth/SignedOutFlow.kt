@@ -26,6 +26,7 @@ import de.velwebsolutions.oasis.account.ui.components.AuthCard
 import de.velwebsolutions.oasis.account.ui.components.LinkText
 import de.velwebsolutions.oasis.account.ui.components.ScopedViewModels
 import de.velwebsolutions.oasis.account.ui.components.webUrl
+import de.velwebsolutions.oasis.core.auth.LoginCodeChannel
 import de.velwebsolutions.oasis.design.components.AsyncOasisButton
 import de.velwebsolutions.oasis.design.components.Banner
 import de.velwebsolutions.oasis.design.components.BannerKind
@@ -62,6 +63,11 @@ sealed interface SignedOutStep {
         override val code = "recovery"
     }
 
+    /** „Mit Code anmelden“ by [channel], with what the sign-in form had in its login field. */
+    data class LoginCode(val channel: LoginCodeChannel, val login: String) : SignedOutStep {
+        override val code get() = "login-code:${channel.wire}:$login"
+    }
+
     /** The second factor of a sign-in that asked for it. */
     data class TwoFactor(val challenge: String) : SignedOutStep {
         override val code get() = "two-factor:$challenge"
@@ -74,7 +80,13 @@ sealed interface SignedOutStep {
             raw == "forgot" -> ForgotPassword
             raw == "recovery" -> TwoFactorRecovery
             raw.startsWith("two-factor:") -> TwoFactor(raw.removePrefix("two-factor:"))
+            raw.startsWith("login-code:") -> loginCode(raw.removePrefix("login-code:"))
             else -> null
+        }
+
+        private fun loginCode(kept: String): LoginCode? {
+            val channel = LoginCodeChannel.entries.firstOrNull { it.wire == kept.substringBefore(':') } ?: return null
+            return LoginCode(channel, kept.substringAfter(':'))
         }
     }
 }
@@ -85,9 +97,9 @@ private val StepsSaver = listSaver<SnapshotStateList<SignedOutStep>, String>(
 )
 
 /**
- * Screens for signed-out visitors: sign-in (/anmelden), two-factor step (/zwei-faktor-anmeldung), the lost second
- * factor (/zwei-faktor-hilfe), registration (/testen) and forgot password (/passwort-vergessen), on a small stack of
- * their own. Signing in replaces the whole flow (the session state changes), and its forms are cleared with it.
+ * Screens for signed-out visitors: sign-in (/anmelden), the code sign-in (/anmelden/code), two-factor step
+ * (/zwei-faktor-anmeldung), the lost second factor (/zwei-faktor-hilfe), registration (/testen) and forgot password
+ * (/passwort-vergessen), on a small stack of their own. Signing in replaces the whole flow (the session state changes), and its forms are cleared with it.
  */
 @Composable
 internal fun SignedOutFlow() {
@@ -105,7 +117,8 @@ internal fun SignedOutFlow() {
                 null -> SignInScreen(
                     onTwoFactor = { steps.add(SignedOutStep.TwoFactor(it)) },
                     onForgotPassword = { steps.add(SignedOutStep.ForgotPassword) },
-                    onRegister = { steps.add(SignedOutStep.Register) }
+                    onRegister = { steps.add(SignedOutStep.Register) },
+                    onLoginCode = { channel, login -> steps.add(SignedOutStep.LoginCode(channel, login)) }
                 )
 
                 SignedOutStep.Register -> RegisterScreen(onSignIn = { steps.clear() }, onLegal = { path -> legal(baseUrl + path) })
@@ -113,6 +126,10 @@ internal fun SignedOutFlow() {
                 SignedOutStep.ForgotPassword -> ForgotPasswordScreen(onBackToSignIn = { steps.clear() })
 
                 SignedOutStep.TwoFactorRecovery -> TwoFactorRecoveryScreen()
+
+                is SignedOutStep.LoginCode -> LoginCodeScreen(step.channel, step.login, onTwoFactor = {
+                    steps.add(SignedOutStep.TwoFactor(it))
+                })
 
                 // The remaining step: the second factor.
                 else -> {

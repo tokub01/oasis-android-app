@@ -29,6 +29,7 @@ import de.velwebsolutions.oasis.account.api.WelcomeStep
 import de.velwebsolutions.oasis.account.api.WelcomeTour
 import de.velwebsolutions.oasis.account.ui.auth.PastDates
 import de.velwebsolutions.oasis.account.ui.auth.SignedOutStep
+import de.velwebsolutions.oasis.core.auth.LoginCodeChannel
 import de.velwebsolutions.oasis.core.model.Me
 import de.velwebsolutions.oasis.core.network.OasisJson
 import java.time.Instant
@@ -151,9 +152,17 @@ class AccountModelsTest {
     @Test
     fun signedOutStepsAreKeptByTheirCode() {
         val steps =
-            listOf(SignedOutStep.Register, SignedOutStep.ForgotPassword, SignedOutStep.TwoFactorRecovery, SignedOutStep.TwoFactor("c-1"))
+            listOf(
+                SignedOutStep.Register,
+                SignedOutStep.ForgotPassword,
+                SignedOutStep.TwoFactorRecovery,
+                SignedOutStep.TwoFactor("c-1"),
+                SignedOutStep.LoginCode(LoginCodeChannel.Sms, "mira:sol"),
+                SignedOutStep.LoginCode(LoginCodeChannel.Email, "")
+            )
         assertEquals(steps, steps.map { SignedOutStep.decode(it.code) })
         assertNull(SignedOutStep.decode("unbekannt"))
+        assertNull("a channel of a newer app is dropped", SignedOutStep.decode("login-code:brieftaube:mira"))
     }
 
     @Test
