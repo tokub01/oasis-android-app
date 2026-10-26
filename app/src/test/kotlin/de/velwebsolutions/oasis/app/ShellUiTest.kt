@@ -82,6 +82,12 @@ class ShellUiTest {
     }
 
     @Test
+    fun `a member without a confirmed mobile number confirms it before paying or using Oasis`() {
+        start(mira.copy(phoneVerified = false, hasPaidAccess = false))
+        compose.onNodeWithText("Handy-Screen").assertIsDisplayed()
+    }
+
+    @Test
     fun `a locked member sees the lock screen`() {
         start(mira.copy(isSuspended = true))
         compose.onNodeWithText("Inhalt ${AccountRoute.Suspended}").assertIsDisplayed()

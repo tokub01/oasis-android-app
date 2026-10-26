@@ -97,6 +97,9 @@ object FakeScreens : AppScreens {
     override fun VerifyEmail() = Text("E-Mail-Screen")
 
     @Composable
+    override fun ConfirmPhone() = Text("Handy-Screen")
+
+    @Composable
     override fun Destination(route: AppRoute) = OasisScreen(title = "Screen $route") { Text("Inhalt $route") }
 
     @Composable

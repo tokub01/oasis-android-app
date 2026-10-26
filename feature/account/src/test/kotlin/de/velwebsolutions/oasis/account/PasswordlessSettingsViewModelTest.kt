@@ -1,6 +1,7 @@
 package de.velwebsolutions.oasis.account
 
 import de.velwebsolutions.oasis.account.api.Passkey
+import de.velwebsolutions.oasis.account.hilt.HiltScreenTest
 import de.velwebsolutions.oasis.account.platform.PasskeyAuthenticator
 import de.velwebsolutions.oasis.account.platform.PasskeyFailure
 import de.velwebsolutions.oasis.account.ui.auth.LoginCodeViewModel
@@ -66,7 +67,7 @@ class PasswordlessSettingsViewModelTest {
         keys.startRename(first)
         keys.rename("Neu")
         keys.remove(first)
-        val phone = PhoneNumberViewModel(refusing)
+        val phone = PhoneNumberViewModel(refusing, session(transport, backgroundScope))
         phone.ui.first { it.state is Loadable.Loaded }
         phone.sendCode()
         phone.confirm()
@@ -254,7 +255,7 @@ class PasswordlessSettingsViewModelTest {
             .stub("GET", "account/phone", PasswordlessFixtures.phone())
             .stub("POST", "account/phone", PasswordlessFixtures.LOCKED, status = 423)
             .stub("POST", "account/confirm-password", Fixtures.account)
-        val model = PhoneNumberViewModel(repository(transport))
+        val model = PhoneNumberViewModel(repository(transport), session(transport, backgroundScope))
         model.ui.first { it.state is Loadable.Loaded }
         assertTrue(model.ui.value.showsNumberField)
         model.setNumber(" 0176 12345678 ")
@@ -309,7 +310,7 @@ class PasswordlessSettingsViewModelTest {
         val transport = StubTransport()
             .stub("GET", "account/phone", "{}", status = 500)
             .stub("DELETE", "account/phone", PasswordlessFixtures.LOCKED, status = 423)
-        val model = PhoneNumberViewModel(repository(transport))
+        val model = PhoneNumberViewModel(repository(transport), session(transport, backgroundScope))
         model.ui.first { it.state is Loadable.Failed }
         assertFalse("nothing loaded yet", model.ui.value.showsNumberField)
         transport.add("GET", "account/phone", json = PasswordlessFixtures.phone(available = false, number = "+49 176 ••• 78"))
@@ -330,5 +331,28 @@ class PasswordlessSettingsViewModelTest {
         assertEquals(PasswordPrompt(), model.prompt.value)
         model.cancelPasswordConfirmation()
         assertNull(model.prompt.value)
+    }
+
+    @Test
+    fun onlyStaffMayDeleteTheNumberAndAConfirmedNumberMovesTheAppOn() = runTest {
+        val transport = StubTransport()
+            .stub("GET", "account/phone", PasswordlessFixtures.phone(pending = "+49 176 ••• 78"))
+            .stub("POST", "account/phone/confirm", PasswordlessFixtures.phone(number = "+49 176 ••• 78"))
+            .stub("GET", "auth/me", """{"data":${Fixtures.ME}}""")
+            .stub("POST", "auth/logout", "", status = 204)
+        val session = session(transport, backgroundScope, token = "t")
+        val model = PhoneNumberViewModel(repository(transport), session)
+        assertFalse("signed out", model.canRemove)
+        session.update(HiltScreenTest.MIRA.copy(phoneVerified = false))
+        assertFalse(model.canRemove)
+        session.update(HiltScreenTest.MIRA.copy(phoneVerified = false, isStaff = true))
+        assertTrue(model.canRemove)
+        model.ui.first { it.state is Loadable.Loaded }
+        model.setCode("123456")
+        model.confirm()
+        assertEquals("me is reloaded after the confirmation", true, session.me?.phoneVerified)
+        assertTrue(transport.requests.any { it.path == "auth/me" })
+        model.signOut()
+        assertEquals(SessionState.SignedOut, session.state.value)
     }
 }

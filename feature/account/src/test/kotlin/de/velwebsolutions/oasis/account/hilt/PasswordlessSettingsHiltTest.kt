@@ -155,6 +155,7 @@ class PasswordlessSettingsHiltTest : DeviceScreenTest() {
         waitForText("Auf diesem Gerät gehen Passkeys nicht.", substring = true)
         waitForText("SMS sind gerade nicht verfügbar.", substring = true)
         compose.onNodeWithTag("phone.field").assertDoesNotExist()
+        compose.onNodeWithTag("phone.remove").assertDoesNotExist()
         shot("settings-passkeys-unavailable")
     }
 
@@ -173,6 +174,7 @@ class PasswordlessSettingsHiltTest : DeviceScreenTest() {
     @Test
     fun theMobileNumberIsConfirmedWithTheSmsChangedAndDeleted() {
         settingsWithPasskeys("""{"data":[]}""")
+        signIn(MIRA.copy(isStaff = true))
         stub("GET", "account/phone", PasswordlessFixtures.phone())
         stub("POST", "account/phone", PasswordlessFixtures.LOCKED, status = 423)
         showWithDevice { AccountScreen(AccountRoute.Settings) }
@@ -227,6 +229,7 @@ class PasswordlessSettingsHiltTest : DeviceScreenTest() {
     @Test
     fun aWaitingNumberCanBeReplaced() {
         settingsWithPasskeys("""{"data":[]}""")
+        signIn(MIRA.copy(isStaff = true))
         stub("GET", "account/phone", PasswordlessFixtures.phone(number = "+49 151 ••• 12", pending = "+49 176 ••• 78"))
         stub("POST", "account/phone", """{"message":"x","errors":{"phone_number":["Das ist keine gültige Handynummer."]}}""", status = 422)
         stub("DELETE", "account/phone", "{}", status = 500)

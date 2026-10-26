@@ -4,6 +4,7 @@ import androidx.activity.compose.BackHandler
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.remember
+import de.velwebsolutions.oasis.account.ui.auth.ConfirmPhoneContentScreen
 import de.velwebsolutions.oasis.account.ui.auth.SignedOutFlow
 import de.velwebsolutions.oasis.account.ui.auth.VerifyEmailContentScreen
 import de.velwebsolutions.oasis.account.ui.components.ScopedViewModels
@@ -85,6 +86,16 @@ fun VerifyEmailScreen() {
                     VerifyEmailContentScreen(onSettings = { local.open(AccountRoute.Settings) })
                 }
             }
+        }
+    }
+}
+
+/** The mobile-number confirmation after the e-mail address (web: /app/handynummer); signing out is its only way out. */
+@Composable
+fun ConfirmPhoneScreen() {
+    ScopedViewModels {
+        CompositionLocalProvider(LocalScreenChrome provides ScreenChrome()) {
+            ConfirmPhoneContentScreen()
         }
     }
 }

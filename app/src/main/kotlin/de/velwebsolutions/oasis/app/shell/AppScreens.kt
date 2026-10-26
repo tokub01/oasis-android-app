@@ -2,6 +2,7 @@ package de.velwebsolutions.oasis.app.shell
 
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.staticCompositionLocalOf
+import de.velwebsolutions.oasis.account.ConfirmPhoneScreen
 import de.velwebsolutions.oasis.account.SignedOutScreen
 import de.velwebsolutions.oasis.account.VerifyEmailScreen
 import de.velwebsolutions.oasis.app.ui.AppDestination
@@ -21,6 +22,9 @@ interface AppScreens {
     fun VerifyEmail()
 
     @Composable
+    fun ConfirmPhone()
+
+    @Composable
     fun Destination(route: AppRoute)
 
     @Composable
@@ -37,6 +41,9 @@ object FeatureScreens : AppScreens {
 
     @Composable
     override fun VerifyEmail() = VerifyEmailScreen()
+
+    @Composable
+    override fun ConfirmPhone() = ConfirmPhoneScreen()
 
     @Composable
     override fun Destination(route: AppRoute) = AppDestination(route)

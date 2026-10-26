@@ -11,6 +11,8 @@ data class Me(
     val initials: String,
     val email: String,
     val emailVerified: Boolean = true,
+    /** False until a mobile number is confirmed by SMS (always true for staff; servers without the field: true). */
+    val phoneVerified: Boolean = true,
     val role: String = "member",
     val isStaff: Boolean = false,
     val isAdmin: Boolean = false,

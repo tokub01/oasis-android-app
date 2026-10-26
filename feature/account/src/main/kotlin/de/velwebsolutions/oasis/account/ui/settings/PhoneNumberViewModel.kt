@@ -6,6 +6,7 @@ import dagger.hilt.android.lifecycle.HiltViewModel
 import de.velwebsolutions.oasis.account.api.PhoneNumberStatus
 import de.velwebsolutions.oasis.account.catching
 import de.velwebsolutions.oasis.account.data.AccountRepository
+import de.velwebsolutions.oasis.core.auth.Session
 import de.velwebsolutions.oasis.core.model.Loadable
 import de.velwebsolutions.oasis.core.model.failing
 import de.velwebsolutions.oasis.core.model.refreshing
@@ -39,15 +40,20 @@ data class PhoneNumberUiState(
 }
 
 /**
- * The optional mobile number for sign-in codes by SMS: type it, get a code by SMS, confirm it; change or delete it.
- * Sending a code and deleting need a recent password confirmation ([PasswordGate]); afterwards the action continues.
+ * The mobile number of the account, in the settings and in the step after the e-mail confirmation (web: app.phone):
+ * type it, get a code by SMS, confirm it; change it (and, for staff, delete it). Changing a confirmed number and
+ * deleting it need a recent password confirmation ([PasswordGate]); afterwards the action continues. The first number
+ * needs none.
  */
 @HiltViewModel
-class PhoneNumberViewModel @Inject constructor(private val repository: AccountRepository) : ViewModel() {
+class PhoneNumberViewModel @Inject constructor(private val repository: AccountRepository, private val session: Session) : ViewModel() {
     private val mutableUi = MutableStateFlow(PhoneNumberUiState())
     val ui: StateFlow<PhoneNumberUiState> = mutableUi.asStateFlow()
 
     private val gate = PasswordGate(repository)
+
+    /** Only staff may go without a number; everybody else can change it, not delete it. */
+    val canRemove: Boolean get() = session.me?.isStaff == true
 
     /** „Kurz bestätigen“ for a waiting action. */
     val prompt: StateFlow<PasswordPrompt?> = gate.prompt
@@ -89,6 +95,8 @@ class PhoneNumberViewModel @Inject constructor(private val repository: AccountRe
         gate.run({
             show(repository.confirmPhone(code))
             mutableUi.update { it.copy(code = "", message = CONFIRMED) }
+            // The phone step ends here: with the confirmed number the app moves on to "Mitglied werden" or the tabs.
+            session.refreshMe()
         }, ::handle)
     }
 
@@ -105,6 +113,9 @@ class PhoneNumberViewModel @Inject constructor(private val repository: AccountRe
             load()
         }, ::handle)
     }
+
+    /** „Abmelden“ of the phone step. */
+    suspend fun signOut() = session.signOut()
 
     suspend fun confirmPassword(password: String): Boolean = gate.confirm(password)
 

@@ -184,7 +184,7 @@ internal fun PhoneNumberSection(ui: PhoneNumberUiState, viewModel: PhoneNumberVi
     val scope = rememberCoroutineScope()
     SectionCard("Handynummer") {
         Text(
-            "Freiwillig: Mit einer bestätigten Handynummer kannst du dir Anmeldecodes auch per SMS schicken lassen. Wir speichern sie verschlüsselt und nutzen sie für nichts anderes.",
+            "Jedes Oasis-Konto gehört zu einer bestätigten Handynummer. Mit ihr kannst du dir Anmeldecodes auch per SMS schicken lassen. Wir speichern sie verschlüsselt und nutzen sie für nichts anderes.",
             style = OasisType.Small,
             color = OasisColors.Ink2
         )
@@ -268,7 +268,7 @@ private fun PhoneNumberContent(ui: PhoneNumberUiState, status: PhoneNumberStatus
                     fullWidth = false
                 )
             }
-            if (status.phoneNumber != null) {
+            if (status.phoneNumber != null && viewModel.canRemove) {
                 OasisButton(
                     "Nummer löschen",
                     viewModel::askRemoval,
