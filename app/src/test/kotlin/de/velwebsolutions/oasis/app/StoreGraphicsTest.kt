@@ -12,6 +12,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.test.junit4.createComposeRule
 import androidx.compose.ui.test.onRoot
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import com.github.takahirom.roborazzi.captureRoboImage
 import de.velwebsolutions.oasis.design.components.OasisLogo
 import de.velwebsolutions.oasis.design.theme.OasisColors
@@ -44,7 +45,11 @@ class StoreGraphicsTest {
                     Column(Modifier.padding(horizontal = 72.dp), verticalArrangement = Arrangement.spacedBy(28.dp)) {
                         OasisLogo(size = 96.dp)
                         Text("Social Media, das dir Zeit zurückgibt.", style = OasisType.display(44), color = OasisColors.Night)
-                        Text("Ohne Werbung. Ohne Algorithmus. Mit einem Ende.", style = OasisType.Lead, color = OasisColors.Ink2)
+                        Text(
+                            "Ohne Werbung. Ohne Algorithmus. Mit einem Ende.",
+                            style = OasisType.Lead.copy(fontSize = 26.sp, lineHeight = 34.sp),
+                            color = OasisColors.Ink2
+                        )
                     }
                 }
             }
