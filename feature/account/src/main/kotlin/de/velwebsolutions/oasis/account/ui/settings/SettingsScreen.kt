@@ -70,34 +70,64 @@ import de.velwebsolutions.oasis.design.theme.OasisRadius
 import de.velwebsolutions.oasis.design.theme.OasisType
 
 /**
- * Einstellungen (/app/einstellungen): Profil, Passwort, Zwei-Faktor-Anmeldung, Deine Daten, Konto löschen – plus
- * „Hilfe & Rechtliches“ with the website's pages and „Abmelden“. Reachable without a verified address and while
- * locked, like the web route.
+ * Einstellungen (/app/einstellungen): Profil, Passwort, Zwei-Faktor-Anmeldung, Passkeys, Handynummer, Deine Daten,
+ * Konto löschen – plus „Hilfe & Rechtliches“ with the website's pages and „Abmelden“. Reachable without a verified
+ * address and while locked, like the web route.
  */
 @Composable
-internal fun SettingsScreen(viewModel: SettingsViewModel = hiltViewModel()) {
+internal fun SettingsScreen(
+    viewModel: SettingsViewModel = hiltViewModel(),
+    passkeys: PasskeysViewModel = hiltViewModel(),
+    phone: PhoneNumberViewModel = hiltViewModel()
+) {
     val navigator = LocalNavigator.current
     val ui by viewModel.ui.collectAsStateWithLifecycle()
+    val passkeysUi by passkeys.ui.collectAsStateWithLifecycle()
+    val phoneUi by phone.ui.collectAsStateWithLifecycle()
+    val passkeysPrompt by passkeys.prompt.collectAsStateWithLifecycle()
+    val phonePrompt by phone.prompt.collectAsStateWithLifecycle()
     LaunchedEffect(ui.accountDeleted) { if (ui.accountDeleted) viewModel.signOut() }
     OasisScreen(
         title = "Einstellungen",
-        message = ui.message,
-        error = ui.error,
-        onDismissMessage = viewModel::dismissMessage,
-        onDismissError = viewModel::dismissError
+        message = ui.message ?: passkeysUi.message ?: phoneUi.message,
+        error = ui.error ?: passkeysUi.error ?: phoneUi.error,
+        onDismissMessage = {
+            viewModel.dismissMessage()
+            passkeys.dismissMessage()
+            phone.dismissMessage()
+        },
+        onDismissError = {
+            viewModel.dismissError()
+            passkeys.dismissError()
+            phone.dismissError()
+        }
     ) {
         SettingsContent(
             ui = ui,
             canSeeWelcome = viewModel.canSeeWelcome,
             viewModel = viewModel,
             open = { navigator.open(it) }
-        )
-        if (ui.pendingAction != null) PasswordConfirmSheet(ui, viewModel)
+        ) {
+            PasskeysSection(passkeysUi, passkeys)
+            PhoneNumberSection(phoneUi, phone)
+        }
+        if (ui.pendingAction != null) {
+            PasswordConfirmSheet(ui.fieldErrors["password"], viewModel::confirmPassword, viewModel::cancelPasswordConfirmation)
+        }
+        passkeysPrompt?.let { PasswordConfirmSheet(it.error, passkeys::confirmPassword, passkeys::cancelPasswordConfirmation) }
+        phonePrompt?.let { PasswordConfirmSheet(it.error, phone::confirmPassword, phone::cancelPasswordConfirmation) }
     }
 }
 
+/** The settings page; [signInWays] are the blocks for passkeys and the mobile number below the two-factor block. */
 @Composable
-internal fun SettingsContent(ui: SettingsUiState, canSeeWelcome: Boolean, viewModel: SettingsViewModel, open: (AppRoute) -> Unit) {
+internal fun SettingsContent(
+    ui: SettingsUiState,
+    canSeeWelcome: Boolean,
+    viewModel: SettingsViewModel,
+    open: (AppRoute) -> Unit,
+    signInWays: @Composable () -> Unit
+) {
     AccountPage(spacing = 24) {
         Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
             PageHeader("Einstellungen", eyebrow = "Konto", lead = "Profil, Passwort, Anmeldung und deine Daten an einem Ort.")
@@ -108,6 +138,7 @@ internal fun SettingsContent(ui: SettingsUiState, canSeeWelcome: Boolean, viewMo
                 ProfileSection(ui, settings, viewModel)
                 PasswordSection(ui, viewModel)
                 TwoFactorSection(ui, settings, viewModel)
+                signInWays()
                 SectionCard(
                     "Deine Daten",
                     detail =
@@ -416,13 +447,16 @@ private fun HelpAndLegalSection(open: (AppRoute) -> Unit) {
     }
 }
 
-/** „Kurz bestätigen“ (/passwort-bestaetigen) before two-factor changes and the deletion; valid three hours on this device. */
+/**
+ * „Kurz bestätigen“ (/passwort-bestaetigen) before two-factor changes, the deletion, passkeys and the mobile number;
+ * valid three hours on this device. [onConfirm] answers false on a wrong password ([error] then says why).
+ */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-private fun PasswordConfirmSheet(ui: SettingsUiState, viewModel: SettingsViewModel) {
+private fun PasswordConfirmSheet(error: String?, onConfirm: suspend (String) -> Boolean, onCancel: () -> Unit) {
     var password by remember { mutableStateOf("") }
     ModalBottomSheet(
-        onDismissRequest = viewModel::cancelPasswordConfirmation,
+        onDismissRequest = onCancel,
         sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true),
         containerColor = OasisColors.Sand
     ) {
@@ -432,7 +466,7 @@ private fun PasswordConfirmSheet(ui: SettingsUiState, viewModel: SettingsViewMod
         ) {
             Row(verticalAlignment = Alignment.CenterVertically) {
                 Text("Kurz bestätigen", style = OasisType.display(30), color = OasisColors.Night, modifier = Modifier.weight(1f))
-                OasisTextButton("Abbrechen", viewModel::cancelPasswordConfirmation)
+                OasisTextButton("Abbrechen", onCancel)
             }
             Text("Bitte gib zur Sicherheit dein Passwort ein.", style = OasisType.Body, color = OasisColors.Ink2)
             OasisTextField(
@@ -440,12 +474,12 @@ private fun PasswordConfirmSheet(ui: SettingsUiState, viewModel: SettingsViewMod
                 password,
                 { password = it },
                 modifier = Modifier.testTag("confirm.password"),
-                error = ui.fieldErrors["password"],
+                error = error,
                 isSecure = true
             )
             AsyncOasisButton(
                 "Bestätigen",
-                { if (viewModel.confirmPassword(password)) password = "" },
+                { if (onConfirm(password)) password = "" },
                 modifier = Modifier.testTag("confirm.submit"),
                 enabled = password.isNotEmpty()
             )

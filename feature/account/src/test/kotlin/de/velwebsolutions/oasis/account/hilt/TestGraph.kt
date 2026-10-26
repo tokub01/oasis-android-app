@@ -15,6 +15,7 @@ import de.velwebsolutions.oasis.core.auth.RemoteAuthApi
 import de.velwebsolutions.oasis.core.auth.Session
 import de.velwebsolutions.oasis.core.di.AppScope
 import de.velwebsolutions.oasis.core.di.CoreModule
+import de.velwebsolutions.oasis.core.di.DeviceName
 import de.velwebsolutions.oasis.core.network.ApiClient
 import de.velwebsolutions.oasis.core.network.CommonApi
 import de.velwebsolutions.oasis.core.network.RemoteCommonApi
@@ -59,6 +60,9 @@ object TestCoreModule {
     @Provides
     @Singleton
     fun realtime(): RealtimeService = NoRealtime()
+
+    @Provides
+    fun deviceName(): DeviceName = DeviceName("Pixel 9")
 }
 
 /**
