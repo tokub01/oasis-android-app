@@ -167,7 +167,7 @@ class PasswordlessSettingsViewModelTest {
         val cancelled = FakePasskeys(failure = PasskeyFailure.Cancelled())
         model.attach(cancelled)
         model.add()
-        assertNull(model.ui.value.error)
+        assertEquals("Abgebrochen: Es wurde kein Passkey angelegt.", model.ui.value.error)
         model.detach(FakePasskeys())
         model.add()
         assertEquals("another screen's provider does not detach this one", 2, cancelled.requests.size)

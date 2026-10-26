@@ -109,7 +109,7 @@ class PasswordlessSignInHiltTest : DeviceScreenTest() {
         waitForTag("logincode.change")
         compose.onNodeWithTag("logincode.change").tap()
         waitForTag("logincode.send")
-        back()
+        compose.onNodeWithTag("logincode.password").tap()
         waitForTag("signin.button")
     }
 
@@ -120,6 +120,10 @@ class PasswordlessSignInHiltTest : DeviceScreenTest() {
         waitForTag("signin.codeSms")
         compose.onNodeWithTag("signin.codeSms").tap()
         waitForText("Kein Passwort nötig: Wir schicken dir einen Code.")
+        waitForText("Wohin sollen wir den Code schicken?")
+        compose.onNodeWithTag("logincode.channel.Email").tap()
+        compose.onNodeWithTag("logincode.channel.Sms").tap()
+        shot("logincode-channel")
         compose.onNodeWithTag("logincode.send").assertIsNotEnabled()
         type("E-Mail oder Benutzername", "mira")
         stub("POST", "auth/login-code", """{"message":"x","errors":{"channel":["SMS ist gerade nicht verfügbar."]}}""", status = 422)
@@ -150,7 +154,9 @@ class PasswordlessSignInHiltTest : DeviceScreenTest() {
         waitForTag("signin.passkey")
         passkeys.failure = PasskeyFailure.Cancelled()
         compose.onNodeWithTag("signin.passkey").tap()
-        compose.waitUntil(5_000) { passkeys.requests.size == 1 }
+        waitForText("Die Anmeldung mit Passkey wurde abgebrochen.")
+        compose.onNodeWithContentDescription("Schließen").press()
+        compose.waitUntil(5_000) { compose.onAllNodes(hasTestTag("status.error")).fetchSemanticsNodes().isEmpty() }
         passkeys.failure = PasskeyFailure.NoPasskey()
         compose.onNodeWithTag("signin.passkey").tap()
         waitForText("Auf diesem Gerät ist kein Passkey für Oasis gespeichert.", substring = true)

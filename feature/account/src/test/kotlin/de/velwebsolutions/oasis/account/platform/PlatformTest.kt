@@ -35,9 +35,11 @@ import androidx.credentials.exceptions.GetCredentialProviderConfigurationExcepti
 import androidx.credentials.exceptions.GetCredentialUnknownException
 import androidx.credentials.exceptions.GetCredentialUnsupportedException
 import androidx.credentials.exceptions.NoCredentialException
+import androidx.credentials.exceptions.domerrors.AbortError
 import androidx.credentials.exceptions.domerrors.InvalidStateError
 import androidx.credentials.exceptions.domerrors.NotAllowedError
 import androidx.credentials.exceptions.publickeycredential.CreatePublicKeyCredentialDomException
+import androidx.credentials.exceptions.publickeycredential.GetPublicKeyCredentialDomException
 import androidx.test.core.app.ApplicationProvider
 import com.google.android.gms.auth.api.phone.SmsRetriever
 import com.google.android.gms.common.api.CommonStatusCodes
@@ -172,12 +174,15 @@ class PlatformTest {
             GetCredentialUnsupportedException() to PasskeyFailure.Unavailable::class,
             CreateCredentialUnsupportedException() to PasskeyFailure.Unavailable::class,
             CreatePublicKeyCredentialDomException(InvalidStateError()) to PasskeyFailure.AlreadyRegistered::class,
-            CreatePublicKeyCredentialDomException(NotAllowedError()) to PasskeyFailure.Failed::class,
+            CreatePublicKeyCredentialDomException(NotAllowedError()) to PasskeyFailure.Cancelled::class,
+            CreatePublicKeyCredentialDomException(AbortError()) to PasskeyFailure.Failed::class,
+            GetPublicKeyCredentialDomException(NotAllowedError()) to PasskeyFailure.Cancelled::class,
+            GetPublicKeyCredentialDomException(AbortError()) to PasskeyFailure.Failed::class,
             GetCredentialUnknownException() to PasskeyFailure.Failed::class,
             CreateCredentialUnknownException() to PasskeyFailure.Failed::class
         )
         cases.forEach { (error, expected) -> assertEquals(error.toString(), expected, passkeyFailure(error)::class) }
-        assertNull("a cancelled sheet stays silent", PasskeyFailure.Cancelled().userMessage)
+        assertNull("the screens word a cancelled sheet themselves", PasskeyFailure.Cancelled().userMessage)
         assertEquals("cancelled", PasskeyFailure.Cancelled().message)
         listOf(PasskeyFailure.NoPasskey(), PasskeyFailure.AlreadyRegistered(), PasskeyFailure.Unavailable(), PasskeyFailure.Failed())
             .forEach { assertEquals(it.userMessage, it.message) }

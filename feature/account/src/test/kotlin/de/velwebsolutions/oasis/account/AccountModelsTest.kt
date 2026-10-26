@@ -8,6 +8,7 @@ import de.velwebsolutions.oasis.account.api.GlossaryTerm
 import de.velwebsolutions.oasis.account.api.HiddenWords
 import de.velwebsolutions.oasis.account.api.OasisJoined
 import de.velwebsolutions.oasis.account.api.OpenVote
+import de.velwebsolutions.oasis.account.api.PhoneNumberStatus
 import de.velwebsolutions.oasis.account.api.PrivacyCentre
 import de.velwebsolutions.oasis.account.api.PrivacyChoice
 import de.velwebsolutions.oasis.account.api.PrivacyCounts
@@ -170,5 +171,13 @@ class AccountModelsTest {
         val dates = PastDates(today = 1_000)
         assertTrue(dates.isSelectableDate(1_000))
         assertFalse(dates.isSelectableDate(1_001))
+    }
+
+    @Test
+    fun theMobileNumberBlockIsLeftOutOnlyWithoutSmsAndWithoutANumber() {
+        assertFalse(PhoneNumberStatus().isShown)
+        assertTrue(PhoneNumberStatus(smsAvailable = true).isShown)
+        assertTrue("a saved number can still be deleted", PhoneNumberStatus(phoneNumber = "+49 176 ••• 78").isShown)
+        assertTrue(PhoneNumberStatus(pending = "+49 176 ••• 78").isShown)
     }
 }

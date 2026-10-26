@@ -77,7 +77,10 @@ data class PhoneNumberStatus(
     val verifiedAt: OasisInstant? = null,
     /** A new number waiting for the code of its SMS, masked. */
     val pending: String? = null
-)
+) {
+    /** Web and iOS leave the block out while SMS is off and no number is saved (a saved one can still be deleted). */
+    val isShown: Boolean get() = smsAvailable || phoneNumber != null || pending != null
+}
 
 /** `{message, data: Me}` of a profile change. */
 @Serializable

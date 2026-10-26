@@ -3,6 +3,7 @@ package de.velwebsolutions.oasis.account.ui.auth
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.text.KeyboardActions
+import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
@@ -19,6 +20,7 @@ import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import de.velwebsolutions.oasis.account.platform.SmsCodeConsent
 import de.velwebsolutions.oasis.account.ui.components.AuthCard
+import de.velwebsolutions.oasis.account.ui.components.FlowChoices
 import de.velwebsolutions.oasis.account.ui.components.LinkText
 import de.velwebsolutions.oasis.account.ui.components.OneTimeCodeField
 import de.velwebsolutions.oasis.core.auth.LoginCodeChannel
@@ -34,9 +36,12 @@ import de.velwebsolutions.oasis.design.theme.OasisColors
 import de.velwebsolutions.oasis.design.theme.OasisType
 import kotlinx.coroutines.launch
 
-/** „Mit Code anmelden“ (/anmelden/code): the login, then the six digits from the e-mail or SMS. */
+/**
+ * „Mit Code anmelden“ (/anmelden/code): the login and – while SMS is on offer – the channel, then the six digits from
+ * the e-mail or SMS; „Doch mit Passwort anmelden“ leads back to the password.
+ */
 @Composable
-internal fun LoginCodeScreen(channel: LoginCodeChannel, login: String, onTwoFactor: (String) -> Unit) {
+internal fun LoginCodeScreen(channel: LoginCodeChannel, login: String, onTwoFactor: (String) -> Unit, onPasswordSignIn: () -> Unit) {
     val viewModel = hiltViewModel<LoginCodeViewModel, LoginCodeViewModel.Factory>(
         key = "login-code:${channel.wire}:$login",
         creationCallback = creation(channel, login)
@@ -48,9 +53,11 @@ internal fun LoginCodeScreen(channel: LoginCodeChannel, login: String, onTwoFact
             LoginCodeActions(
                 onLogin = viewModel::setLogin,
                 onCode = viewModel::setCode,
+                onChannel = viewModel::setChannel,
                 onSend = viewModel::send,
                 onSignIn = { viewModel.signIn()?.let(onTwoFactor) },
-                onChangeLogin = viewModel::changeLogin
+                onChangeLogin = viewModel::changeLogin,
+                onPasswordSignIn = onPasswordSignIn
             )
         )
     }
@@ -64,9 +71,12 @@ private fun creation(channel: LoginCodeChannel, login: String): (LoginCodeViewMo
 internal class LoginCodeActions(
     val onLogin: (String) -> Unit,
     val onCode: (String) -> Unit,
+    val onChannel: (LoginCodeChannel) -> Unit,
     val onSend: suspend () -> Unit,
     val onSignIn: suspend () -> Unit,
-    val onChangeLogin: () -> Unit
+    val onChangeLogin: () -> Unit,
+    /** Back to the sign-in with password (the first screen of the flow). */
+    val onPasswordSignIn: () -> Unit
 )
 
 @Composable
@@ -93,8 +103,19 @@ internal fun LoginCodeContent(ui: LoginCodeUiState, actions: LoginCodeActions) {
                 keyboardOptions = OasisKeyboard.Username.copy(imeAction = ImeAction.Send),
                 keyboardActions = KeyboardActions(onSend = { scope.launch { actions.onSend() } })
             )
+            if (ui.smsAvailable) {
+                Text("Wohin sollen wir den Code schicken?", style = OasisType.SmallBold, color = OasisColors.Ink)
+                FlowChoices(
+                    listOf(LoginCodeChannel.Email to "Per E-Mail", LoginCodeChannel.Sms to "Per SMS an deine bestätigte Handynummer"),
+                    ui.channel,
+                    tag = "logincode.channel",
+                    choose = actions.onChannel
+                )
+            }
             error?.message("channel")?.let { FieldError(it) }
             AsyncOasisButton("Code schicken", actions.onSend, modifier = Modifier.testTag("logincode.send"), enabled = ui.canSend)
+            HorizontalDivider(color = OasisColors.PaperLine)
+            LinkText("Doch mit Passwort anmelden", actions.onPasswordSignIn, Modifier.testTag("logincode.password"))
         } else {
             Banner(if (bySms) SENT_BY_SMS else SENT_BY_MAIL, kind = BannerKind.Success)
             Text(
@@ -128,6 +149,7 @@ internal fun LoginCodeContent(ui: LoginCodeUiState, actions: LoginCodeActions) {
                     actions.onChangeLogin,
                     Modifier.testTag("logincode.change")
                 )
+                LinkText("Mit Passwort anmelden", actions.onPasswordSignIn, Modifier.testTag("logincode.password"))
             }
         }
     }

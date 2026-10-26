@@ -144,7 +144,7 @@ class PasswordlessSettingsHiltTest : DeviceScreenTest() {
         signIn()
         stub("GET", "account", Fixtures.account)
         stub("GET", "account/passkeys", "{}", status = 500)
-        stub("GET", "account/phone", PasswordlessFixtures.phone(available = false))
+        stub("GET", "account/phone", PasswordlessFixtures.phone(available = false, number = "+49 176 ••• 78"))
         show {
             CompositionLocalProvider(
                 LocalPasskeyAuthenticator provides {
@@ -156,6 +156,18 @@ class PasswordlessSettingsHiltTest : DeviceScreenTest() {
         waitForText("SMS sind gerade nicht verfügbar.", substring = true)
         compose.onNodeWithTag("phone.field").assertDoesNotExist()
         shot("settings-passkeys-unavailable")
+    }
+
+    @Test
+    fun withoutSmsAndWithoutANumberTheBlockStaysAway() {
+        settingsWithPasskeys("""{"data":[]}""")
+        stub("GET", "account/phone", PasswordlessFixtures.phone(available = false))
+        showWithDevice { AccountScreen(AccountRoute.Settings) }
+        waitForTag("passkeys.add")
+        compose.waitUntil(5_000) { transport.requests.any { it.path == "account/phone" } }
+        compose.waitForIdle()
+        compose.onNodeWithText("Handynummer").assertDoesNotExist()
+        compose.onNodeWithText("SMS sind gerade nicht verfügbar.", substring = true).assertDoesNotExist()
     }
 
     @Test

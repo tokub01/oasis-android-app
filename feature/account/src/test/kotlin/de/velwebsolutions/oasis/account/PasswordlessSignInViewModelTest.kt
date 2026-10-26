@@ -95,7 +95,7 @@ class PasswordlessSignInViewModelTest {
     }
 
     @Test
-    fun aCancelledPasskeyStaysSilentAndOtherFailuresAreTold() = runTest {
+    fun aCancelledPasskeyAndOtherFailuresAreTold() = runTest {
         val transport = StubTransport()
             .stub("GET", "auth/methods", "{}", status = 500)
             .stub("POST", "auth/passkey/options", PasswordlessFixtures.REQUEST)
@@ -107,7 +107,7 @@ class PasswordlessSignInViewModelTest {
             )
         val model = SignInViewModel(session(transport, backgroundScope), RemoteAuthApi(transport.client))
         model.signInWithPasskey(FakePasskeys(failure = PasskeyFailure.Cancelled()))
-        assertNull(model.ui.value.notice)
+        assertEquals("Die Anmeldung mit Passkey wurde abgebrochen.", model.ui.value.notice)
         model.signInWithPasskey(FakePasskeys(failure = PasskeyFailure.NoPasskey()))
         assertEquals(PasskeyFailure.NoPasskey().userMessage, model.ui.value.notice)
         model.signInWithPasskey(FakePasskeys())
@@ -142,7 +142,7 @@ class PasswordlessSignInViewModelTest {
         val session = session(transport, backgroundScope)
         val model = LoginCodeViewModel(LoginCodeChannel.Email, "", session, RemoteAuthApi(transport.client))
         model.send()
-        assertTrue("nothing is sent without a login", transport.requests.isEmpty())
+        assertTrue("nothing is sent without a login", transport.requests.none { it.path == "auth/login-code" })
         model.setLogin(" mira ")
         model.send()
         assertEquals("""{"login":"mira","channel":"email"}""", transport.lastBody("auth/login-code").toString())
@@ -161,6 +161,24 @@ class PasswordlessSignInViewModelTest {
         assertNull(model.signIn())
         assertEquals("code-token", session.currentToken())
         assertNull(model.ui.value.error)
+    }
+
+    @Test
+    fun theChannelIsOnlyOfferedWhileSmsIsSetUp() = runTest {
+        val transport = StubTransport()
+            .stub("GET", "auth/methods", """{"data":{"login_code_channels":["email","sms"],"sms_available":true,"passkeys":true}}""")
+        val model = LoginCodeViewModel(LoginCodeChannel.Email, "mira", session(transport, backgroundScope), RemoteAuthApi(transport.client))
+        model.loadMethods()
+        assertTrue(model.ui.value.smsAvailable)
+        model.setChannel(LoginCodeChannel.Sms)
+        assertEquals(LoginCodeChannel.Sms, model.ui.value.channel)
+        transport.add("GET", "auth/methods", json = """{"data":{"login_code_channels":["email"],"sms_available":false,"passkeys":true}}""")
+        model.loadMethods()
+        assertFalse(model.ui.value.smsAvailable)
+        assertEquals("without SMS the code goes by e-mail", LoginCodeChannel.Email, model.ui.value.channel)
+        transport.add("GET", "auth/methods", 500, "{}")
+        model.loadMethods()
+        assertFalse("a failed answer changes nothing", model.ui.value.smsAvailable)
     }
 
     @Test

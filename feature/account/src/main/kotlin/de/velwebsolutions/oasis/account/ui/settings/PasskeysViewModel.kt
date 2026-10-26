@@ -8,6 +8,7 @@ import de.velwebsolutions.oasis.account.catching
 import de.velwebsolutions.oasis.account.data.AccountRepository
 import de.velwebsolutions.oasis.account.platform.PasskeyAuthenticator
 import de.velwebsolutions.oasis.account.platform.PasskeyFailure
+import de.velwebsolutions.oasis.account.platform.REGISTRATION_CANCELLED
 import de.velwebsolutions.oasis.account.platform.credentialObject
 import de.velwebsolutions.oasis.core.di.DeviceName
 import de.velwebsolutions.oasis.core.model.Loadable
@@ -94,7 +95,12 @@ class PasskeysViewModel @Inject constructor(private val repository: AccountRepos
             val attestation = passkeys.register(ceremony.options.toString())
             mutableUi.update { it.copy(naming = NewPasskey(ceremony.challenge, credentialObject(attestation)), fieldErrors = emptyMap()) }
         } catch (failure: PasskeyFailure) {
-            mutableUi.update { it.copy(error = if (failure is PasskeyFailure.Failed) REGISTRATION_FAILED else failure.userMessage) }
+            val message = when (failure) {
+                is PasskeyFailure.Failed -> REGISTRATION_FAILED
+                is PasskeyFailure.Cancelled -> REGISTRATION_CANCELLED
+                else -> failure.userMessage
+            }
+            mutableUi.update { it.copy(error = message) }
         }
     }
 

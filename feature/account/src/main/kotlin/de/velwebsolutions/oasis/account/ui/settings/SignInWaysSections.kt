@@ -174,10 +174,12 @@ private fun NameDialog(
 
 /**
  * „Handynummer“: the masked number and its state, then number → „Code schicken“ → code → „Nummer bestätigen“; „Ändern“
- * and „Nummer löschen“. Without SMS on the server only a hint (and deleting a saved number) is left.
+ * and „Nummer löschen“. Without SMS on the server only a hint (and deleting a saved number) is left; without SMS and
+ * without a number the block is left out, as on the web and on iOS.
  */
 @Composable
 internal fun PhoneNumberSection(ui: PhoneNumberUiState, viewModel: PhoneNumberViewModel) {
+    if (ui.state.valueOrNull?.isShown == false) return
     // Outlives the dialog, so closing it does not cancel the deletion.
     val scope = rememberCoroutineScope()
     SectionCard("Handynummer") {

@@ -7,6 +7,7 @@ import de.velwebsolutions.oasis.account.catching
 import de.velwebsolutions.oasis.account.data.AccountRepository
 import de.velwebsolutions.oasis.account.platform.PasskeyAuthenticator
 import de.velwebsolutions.oasis.account.platform.PasskeyFailure
+import de.velwebsolutions.oasis.account.platform.SIGN_IN_CANCELLED
 import de.velwebsolutions.oasis.account.platform.credentialObject
 import de.velwebsolutions.oasis.core.auth.AuthApi
 import de.velwebsolutions.oasis.core.auth.Registration
@@ -89,7 +90,7 @@ class SignInViewModel @Inject constructor(private val session: Session, private 
 
     /**
      * „Mit Passkey anmelden“: the server's options go to the system sheet, its assertion back to the server. A cancelled
-     * sheet stays silent; everything else ends in [SignInUiState.notice].
+     * sheet says so, like the web; everything else ends in [SignInUiState.notice] as well.
      */
     suspend fun signInWithPasskey(passkeys: PasskeyAuthenticator) {
         mutableUi.update { it.copy(notice = null) }
@@ -101,7 +102,7 @@ class SignInViewModel @Inject constructor(private val session: Session, private 
         } catch (cancelled: CancellationException) {
             throw cancelled
         } catch (failure: PasskeyFailure) {
-            failure.userMessage
+            failure.userMessage ?: SIGN_IN_CANCELLED
         } catch (error: Exception) {
             val failure = error.asApiError()
             if (failure is ApiError.TooManyRequests) PASSKEY_TOO_MANY else failure.userMessage

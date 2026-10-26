@@ -127,9 +127,12 @@ internal fun SignedOutFlow() {
 
                 SignedOutStep.TwoFactorRecovery -> TwoFactorRecoveryScreen()
 
-                is SignedOutStep.LoginCode -> LoginCodeScreen(step.channel, step.login, onTwoFactor = {
-                    steps.add(SignedOutStep.TwoFactor(it))
-                })
+                is SignedOutStep.LoginCode -> LoginCodeScreen(
+                    step.channel,
+                    step.login,
+                    onTwoFactor = { steps.add(SignedOutStep.TwoFactor(it)) },
+                    onPasswordSignIn = { steps.clear() }
+                )
 
                 // The remaining step: the second factor.
                 else -> {

@@ -1,10 +1,12 @@
 package de.velwebsolutions.oasis.account.ui.auth
 
 import androidx.lifecycle.ViewModel
+import androidx.lifecycle.viewModelScope
 import dagger.assisted.Assisted
 import dagger.assisted.AssistedFactory
 import dagger.assisted.AssistedInject
 import dagger.hilt.android.lifecycle.HiltViewModel
+import de.velwebsolutions.oasis.account.catching
 import de.velwebsolutions.oasis.core.auth.AuthApi
 import de.velwebsolutions.oasis.core.auth.LoginCodeChannel
 import de.velwebsolutions.oasis.core.auth.Session
@@ -14,11 +16,14 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.update
+import kotlinx.coroutines.launch
 
 /** „Mit Code anmelden“: first the login, then – once a code is on its way – the six digits. */
 data class LoginCodeUiState(
     val login: String,
     val channel: LoginCodeChannel,
+    /** Whether the server sends codes by SMS (`auth/methods`); only then may the member choose the channel. */
+    val smsAvailable: Boolean = channel == LoginCodeChannel.Sms,
     val code: String = "",
     /** A code was requested; the screen shows the neutral hint and the code field. */
     val sent: Boolean = false,
@@ -48,6 +53,22 @@ class LoginCodeViewModel @AssistedInject constructor(
 ) : ViewModel() {
     private val mutableUi = MutableStateFlow(LoginCodeUiState(login, channel))
     val ui: StateFlow<LoginCodeUiState> = mutableUi.asStateFlow()
+
+    init {
+        viewModelScope.launch { loadMethods() }
+    }
+
+    /** Whether to offer the SMS channel; without SMS on the server the code goes by e-mail. */
+    suspend fun loadMethods() {
+        catching { auth.methods() }.onSuccess { methods ->
+            mutableUi.update {
+                if (methods.smsAvailable) it.copy(smsAvailable = true) else it.copy(smsAvailable = false, channel = LoginCodeChannel.Email)
+            }
+        }
+    }
+
+    /** „Wohin sollen wir den Code schicken?“ (only while SMS is on offer). */
+    fun setChannel(value: LoginCodeChannel) = mutableUi.update { it.copy(channel = value, error = null) }
 
     fun setLogin(value: String) = mutableUi.update { it.copy(login = value) }
 

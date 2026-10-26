@@ -24,14 +24,19 @@ import androidx.credentials.exceptions.GetCredentialProviderConfigurationExcepti
 import androidx.credentials.exceptions.GetCredentialUnsupportedException
 import androidx.credentials.exceptions.NoCredentialException
 import androidx.credentials.exceptions.domerrors.InvalidStateError
+import androidx.credentials.exceptions.domerrors.NotAllowedError
 import androidx.credentials.exceptions.publickeycredential.CreatePublicKeyCredentialDomException
+import androidx.credentials.exceptions.publickeycredential.GetPublicKeyCredentialDomException
 import de.velwebsolutions.oasis.core.network.OasisJson
 import kotlinx.serialization.json.JsonObject
 import kotlinx.serialization.json.jsonObject
 
 /** Why a passkey ceremony gave no answer; [userMessage] is what the member reads (nothing when they cancelled). */
 sealed class PasskeyFailure(val userMessage: String?) : Exception(userMessage ?: "cancelled") {
-    /** The member closed the system sheet: nothing to say. */
+    /**
+     * The member closed the system sheet (or the system refused with `NotAllowedError`, as the browser does on cancel);
+     * the screens say so in their own words, like the web: [SIGN_IN_CANCELLED] or [REGISTRATION_CANCELLED].
+     */
     class Cancelled : PasskeyFailure(null)
 
     /** No passkey for Oasis on this device or in the password manager. */
@@ -117,11 +122,22 @@ internal fun passkeyFailure(error: Exception): PasskeyFailure = when (error) {
     is GetCredentialUnsupportedException,
     is CreateCredentialUnsupportedException -> PasskeyFailure.Unavailable()
 
-    is CreatePublicKeyCredentialDomException ->
-        if (error.domError is InvalidStateError) PasskeyFailure.AlreadyRegistered() else PasskeyFailure.Failed()
+    is CreatePublicKeyCredentialDomException -> when (error.domError) {
+        is InvalidStateError -> PasskeyFailure.AlreadyRegistered()
+        is NotAllowedError -> PasskeyFailure.Cancelled()
+        else -> PasskeyFailure.Failed()
+    }
+
+    is GetPublicKeyCredentialDomException -> if (error.domError is NotAllowedError) PasskeyFailure.Cancelled() else PasskeyFailure.Failed()
 
     else -> PasskeyFailure.Failed()
 }
+
+/** What the sign-in says when the member closed the passkey sheet (web and iOS). */
+const val SIGN_IN_CANCELLED = "Die Anmeldung mit Passkey wurde abgebrochen."
+
+/** What the settings say when the member closed the sheet for a new passkey (web and iOS). */
+const val REGISTRATION_CANCELLED = "Abgebrochen: Es wurde kein Passkey angelegt."
 
 /** The WebAuthn answer of Credential Manager as the JSON object the server expects (not as a string). */
 internal fun credentialObject(json: String): JsonObject =
