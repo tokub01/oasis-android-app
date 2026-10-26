@@ -3,6 +3,7 @@ package de.velwebsolutions.oasis.design
 import de.velwebsolutions.oasis.design.navigation.AccountRoute
 import de.velwebsolutions.oasis.design.navigation.ChatRoute
 import de.velwebsolutions.oasis.design.navigation.DeepLink
+import de.velwebsolutions.oasis.design.navigation.IncomingLink
 import de.velwebsolutions.oasis.design.navigation.LiveRoute
 import de.velwebsolutions.oasis.design.navigation.MainTab
 import de.velwebsolutions.oasis.design.navigation.MembershipRoute
@@ -10,6 +11,7 @@ import de.velwebsolutions.oasis.design.navigation.Navigator
 import de.velwebsolutions.oasis.design.navigation.NetworkRoute
 import de.velwebsolutions.oasis.design.navigation.StaffRoute
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertFalse
 import org.junit.Assert.assertNull
 import org.junit.Assert.assertTrue
 import org.junit.Test
@@ -49,6 +51,59 @@ class DeepLinkTest {
     fun `unknown paths stay in the browser`() {
         assertNull(route("https://get-oasis.com/impressum"))
         assertNull(route("https://get-oasis.com/"))
+    }
+
+    @Test
+    fun `incoming links open screens, account steps or the browser`() {
+        fun incoming(path: String) = DeepLink.incoming("https://get-oasis.com$path")
+        assertEquals(IncomingLink.Screen(NetworkRoute.Post(12)), incoming("/tropfen/12"))
+        assertEquals(IncomingLink.Screen(NetworkRoute.Invitation("abc")), incoming("/einladung/abc"))
+        assertEquals(IncomingLink.Screen(NetworkRoute.Source), incoming("/app"))
+        assertEquals(IncomingLink.Screen(MembershipRoute.Overview), DeepLink.incoming("oasis://mitgliedschaft?checkout=abc"))
+        assertEquals(
+            IncomingLink.VerifyEmail("5", "a1b2", "1790000000", "sig%"),
+            incoming("/email/bestaetigen/5/a1b2?expires=1790000000&signature=sig%25")
+        )
+        assertEquals(
+            IncomingLink.ResetPassword(
+                "tok",
+                "mira@demo.oasis.tld",
+                "https://get-oasis.com/passwort-zuruecksetzen/tok?email=mira%40demo.oasis.tld"
+            ),
+            incoming("/passwort-zuruecksetzen/tok?email=mira%40demo.oasis.tld")
+        )
+        assertEquals(
+            IncomingLink.ResetPassword("tok", "", "https://get-oasis.com/passwort-zuruecksetzen/tok"),
+            incoming("/passwort-zuruecksetzen/tok")
+        )
+        assertEquals(IncomingLink.LoginCode, incoming("/anmelden/code"))
+        assertEquals(IncomingLink.LoginCode, incoming("/anmelden/code/eingeben"))
+        listOf(
+            "/app/chat/api/keys",
+            "/app/mitgliedschaft/rechnungen/9",
+            "/app/konto/export",
+            "/email/bestaetigen/5/a1b2",
+            "/email/bestaetigen/5/a1b2?expires=1",
+            "/digest/abmelden/x",
+            "/anmelden"
+        ).forEach { path -> assertEquals(path, IncomingLink.Browser("https://get-oasis.com$path"), incoming(path)) }
+        assertEquals(IncomingLink.Browser("kaputt ://"), DeepLink.incoming("kaputt ://"))
+        assertEquals(IncomingLink.Browser("mailto:mira@demo.oasis.tld"), DeepLink.incoming("mailto:mira@demo.oasis.tld"))
+        assertEquals(IncomingLink.Screen(NetworkRoute.Post(1)), incoming("/tropfen/1/a/b"))
+        assertEquals(IncomingLink.Browser("https://get-oasis.com/email/andere/5/a"), incoming("/email/andere/5/a"))
+    }
+
+    @Test
+    fun `account links wait in the navigator and the rest goes to the browser`() {
+        val opened = mutableListOf<String>()
+        val navigator = Navigator().apply { openWeb = { opened += it } }
+        assertFalse(navigator.handle("https://get-oasis.com/impressum"))
+        assertEquals(listOf("https://get-oasis.com/impressum"), opened)
+        assertTrue(navigator.handle("https://get-oasis.com/anmelden/code"))
+        assertEquals(IncomingLink.LoginCode, navigator.pendingLink)
+        assertEquals(IncomingLink.LoginCode, navigator.takeLink())
+        assertNull(navigator.pendingLink)
+        assertNull(navigator.takeLink())
     }
 
     @Test

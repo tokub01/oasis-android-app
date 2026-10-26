@@ -56,6 +56,8 @@ android {
         versionName = "1.0"
         buildConfigField("String", "OASIS_GATE_KEY", "\"\"")
         buildConfigField("String", "REVERB_HOST_OVERRIDE", "\"\"")
+        // The host whose links open the app (App Links, see AndroidManifest.xml).
+        manifestPlaceholders["appLinkHost"] = "get-oasis.com"
     }
 
     signingConfigs {
@@ -73,6 +75,7 @@ android {
             // The local Sail backend on the Mac; the emulator reaches the Mac's localhost as 10.0.2.2.
             buildConfigField("String", "OASIS_BASE_URL", "\"${secret("OASIS_DEBUG_BASE_URL").ifEmpty { "http://10.0.2.2" }}\"")
             buildConfigField("String", "REVERB_HOST_OVERRIDE", "\"${secret("OASIS_DEBUG_REVERB_HOST").ifEmpty { "10.0.2.2" }}\"")
+            manifestPlaceholders["appLinkHost"] = "staging.get-oasis.com"
         }
         create("staging") {
             // staging.get-oasis.com (deployed from Laravel's develop branch) behind the staging gate (`X-Oasis-Gate`).
@@ -82,6 +85,7 @@ android {
             matchingFallbacks += "release"
             buildConfigField("String", "OASIS_BASE_URL", "\"https://staging.get-oasis.com\"")
             buildConfigField("String", "OASIS_GATE_KEY", "\"${secret("OASIS_GATE_KEY")}\"")
+            manifestPlaceholders["appLinkHost"] = "staging.get-oasis.com"
         }
         create("play") {
             // The Google Play test build: the real package name, but staging.get-oasis.com behind the staging gate –
@@ -90,10 +94,12 @@ android {
             matchingFallbacks += "release"
             buildConfigField("String", "OASIS_BASE_URL", "\"https://staging.get-oasis.com\"")
             buildConfigField("String", "OASIS_GATE_KEY", "\"${secret("OASIS_GATE_KEY")}\"")
+            manifestPlaceholders["appLinkHost"] = "staging.get-oasis.com"
             signingConfig = signingConfigs.getByName("upload").takeIf { upload("KEYSTORE_PASSWORD").isNotEmpty() }
         }
         release {
             buildConfigField("String", "OASIS_BASE_URL", "\"https://get-oasis.com\"")
+            manifestPlaceholders["appLinkHost"] = "get-oasis.com"
             isMinifyEnabled = true
             isShrinkResources = true
             proguardFiles(getDefaultProguardFile("proguard-android-optimize.txt"), "proguard-rules.pro")

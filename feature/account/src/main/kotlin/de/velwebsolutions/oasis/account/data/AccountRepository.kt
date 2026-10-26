@@ -8,6 +8,7 @@ import de.velwebsolutions.oasis.account.api.ComplaintDecision
 import de.velwebsolutions.oasis.account.api.ConfirmPasswordBody
 import de.velwebsolutions.oasis.account.api.DeleteBody
 import de.velwebsolutions.oasis.account.api.DeviceOverview
+import de.velwebsolutions.oasis.account.api.EmailLinkBody
 import de.velwebsolutions.oasis.account.api.GlossaryTerm
 import de.velwebsolutions.oasis.account.api.HiddenWords
 import de.velwebsolutions.oasis.account.api.NameBody
@@ -79,6 +80,9 @@ interface AccountRepository {
 
     /** The six-digit code of the confirmation mail; answers with the member, now confirmed. */
     suspend fun verifyEmailCode(code: String): Me
+
+    /** The link of the confirmation mail, opened in the app; answers with the member, now confirmed (422 at `link`). */
+    suspend fun verifyEmailLink(id: String, hash: String, expires: String, signature: String): Me
 
     /** „Zwei-Faktor verloren“, step 1 (guest): the neutral answer of the web form. */
     suspend fun requestTwoFactorRecovery(email: String, password: String, form: RegistrationForm): String
@@ -196,6 +200,9 @@ class DefaultAccountRepository @Inject constructor(private val client: ApiClient
     override suspend fun deleteAccount(confirmed: Boolean) = service.deleteAccount(DeleteBody(confirmed))
 
     override suspend fun verifyEmailCode(code: String) = service.verifyEmailCode(CodeBody(code)).data
+
+    override suspend fun verifyEmailLink(id: String, hash: String, expires: String, signature: String) =
+        service.verifyEmailLink(EmailLinkBody(id, hash, expires, signature)).data
 
     override suspend fun requestTwoFactorRecovery(email: String, password: String, form: RegistrationForm): String {
         val fields = mapOf("email" to email, "password" to password, form.honeypotField to "", form.tokenField to form.formToken)

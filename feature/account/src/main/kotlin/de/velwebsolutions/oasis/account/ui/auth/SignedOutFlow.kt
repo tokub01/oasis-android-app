@@ -7,6 +7,7 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateListOf
 import androidx.compose.runtime.rememberCoroutineScope
@@ -37,6 +38,7 @@ import de.velwebsolutions.oasis.design.components.OasisScreen
 import de.velwebsolutions.oasis.design.components.OasisTextButton
 import de.velwebsolutions.oasis.design.components.OasisTextField
 import de.velwebsolutions.oasis.design.components.ScreenChrome
+import de.velwebsolutions.oasis.design.navigation.IncomingLink
 import de.velwebsolutions.oasis.design.navigation.LocalNavigator
 import de.velwebsolutions.oasis.design.navigation.WebRoute
 import de.velwebsolutions.oasis.design.theme.OasisColors
@@ -68,6 +70,11 @@ sealed interface SignedOutStep {
         override val code get() = "login-code:${channel.wire}:$login"
     }
 
+    /** „Neues Passwort“ from the link of the reset mail (/passwort-zuruecksetzen/{token}?email=…). */
+    data class ResetPassword(val token: String, val email: String) : SignedOutStep {
+        override val code get() = "reset:$token:$email"
+    }
+
     /** The second factor of a sign-in that asked for it. */
     data class TwoFactor(val challenge: String) : SignedOutStep {
         override val code get() = "two-factor:$challenge"
@@ -77,10 +84,19 @@ sealed interface SignedOutStep {
         /** The step of a kept [code]; unknown codes (an older app) are dropped. */
         fun decode(raw: String): SignedOutStep? = when {
             raw == "register" -> Register
+
             raw == "forgot" -> ForgotPassword
+
             raw == "recovery" -> TwoFactorRecovery
+
             raw.startsWith("two-factor:") -> TwoFactor(raw.removePrefix("two-factor:"))
+
             raw.startsWith("login-code:") -> loginCode(raw.removePrefix("login-code:"))
+
+            raw.startsWith("reset:") -> raw.removePrefix("reset:").let {
+                ResetPassword(it.substringBefore(':'), it.substringAfter(':', ""))
+            }
+
             else -> null
         }
 
@@ -109,6 +125,26 @@ internal fun SignedOutFlow() {
     val pop: () -> Unit = { steps.removeAt(steps.lastIndex) }
     val legal: (String) -> Unit = { url -> navigator.open(WebRoute(url)) }
     BackHandler(enabled = steps.isNotEmpty(), onBack = pop)
+    // Links from mails: the reset link opens „Neues Passwort“, a code link the code sign-in. The confirmation link
+    // waits until somebody is signed in.
+    val link = navigator.pendingLink
+    LaunchedEffect(link) {
+        when (link) {
+            is IncomingLink.ResetPassword -> {
+                navigator.takeLink()
+                steps.clear()
+                steps.add(SignedOutStep.ResetPassword(link.token, link.email))
+            }
+
+            IncomingLink.LoginCode -> {
+                navigator.takeLink()
+                steps.clear()
+                steps.add(SignedOutStep.LoginCode(LoginCodeChannel.Email, ""))
+            }
+
+            else -> Unit
+        }
+    }
     ScopedViewModels {
         val step = steps.lastOrNull()
         CompositionLocalProvider(LocalScreenChrome provides if (step == null) ScreenChrome() else ScreenChrome(onBack = pop)) {
@@ -126,6 +162,8 @@ internal fun SignedOutFlow() {
                 SignedOutStep.ForgotPassword -> ForgotPasswordScreen(onBackToSignIn = { steps.clear() })
 
                 SignedOutStep.TwoFactorRecovery -> TwoFactorRecoveryScreen()
+
+                is SignedOutStep.ResetPassword -> ResetPasswordScreen(step.token, step.email, onSignIn = { steps.clear() })
 
                 is SignedOutStep.LoginCode -> LoginCodeScreen(
                     step.channel,

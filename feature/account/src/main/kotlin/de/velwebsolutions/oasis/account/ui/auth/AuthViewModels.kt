@@ -186,7 +186,7 @@ class TwoFactorRecoveryViewModel @Inject constructor(private val auth: AuthApi, 
 /** „Passwort vergessen?“. */
 data class ForgotPasswordUiState(val email: String = "", val status: String? = null, val error: ApiError? = null)
 
-/** Always the same neutral answer, like the web. The link in the mail opens the website, where the password is set. */
+/** Always the same neutral answer, like the web. The link in the mail opens „Neues Passwort“ in the app (or the website). */
 @HiltViewModel
 class ForgotPasswordViewModel @Inject constructor(private val auth: AuthApi) : ViewModel() {
     private val mutableUi = MutableStateFlow(ForgotPasswordUiState())

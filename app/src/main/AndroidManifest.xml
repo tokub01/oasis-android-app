@@ -34,24 +34,27 @@
                 <category android:name="android.intent.category.BROWSABLE" />
                 <data android:scheme="oasis" />
             </intent-filter>
-            <!-- Links to get-oasis.com open the matching screen (App Links need assetlinks.json on the server). -->
+            <!--
+                Links from mails and shared posts open the app instead of the browser (verified App Links: the host's
+                /.well-known/assetlinks.json grants handle_all_urls). The paths are app/Support/Security/AppLinks.php's
+                OPENED_IN_APP; its EXCLUDED paths go on to the browser (DeepLink.incoming). The host follows the build
+                type: get-oasis.com for release, staging.get-oasis.com for the others.
+            -->
             <intent-filter android:autoVerify="true">
                 <action android:name="android.intent.action.VIEW" />
                 <category android:name="android.intent.category.DEFAULT" />
                 <category android:name="android.intent.category.BROWSABLE" />
                 <data android:scheme="https" />
-                <data android:host="get-oasis.com" />
-                <data android:host="staging.get-oasis.com" />
-                <data android:pathPrefix="/app" />
-                <data android:pathPrefix="/tropfen" />
-                <data android:pathPrefix="/oasen" />
-                <data android:pathPrefix="/profil" />
-                <data android:pathPrefix="/einladung" />
-                <data android:pathPrefix="/themen" />
-                <data android:pathPrefix="/moderation" />
-                <data android:pathPrefix="/admin" />
-                <data android:pathPrefix="/mitglied-werden" />
-                <data android:pathPrefix="/mitgliedschaft" />
+                <data android:host="${appLinkHost}" />
+                <data android:pathPrefix="/tropfen/" />
+                <data android:pathPrefix="/profil/" />
+                <data android:pathPrefix="/oasen/" />
+                <data android:pathPrefix="/einladung/" />
+                <data android:pathPrefix="/email/bestaetigen/" />
+                <data android:pathPrefix="/passwort-zuruecksetzen/" />
+                <data android:pathPrefix="/anmelden/code" />
+                <data android:path="/app" />
+                <data android:pathPrefix="/app/" />
             </intent-filter>
         </activity>
     </application>

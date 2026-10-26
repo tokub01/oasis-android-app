@@ -36,6 +36,8 @@ class SessionTest {
 
         override suspend fun forgotPassword(email: String) = "ok"
 
+        override suspend fun resetPassword(token: String, email: String, password: String, passwordConfirmation: String) = "ok"
+
         override suspend fun me() = meResult.getOrThrow()
 
         override suspend fun logout() {

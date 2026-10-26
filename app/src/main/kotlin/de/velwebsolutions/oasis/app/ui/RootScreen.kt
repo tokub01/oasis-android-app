@@ -23,6 +23,7 @@ fun RootScreen(viewModel: RootViewModel = hiltViewModel()) {
     when (val current = state) {
         is SessionState.SignedIn -> {
             val me = current.me
+            screens.AccountLinks()
             when {
                 !me.emailVerified -> screens.VerifyEmail()
 

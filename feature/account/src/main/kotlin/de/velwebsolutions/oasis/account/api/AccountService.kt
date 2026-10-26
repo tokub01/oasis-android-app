@@ -30,6 +30,10 @@ internal data class ConfirmPasswordBody(val password: String)
 @Serializable
 internal data class CodeBody(val code: String)
 
+/** The parts of the confirmation link (`/email/bestaetigen/{id}/{hash}?expires=…&signature=…`). */
+@Serializable
+internal data class EmailLinkBody(val id: String, val hash: String, val expires: String, val signature: String)
+
 @Serializable
 internal data class DeleteBody(val confirm: Boolean)
 
@@ -90,6 +94,9 @@ internal interface AccountService {
 
     @POST("auth/email/verify-code")
     suspend fun verifyEmailCode(@Body body: CodeBody): DataEnvelope<Me>
+
+    @POST("auth/email/verify-link")
+    suspend fun verifyEmailLink(@Body body: EmailLinkBody): DataEnvelope<Me>
 
     @POST("account/two-factor/recovery-codes")
     suspend fun regenerateRecoveryCodes(): SettingsChange

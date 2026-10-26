@@ -69,6 +69,8 @@ class FakeAuth(var me: Me = mira, var error: Exception? = null) : AuthApi {
 
     override suspend fun forgotPassword(email: String) = "ok"
 
+    override suspend fun resetPassword(token: String, email: String, password: String, passwordConfirmation: String) = "ok"
+
     override suspend fun me(): Me = error?.let { throw it } ?: me
 
     override suspend fun logout() {
@@ -98,6 +100,9 @@ object FakeScreens : AppScreens {
 
     @Composable
     override fun ConfirmPhone() = Text("Handy-Screen")
+
+    @Composable
+    override fun AccountLinks() = Unit
 
     @Composable
     override fun Destination(route: AppRoute) = OasisScreen(title = "Screen $route") { Text("Inhalt $route") }

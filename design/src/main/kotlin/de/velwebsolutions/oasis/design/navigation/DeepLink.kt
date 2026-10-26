@@ -3,11 +3,56 @@ package de.velwebsolutions.oasis.design.navigation
 import java.net.URI
 import java.net.URLDecoder
 
+/** What an incoming link (an App Link from a mail, a push tap, `oasis://`) asks the app to do. */
+sealed interface IncomingLink {
+    /** A screen of the app. */
+    data class Screen(val route: AppRoute) : IncomingLink
+
+    /** `/email/bestaetigen/{id}/{hash}?expires=…&signature=…`: confirms the address once a member is signed in. */
+    data class VerifyEmail(val id: String, val hash: String, val expires: String, val signature: String) : IncomingLink
+
+    /** `/passwort-zuruecksetzen/{token}?email=…`: „Neues Passwort“ (signed in, the website takes it: [url]). */
+    data class ResetPassword(val token: String, val email: String, val url: String) : IncomingLink
+
+    /** `/anmelden/code…`: the sign-in with a code. */
+    data object LoginCode : IncomingLink
+
+    /** Not an app screen, or one of the paths that stay on the website (AppLinks::EXCLUDED): the browser opens it. */
+    data class Browser(val url: String) : IncomingLink
+}
+
 /**
  * Maps Oasis web URLs (the same links used in mails, push payloads and shared posts) to app routes, so a link to
  * get-oasis.com opens the matching screen. Unknown paths return null and are opened in the browser instead.
  */
 object DeepLink {
+    /** Paths inside the app's App Links that stay in the browser (app/Support/Security/AppLinks.php, EXCLUDED). */
+    private val BrowserOnly = listOf("/app/chat/api/", "/app/mitgliedschaft/rechnungen/", "/app/konto/export")
+
+    /** What the app does with an incoming [url]: a screen, an account link, or the browser. */
+    fun incoming(url: String): IncomingLink {
+        val uri = runCatching { URI(url) }.getOrNull() ?: return IncomingLink.Browser(url)
+        val path = uri.rawPath ?: ""
+        if (uri.scheme != "oasis" && BrowserOnly.any { path.startsWith(it) }) return IncomingLink.Browser(url)
+        val parts = path.split("/").filter { it.isNotEmpty() }.map { decode(it) }
+        val query = query(uri)
+        return when {
+            uri.scheme == "oasis" -> null
+
+            parts.size == 4 && parts[0] == "email" && parts[1] == "bestaetigen" -> {
+                val expires = query["expires"]
+                val signature = query["signature"]
+                if (expires == null || signature == null) null else IncomingLink.VerifyEmail(parts[2], parts[3], expires, signature)
+            }
+
+            parts.size == 2 && parts[0] == "passwort-zuruecksetzen" -> IncomingLink.ResetPassword(parts[1], query["email"].orEmpty(), url)
+
+            path.startsWith("/anmelden/code") -> IncomingLink.LoginCode
+
+            else -> null
+        } ?: route(url)?.let(IncomingLink::Screen) ?: IncomingLink.Browser(url)
+    }
+
     private val Username = Regex("[a-z0-9_]{3,30}")
     private val ConversationId = Regex("[1-9]\\d{0,15}")
 
@@ -16,9 +61,7 @@ object DeepLink {
         // App URLs (`oasis://mitgliedschaft?checkout=…` after a payment) carry the first path segment as host.
         val appHost = if (uri.scheme == "oasis") listOfNotNull(uri.host) else emptyList()
         val parts = appHost + (uri.rawPath ?: "").split("/").filter { it.isNotEmpty() }.map { decode(it) }
-        val query = (uri.rawQuery ?: "").split("&").filter { it.isNotEmpty() }.associate {
-            decode(it.substringBefore("=")) to decode(it.substringAfter("=", ""))
-        }
+        val query = query(uri)
 
         // The chat is one web page routed by hash: #c/{id}, #c/{id}/info, #neu, #neu/{username} (ui/route.js).
         val fragment = uri.rawFragment
@@ -163,6 +206,10 @@ object DeepLink {
         }
 
         else -> null
+    }
+
+    private fun query(uri: URI): Map<String, String> = (uri.rawQuery ?: "").split("&").filter { it.isNotEmpty() }.associate {
+        decode(it.substringBefore("=")) to decode(it.substringAfter("=", ""))
     }
 
     /** The URI is valid at this point, so every escape decodes. */

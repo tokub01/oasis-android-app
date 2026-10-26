@@ -92,12 +92,36 @@ class Navigator {
         if (rootRoute(tab) != route) stack.add(route)
     }
 
-    /** Open a URL (app link or push payload `url`); returns false if it is not an app screen. */
-    fun handle(url: String): Boolean {
-        val route = DeepLink.route(url) ?: return false
-        handle(route)
-        return true
+    /**
+     * A link for the sign-in or the account (confirm the e-mail, set a new password, sign in with a code), waiting for
+     * the screen that takes it: the signed-out flow or, once signed in, the account links.
+     */
+    var pendingLink: IncomingLink? by mutableStateOf(null)
+        private set
+
+    /**
+     * Open a URL (app link or push payload `url`): a screen, an account link for [pendingLink], or the browser for
+     * anything else; returns false if it went to the browser.
+     */
+    fun handle(url: String): Boolean = when (val link = DeepLink.incoming(url)) {
+        is IncomingLink.Screen -> {
+            handle(link.route)
+            true
+        }
+
+        is IncomingLink.Browser -> {
+            openWeb(link.url)
+            false
+        }
+
+        else -> {
+            pendingLink = link
+            true
+        }
     }
+
+    /** Takes [pendingLink] (the screen that handles it). */
+    fun takeLink(): IncomingLink? = pendingLink.also { pendingLink = null }
 
     companion object {
         /** The root screen of a tab; the profile tab shows the member's own profile. */

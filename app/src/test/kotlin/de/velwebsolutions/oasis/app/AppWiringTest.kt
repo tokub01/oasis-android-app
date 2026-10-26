@@ -106,6 +106,7 @@ class AppWiringTest {
                         Column(Modifier.height(80.dp)) { FeatureScreens.Destination(NetworkRoute.Oases) }
                         Column(Modifier.height(80.dp)) { FeatureScreens.VerifyEmail() }
                         Column(Modifier.height(80.dp)) { FeatureScreens.ConfirmPhone() }
+                        FeatureScreens.AccountLinks()
                     }
                 }
             }

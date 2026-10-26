@@ -24,6 +24,10 @@ interface AppScreens {
     @Composable
     fun ConfirmPhone()
 
+    /** Takes the account links from mails (confirmation, reset) while somebody is signed in. */
+    @Composable
+    fun AccountLinks()
+
     @Composable
     fun Destination(route: AppRoute)
 
@@ -44,6 +48,9 @@ object FeatureScreens : AppScreens {
 
     @Composable
     override fun ConfirmPhone() = ConfirmPhoneScreen()
+
+    @Composable
+    override fun AccountLinks() = de.velwebsolutions.oasis.account.AccountLinks()
 
     @Composable
     override fun Destination(route: AppRoute) = AppDestination(route)

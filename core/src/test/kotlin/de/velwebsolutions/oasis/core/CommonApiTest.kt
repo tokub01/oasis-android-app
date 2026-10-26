@@ -52,6 +52,7 @@ class CommonApiTest {
             ),
             StubTransport.Stub("POST", "auth/register", json = """{"token":"t","data":$me}"""),
             StubTransport.Stub("POST", "auth/forgot-password", json = """{"message":"Wenn es das Konto gibt, kommt eine Mail."}"""),
+            StubTransport.Stub("POST", "auth/reset-password", json = """{"message":"Dein Passwort wurde zurückgesetzt."}"""),
             StubTransport.Stub("POST", "auth/logout", status = 204, json = ""),
             StubTransport.Stub("POST", "auth/email/verification-notification", status = 202, json = ""),
             StubTransport.Stub("POST", "auth/login", json = """{"token":null}""")
@@ -73,6 +74,11 @@ class CommonApiTest {
         auth.register(Registration(), form, "Pixel")
         assertEquals("0", stub.lastBody("auth/register")!!.jsonObject["terms"]!!.jsonPrimitive.content)
         assertEquals("Wenn es das Konto gibt, kommt eine Mail.", auth.forgotPassword("m@example.org"))
+        assertEquals("Dein Passwort wurde zurückgesetzt.", auth.resetPassword("tok", "m@example.org", "neu-und-lang", "neu-und-lang"))
+        assertEquals(
+            """{"token":"tok","email":"m@example.org","password":"neu-und-lang","password_confirmation":"neu-und-lang"}""",
+            stub.lastBody("auth/reset-password").toString()
+        )
         auth.logout()
         auth.resendVerification()
         try {

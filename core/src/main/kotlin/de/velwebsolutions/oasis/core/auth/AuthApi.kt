@@ -75,6 +75,9 @@ internal data class TwoFactorBody(val challenge: String, val code: String?, val 
 internal data class EmailBody(val email: String)
 
 @Serializable
+internal data class ResetPasswordBody(val token: String, val email: String, val password: String, val passwordConfirmation: String)
+
+@Serializable
 internal data class LoginCodeBody(val login: String, val channel: String)
 
 @Serializable
@@ -99,6 +102,9 @@ internal interface AuthService {
 
     @POST("auth/forgot-password")
     suspend fun forgotPassword(@Body body: EmailBody): MessageResponse
+
+    @POST("auth/reset-password")
+    suspend fun resetPassword(@Body body: ResetPasswordBody): MessageResponse
 
     @GET("auth/me")
     suspend fun me(): DataEnvelope<Me>
@@ -136,6 +142,9 @@ interface AuthApi {
     suspend fun register(registration: Registration, form: RegistrationForm, deviceName: String): SignInResult
 
     suspend fun forgotPassword(email: String): String
+
+    /** „Neues Passwort“ from the link of the reset mail (no sign-in); answers with the web's message. */
+    suspend fun resetPassword(token: String, email: String, password: String, passwordConfirmation: String): String
 
     suspend fun me(): Me
 
@@ -189,6 +198,9 @@ class RemoteAuthApi(client: ApiClient) : AuthApi {
     }
 
     override suspend fun forgotPassword(email: String) = service.forgotPassword(EmailBody(email)).message
+
+    override suspend fun resetPassword(token: String, email: String, password: String, passwordConfirmation: String) =
+        service.resetPassword(ResetPasswordBody(token, email, password, passwordConfirmation)).message
 
     override suspend fun me() = service.me().data
 
