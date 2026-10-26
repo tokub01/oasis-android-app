@@ -34,6 +34,12 @@ class LiveCoordinator internal constructor(
     /** Unread Hinweise (the bell and the dot at "Mehr"). */
     val hints: StateFlow<Int> = counts.hints
 
+    /** Whether the shell should show Android's notification prompt now (once after sign-in, like iOS). */
+    val asksForPushPermission: StateFlow<Boolean> get() = push.asksForPermission
+
+    /** The member answered the notification prompt of the shell. */
+    suspend fun pushPermissionAnswered(granted: Boolean) = push.promptAnswered(granted)
+
     /** Conversations with unread messages (the badge at "Chats"). */
     val chats: StateFlow<Int> = counts.chats
 

@@ -221,9 +221,9 @@ class HintsViewModelTest {
     }
 
     @Test
-    fun saysPushIsNotThereYetWhileTheServerTakesApnsOnly() = runTest {
+    fun saysPushIsNotThereInABuildWithoutFirebase() = runTest {
         val transport = StubTransport(StubTransport.Stub("GET", "hints/settings", json = LiveJson.SETTINGS))
-        val model = HintSettingsViewModel(repository(transport), registrar(backendAcceptsFcm = false))
+        val model = HintSettingsViewModel(repository(transport), registrar(FakePushSystem(isConfigured = false)))
         val ui = model.loaded()
         assertTrue(ui.settings!!.push.available)
         assertFalse(ui.pushAvailable)

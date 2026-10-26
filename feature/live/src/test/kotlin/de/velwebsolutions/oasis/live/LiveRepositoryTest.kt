@@ -85,5 +85,12 @@ class LiveRepositoryTest {
         assertEquals(2, counts.chats)
         assertEquals(3, counts.hints)
         assertTrue(repository.appConfig().push.available)
+        assertEquals(
+            "the server answers for Android",
+            "platform=android",
+            transport.requests.last {
+                it.path == "app-config"
+            }.request.url.query
+        )
     }
 }

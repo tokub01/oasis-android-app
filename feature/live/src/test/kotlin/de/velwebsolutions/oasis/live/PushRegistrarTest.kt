@@ -23,17 +23,8 @@ class PushRegistrarTest {
     )
 
     @Test
-    fun sendsNothingWhileTheServerDoesNotAcceptFcmOrFirebaseIsMissing() = runTest {
+    fun sendsNothingWithoutFirebaseInTheBuild() = runTest {
         val transport = transport()
-        val system = FakePushSystem()
-        val today = PushRegistrar(system, MemoryPushStore())
-        assertFalse("Laravel takes APNs tokens only", PushRegistrar.BACKEND_ACCEPTS_FCM)
-        today.signedIn(repository(transport))
-        assertFalse(today.isSupported)
-        assertTrue(today.isAvailable)
-        assertTrue(transport.requests.none { it.path == "push/devices" })
-        assertEquals(0, system.tokenRequests)
-
         val withoutFirebase = registrar(FakePushSystem(isConfigured = false))
         withoutFirebase.signedIn(repository(transport))
         assertFalse(withoutFirebase.isSupported)
@@ -215,5 +206,42 @@ class PushRegistrarTest {
         registrar.forgetDevice(5)
         registrar.openSystemSettings()
         assertEquals(1, system.openedSettings)
+    }
+
+    @Test
+    fun asksOnceAfterSignInAndRegistersWhenAllowed() = runTest {
+        val transport = transport()
+        val system = FakePushSystem(status = PushAuthorization.NotDetermined)
+        val store = MemoryPushStore()
+        val registrar = registrar(system, store)
+        assertFalse(registrar.asksForPermission.value)
+        registrar.signedIn(repository(transport))
+        assertTrue("like iOS, Android asks after sign-in", registrar.asksForPermission.value)
+        registrar.promptAnswered(true)
+        assertFalse(registrar.asksForPermission.value)
+        assertEquals(5, store.deviceId)
+
+        val refusing = registrar(FakePushSystem(status = PushAuthorization.NotDetermined))
+        refusing.signedIn(repository(transport))
+        refusing.promptAnswered(false)
+        assertNull(refusing.deviceId)
+        assertEquals(PushAuthorization.Denied, refusing.authorization.value)
+    }
+
+    @Test
+    fun asksNotWhenAllowedRefusedSwitchedOffUnsupportedOrWithoutServerPush() = runTest {
+        val noPush =
+            StubTransport(StubTransport.Stub("GET", "app-config", json = """{"data":{"reverb":null,"push":{"available":false}}}"""))
+        val cases = listOf(
+            registrar(FakePushSystem(status = PushAuthorization.Authorized)) to transport(),
+            registrar(FakePushSystem(status = PushAuthorization.Denied)) to transport(),
+            registrar(FakePushSystem(status = PushAuthorization.NotDetermined), MemoryPushStore(optedOut = true)) to transport(),
+            registrar(FakePushSystem(status = PushAuthorization.NotDetermined, isConfigured = false)) to transport(),
+            registrar(FakePushSystem(status = PushAuthorization.NotDetermined)) to noPush
+        )
+        cases.forEach { (registrar, server) ->
+            registrar.signedIn(repository(server))
+            assertFalse(registrar.asksForPermission.value)
+        }
     }
 }

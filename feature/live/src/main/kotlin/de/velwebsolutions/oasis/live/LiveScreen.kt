@@ -1,5 +1,9 @@
 package de.velwebsolutions.oasis.live
 
+import android.Manifest
+import android.os.Build
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.core.Animatable
 import androidx.compose.animation.core.Spring
@@ -34,6 +38,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.graphicsLayer
@@ -59,6 +64,7 @@ import de.velwebsolutions.oasis.design.theme.OasisType
 import de.velwebsolutions.oasis.live.ui.HintSettingsScreen
 import de.velwebsolutions.oasis.live.ui.HintsInboxScreen
 import javax.inject.Inject
+import kotlinx.coroutines.launch
 
 /** Entry point of the Live module: the screen for each [LiveRoute] (mapped in the app). */
 @Composable
@@ -76,7 +82,24 @@ internal class LiveShellViewModel @Inject constructor(val live: LiveCoordinator)
 fun HintsButton(live: LiveCoordinator = hiltViewModel<LiveShellViewModel>().live) {
     val navigator = LocalNavigator.current
     val unread by live.hints.collectAsStateWithLifecycle()
+    NotificationPrompt(live)
     HintsBell(unread) { navigator.open(LiveRoute.Inbox) }
+}
+
+/**
+ * Android's notification prompt, once after sign-in like on iOS (the bell is in the shell of every signed-in member).
+ * Before Android 13 notifications need no permission.
+ */
+@Composable
+private fun NotificationPrompt(live: LiveCoordinator) {
+    val asks by live.asksForPushPermission.collectAsStateWithLifecycle()
+    val scope = rememberCoroutineScope()
+    val prompt = rememberLauncherForActivityResult(ActivityResultContracts.RequestPermission()) { granted ->
+        scope.launch { live.pushPermissionAnswered(granted) }
+    }
+    LaunchedEffect(asks) {
+        if (asks && Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) prompt.launch(Manifest.permission.POST_NOTIFICATIONS)
+    }
 }
 
 /** The bell itself: rings once when a new hint arrives, not when hints are read (none during a pause). */

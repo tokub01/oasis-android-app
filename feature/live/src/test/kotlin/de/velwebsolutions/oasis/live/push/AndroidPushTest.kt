@@ -72,7 +72,7 @@ class AndroidPushTest {
         PushNotifications.ensureChannel(app)
         PushNotifications.ensureChannel(app)
         assertEquals(listOf("chat", "hints"), manager.notificationChannels.map { it.id }.sorted())
-        assertEquals("Chat-Nachrichten", manager.getNotificationChannel("chat").name)
+        assertEquals("Chats", manager.getNotificationChannel("chat").name)
         assertEquals("Hinweise", manager.getNotificationChannel("hints").name)
     }
 
