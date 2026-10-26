@@ -81,7 +81,7 @@ class PasswordlessSignInHiltTest : DeviceScreenTest() {
         waitForText("Zu viele Versuche. Bitte warte einen Moment.")
         stub("POST", "auth/login-code", "", status = 204)
         compose.onNodeWithTag("logincode.send").tap()
-        waitForText("Wenn es ein Konto zu deinen Angaben gibt, haben wir dir einen Code geschickt. Er gilt 10 Minuten.")
+        waitForText("Wenn es ein Konto mit diesen Angaben gibt, haben wir dir gerade einen Code per E-Mail geschickt. Er gilt 10 Minuten.")
         assertTrue("no SMS is awaited for an e-mail code", smsRequests.isEmpty())
         compose.onNodeWithTag("logincode.signin").assertIsNotEnabled()
         shot("logincode-sent")
@@ -119,7 +119,7 @@ class PasswordlessSignInHiltTest : DeviceScreenTest() {
         showWithDevice { SignedOutScreen() }
         waitForTag("signin.codeSms")
         compose.onNodeWithTag("signin.codeSms").tap()
-        waitForText("Kein Passwort nötig: Wir schicken dir einen Code per SMS.")
+        waitForText("Kein Passwort nötig: Wir schicken dir einen Code.")
         compose.onNodeWithTag("logincode.send").assertIsNotEnabled()
         type("E-Mail oder Benutzername", "mira")
         stub("POST", "auth/login-code", """{"message":"x","errors":{"channel":["SMS ist gerade nicht verfügbar."]}}""", status = 422)
@@ -128,6 +128,7 @@ class PasswordlessSignInHiltTest : DeviceScreenTest() {
         stub("POST", "auth/login-code", "", status = 204)
         compose.onNodeWithTag("logincode.send").tap()
         waitForTag("logincode.code")
+        waitForText("Schau auf dein Handy, der Code gilt 10 Minuten.")
         compose.waitUntil(5_000) { smsRequests.isNotEmpty() }
         shareSms("Dein Oasis-Anmeldecode: 999 999.", allowed = false)
         field("Sechsstelliger Code").assertTextContains("")

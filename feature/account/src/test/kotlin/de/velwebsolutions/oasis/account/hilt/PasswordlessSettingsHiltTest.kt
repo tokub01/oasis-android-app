@@ -77,7 +77,7 @@ class PasswordlessSettingsHiltTest : DeviceScreenTest() {
         stub("POST", "account/passkeys", "", status = 201)
         stub("GET", "account/passkeys", """{"data":[{"id":4,"name":"Pixel 9"}]}""")
         compose.onNodeWithTag("passkey.name.save").press()
-        waitForText("Der Passkey ist eingerichtet.")
+        waitForText("Der Passkey ist gespeichert. Du kannst dich ab jetzt damit anmelden.")
         waitForTag("passkey.4")
         assertTrue(
             transport.requests.last {
@@ -118,7 +118,7 @@ class PasswordlessSettingsHiltTest : DeviceScreenTest() {
         field("Name").performTextClearance()
         field("Name").performTextInput("Pixel 9 (Arbeit)")
         compose.onNodeWithTag("passkey.name.save").press()
-        waitForText("Der Name ist gespeichert.")
+        waitForText("Der Name des Passkeys ist gespeichert.")
         assertEquals("""{"name":"Pixel 9 (Arbeit)"}""", transport.lastBody("account/passkeys/3").toString())
 
         compose.onNodeWithTag("passkey.3.remove").tap()
@@ -153,7 +153,7 @@ class PasswordlessSettingsHiltTest : DeviceScreenTest() {
             ) { AccountScreen(AccountRoute.Settings) }
         }
         waitForText("Auf diesem Gerät gehen Passkeys nicht.", substring = true)
-        waitForText("SMS ist gerade nicht verfügbar.", substring = true)
+        waitForText("SMS sind gerade nicht verfügbar.", substring = true)
         compose.onNodeWithTag("phone.field").assertDoesNotExist()
         shot("settings-passkeys-unavailable")
     }
@@ -192,7 +192,7 @@ class PasswordlessSettingsHiltTest : DeviceScreenTest() {
         shareSms("Dein Oasis-Code: 123 456")
         waitForText("123456")
         compose.onNodeWithTag("phone.confirm").tap()
-        waitForText("Deine Handynummer ist bestätigt.")
+        waitForText("Deine Handynummer ist bestätigt.", substring = true)
         waitForText("Bestätigt")
         shot("settings-phone-confirmed")
 

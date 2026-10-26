@@ -75,8 +75,12 @@ internal fun LoginCodeContent(ui: LoginCodeUiState, actions: LoginCodeActions) {
     val error = ui.error
     val bySms = ui.channel == LoginCodeChannel.Sms
     AuthCard(
-        "Mit Code anmelden",
-        "Kein Passwort nötig: Wir schicken dir einen Code per ${if (bySms) "SMS" else "E-Mail"}."
+        if (ui.sent) "Code eingeben" else "Mit Code anmelden",
+        when {
+            !ui.sent -> "Kein Passwort nötig: Wir schicken dir einen Code."
+            bySms -> "Schau auf dein Handy, der Code gilt 10 Minuten."
+            else -> "Schau in dein Postfach, der Code gilt 10 Minuten."
+        }
     ) {
         if (!ui.sent) {
             if (error != null && error.message("login") == null && error.message("channel") == null) Banner(error.userMessage)
@@ -90,12 +94,9 @@ internal fun LoginCodeContent(ui: LoginCodeUiState, actions: LoginCodeActions) {
                 keyboardActions = KeyboardActions(onSend = { scope.launch { actions.onSend() } })
             )
             error?.message("channel")?.let { FieldError(it) }
-            AsyncOasisButton("Code senden", actions.onSend, modifier = Modifier.testTag("logincode.send"), enabled = ui.canSend)
+            AsyncOasisButton("Code schicken", actions.onSend, modifier = Modifier.testTag("logincode.send"), enabled = ui.canSend)
         } else {
-            Banner(
-                "Wenn es ein Konto zu deinen Angaben gibt, haben wir dir einen Code geschickt. Er gilt 10 Minuten.",
-                kind = BannerKind.Success
-            )
+            Banner(if (bySms) SENT_BY_SMS else SENT_BY_MAIL, kind = BannerKind.Success)
             Text(
                 buildAnnotatedString {
                     append("Anmeldung für ")
@@ -116,7 +117,7 @@ internal fun LoginCodeContent(ui: LoginCodeUiState, actions: LoginCodeActions) {
             SmsCodeConsent(active = bySms, onCode = actions.onCode)
             AsyncOasisButton("Anmelden", actions.onSignIn, modifier = Modifier.testTag("logincode.signin"), enabled = ui.canSignIn)
             AsyncOasisButton(
-                "Neuen Code senden",
+                "Neuen Code schicken",
                 actions.onSend,
                 modifier = Modifier.testTag("logincode.resend"),
                 kind = OasisButtonKind.Secondary
@@ -131,3 +132,10 @@ internal fun LoginCodeContent(ui: LoginCodeUiState, actions: LoginCodeActions) {
         }
     }
 }
+
+/** The neutral answers after sending, as on the web (LoginCode::SENT, LoginCode::SENT_SMS). */
+internal const val SENT_BY_MAIL =
+    "Wenn es ein Konto mit diesen Angaben gibt, haben wir dir gerade einen Code per E-Mail geschickt. Er gilt 10 Minuten."
+
+internal const val SENT_BY_SMS =
+    "Wenn es ein Konto mit diesen Angaben und einer bestätigten Handynummer gibt, haben wir dir gerade einen Code per SMS geschickt. Er gilt 10 Minuten."

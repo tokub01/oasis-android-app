@@ -103,12 +103,18 @@ class SignInViewModel @Inject constructor(private val session: Session, private 
         } catch (failure: PasskeyFailure) {
             failure.userMessage
         } catch (error: Exception) {
-            error.asApiError().userMessage
+            val failure = error.asApiError()
+            if (failure is ApiError.TooManyRequests) PASSKEY_TOO_MANY else failure.userMessage
         }
         mutableUi.update { it.copy(notice = notice) }
     }
 
     fun dismissNotice() = mutableUi.update { it.copy(notice = null) }
+
+    companion object {
+        /** The web's text for a passkey sign-in refused with 429 (resources/js/passkeys.js). */
+        const val PASSKEY_TOO_MANY = "Zu viele Versuche in kurzer Zeit. Bitte warte eine Minute."
+    }
 }
 
 /** The second factor (/zwei-faktor-anmeldung). */

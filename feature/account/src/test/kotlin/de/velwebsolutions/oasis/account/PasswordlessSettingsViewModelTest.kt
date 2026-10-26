@@ -120,7 +120,7 @@ class PasswordlessSettingsViewModelTest {
         val added = transport.requests.last { it.path == "account/passkeys" && it.request.method == "POST" }.body.orEmpty()
         assertTrue(added, added.contains("\"name\":\"Handy\""))
         assertNull(model.ui.value.naming)
-        assertEquals("Der Passkey ist eingerichtet.", model.ui.value.message)
+        assertEquals("Der Passkey ist gespeichert. Du kannst dich ab jetzt damit anmelden.", model.ui.value.message)
         assertEquals(listOf(Passkey(4, "Handy")), model.ui.value.state.valueOrNull)
         model.saveNew("ohne Dialog")
         assertEquals(
@@ -181,7 +181,7 @@ class PasswordlessSettingsViewModelTest {
         model.attach(FakePasskeys(answer = "kaputt"))
         transport.add("POST", "account/passkeys/options", json = PasswordlessFixtures.CREATION)
         model.add()
-        assertEquals(PasskeyFailure.Failed().userMessage, model.ui.value.error)
+        assertEquals("Dein Gerät konnte keinen Passkey anlegen. Bitte versuche es noch einmal.", model.ui.value.error)
     }
 
     @Test
@@ -211,7 +211,7 @@ class PasswordlessSettingsViewModelTest {
         transport.add("PATCH", "account/passkeys/3", json = """{"data":{"id":3,"name":"Handy"}}""")
         model.rename(" Handy ")
         assertEquals("""{"name":"Handy"}""", transport.lastBody("account/passkeys/3").toString())
-        assertEquals("Der Name ist gespeichert.", model.ui.value.message)
+        assertEquals("Der Name des Passkeys ist gespeichert.", model.ui.value.message)
         assertNull(model.ui.value.renaming)
         model.startRename(first)
         transport.add("PATCH", "account/passkeys/3", 404, "{}")
@@ -264,7 +264,7 @@ class PasswordlessSettingsViewModelTest {
         assertTrue(model.confirmPassword("richtig"))
         assertEquals("""{"phone_number":"0176 12345678"}""", transport.lastBody("account/phone").toString())
         assertEquals("+49 176 ••• 78", model.ui.value.status?.pending)
-        assertEquals("Wir haben dir einen Code per SMS geschickt.", model.ui.value.message)
+        assertEquals("Wir haben dir einen Code per SMS geschickt. Er gilt 10 Minuten.", model.ui.value.message)
         assertFalse("the number waits for its code", model.ui.value.showsNumberField)
 
         transport.add("POST", "account/phone/confirm", 422, """{"message":"x","errors":{"code":["Der Code stimmt nicht."]}}""")
@@ -276,7 +276,10 @@ class PasswordlessSettingsViewModelTest {
         model.confirm()
         assertEquals("""{"code":"123 456"}""", transport.lastBody("account/phone/confirm").toString())
         assertEquals("+49 176 ••• 78", model.ui.value.status?.phoneNumber)
-        assertEquals("Deine Handynummer ist bestätigt.", model.ui.value.message)
+        assertEquals(
+            "Deine Handynummer ist bestätigt. Du kannst dir Anmeldecodes jetzt auch per SMS schicken lassen.",
+            model.ui.value.message
+        )
         assertEquals("", model.ui.value.code)
         assertFalse(model.ui.value.showsNumberField)
         model.startEditing()

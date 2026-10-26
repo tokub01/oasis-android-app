@@ -47,8 +47,8 @@ sealed class PasskeyFailure(val userMessage: String?) : Exception(userMessage ?:
         "Passkeys gehen auf diesem Gerät gerade nicht. Prüf, ob eine Displaysperre eingerichtet ist und die Google Play-Dienste aktuell sind."
     )
 
-    /** Anything else the system reported. */
-    class Failed : PasskeyFailure("Das hat mit dem Passkey nicht geklappt. Bitte versuch es noch einmal.")
+    /** Anything else the system reported; adding a passkey says PasskeysViewModel.REGISTRATION_FAILED instead. */
+    class Failed : PasskeyFailure("Die Anmeldung mit Passkey hat nicht geklappt. Bitte versuche es noch einmal.")
 }
 
 /** Passkeys of this device: sign in with one, create one. Answers are WebAuthn JSON for the server. */

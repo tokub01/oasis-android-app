@@ -53,7 +53,7 @@ class LoginCodeViewModel @AssistedInject constructor(
 
     fun setCode(value: String) = mutableUi.update { it.copy(code = value) }
 
-    /** „Code senden“ and „Neuen Code senden“. */
+    /** „Code schicken“ and „Neuen Code schicken“. */
     suspend fun send() {
         val current = ui.value
         if (!current.canSend) return

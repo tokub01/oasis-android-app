@@ -94,7 +94,7 @@ class PasskeysViewModel @Inject constructor(private val repository: AccountRepos
             val attestation = passkeys.register(ceremony.options.toString())
             mutableUi.update { it.copy(naming = NewPasskey(ceremony.challenge, credentialObject(attestation)), fieldErrors = emptyMap()) }
         } catch (failure: PasskeyFailure) {
-            mutableUi.update { it.copy(error = failure.userMessage) }
+            mutableUi.update { it.copy(error = if (failure is PasskeyFailure.Failed) REGISTRATION_FAILED else failure.userMessage) }
         }
     }
 
@@ -103,7 +103,7 @@ class PasskeysViewModel @Inject constructor(private val repository: AccountRepos
         val pending = ui.value.naming ?: return
         gate.run({
             repository.addPasskey(pending.challenge, pending.credential, name.trim().ifEmpty { null })
-            mutableUi.update { it.copy(naming = null, message = "Der Passkey ist eingerichtet.") }
+            mutableUi.update { it.copy(naming = null, message = ADDED) }
             load()
         }, ::handle)
     }
@@ -116,7 +116,7 @@ class PasskeysViewModel @Inject constructor(private val repository: AccountRepos
         val passkey = ui.value.renaming ?: return
         gate.run({
             repository.renamePasskey(passkey.id, name.trim())
-            mutableUi.update { it.copy(renaming = null, message = "Der Name ist gespeichert.") }
+            mutableUi.update { it.copy(renaming = null, message = RENAMED) }
             load()
         }, ::handle)
     }
@@ -130,7 +130,7 @@ class PasskeysViewModel @Inject constructor(private val repository: AccountRepos
         mutableUi.update { it.copy(removing = null) }
         gate.run({
             repository.removePasskey(passkey.id)
-            mutableUi.update { it.copy(message = "Der Passkey ist entfernt.") }
+            mutableUi.update { it.copy(message = REMOVED) }
             load()
         }, ::handle)
     }
@@ -156,5 +156,15 @@ class PasskeysViewModel @Inject constructor(private val repository: AccountRepos
                 it.copy(error = failure.userMessage, naming = null, renaming = null)
             }
         }
+    }
+
+    /** The web's texts (Livewire Account\Settings, resources/js/passkeys.js). */
+    companion object {
+        const val ADDED = "Der Passkey ist gespeichert. Du kannst dich ab jetzt damit anmelden."
+        const val RENAMED = "Der Name des Passkeys ist gespeichert."
+        const val REMOVED = "Der Passkey ist entfernt."
+
+        /** The device could not create the passkey (the sign-in says [PasskeyFailure.Failed]'s text instead). */
+        const val REGISTRATION_FAILED = "Dein Gerät konnte keinen Passkey anlegen. Bitte versuche es noch einmal."
     }
 }

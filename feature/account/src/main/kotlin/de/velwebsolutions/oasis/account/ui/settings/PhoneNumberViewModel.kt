@@ -71,24 +71,24 @@ class PhoneNumberViewModel @Inject constructor(private val repository: AccountRe
 
     fun cancelEditing() = mutableUi.update { it.copy(editing = false, number = "", fieldErrors = emptyMap()) }
 
-    /** „Code senden“: an SMS to the typed number; the number counts only once its code is confirmed. */
+    /** „Code schicken“: an SMS to the typed number; the number counts only once its code is confirmed. */
     suspend fun sendCode() {
         val number = ui.value.number.trim()
         mutableUi.update { it.copy(fieldErrors = emptyMap(), error = null) }
         gate.run({
             val status = repository.requestPhoneCode(number)
             show(status)
-            mutableUi.update { it.copy(editing = false, number = "", code = "", message = "Wir haben dir einen Code per SMS geschickt.") }
+            mutableUi.update { it.copy(editing = false, number = "", code = "", message = CODE_SENT) }
         }, ::handle)
     }
 
-    /** „Bestätigen“ with the six digits of the SMS. */
+    /** „Nummer bestätigen“ with the six digits of the SMS. */
     suspend fun confirm() {
         val code = ui.value.code.trim()
         mutableUi.update { it.copy(fieldErrors = emptyMap(), error = null) }
         gate.run({
             show(repository.confirmPhone(code))
-            mutableUi.update { it.copy(code = "", message = "Deine Handynummer ist bestätigt.") }
+            mutableUi.update { it.copy(code = "", message = CONFIRMED) }
         }, ::handle)
     }
 
@@ -96,12 +96,12 @@ class PhoneNumberViewModel @Inject constructor(private val repository: AccountRe
 
     fun cancelRemoval() = mutableUi.update { it.copy(confirmingRemoval = false) }
 
-    /** „Löschen“: sign-in codes come by e-mail only again. */
+    /** „Nummer löschen“: sign-in codes come by e-mail only again. */
     suspend fun remove() {
         mutableUi.update { it.copy(confirmingRemoval = false, error = null) }
         gate.run({
             repository.removePhone()
-            mutableUi.update { it.copy(editing = false, message = "Deine Handynummer ist gelöscht.") }
+            mutableUi.update { it.copy(editing = false, message = REMOVED) }
             load()
         }, ::handle)
     }
@@ -120,5 +120,12 @@ class PhoneNumberViewModel @Inject constructor(private val repository: AccountRe
     private fun handle(failure: ApiError) {
         val fields = failure.fieldMessages
         mutableUi.update { if (fields.isEmpty()) it.copy(error = failure.userMessage) else it.copy(fieldErrors = fields) }
+    }
+
+    /** The web's texts (Livewire Account\Settings). */
+    companion object {
+        const val CODE_SENT = "Wir haben dir einen Code per SMS geschickt. Er gilt 10 Minuten."
+        const val CONFIRMED = "Deine Handynummer ist bestätigt. Du kannst dir Anmeldecodes jetzt auch per SMS schicken lassen."
+        const val REMOVED = "Deine Handynummer ist gelöscht."
     }
 }

@@ -57,7 +57,7 @@ internal fun PasskeysSection(ui: PasskeysUiState, viewModel: PasskeysViewModel) 
     }
     SectionCard("Passkeys") {
         Text(
-            "Mit einem Passkey meldest du dich per Fingerabdruck, Gesicht oder Displaysperre an – ohne Passwort.",
+            "Melde dich ohne Passwort an, mit Gesichtserkennung, Fingerabdruck oder der PIN deines Geräts. Wir speichern nur einen öffentlichen Schlüssel, nie biometrische Daten.",
             style = OasisType.Small,
             color = OasisColors.Ink2
         )
@@ -85,6 +85,7 @@ internal fun PasskeysSection(ui: PasskeysUiState, viewModel: PasskeysViewModel) 
     ui.naming?.let {
         NameDialog(
             "Wie soll der Passkey heißen?",
+            "Zum Beispiel „Pixel“. Ohne Namen nehmen wir den Passwort-Manager.",
             viewModel.suggestedName,
             ui.fieldErrors["name"],
             "Ohne Namen",
@@ -95,6 +96,7 @@ internal fun PasskeysSection(ui: PasskeysUiState, viewModel: PasskeysViewModel) 
     ui.renaming?.let {
         NameDialog(
             "Passkey umbenennen",
+            "Der Name hilft dir, den Passkey später wiederzuerkennen.",
             it.name,
             ui.fieldErrors["name"],
             "Abbrechen",
@@ -125,9 +127,9 @@ private fun PasskeyRow(passkey: Passkey, viewModel: PasskeysViewModel) {
     ) {
         Text(passkey.name, style = OasisType.BodyBold, color = OasisColors.Ink)
         passkey.authenticator?.let { Text(it, style = OasisType.Small, color = OasisColors.Ink2) }
-        passkey.createdAt?.let { Text("Erstellt am ${GermanDate.dayLong(it)}", style = OasisType.Caption, color = OasisColors.Muted) }
+        passkey.createdAt?.let { Text("Hinzugefügt am ${GermanDate.dayLong(it)}", style = OasisType.Caption, color = OasisColors.Muted) }
         Text(
-            passkey.lastUsedAt?.let { "Zuletzt genutzt am ${GermanDate.dayLong(it)}" } ?: "Noch nicht genutzt",
+            passkey.lastUsedAt?.let { "Zuletzt benutzt am ${GermanDate.dayLong(it)}" } ?: "Noch nicht benutzt",
             style = OasisType.Caption,
             color = OasisColors.Muted
         )
@@ -147,6 +149,7 @@ private fun PasskeyRow(passkey: Passkey, viewModel: PasskeysViewModel) {
 @Composable
 private fun NameDialog(
     title: String,
+    hint: String,
     initial: String,
     error: String?,
     dismissLabel: String,
@@ -159,26 +162,30 @@ private fun NameDialog(
         title = { Text(title, style = OasisType.CardTitle, color = OasisColors.Night) },
         text = {
             Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
-                Text("Der Name hilft dir, den Passkey später wiederzuerkennen.", style = OasisType.Small, color = OasisColors.Ink2)
+                Text(hint, style = OasisType.Small, color = OasisColors.Ink2)
                 OasisTextField("Name", name, { name = it }, modifier = Modifier.testTag("passkey.name"), error = error)
             }
         },
-        confirmButton = { OasisTextButton("Speichern", { onSave(name) }, Modifier.testTag("passkey.name.save")) },
+        confirmButton = { OasisTextButton("Name speichern", { onSave(name) }, Modifier.testTag("passkey.name.save")) },
         dismissButton = { OasisTextButton(dismissLabel, onDismiss, Modifier.testTag("passkey.name.dismiss")) },
         containerColor = OasisColors.Paper
     )
 }
 
 /**
- * „Handynummer“: the masked number and its state, then number → „Code senden“ → code → „Bestätigen“; „Ändern“ and
- * „Löschen“. Without SMS on the server only a hint (and deleting a saved number) is left.
+ * „Handynummer“: the masked number and its state, then number → „Code schicken“ → code → „Nummer bestätigen“; „Ändern“
+ * and „Nummer löschen“. Without SMS on the server only a hint (and deleting a saved number) is left.
  */
 @Composable
 internal fun PhoneNumberSection(ui: PhoneNumberUiState, viewModel: PhoneNumberViewModel) {
     // Outlives the dialog, so closing it does not cancel the deletion.
     val scope = rememberCoroutineScope()
     SectionCard("Handynummer") {
-        Text("Optional: Damit kannst du dir Anmeldecodes per SMS schicken lassen.", style = OasisType.Small, color = OasisColors.Ink2)
+        Text(
+            "Freiwillig: Mit einer bestätigten Handynummer kannst du dir Anmeldecodes auch per SMS schicken lassen. Wir speichern sie verschlüsselt und nutzen sie für nichts anderes.",
+            style = OasisType.Small,
+            color = OasisColors.Ink2
+        )
         LoadableView(ui.state, onRetry = viewModel::load) { status -> PhoneNumberContent(ui, status, viewModel) }
     }
     if (ui.confirmingRemoval) {
@@ -197,7 +204,7 @@ private fun PhoneNumberContent(ui: PhoneNumberUiState, status: PhoneNumberStatus
     val scope = rememberCoroutineScope()
     Column(verticalArrangement = Arrangement.spacedBy(14.dp)) {
         if (!status.smsAvailable) {
-            Banner("SMS ist gerade nicht verfügbar. Anmeldecodes bekommst du per E-Mail.", kind = BannerKind.Info)
+            Banner("SMS sind gerade nicht verfügbar. Anmeldecodes bekommst du per E-Mail.", kind = BannerKind.Info)
         }
         status.phoneNumber?.let { number ->
             FlowRow(horizontalArrangement = Arrangement.spacedBy(10.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
@@ -220,7 +227,7 @@ private fun PhoneNumberContent(ui: PhoneNumberUiState, status: PhoneNumberStatus
                 error = ui.fieldErrors["code"]
             )
             SmsCodeConsent(active = true, onCode = viewModel::setCode)
-            AsyncOasisButton("Bestätigen", viewModel::confirm, modifier = Modifier.testTag("phone.confirm"), fullWidth = false)
+            AsyncOasisButton("Nummer bestätigen", viewModel::confirm, modifier = Modifier.testTag("phone.confirm"), fullWidth = false)
         }
         if (ui.showsNumberField) {
             OasisTextField(
@@ -234,7 +241,7 @@ private fun PhoneNumberContent(ui: PhoneNumberUiState, status: PhoneNumberStatus
             )
             FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
                 AsyncOasisButton(
-                    "Code senden",
+                    "Code schicken",
                     viewModel::sendCode,
                     modifier = Modifier.testTag("phone.send"),
                     fullWidth = false,
@@ -261,7 +268,7 @@ private fun PhoneNumberContent(ui: PhoneNumberUiState, status: PhoneNumberStatus
             }
             if (status.phoneNumber != null) {
                 OasisButton(
-                    "Löschen",
+                    "Nummer löschen",
                     viewModel::askRemoval,
                     modifier = Modifier.testTag("phone.remove"),
                     kind = OasisButtonKind.Destructive,
