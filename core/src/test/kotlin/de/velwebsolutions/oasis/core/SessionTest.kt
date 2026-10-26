@@ -2,15 +2,19 @@ package de.velwebsolutions.oasis.core
 
 import de.velwebsolutions.oasis.core.auth.AuthApi
 import de.velwebsolutions.oasis.core.auth.InMemoryTokenStore
+import de.velwebsolutions.oasis.core.auth.LoginCodeChannel
+import de.velwebsolutions.oasis.core.auth.PasskeyCeremony
 import de.velwebsolutions.oasis.core.auth.Registration
 import de.velwebsolutions.oasis.core.auth.RegistrationForm
 import de.velwebsolutions.oasis.core.auth.Session
 import de.velwebsolutions.oasis.core.auth.SessionState
+import de.velwebsolutions.oasis.core.auth.SignInMethods
 import de.velwebsolutions.oasis.core.auth.SignInResult
 import de.velwebsolutions.oasis.core.model.Me
 import de.velwebsolutions.oasis.core.network.ApiError
 import kotlinx.coroutines.test.TestScope
 import kotlinx.coroutines.test.runTest
+import kotlinx.serialization.json.JsonObject
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertNull
 import org.junit.Test
@@ -39,6 +43,16 @@ class SessionTest {
         }
 
         override suspend fun resendVerification() = Unit
+
+        override suspend fun methods() = SignInMethods()
+
+        override suspend fun requestLoginCode(login: String, channel: LoginCodeChannel) = Unit
+
+        override suspend fun verifyLoginCode(login: String, code: String, deviceName: String) = login("", "", "")
+
+        override suspend fun passkeyOptions() = PasskeyCeremony("c", JsonObject(emptyMap()))
+
+        override suspend fun passkeySignIn(challenge: String, credential: JsonObject, deviceName: String) = login("", "", "")
     }
 
     @Test
@@ -103,6 +117,18 @@ class SessionTest {
         session.update(mira)
         assertEquals(mira, session.me)
         assertEquals("new", session.currentToken())
+    }
+
+    @Test
+    fun `a code or a passkey signs in like the password`() = runTest {
+        val tokens = InMemoryTokenStore()
+        val session = Session(tokens, "Pixel", TestScope()).apply { auth = FakeAuth(Result.success(mira)) }
+        assertEquals(SignInResult.SignedIn("new", mira), session.signInWithCode("mira", "123 456"))
+        assertEquals("new", tokens.read())
+        tokens.write(null)
+        session.signInWithPasskey("c", JsonObject(emptyMap()))
+        assertEquals("new", tokens.read())
+        assertEquals(mira, session.me)
     }
 
     @Test

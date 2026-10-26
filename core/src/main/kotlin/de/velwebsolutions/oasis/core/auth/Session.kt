@@ -9,6 +9,7 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
+import kotlinx.serialization.json.JsonObject
 
 /** The app-wide sign-in state. */
 sealed interface SessionState {
@@ -83,6 +84,14 @@ class Session(
 
     /** First sign-in step. Returns [SignInResult.TwoFactorRequired] when the code is needed next. */
     suspend fun signIn(login: String, password: String): SignInResult = auth.login(login, password, deviceName).also(::apply)
+
+    /** Sign-in with the six-digit code by e-mail or SMS; like [signIn], the second factor may follow. */
+    suspend fun signInWithCode(login: String, code: String): SignInResult = auth.verifyLoginCode(login, code, deviceName).also(::apply)
+
+    /** Sign-in with a passkey assertion of [challenge]; no second factor follows (the passkey verified the member). */
+    suspend fun signInWithPasskey(challenge: String, credential: JsonObject) {
+        apply(auth.passkeySignIn(challenge, credential, deviceName))
+    }
 
     /** Second step with the TOTP code or a recovery code. */
     suspend fun completeTwoFactor(challenge: String, code: String?, recoveryCode: String?) {

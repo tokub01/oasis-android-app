@@ -21,6 +21,27 @@ sealed interface SignInResult {
     data class TwoFactorRequired(val challenge: String) : SignInResult
 }
 
+/** Where a sign-in code goes (`channel` of `auth/login-code`). */
+enum class LoginCodeChannel(val wire: String) {
+    Email("email"),
+    Sms("sms")
+}
+
+/** The sign-in ways without a password the server offers (`auth/methods`); SMS only while it is set up. */
+@Serializable
+data class SignInMethods(
+    val loginCodeChannels: List<String> = listOf("email"),
+    val smsAvailable: Boolean = false,
+    val passkeys: Boolean = false
+)
+
+/**
+ * A WebAuthn ceremony from the server: the challenge ID to send back and the options JSON for Credential Manager
+ * (PublicKeyCredentialRequestOptionsJSON for signing in, …CreationOptionsJSON for adding a passkey).
+ */
+@Serializable
+data class PasskeyCeremony(val challenge: String, val options: JsonObject)
+
 /** Registration form values from the server (bot traps). */
 @Serializable
 data class RegistrationForm(val honeypotField: String, val tokenField: String, val formToken: String)
@@ -53,6 +74,15 @@ internal data class TwoFactorBody(val challenge: String, val code: String?, val 
 @Serializable
 internal data class EmailBody(val email: String)
 
+@Serializable
+internal data class LoginCodeBody(val login: String, val channel: String)
+
+@Serializable
+internal data class LoginCodeVerifyBody(val login: String, val code: String, val deviceName: String)
+
+@Serializable
+internal data class PasskeySignInBody(val challenge: String, val credential: JsonObject, val deviceName: String)
+
 /** Calls of `routes/api/v1/auth.php`. */
 internal interface AuthService {
     @POST("auth/login")
@@ -78,6 +108,21 @@ internal interface AuthService {
 
     @POST("auth/email/verification-notification")
     suspend fun resendVerification()
+
+    @GET("auth/methods")
+    suspend fun methods(): DataEnvelope<SignInMethods>
+
+    @POST("auth/login-code")
+    suspend fun requestLoginCode(@Body body: LoginCodeBody)
+
+    @POST("auth/login-code/verify")
+    suspend fun verifyLoginCode(@Body body: LoginCodeVerifyBody): TokenAnswer
+
+    @POST("auth/passkey/options")
+    suspend fun passkeyOptions(): PasskeyCeremony
+
+    @POST("auth/passkey")
+    suspend fun passkey(@Body body: PasskeySignInBody): TokenAnswer
 }
 
 /** The sign-in calls the session and the account screens use. */
@@ -97,6 +142,21 @@ interface AuthApi {
     suspend fun logout()
 
     suspend fun resendVerification()
+
+    /** Which ways without a password the sign-in screen offers. */
+    suspend fun methods(): SignInMethods
+
+    /** Sends a six-digit code if there is an account for [login]; the answer is the same either way. */
+    suspend fun requestLoginCode(login: String, channel: LoginCodeChannel)
+
+    /** Exchanges the code for a token, or the two-factor challenge (like [login]). */
+    suspend fun verifyLoginCode(login: String, code: String, deviceName: String): SignInResult
+
+    /** The assertion options of a passkey sign-in (discoverable credentials). */
+    suspend fun passkeyOptions(): PasskeyCeremony
+
+    /** Exchanges the assertion of Credential Manager (`authenticationResponseJson`) for a token. */
+    suspend fun passkeySignIn(challenge: String, credential: JsonObject, deviceName: String): SignInResult
 }
 
 /** [AuthApi] over Retrofit. */
@@ -135,6 +195,19 @@ class RemoteAuthApi(client: ApiClient) : AuthApi {
     override suspend fun logout() = service.logout()
 
     override suspend fun resendVerification() = service.resendVerification()
+
+    override suspend fun methods() = service.methods().data
+
+    override suspend fun requestLoginCode(login: String, channel: LoginCodeChannel) =
+        service.requestLoginCode(LoginCodeBody(login, channel.wire))
+
+    override suspend fun verifyLoginCode(login: String, code: String, deviceName: String) =
+        result(service.verifyLoginCode(LoginCodeVerifyBody(login, code, deviceName)))
+
+    override suspend fun passkeyOptions() = service.passkeyOptions()
+
+    override suspend fun passkeySignIn(challenge: String, credential: JsonObject, deviceName: String) =
+        result(service.passkey(PasskeySignInBody(challenge, credential, deviceName)))
 
     private fun result(answer: TokenAnswer): SignInResult {
         if (answer.twoFactor == true && answer.challenge != null) return SignInResult.TwoFactorRequired(answer.challenge)

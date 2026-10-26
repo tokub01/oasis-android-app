@@ -1,13 +1,17 @@
 package de.velwebsolutions.oasis.core
 
+import de.velwebsolutions.oasis.core.auth.LoginCodeChannel
+import de.velwebsolutions.oasis.core.auth.PasskeyCeremony
 import de.velwebsolutions.oasis.core.auth.Registration
 import de.velwebsolutions.oasis.core.auth.RegistrationForm
 import de.velwebsolutions.oasis.core.auth.RemoteAuthApi
+import de.velwebsolutions.oasis.core.auth.SignInMethods
 import de.velwebsolutions.oasis.core.auth.SignInResult
 import de.velwebsolutions.oasis.core.model.PushPreview
 import de.velwebsolutions.oasis.core.model.ToneHint
 import de.velwebsolutions.oasis.core.network.ApiClient
 import de.velwebsolutions.oasis.core.network.ApiError
+import de.velwebsolutions.oasis.core.network.OasisJson
 import de.velwebsolutions.oasis.core.network.RemoteCommonApi
 import de.velwebsolutions.oasis.testing.StubTransport
 import java.time.LocalDate
@@ -77,6 +81,42 @@ class CommonApiTest {
         } catch (error: ApiError) {
             assertEquals(ApiError.Decoding("Anmeldung ohne Token"), error)
         }
+    }
+
+    @Test
+    fun `sign-in without a password`() = runTest {
+        val stub = StubTransport(
+            StubTransport.Stub(
+                "GET",
+                "auth/methods",
+                json = """{"data":{"login_code_channels":["email","sms"],"sms_available":true,"passkeys":true}}"""
+            ),
+            StubTransport.Stub("POST", "auth/login-code", status = 204, json = ""),
+            StubTransport.Stub("POST", "auth/login-code/verify", json = """{"two_factor":true,"challenge":"ch"}"""),
+            StubTransport.Stub(
+                "POST",
+                "auth/passkey/options",
+                json = """{"challenge":"pk","options":{"challenge":"abc","rpId":"localhost","allowCredentials":[]}}"""
+            ),
+            StubTransport.Stub("POST", "auth/passkey", json = """{"token":"t","data":$me}""")
+        )
+        val auth = RemoteAuthApi(stub.client)
+        assertEquals(SignInMethods(listOf("email", "sms"), smsAvailable = true, passkeys = true), auth.methods())
+        auth.requestLoginCode("mira", LoginCodeChannel.Sms)
+        assertEquals("""{"login":"mira","channel":"sms"}""", stub.lastBody("auth/login-code").toString())
+        assertEquals(SignInResult.TwoFactorRequired("ch"), auth.verifyLoginCode("mira", "123 456", "Pixel"))
+        assertEquals("""{"login":"mira","code":"123 456","device_name":"Pixel"}""", stub.lastBody("auth/login-code/verify").toString())
+        val ceremony = auth.passkeyOptions()
+        assertEquals(PasskeyCeremony("pk", ceremony.options), ceremony)
+        assertEquals("""{"challenge":"abc","rpId":"localhost","allowCredentials":[]}""", ceremony.options.toString())
+        val credential = OasisJson.verbatim.parseToJsonElement("""{"id":"x","rawId":"x","response":{"clientDataJSON":"c"}}""").jsonObject
+        assertEquals("t", (auth.passkeySignIn("pk", credential, "Pixel") as SignInResult.SignedIn).token)
+        assertEquals(
+            """{"challenge":"pk","credential":{"id":"x","rawId":"x","response":{"clientDataJSON":"c"}},"device_name":"Pixel"}""",
+            stub.lastBody("auth/passkey").toString()
+        )
+        assertEquals(LoginCodeChannel.Email, LoginCodeChannel.entries.first { it.wire == "email" })
+        assertEquals(SignInMethods(listOf("email")), OasisJson.snake.decodeFromString<SignInMethods>("{}"))
     }
 
     @Test

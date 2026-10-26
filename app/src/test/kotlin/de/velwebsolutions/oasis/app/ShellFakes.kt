@@ -6,13 +6,17 @@ import de.velwebsolutions.oasis.app.shell.AppScreens
 import de.velwebsolutions.oasis.app.shell.LiveShell
 import de.velwebsolutions.oasis.app.shell.PurchaseObserver
 import de.velwebsolutions.oasis.core.auth.AuthApi
+import de.velwebsolutions.oasis.core.auth.LoginCodeChannel
+import de.velwebsolutions.oasis.core.auth.PasskeyCeremony
 import de.velwebsolutions.oasis.core.auth.Registration
 import de.velwebsolutions.oasis.core.auth.RegistrationForm
+import de.velwebsolutions.oasis.core.auth.SignInMethods
 import de.velwebsolutions.oasis.core.auth.SignInResult
 import de.velwebsolutions.oasis.core.model.Me
 import de.velwebsolutions.oasis.design.components.OasisScreen
 import de.velwebsolutions.oasis.design.navigation.AppRoute
 import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.serialization.json.JsonObject
 
 val mira = Me(7, "mira", "Mira Sol", "MS", "mira@example.org")
 
@@ -72,6 +76,16 @@ class FakeAuth(var me: Me = mira, var error: Exception? = null) : AuthApi {
     }
 
     override suspend fun resendVerification() = Unit
+
+    override suspend fun methods() = SignInMethods()
+
+    override suspend fun requestLoginCode(login: String, channel: LoginCodeChannel) = Unit
+
+    override suspend fun verifyLoginCode(login: String, code: String, deviceName: String) = login("", "", "")
+
+    override suspend fun passkeyOptions() = PasskeyCeremony("c", JsonObject(emptyMap()))
+
+    override suspend fun passkeySignIn(challenge: String, credential: JsonObject, deviceName: String) = login("", "", "")
 }
 
 /** Stand-ins for the feature screens: each shows its name, so the shell's routing can be read off the screen. */
