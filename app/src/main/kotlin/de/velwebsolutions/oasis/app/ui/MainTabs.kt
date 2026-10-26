@@ -234,7 +234,7 @@ private fun AppHeader(me: Me, viewModel: RootViewModel, actions: @Composable Row
                 }
                 .semantics { contentDescription = "Oasis – zur Quelle" }
         ) {
-            OasisLogo(size = 22.dp)
+            OasisLogo()
         }
         Spacer(Modifier.weight(1f))
         actions()

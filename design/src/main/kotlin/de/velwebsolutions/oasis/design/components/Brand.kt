@@ -41,9 +41,12 @@ import de.velwebsolutions.oasis.design.theme.OasisColors
 import de.velwebsolutions.oasis.design.theme.OasisRadius
 import de.velwebsolutions.oasis.design.theme.OasisType
 
-/** The Oasis logo like `x-oasis.logo`: a half sun over two waves, with the word mark "oasis" next to it. */
+/**
+ * The Oasis logo like `x-oasis.logo`: a half sun over two waves, with the word mark "oasis" next to it. The web's header
+ * draws the sign at 40 px and the word mark at 30 px; [size] is the sign, the word mark follows at three quarters.
+ */
 @Composable
-fun OasisLogo(modifier: Modifier = Modifier, size: Dp = 26.dp, wordmark: Boolean = true) {
+fun OasisLogo(modifier: Modifier = Modifier, size: Dp = 38.dp, wordmark: Boolean = true) {
     Row(
         modifier.clearAndSetSemantics { contentDescription = "Oasis" },
         horizontalArrangement = Arrangement.spacedBy(size * 0.25f),
@@ -52,7 +55,12 @@ fun OasisLogo(modifier: Modifier = Modifier, size: Dp = 26.dp, wordmark: Boolean
         LogoSign(Modifier.size(size))
         if (wordmark) {
             val fontSize = with(LocalDensity.current) { (size * 0.75f).toSp() }
-            Text("oasis", style = OasisType.display().copy(fontSize = fontSize, letterSpacing = (-0.02).em), color = OasisColors.Night)
+            // tracking-[-0.5px] at 30 px, leading-none.
+            Text(
+                "oasis",
+                style = OasisType.display().copy(fontSize = fontSize, lineHeight = fontSize, letterSpacing = (-0.0167).em),
+                color = OasisColors.Night
+            )
         }
     }
 }

@@ -56,7 +56,7 @@ private fun PaywallHeader(viewModel: RootViewModel, actions: @Composable RowScop
         Modifier.fillMaxWidth().statusBarsPadding().height(56.dp).padding(start = 16.dp, end = 4.dp),
         verticalAlignment = Alignment.CenterVertically
     ) {
-        OasisLogo(size = 22.dp)
+        OasisLogo()
         Spacer(Modifier.weight(1f))
         actions()
         IconButton(onClick = { open = true }, modifier = Modifier.testTag("paywall.menu")) {
