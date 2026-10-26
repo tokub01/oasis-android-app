@@ -87,8 +87,7 @@ class FakePushSystem(
 
 class MemoryPushStore(override var deviceId: Int? = null, override var optedOut: Boolean = false) : PushStore
 
-fun registrar(system: FakePushSystem = FakePushSystem(), store: PushStore = MemoryPushStore(), backendAcceptsFcm: Boolean = true) =
-    PushRegistrar(system, store, backendAcceptsFcm)
+fun registrar(system: FakePushSystem = FakePushSystem(), store: PushStore = MemoryPushStore()) = PushRegistrar(system, store)
 
 /** A realtime service whose events the test sends. */
 class FakeRealtime : RealtimeService {

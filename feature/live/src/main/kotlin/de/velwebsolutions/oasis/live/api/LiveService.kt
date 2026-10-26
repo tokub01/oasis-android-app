@@ -29,10 +29,7 @@ internal data class PauseBody(val days: Int)
 @Serializable
 internal data class SwitchBody(val value: Boolean)
 
-/**
- * The FCM registration the Android app would send. Laravel's PushDeviceController takes APNs tokens only (`platform`
- * is always `ios`), so this is sent only once the server accepts it (PushRegistrar.BACKEND_ACCEPTS_FCM).
- */
+/** The FCM registration of this installation (`platform` android; Laravel's PushDeviceController checks the token). */
 @Serializable
 internal data class FcmRegistrationBody(val token: String, val platform: String)
 
@@ -71,6 +68,7 @@ internal interface LiveService {
     @GET("live/counts")
     suspend fun counts(): DataEnvelope<LiveCountsData>
 
+    /** `push.available` is answered for the asking platform. */
     @GET("app-config")
-    suspend fun appConfig(): DataEnvelope<LiveAppConfig>
+    suspend fun appConfig(@Query("platform") platform: String): DataEnvelope<LiveAppConfig>
 }

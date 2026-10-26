@@ -18,16 +18,20 @@ class PushFailure(override val message: String) : Exception(message)
  * bound to this sign-in's API token, so signing out or revoking the device removes it on the server too. "Auf diesem
  * Gerät ausschalten" in Hinweise einstellen removes it and remembers the choice; "einschalten" undoes that.
  *
- * The Oasis server takes APNs tokens only today ([BACKEND_ACCEPTS_FCM]): until it accepts FCM tokens, [isSupported]
- * is false, nothing is sent and the settings say that push hints are not set up yet.
+ * A build without google-services.json has no Firebase: [isSupported] is false, nothing is sent, and the settings say
+ * that the app gets no push hints.
  */
-class PushRegistrar(
-    private val system: PushSystem,
-    private val store: PushStore,
-    private val backendAcceptsFcm: Boolean = BACKEND_ACCEPTS_FCM
-) {
+class PushRegistrar(private val system: PushSystem, private val store: PushStore) {
     private val mutableAuthorization = MutableStateFlow(PushAuthorization.NotDetermined)
     val authorization: StateFlow<PushAuthorization> = mutableAuthorization.asStateFlow()
+
+    private val mutableAsksForPermission = MutableStateFlow(false)
+
+    /**
+     * After sign-in Android asks once for notifications, like iOS: true while the server sends app pushes, this build has
+     * Firebase, the member has not switched push off here and Android has not asked yet. The app shell shows the prompt.
+     */
+    val asksForPermission: StateFlow<Boolean> = mutableAsksForPermission.asStateFlow()
 
     /** Whether the server sends app pushes at all (`app-config` → `push.available`). */
     var isAvailable = false
@@ -41,14 +45,22 @@ class PushRegistrar(
     /** The member switched push off on this device. */
     val isOptedOut: Boolean get() = store.optedOut
 
-    /** Whether this build can get push hints from this server at all (Firebase set up, FCM accepted by Laravel). */
-    val isSupported: Boolean get() = system.isConfigured && backendAcceptsFcm
+    /** Whether this build can get push hints at all (Firebase set up). */
+    val isSupported: Boolean get() = system.isConfigured
 
     /** After sign-in (and at every start while signed in): register when allowed. */
     suspend fun signedIn(repository: LiveRepository) {
         this.repository = repository
         isAvailable = catching { repository.appConfig().push.available }.getOrDefault(false)
         refreshAuthorization()
+        mutableAsksForPermission.value =
+            isAvailable && isSupported && !isOptedOut && authorization.value == PushAuthorization.NotDetermined
+        registerIfAllowed()
+    }
+
+    /** The answer to the prompt after sign-in: registers right away when notifications are allowed now. */
+    suspend fun promptAnswered(granted: Boolean) {
+        permissionAnswered(granted)
         registerIfAllowed()
     }
 
@@ -64,6 +76,7 @@ class PushRegistrar(
     /** The screen asked for the notification permission. */
     fun permissionAnswered(granted: Boolean) {
         system.permissionAnswered(granted)
+        mutableAsksForPermission.value = false
         refreshAuthorization()
     }
 
@@ -122,12 +135,6 @@ class PushRegistrar(
     }
 
     companion object {
-        /**
-         * Laravel's PushDeviceController validates APNs hex tokens and stores `platform => ios`; FCM tokens would be
-         * refused. Switch this on together with the server side (see the report of the Android port).
-         */
-        const val BACKEND_ACCEPTS_FCM = false
-
         /** Shown while Android does not allow notifications for Oasis. */
         const val DENIED_TEXT =
             "Du hast Mitteilungen für Oasis in den Android-Einstellungen ausgeschaltet. Erlaube sie dort, um Push-Hinweise zu bekommen."

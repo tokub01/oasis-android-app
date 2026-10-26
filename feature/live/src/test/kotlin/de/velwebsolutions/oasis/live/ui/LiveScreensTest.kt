@@ -64,6 +64,7 @@ import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.cancel
 import org.junit.After
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertFalse
 import org.junit.Assert.assertTrue
 import org.junit.Rule
 import org.junit.Test
@@ -161,6 +162,7 @@ class LiveScreensTest {
     }
 
     @Test
+    @OptIn(com.github.takahirom.roborazzi.ExperimentalRoborazziApi::class)
     fun theSettingsSaveSwitchesTimesPauseAndChatAndGoBack() {
         val transport = StubTransport(
             StubTransport.Stub(
@@ -423,5 +425,49 @@ class LiveScreensTest {
         compose.waitUntil(5_000) { model.ui.value.settings != null }
         compose.onNodeWithTag("push.toggle").tap()
         compose.waitUntil(5_000) { model.ui.value.error == PushRegistrar.DENIED_TEXT }
+    }
+
+    private fun askingCoordinator(): Pair<de.velwebsolutions.oasis.live.LiveCoordinator, StubTransport> {
+        val transport = StubTransport(
+            StubTransport.Stub("GET", "live/counts", json = LiveJson.COUNTS),
+            StubTransport.Stub("GET", "app-config", json = LiveJson.CONFIG),
+            StubTransport.Stub("POST", "push/devices", json = LiveJson.DEVICE)
+        )
+        val push = registrar(FakePushSystem(status = PushAuthorization.NotDetermined))
+        val live = de.velwebsolutions.oasis.live.LiveCoordinator(
+            repository(transport),
+            de.velwebsolutions.oasis.live.FakeRealtime(),
+            push,
+            scope
+        )
+        kotlinx.coroutines.runBlocking { live.start(1) }
+        return live to transport
+    }
+
+    @Test
+    fun theShellAsksForNotificationsOnceAfterSignIn() {
+        val (live, transport) = askingCoordinator()
+        assertTrue(live.asksForPushPermission.value)
+        show { HintsButton(live) }
+        compose.waitForIdle()
+        val request = shadowOf(compose.activity).lastRequestedPermission
+        assertEquals(listOf(android.Manifest.permission.POST_NOTIFICATIONS), request.requestedPermissions.toList())
+        @Suppress("DEPRECATION")
+        compose.activity.onRequestPermissionsResult(
+            request.requestCode,
+            request.requestedPermissions,
+            intArrayOf(PackageManager.PERMISSION_GRANTED)
+        )
+        compose.waitUntil(5_000) { transport.requests.any { it.path == "push/devices" } }
+        assertFalse(live.asksForPushPermission.value)
+    }
+
+    @Test
+    @Config(sdk = [32])
+    fun beforeAndroid13TheShellAsksNothing() {
+        val (live, _) = askingCoordinator()
+        show { HintsButton(live) }
+        compose.waitForIdle()
+        assertEquals(null, shadowOf(compose.activity).lastRequestedPermission)
     }
 }

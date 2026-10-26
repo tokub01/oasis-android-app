@@ -85,5 +85,5 @@ class DefaultLiveRepository @Inject constructor(client: ApiClient) : LiveReposit
 
     override suspend fun counts() = service.counts().data
 
-    override suspend fun appConfig() = service.appConfig().data
+    override suspend fun appConfig() = service.appConfig(platform = "android").data
 }
