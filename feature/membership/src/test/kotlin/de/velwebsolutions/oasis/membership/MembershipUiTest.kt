@@ -218,7 +218,7 @@ class MembershipUiTest {
 
     @Test
     fun `a founding member without membership and switched-off purchases`() {
-        overview(noMembership.copy(isFoundingMember = true, apple = null))
+        overview(noMembership.copy(isFoundingMember = true, google = null))
         compose.onNodeWithText("Noch keine Mitgliedschaft").performScrollTo().assertIsDisplayed()
         compose.onNodeWithTag("membership.choose").assertDoesNotExist()
         shot("overview-no-membership")
@@ -235,7 +235,7 @@ class MembershipUiTest {
 
     @Test
     fun `without membership and without in-app purchases`() {
-        overview(noMembership.copy(apple = null))
+        overview(noMembership.copy(google = null))
         compose.onNodeWithTag("membership.choose").assertDoesNotExist()
     }
 
@@ -394,8 +394,8 @@ class MembershipUiTest {
         assertEquals(1, confirmed)
     }
 
-    private val offers = PlayProducts.tiers.map { tier ->
-        val products = Fixtures.playCatalogue.filter { PlayProducts.entry(it.id)?.tier == tier }
+    private val offers = Catalogue.tiers.map { tier ->
+        val products = Fixtures.playCatalogue.filter { Catalogue.entry(it.id)?.tier == tier }
         CheckoutOffer(tier, products.first { it.id.endsWith(".monat") }, products.first { it.id.endsWith(".jahr") })
     }
 
@@ -430,7 +430,7 @@ class MembershipUiTest {
 
     @Test
     fun `the checkout with a described product`() {
-        val described = CheckoutOffer("oase", Fixtures.product(PlayProducts.OASE_MONTHLY, "5,00 €").copy(description = "Werbefrei"), null)
+        val described = CheckoutOffer("oase", Fixtures.product(Catalogue.OASE_MONTHLY, "5,00 €").copy(description = "Werbefrei"), null)
         show {
             PlayCheckoutContent(CheckoutUiState(Loadable.Loaded(listOf(described)), canPurchase = true), {}, {}, {}, {})
         }
@@ -456,7 +456,7 @@ class MembershipUiTest {
 
     @Test
     fun `a web subscription that can no longer be cancelled, and Apple's switch off`() {
-        overview(subscription.copy(canCancel = false, isFoundingMember = false, apple = MembershipOverview.Apple(available = false)))
+        overview(subscription.copy(canCancel = false, isFoundingMember = false, google = MembershipOverview.Google(available = false)))
         compose.onNodeWithTag("membership.portal").assertExists()
         compose.onNodeWithTag("membership.cancel").assertDoesNotExist()
         compose.onNodeWithTag("membership.founding").assertDoesNotExist()
@@ -477,7 +477,7 @@ class MembershipUiTest {
         compose.onNodeWithTag("membership.founding").performScrollTo().assertIsDisplayed()
         state = state.copy(isFoundingMember = false)
         compose.onNodeWithTag("membership.founding").assertDoesNotExist()
-        state = noMembership.copy(isFoundingMember = false, apple = MembershipOverview.Apple(available = false))
+        state = noMembership.copy(isFoundingMember = false, google = MembershipOverview.Google(available = false))
         compose.onNodeWithTag("membership.expired").assertIsDisplayed()
         compose.onNodeWithTag("membership.choose").assertDoesNotExist()
         compose.onNodeWithTag("membership.founding").assertDoesNotExist()
@@ -486,13 +486,13 @@ class MembershipUiTest {
     @Test
     fun `a contract page before it starts loading, and the checkout while a purchase runs`() {
         var idle by mutableStateOf(true)
-        val offer = CheckoutOffer("oase", Fixtures.product(PlayProducts.OASE_MONTHLY, "5,00 €"), null)
+        val offer = CheckoutOffer("oase", Fixtures.product(Catalogue.OASE_MONTHLY, "5,00 €"), null)
         show {
             if (idle) {
                 CancelContent(ContractUiState(Loadable.Idle), onRetry = {}, onConfirm = {}, onExport = {})
             } else {
                 PlayCheckoutContent(
-                    CheckoutUiState(Loadable.Loaded(listOf(offer)), canPurchase = true, purchasing = PlayProducts.OASE_MONTHLY),
+                    CheckoutUiState(Loadable.Loaded(listOf(offer)), canPurchase = true, purchasing = Catalogue.OASE_MONTHLY),
                     {},
                     {},
                     {},
@@ -503,5 +503,22 @@ class MembershipUiTest {
         compose.onNodeWithText("Bestätigung deiner Kündigung gemäß § 312k BGB.").assertIsDisplayed()
         idle = false
         compose.onNodeWithTag("checkout.subscribe.oase").assertIsNotEnabled()
+    }
+
+    @Test
+    fun `a Google Play subscription is managed in the Play Store and reloads on return`() {
+        var managed = 0
+        val google = MembershipOverview.Google(managedByGoogle = true, manageUrl = "https://play.google.com/store/account/subscriptions")
+        overview(subscription.copy(google = google, canCancel = false, canWithdraw = false)) { managed++ }
+        compose.onNodeWithText("Deine Mitgliedschaft läuft über Google Play. Stufe, Laufzeit und Kündigung verwaltest du im Play Store.")
+            .performScrollTo().assertIsDisplayed()
+        compose.onNodeWithTag("membership.portal").assertDoesNotExist()
+        shot("overview-google")
+        compose.onNodeWithTag("membership.manageGoogle").performScrollTo().performClick()
+        assertEquals("https://play.google.com/store/account/subscriptions", web.last())
+        lifecycle.registry.handleLifecycleEvent(Lifecycle.Event.ON_PAUSE)
+        lifecycle.registry.handleLifecycleEvent(Lifecycle.Event.ON_RESUME)
+        compose.waitForIdle()
+        assertEquals(1, managed)
     }
 }

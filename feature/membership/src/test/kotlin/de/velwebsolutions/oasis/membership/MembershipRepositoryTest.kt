@@ -3,6 +3,7 @@ package de.velwebsolutions.oasis.membership
 import de.velwebsolutions.oasis.core.network.ApiError
 import de.velwebsolutions.oasis.membership.api.MembershipFormat
 import de.velwebsolutions.oasis.membership.api.MembershipOverview
+import de.velwebsolutions.oasis.membership.billing.PlayPurchaseReceipt
 import de.velwebsolutions.oasis.testing.StubTransport.Stub
 import kotlinx.coroutines.test.runTest
 import org.junit.Assert.assertEquals
@@ -19,15 +20,35 @@ class MembershipRepositoryTest {
         val overview = repository.overview()
         assertEquals(MembershipOverview.State.Expired, overview.state)
         assertNull(overview.subscription)
-        assertEquals(true, overview.apple?.available)
-        assertEquals("3f2b7c1e-8a4d-5b6e-9c0f-1a2b3c4d5e6f", overview.apple?.accountToken)
         assertEquals(false, overview.apple?.managedByApple)
+        val google = overview.google!!
+        assertEquals(true, google.available)
+        assertEquals(Fixtures.ACCOUNT_ID, google.accountId)
+        assertEquals(Catalogue.ids, google.products.map { it.id })
+        assertEquals("oase", google.products[2].tier)
+        assertEquals(false, google.managedByGoogle)
+        assertEquals("https://play.google.com/store/account/subscriptions", google.manageUrl)
     }
 
     @Test
-    fun `tolerates servers without the apple block`() = runTest {
+    fun `tolerates servers without the apple and google blocks`() = runTest {
         val (repository, _) = Fixtures.repository(Stub("GET", "membership", json = Fixtures.subscriptionOverview))
         assertNull(repository.overview().apple)
+        assertNull(repository.overview().google)
+    }
+
+    @Test
+    fun `a Google Play purchase is posted with its token and product`() = runTest {
+        val (repository, transport) = Fixtures.repository(
+            Stub("POST", "membership/google-purchases", json = Fixtures.confirmed(Fixtures.WELCOME))
+        )
+        val answer = repository.googlePurchase(PlayPurchaseReceipt("token", Catalogue.OASE_MONTHLY))
+        assertEquals(Fixtures.WELCOME, answer.message)
+        assertEquals(MembershipOverview.State.Subscription, answer.data.state)
+        assertEquals(
+            """{"purchase_token":"token","product_id":"${Catalogue.OASE_MONTHLY}"}""",
+            transport.lastBody("membership/google-purchases").toString()
+        )
     }
 
     @Test

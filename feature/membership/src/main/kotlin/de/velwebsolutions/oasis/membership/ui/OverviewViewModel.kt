@@ -66,7 +66,7 @@ class OverviewViewModel @Inject constructor(
         }
     }
 
-    /** Back from managing the Apple subscription: tier or cancellation may have changed there, so everything reloads. */
+    /** Back from managing the store subscription (App Store or Play Store): tier or cancellation may have changed there, so everything reloads. */
     fun subscriptionManaged() = events.changed()
 
     /** Hides the confirmation once the snackbar showed it. */

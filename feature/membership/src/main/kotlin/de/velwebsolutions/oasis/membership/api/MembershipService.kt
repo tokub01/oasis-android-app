@@ -2,6 +2,8 @@ package de.velwebsolutions.oasis.membership.api
 
 import de.velwebsolutions.oasis.core.network.Confirmed
 import de.velwebsolutions.oasis.core.network.DataEnvelope
+import de.velwebsolutions.oasis.membership.billing.PlayPurchaseReceipt
+import retrofit2.http.Body
 import retrofit2.http.GET
 import retrofit2.http.POST
 
@@ -13,6 +15,13 @@ import retrofit2.http.POST
 interface MembershipService {
     @GET("membership")
     suspend fun overview(): DataEnvelope<MembershipOverview>
+
+    /**
+     * Hands a Google Play purchase to the server, which checks it with Google, activates the membership and acknowledges
+     * the purchase itself. Idempotent; 422 names why Oasis cannot take it over, 503 means "try again later".
+     */
+    @POST("membership/google-purchases")
+    suspend fun googlePurchase(@Body receipt: PlayPurchaseReceipt): Confirmed<MembershipOverview>
 
     @GET("membership/payments")
     suspend fun payments(): DataEnvelope<List<MembershipPayment>>

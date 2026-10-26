@@ -6,8 +6,7 @@ import de.velwebsolutions.oasis.membership.billing.PlayDelivery
 import de.velwebsolutions.oasis.membership.billing.PlayProducts
 import de.velwebsolutions.oasis.membership.billing.PlayPurchase
 import de.velwebsolutions.oasis.membership.billing.PlayPurchaseReceipt
-import de.velwebsolutions.oasis.membership.billing.PlayVerificationUnavailable
-import de.velwebsolutions.oasis.membership.billing.ServerPendingPlayPurchaseVerifier
+import de.velwebsolutions.oasis.membership.ui.storeManagement
 import java.time.Instant
 import java.time.temporal.ChronoUnit
 import kotlinx.coroutines.test.runTest
@@ -30,31 +29,23 @@ class BillingTypesTest {
     }
 
     @Test
-    fun `only our products make a receipt for the server`() {
-        val ours = PlayPurchase("token", listOf("other.app.coins", PlayProducts.OASE_YEARLY), isPurchased = true, isAcknowledged = false)
-        assertEquals(PlayPurchaseReceipt("token", PlayProducts.OASE_YEARLY), ours.receipt())
-        val foreign = PlayPurchase("token", listOf("other.app.coins"), isPurchased = true, isAcknowledged = false)
-        assertNull(foreign.productId)
-        assertNull(foreign.receipt())
-        assertNull(PlayProducts.entry("other.app.coins"))
+    fun `the receipt carries the purchase's first product, a purchase without one makes none`() {
+        val ours = PlayPurchase("token", listOf(Catalogue.OASE_YEARLY), isPurchased = true, isAcknowledged = false)
+        assertEquals(PlayPurchaseReceipt("token", Catalogue.OASE_YEARLY), ours.receipt())
+        val empty = PlayPurchase("token", emptyList(), isPurchased = true, isAcknowledged = false)
+        assertNull(empty.productId)
+        assertNull(empty.receipt())
     }
 
     @Test
-    fun `delivery skips foreign purchases and acknowledges only once`() = runTest {
-        val gateway = FakeBillingGateway()
-        val delivery = PlayDelivery(gateway, FakeVerifier())
-        val foreign = PlayPurchase("token", listOf("other.app.coins"), isPurchased = true, isAcknowledged = false)
-        assertEquals(PlayDelivery.Result.Skipped, delivery.deliver(foreign))
-        assertTrue(delivery.deliver(Fixtures.purchase(acknowledged = true)) is PlayDelivery.Result.Unlocked)
-        assertTrue("an acknowledged purchase is not acknowledged again", gateway.acknowledged.isEmpty())
-    }
-
-    @Test
-    fun `the pending verifier refuses every purchase`() = runTest {
-        val verifier = ServerPendingPlayPurchaseVerifier()
-        assertFalse(verifier.isAvailable)
-        val refusal = runCatching { verifier.verify(PlayPurchaseReceipt("token", PlayProducts.OASE_MONTHLY)) }.exceptionOrNull()
-        assertTrue(refusal is PlayVerificationUnavailable)
+    fun `delivery sends paid purchases with a product and skips the rest`() = runTest {
+        val repository = FakeMembershipRepository()
+        val delivery = PlayDelivery(repository)
+        val empty = PlayPurchase("token", emptyList(), isPurchased = true, isAcknowledged = false)
+        assertEquals(PlayDelivery.Result.Skipped, delivery.deliver(empty))
+        assertEquals(PlayDelivery.Result.Skipped, delivery.deliver(Fixtures.purchase(purchased = false)))
+        assertTrue(delivery.deliver(Fixtures.purchase()) is PlayDelivery.Result.Unlocked)
+        assertEquals(listOf(PlayPurchaseReceipt("token-${Catalogue.OASE_MONTHLY}", Catalogue.OASE_MONTHLY)), repository.receipts)
     }
 
     @Test
@@ -70,5 +61,25 @@ class BillingTypesTest {
         val running = de.velwebsolutions.oasis.membership.api.MembershipOverview.Subscription("Oase")
         assertFalse(running.onGracePeriod)
         assertNull(running.endsAt)
+    }
+
+    @Test
+    fun `a store subscription is managed in its store, everything else here`() {
+        val none = de.velwebsolutions.oasis.membership.api.MembershipOverview()
+        assertNull(none.storeManagement())
+        val apple = de.velwebsolutions.oasis.membership.api.MembershipOverview.Apple(managedByApple = true, manageUrl = "a")
+        val notApple = de.velwebsolutions.oasis.membership.api.MembershipOverview.Apple()
+        val google = de.velwebsolutions.oasis.membership.api.MembershipOverview.Google(managedByGoogle = true, manageUrl = "g")
+        val notGoogle = de.velwebsolutions.oasis.membership.api.MembershipOverview.Google(
+            products = listOf(
+                de.velwebsolutions.oasis.membership.api.MembershipOverview.Google.Product(Catalogue.OASE_MONTHLY, "oase", "monat")
+            )
+        )
+        assertEquals("membership.manageApple", none.copy(apple = apple, google = google).storeManagement()?.tag)
+        assertEquals("g", none.copy(apple = notApple, google = google).storeManagement()?.manageUrl)
+        assertNull(none.copy(apple = notApple, google = notGoogle).storeManagement())
+        assertNull(none.copy(apple = notApple).storeManagement())
+        assertNull(none.copy(google = notGoogle).storeManagement())
+        assertEquals("oase", notGoogle.products.single().tier)
     }
 }

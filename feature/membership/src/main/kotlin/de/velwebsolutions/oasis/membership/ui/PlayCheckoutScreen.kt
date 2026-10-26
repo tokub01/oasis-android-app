@@ -112,11 +112,7 @@ fun PlayCheckoutContent(
             LoadableView(state.offers, onRetry = onRetry) { offers ->
                 when {
                     state.alreadyMember != null -> Text(
-                        if (state.alreadyMember == AlreadyMember.Apple) {
-                            "Du bist schon Mitglied. Deine Mitgliedschaft läuft über deine Apple-ID; eine zweite brauchst du nicht."
-                        } else {
-                            "Du bist schon Mitglied. Deine Mitgliedschaft läuft über die Website; eine zweite brauchst du nicht."
-                        },
+                        state.alreadyMember.text(),
                         style = OasisType.Body,
                         color = OasisColors.Ink2,
                         modifier = Modifier.testTag("checkout.alreadyMember")

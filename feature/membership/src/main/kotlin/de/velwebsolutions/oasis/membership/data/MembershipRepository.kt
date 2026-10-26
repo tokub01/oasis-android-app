@@ -7,6 +7,7 @@ import de.velwebsolutions.oasis.membership.api.MembershipOverview
 import de.velwebsolutions.oasis.membership.api.MembershipPayment
 import de.velwebsolutions.oasis.membership.api.MembershipService
 import de.velwebsolutions.oasis.membership.api.WithdrawalDetails
+import de.velwebsolutions.oasis.membership.billing.PlayPurchaseReceipt
 import javax.inject.Inject
 
 /** The membership of the signed-in member: status, invoices and the pages that end the contract. */
@@ -14,6 +15,9 @@ interface MembershipRepository {
     suspend fun overview(): MembershipOverview
 
     suspend fun payments(): List<MembershipPayment>
+
+    /** Hands a Google Play purchase to the server (`POST membership/google-purchases`); throws its refusal as `ApiError`. */
+    suspend fun googlePurchase(receipt: PlayPurchaseReceipt): Confirmed<MembershipOverview>
 
     /** The invoice of a payment as a self-contained HTML document (also for /app/mitgliedschaft/rechnungen/{id}). */
     suspend fun invoice(id: Int): ByteArray
@@ -39,6 +43,8 @@ class DefaultMembershipRepository @Inject constructor(private val client: ApiCli
     override suspend fun overview() = service.overview().data
 
     override suspend fun payments() = service.payments().data
+
+    override suspend fun googlePurchase(receipt: PlayPurchaseReceipt) = service.googlePurchase(receipt)
 
     override suspend fun invoice(id: Int) = client.download(client.url("membership/invoices/$id").toString())
 

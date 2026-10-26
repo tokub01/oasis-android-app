@@ -69,7 +69,6 @@ class RouteScreensTest {
     private val files = MembershipFiles(context.cacheDir)
     private val events = MembershipEvents()
     private val gateway = FakeBillingGateway()
-    private val verifier = FakeVerifier()
 
     private val store = ViewModelStore()
     private val owner = object : ViewModelStoreOwner {
@@ -84,7 +83,7 @@ class RouteScreensTest {
             InvoiceViewModel::class -> InvoiceViewModel(7, repository, files)
             CancelViewModel::class -> CancelViewModel(repository, files, events, Fixtures.session())
             WithdrawViewModel::class -> WithdrawViewModel(repository, files, events, Fixtures.session())
-            else -> PlayCheckoutViewModel(repository, gateway, PlayDelivery(gateway, verifier), verifier, events, Fixtures.session())
+            else -> PlayCheckoutViewModel(repository, gateway, PlayDelivery(repository), events, Fixtures.session())
         } as T
     }
 

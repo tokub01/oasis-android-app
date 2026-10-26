@@ -43,8 +43,8 @@ data class PlayPurchase(
     val isPurchased: Boolean,
     val isAcknowledged: Boolean
 ) {
-    /** The first of our products in the purchase. */
-    val productId: String? get() = productIds.firstOrNull { PlayProducts.entry(it) != null }
+    /** The subscription of the purchase (a subscription purchase carries exactly one product). */
+    val productId: String? get() = productIds.firstOrNull()
 
     /** What the server needs to check the purchase with the Google Play Developer API. */
     fun receipt(): PlayPurchaseReceipt? = productId?.let { PlayPurchaseReceipt(purchaseToken, it) }
@@ -89,9 +89,6 @@ interface BillingGateway {
 
     /** The subscriptions Play knows for the signed-in Google account ("Käufe wiederherstellen"). */
     suspend fun ownedPurchases(): List<PlayPurchase>
-
-    /** Confirms the purchase to Play – only after the server unlocked the membership. Unacknowledged ones are refunded. */
-    suspend fun acknowledge(purchase: PlayPurchase): Boolean
 
     /** Purchases that arrive outside a running purchase flow (pending payments that went through, renewals). */
     val purchaseUpdates: Flow<PlayPurchase>

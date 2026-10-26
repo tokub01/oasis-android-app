@@ -11,8 +11,6 @@ import de.velwebsolutions.oasis.membership.billing.BillingClientConnection
 import de.velwebsolutions.oasis.membership.billing.BillingGateway
 import de.velwebsolutions.oasis.membership.billing.PlayBillingConnection
 import de.velwebsolutions.oasis.membership.billing.PlayBillingGateway
-import de.velwebsolutions.oasis.membership.billing.PlayPurchaseVerifier
-import de.velwebsolutions.oasis.membership.billing.ServerPendingPlayPurchaseVerifier
 import de.velwebsolutions.oasis.membership.data.DefaultMembershipRepository
 import de.velwebsolutions.oasis.membership.data.MembershipFiles
 import de.velwebsolutions.oasis.membership.data.MembershipRepository
@@ -33,10 +31,6 @@ abstract class MembershipModule {
     /** Play's client behind the billing gateway. */
     @Binds
     abstract fun billingConnection(connection: BillingClientConnection): PlayBillingConnection
-
-    /** Replace with the real verifier once the backend can check Google Play purchases (see the class). */
-    @Binds
-    abstract fun verifier(verifier: ServerPendingPlayPurchaseVerifier): PlayPurchaseVerifier
 
     companion object {
         @Provides

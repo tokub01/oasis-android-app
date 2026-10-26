@@ -6,6 +6,7 @@ import de.velwebsolutions.oasis.membership.api.CancellationDetails
 import de.velwebsolutions.oasis.membership.api.MembershipOverview
 import de.velwebsolutions.oasis.membership.api.MembershipPayment
 import de.velwebsolutions.oasis.membership.api.WithdrawalDetails
+import de.velwebsolutions.oasis.membership.billing.PlayPurchaseReceipt
 import de.velwebsolutions.oasis.membership.data.MembershipRepository
 import kotlinx.coroutines.CompletableDeferred
 
@@ -23,6 +24,10 @@ class FakeMembershipRepository : MembershipRepository {
         Confirmed(Fixtures.overview(Fixtures.subscriptionOverview), "Erledigt.")
     )
     var export: Result<ByteArray> = Result.success("PK".toByteArray())
+    var googlePurchase: Result<Confirmed<MembershipOverview>> = Result.success(
+        Confirmed(Fixtures.overview(Fixtures.subscriptionOverview), Fixtures.WELCOME)
+    )
+    val receipts = mutableListOf<PlayPurchaseReceipt>()
     var gate: CompletableDeferred<Unit>? = null
     var overviewCalls = 0
         private set
@@ -33,6 +38,11 @@ class FakeMembershipRepository : MembershipRepository {
     }
 
     override suspend fun payments() = payments.getOrThrow()
+
+    override suspend fun googlePurchase(receipt: PlayPurchaseReceipt): Confirmed<MembershipOverview> {
+        receipts += receipt
+        return googlePurchase.getOrThrow()
+    }
 
     override suspend fun invoice(id: Int): ByteArray {
         gate?.await()

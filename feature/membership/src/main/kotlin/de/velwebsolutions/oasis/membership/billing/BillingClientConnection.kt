@@ -2,7 +2,6 @@ package de.velwebsolutions.oasis.membership.billing
 
 import android.app.Activity
 import android.content.Context
-import com.android.billingclient.api.AcknowledgePurchaseParams
 import com.android.billingclient.api.BillingClient
 import com.android.billingclient.api.BillingClientStateListener
 import com.android.billingclient.api.BillingFlowParams
@@ -13,7 +12,6 @@ import com.android.billingclient.api.Purchase
 import com.android.billingclient.api.PurchasesUpdatedListener
 import com.android.billingclient.api.QueryProductDetailsParams
 import com.android.billingclient.api.QueryPurchasesParams
-import com.android.billingclient.api.acknowledgePurchase
 import com.android.billingclient.api.queryPurchasesAsync
 import dagger.hilt.android.qualifiers.ApplicationContext
 import java.util.concurrent.ConcurrentHashMap
@@ -82,9 +80,6 @@ class BillingClientConnection internal constructor(
         val result = client.queryPurchasesAsync(QueryPurchasesParams.newBuilder().setProductType(BillingClient.ProductType.SUBS).build())
         return PlayBillingConnection.Answer(result.billingResult.responseCode, result.purchasesList.map(::playPurchase))
     }
-
-    override suspend fun acknowledge(purchaseToken: String): Int =
-        client.acknowledgePurchase(AcknowledgePurchaseParams.newBuilder().setPurchaseToken(purchaseToken).build()).responseCode
 }
 
 /** Play's connection callbacks as "ready or not": only a finished setup with OK is ready. */
