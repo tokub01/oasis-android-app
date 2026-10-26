@@ -1,1 +1,7 @@
-<manifest />
+<?xml version="1.0" encoding="utf-8"?>
+<manifest xmlns:android="http://schemas.android.com/apk/res/android">
+    <!-- Google Play services: passkeys below Android 14 and the consent sheet of SMS User Consent. -->
+    <queries>
+        <package android:name="com.google.android.gms" />
+    </queries>
+</manifest>

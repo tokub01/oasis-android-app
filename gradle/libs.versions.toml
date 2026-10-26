@@ -18,6 +18,8 @@ coil = "3.6.3"
 browser = "1.10.0"
 biometric = "1.1.0"
 billing = "9.1.0"
+credentials = "1.6.0"
+playServicesAuthApiPhone = "18.3.1"
 firebaseMessaging = "26.0.1"
 lazysodium = "5.2.0"
 jna = "5.17.0"
@@ -73,6 +75,9 @@ okhttp = { module = "com.squareup.okhttp3:okhttp", version.ref = "okhttp" }
 okhttp-mockwebserver = { module = "com.squareup.okhttp3:mockwebserver", version.ref = "okhttp" }
 coil-compose = { module = "io.coil-kt.coil3:coil-compose", version.ref = "coil" }
 coil-network-okhttp = { module = "io.coil-kt.coil3:coil-network-okhttp", version.ref = "coil" }
+credentials = { module = "androidx.credentials:credentials", version.ref = "credentials" }
+credentials-play-services-auth = { module = "androidx.credentials:credentials-play-services-auth", version.ref = "credentials" }
+play-services-auth-api-phone = { module = "com.google.android.gms:play-services-auth-api-phone", version.ref = "playServicesAuthApiPhone" }
 billing-ktx = { module = "com.android.billingclient:billing-ktx", version.ref = "billing" }
 firebase-messaging = { module = "com.google.firebase:firebase-messaging", version.ref = "firebaseMessaging" }
 lazysodium-android = { module = "com.goterl:lazysodium-android", version.ref = "lazysodium" }
