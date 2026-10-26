@@ -1,0 +1,95 @@
+# Every push to develop builds the Play variant (staging.get-oasis.com, package de.velwebsolutions.oasis), signs it
+# with the upload key and publishes it to Google Play's internal test track – the counterpart of TestFlight on iOS.
+#
+# Repository secrets (GitHub → Settings → Secrets and variables → Actions):
+#   ANDROID_UPLOAD_KEYSTORE_B64       the upload keystore, base64 (`base64 -i ~/.android-keys/oasis-upload.jks`)
+#   ANDROID_UPLOAD_KEYSTORE_PASSWORD  its password (~/.android-keys/oasis-upload.properties, keystore_password)
+#   ANDROID_UPLOAD_KEY_ALIAS          the key alias (oasis-upload)
+#   ANDROID_UPLOAD_KEY_PASSWORD       the key password (key_password)
+#   PLAY_SERVICE_ACCOUNT_JSON         the JSON key of the Google Cloud service account invited in the Play Console
+#   STAGING_GATE_KEY                  the staging gate password (OASIS_STAGING_PASSWORD on the server)
+#   GOOGLE_SERVICES_JSON_B64          optional: app/google-services.json of Firebase project oasis-86acd, base64 (push)
+name: Play internal test
+
+on:
+  push:
+    branches: [develop]
+  workflow_dispatch:
+
+# One upload at a time; a newer push waits instead of racing for the same version code.
+concurrency:
+  group: play-internal
+  cancel-in-progress: false
+
+permissions:
+  contents: read
+
+jobs:
+  play:
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    steps:
+      # Until the secrets are set up, skip with a notice instead of failing every push.
+      - name: Check secrets
+        id: secrets
+        env:
+          KEYSTORE: ${{ secrets.ANDROID_UPLOAD_KEYSTORE_B64 }}
+          SERVICE_ACCOUNT: ${{ secrets.PLAY_SERVICE_ACCOUNT_JSON }}
+          STAGING_GATE_KEY: ${{ secrets.STAGING_GATE_KEY }}
+        run: |
+          if [ -n "$KEYSTORE" ] && [ -n "$SERVICE_ACCOUNT" ] && [ -n "$STAGING_GATE_KEY" ]; then
+            echo "configured=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "::notice::Play upload skipped: set ANDROID_UPLOAD_KEYSTORE_B64, ANDROID_UPLOAD_KEYSTORE_PASSWORD, ANDROID_UPLOAD_KEY_ALIAS, ANDROID_UPLOAD_KEY_PASSWORD, PLAY_SERVICE_ACCOUNT_JSON and STAGING_GATE_KEY."
+            echo "configured=false" >> "$GITHUB_OUTPUT"
+          fi
+
+      # The full history, so the version code (commit time) is read from the commit that is built.
+      - uses: actions/checkout@v5
+        if: steps.secrets.outputs.configured == 'true'
+
+      - uses: actions/setup-java@v5
+        if: steps.secrets.outputs.configured == 'true'
+        with:
+          distribution: temurin
+          java-version: '21'
+
+      - uses: gradle/actions/setup-gradle@v5
+        if: steps.secrets.outputs.configured == 'true'
+
+      - name: Upload key and service account
+        if: steps.secrets.outputs.configured == 'true'
+        env:
+          KEYSTORE: ${{ secrets.ANDROID_UPLOAD_KEYSTORE_B64 }}
+          SERVICE_ACCOUNT: ${{ secrets.PLAY_SERVICE_ACCOUNT_JSON }}
+        run: |
+          mkdir -p "$RUNNER_TEMP/play"
+          printf '%s' "$KEYSTORE" | base64 --decode > "$RUNNER_TEMP/play/upload.jks"
+          printf '%s' "$SERVICE_ACCOUNT" > "$RUNNER_TEMP/play/service-account.json"
+
+      # Firebase for push (FCM): written from the secret when it is set; without it the app builds without push.
+      - name: Firebase configuration
+        if: steps.secrets.outputs.configured == 'true'
+        env:
+          GOOGLE_SERVICES_JSON_B64: ${{ secrets.GOOGLE_SERVICES_JSON_B64 }}
+        run: |
+          if [ -n "$GOOGLE_SERVICES_JSON_B64" ]; then
+            printf '%s' "$GOOGLE_SERVICES_JSON_B64" | base64 --decode > app/google-services.json
+          else
+            echo "::notice::Building without Firebase: set GOOGLE_SERVICES_JSON_B64 for push."
+          fi
+
+      - name: Build, sign and publish to the internal track
+        if: steps.secrets.outputs.configured == 'true'
+        env:
+          ANDROID_UPLOAD_KEYSTORE_PATH: ${{ runner.temp }}/play/upload.jks
+          ANDROID_UPLOAD_KEYSTORE_PASSWORD: ${{ secrets.ANDROID_UPLOAD_KEYSTORE_PASSWORD }}
+          ANDROID_UPLOAD_KEY_ALIAS: ${{ secrets.ANDROID_UPLOAD_KEY_ALIAS }}
+          ANDROID_UPLOAD_KEY_PASSWORD: ${{ secrets.ANDROID_UPLOAD_KEY_PASSWORD }}
+          PLAY_SERVICE_ACCOUNT_JSON: ${{ runner.temp }}/play/service-account.json
+          OASIS_GATE_KEY: ${{ secrets.STAGING_GATE_KEY }}
+        run: ./gradlew :app:publishPlayBundle --no-configuration-cache
+
+      - name: Remove the keys
+        if: always()
+        run: rm -rf "$RUNNER_TEMP/play" app/google-services.json

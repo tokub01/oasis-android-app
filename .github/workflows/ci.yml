@@ -24,6 +24,16 @@ jobs:
           distribution: temurin
           java-version: '21'
       - uses: gradle/actions/setup-gradle@v5
+      # Firebase for push (FCM): written from the secret when it is set; without it the app builds without push.
+      - name: Firebase configuration
+        env:
+          GOOGLE_SERVICES_JSON_B64: ${{ secrets.GOOGLE_SERVICES_JSON_B64 }}
+        run: |
+          if [ -n "$GOOGLE_SERVICES_JSON_B64" ]; then
+            printf '%s' "$GOOGLE_SERVICES_JSON_B64" | base64 --decode > app/google-services.json
+          else
+            echo "::notice::Building without Firebase: set GOOGLE_SERVICES_JSON_B64 for push."
+          fi
       - name: ktlint
         run: ./gradlew ktlintCheck --continue
       - name: detekt

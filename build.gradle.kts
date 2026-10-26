@@ -10,6 +10,8 @@ plugins {
     alias(libs.plugins.ktlint) apply false
     alias(libs.plugins.kover)
     alias(libs.plugins.roborazzi) apply false
+    alias(libs.plugins.play.publisher) apply false
+    alias(libs.plugins.google.services) apply false
 }
 
 // Style and static analysis for every module: ktlint (formatting, `./gradlew ktlintCheck`) and detekt
