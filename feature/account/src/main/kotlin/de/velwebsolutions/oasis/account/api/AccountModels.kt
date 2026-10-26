@@ -56,6 +56,29 @@ data class TwoFactorState(
 @Serializable
 data class SettingsChange(val message: String, val data: AccountSettings, val recoveryCodes: List<String>? = null)
 
+/** One passkey of the account (`PasskeyResource`): never the key itself, only what the member sees. */
+@Serializable
+data class Passkey(
+    val id: Int,
+    val name: String,
+    /** The password manager it lives in, when the authenticator says so („Google Passwortmanager“). */
+    val authenticator: String? = null,
+    val createdAt: OasisInstant? = null,
+    val lastUsedAt: OasisInstant? = null
+)
+
+/** The optional mobile number for sign-in codes by SMS (`account/phone`); numbers only masked. */
+@Serializable
+data class PhoneNumberStatus(
+    /** False while SMS is not set up on the server: then there is nothing to enter. */
+    val smsAvailable: Boolean = false,
+    /** The confirmed number, masked („+49 176 ••• 78“). */
+    val phoneNumber: String? = null,
+    val verifiedAt: OasisInstant? = null,
+    /** A new number waiting for the code of its SMS, masked. */
+    val pending: String? = null
+)
+
 /** `{message, data: Me}` of a profile change. */
 @Serializable
 data class ProfileChange(val message: String? = null, val data: Me)

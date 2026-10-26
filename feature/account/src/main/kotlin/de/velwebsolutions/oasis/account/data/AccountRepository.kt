@@ -10,7 +10,12 @@ import de.velwebsolutions.oasis.account.api.DeleteBody
 import de.velwebsolutions.oasis.account.api.DeviceOverview
 import de.velwebsolutions.oasis.account.api.GlossaryTerm
 import de.velwebsolutions.oasis.account.api.HiddenWords
+import de.velwebsolutions.oasis.account.api.NameBody
+import de.velwebsolutions.oasis.account.api.NewPasskeyBody
+import de.velwebsolutions.oasis.account.api.Passkey
 import de.velwebsolutions.oasis.account.api.PasswordBody
+import de.velwebsolutions.oasis.account.api.PhoneBody
+import de.velwebsolutions.oasis.account.api.PhoneNumberStatus
 import de.velwebsolutions.oasis.account.api.PrivacyCentre
 import de.velwebsolutions.oasis.account.api.PrivacySettingItem
 import de.velwebsolutions.oasis.account.api.PrivacyValue
@@ -30,6 +35,7 @@ import de.velwebsolutions.oasis.account.api.WelcomeProfileBody
 import de.velwebsolutions.oasis.account.api.WelcomeTour
 import de.velwebsolutions.oasis.account.api.WelcomeVisibilityBody
 import de.velwebsolutions.oasis.account.api.WordBody
+import de.velwebsolutions.oasis.core.auth.PasskeyCeremony
 import de.velwebsolutions.oasis.core.auth.RegistrationForm
 import de.velwebsolutions.oasis.core.model.Me
 import de.velwebsolutions.oasis.core.model.ToneHint
@@ -37,7 +43,9 @@ import de.velwebsolutions.oasis.core.network.ApiClient
 import de.velwebsolutions.oasis.core.network.ApiError
 import de.velwebsolutions.oasis.core.network.CommonApi
 import de.velwebsolutions.oasis.core.network.Confirmed
+import de.velwebsolutions.oasis.core.network.OasisJson
 import javax.inject.Inject
+import kotlinx.serialization.builtins.ListSerializer
 import kotlinx.serialization.json.JsonObject
 import kotlinx.serialization.json.JsonPrimitive
 
@@ -135,6 +143,31 @@ interface AccountRepository {
     suspend fun cast(voteId: Int, optionId: Int?): String
 
     suspend fun glossary(): List<GlossaryTerm>
+
+    /** The account's passkeys, newest first. */
+    suspend fun passkeys(): List<Passkey>
+
+    /** Creation options for a new passkey (423 without a recent password confirmation). */
+    suspend fun passkeyOptions(): PasskeyCeremony
+
+    /** Registers the attestation of Credential Manager (`registrationResponseJson`); 423 is possible, too. */
+    suspend fun addPasskey(challenge: String, credential: JsonObject, name: String?)
+
+    suspend fun renamePasskey(id: Int, name: String)
+
+    /** Removes a passkey (423 without a recent password confirmation). */
+    suspend fun removePasskey(id: Int)
+
+    suspend fun phone(): PhoneNumberStatus
+
+    /** Sends a code by SMS to a new number (423 without a recent password confirmation). */
+    suspend fun requestPhoneCode(phoneNumber: String): PhoneNumberStatus
+
+    /** The six digits of the SMS save the number. */
+    suspend fun confirmPhone(code: String): PhoneNumberStatus
+
+    /** Removes the number (423 without a recent password confirmation). */
+    suspend fun removePhone()
 }
 
 /** [AccountRepository] over the Oasis API. */
@@ -234,4 +267,27 @@ class DefaultAccountRepository @Inject constructor(private val client: ApiClient
     override suspend fun cast(voteId: Int, optionId: Int?) = service.cast(voteId, BallotBody(optionId)).message
 
     override suspend fun glossary() = service.glossary().data
+
+    override suspend fun passkeys(): List<Passkey> {
+        val answer = service.passkeys()
+        val list = (answer as? JsonObject)?.get("data") ?: answer
+        return OasisJson.snake.decodeFromJsonElement(ListSerializer(Passkey.serializer()), list)
+    }
+
+    override suspend fun passkeyOptions() = service.passkeyOptions()
+
+    override suspend fun addPasskey(challenge: String, credential: JsonObject, name: String?) =
+        service.addPasskey(NewPasskeyBody(challenge, credential, name))
+
+    override suspend fun renamePasskey(id: Int, name: String) = service.renamePasskey(id, NameBody(name))
+
+    override suspend fun removePasskey(id: Int) = service.removePasskey(id)
+
+    override suspend fun phone() = service.phone().data
+
+    override suspend fun requestPhoneCode(phoneNumber: String) = service.requestPhoneCode(PhoneBody(phoneNumber)).data
+
+    override suspend fun confirmPhone(code: String) = service.confirmPhone(CodeBody(code)).data
+
+    override suspend fun removePhone() = service.removePhone()
 }

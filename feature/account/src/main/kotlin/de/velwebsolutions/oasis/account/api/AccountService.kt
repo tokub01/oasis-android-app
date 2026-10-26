@@ -1,15 +1,18 @@
 package de.velwebsolutions.oasis.account.api
 
+import de.velwebsolutions.oasis.core.auth.PasskeyCeremony
 import de.velwebsolutions.oasis.core.model.Me
 import de.velwebsolutions.oasis.core.network.Confirmed
 import de.velwebsolutions.oasis.core.network.DataEnvelope
 import de.velwebsolutions.oasis.core.network.MessageResponse
 import kotlinx.serialization.Serializable
+import kotlinx.serialization.json.JsonElement
 import kotlinx.serialization.json.JsonObject
 import retrofit2.http.Body
 import retrofit2.http.DELETE
 import retrofit2.http.GET
 import retrofit2.http.HTTP
+import retrofit2.http.PATCH
 import retrofit2.http.POST
 import retrofit2.http.PUT
 import retrofit2.http.Path
@@ -51,10 +54,20 @@ internal data class WelcomeVisibilityBody(val profileAudience: String, val defau
 @Serializable
 internal data class BallotBody(val option: Int?)
 
+@Serializable
+internal data class NewPasskeyBody(val challenge: String, val credential: JsonObject, val name: String?)
+
+@Serializable
+internal data class NameBody(val name: String)
+
+@Serializable
+internal data class PhoneBody(val phoneNumber: String)
+
 /**
  * The account area's endpoints (`routes/api/v1/members/account.php`: `api.v1.account.*`, `api.v1.suspension.*`,
  * `api.v1.complaints.*`, `api.v1.privacy.*`, `api.v1.safety.*`, `api.v1.report.*`, `api.v1.onboarding.*`,
- * `api.v1.votes.*`, `api.v1.glossary`) and the guest step of the two-factor recovery.
+ * `api.v1.votes.*`, `api.v1.glossary`, the passkeys and the mobile number) and the guest step of the two-factor
+ * recovery.
  */
 internal interface AccountService {
     @GET("account")
@@ -90,6 +103,34 @@ internal interface AccountService {
     /** The body's keys are sent as they are (the bot-trap names come from the server). */
     @POST("auth/two-factor-recovery")
     suspend fun requestTwoFactorRecovery(@Body body: JsonObject): MessageResponse
+
+    /** A list, by Laravel's resource collection wrapped in `data` (both shapes are read). */
+    @GET("account/passkeys")
+    suspend fun passkeys(): JsonElement
+
+    @POST("account/passkeys/options")
+    suspend fun passkeyOptions(): PasskeyCeremony
+
+    @POST("account/passkeys")
+    suspend fun addPasskey(@Body body: NewPasskeyBody)
+
+    @PATCH("account/passkeys/{id}")
+    suspend fun renamePasskey(@Path("id") id: Int, @Body body: NameBody)
+
+    @DELETE("account/passkeys/{id}")
+    suspend fun removePasskey(@Path("id") id: Int)
+
+    @GET("account/phone")
+    suspend fun phone(): DataEnvelope<PhoneNumberStatus>
+
+    @POST("account/phone")
+    suspend fun requestPhoneCode(@Body body: PhoneBody): DataEnvelope<PhoneNumberStatus>
+
+    @POST("account/phone/confirm")
+    suspend fun confirmPhone(@Body body: CodeBody): DataEnvelope<PhoneNumberStatus>
+
+    @DELETE("account/phone")
+    suspend fun removePhone()
 
     @GET("suspension")
     suspend fun suspension(): DataEnvelope<Suspension>
