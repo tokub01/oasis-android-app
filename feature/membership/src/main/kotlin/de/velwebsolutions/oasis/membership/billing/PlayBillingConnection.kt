@@ -32,9 +32,6 @@ interface PlayBillingConnection {
     /** The subscriptions Play knows for the signed-in Google account. */
     suspend fun purchases(): Answer<List<PlayPurchase>>
 
-    /** Confirms a purchase to Play; the response code. */
-    suspend fun acknowledge(purchaseToken: String): Int
-
     /** A response code with the data Play sent along. */
     data class Answer<T>(val responseCode: Int, val value: T)
 }

@@ -1,19 +1,26 @@
 package de.velwebsolutions.oasis.membership
 
+import de.velwebsolutions.oasis.core.model.Loadable
+import de.velwebsolutions.oasis.membership.billing.BillingGateway
 import de.velwebsolutions.oasis.membership.billing.BillingPeriod
 import de.velwebsolutions.oasis.membership.billing.PlayDelivery
 import de.velwebsolutions.oasis.membership.billing.PlayProducts
-import de.velwebsolutions.oasis.membership.billing.PlayPurchaseVerifier
 import de.velwebsolutions.oasis.membership.billing.PurchaseOutcome
-import de.velwebsolutions.oasis.membership.billing.ServerPendingPlayPurchaseVerifier
 import de.velwebsolutions.oasis.membership.data.MembershipEvents
 import de.velwebsolutions.oasis.membership.ui.AlreadyMember
 import de.velwebsolutions.oasis.membership.ui.PlayCheckoutViewModel
+import de.velwebsolutions.oasis.membership.ui.text
 import de.velwebsolutions.oasis.testing.MainDispatcherRule
+import de.velwebsolutions.oasis.testing.StubTransport
 import de.velwebsolutions.oasis.testing.StubTransport.Stub
+import kotlinx.coroutines.CancellationException
+import kotlinx.coroutines.CompletableDeferred
 import kotlinx.coroutines.async
+import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.test.runTest
+import kotlinx.serialization.json.JsonObject
+import kotlinx.serialization.json.JsonPrimitive
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
 import org.junit.Assert.assertNull
@@ -21,25 +28,37 @@ import org.junit.Assert.assertTrue
 import org.junit.Rule
 import org.junit.Test
 
+/** The Play checkout against the server's `google-purchases` endpoint: 200 unlocks, 422 says why not, 503 keeps it. */
 class PlayCheckoutTest {
     @get:Rule
     val main = MainDispatcherRule()
 
     private val events = MembershipEvents()
+    private val welcome = Fixtures.confirmed(Fixtures.WELCOME)
+    private val otherAccount =
+        "Dieser Kauf gehört zu einem anderen Oasis-Konto. Melde dich mit dem Konto an, mit dem du ihn abgeschlossen hast."
+    private val unreachable = "Dein Kauf konnte gerade nicht übernommen werden. Bitte versuche es später noch einmal."
+    private val refused = Stub("POST", "membership/google-purchases", status = 422, json = """{"message":"$otherAccount"}""")
+
+    private lateinit var transport: StubTransport
 
     private suspend fun checkout(
         gateway: FakeBillingGateway = FakeBillingGateway(),
-        verifier: PlayPurchaseVerifier = FakeVerifier(),
-        overview: String = Fixtures.noMembershipOverview
+        overview: String = Fixtures.noMembershipOverview,
+        purchase: Stub = Stub("POST", "membership/google-purchases", json = welcome)
     ): PlayCheckoutViewModel {
-        val (repository, _) = Fixtures.repository(Stub("GET", "membership", json = overview))
-        return PlayCheckoutViewModel(repository, gateway, PlayDelivery(gateway, verifier), verifier, events, Fixtures.session()).also {
-            it.load()
-        }
+        val (repository, transport) = Fixtures.repository(Stub("GET", "membership", json = overview), purchase)
+        this.transport = transport
+        return PlayCheckoutViewModel(repository, gateway, PlayDelivery(repository), events, Fixtures.session()).also { it.load() }
+    }
+
+    /** "token product" of the last purchase sent to the server. */
+    private fun sent(): String? = (transport.lastBody("membership/google-purchases") as? JsonObject)?.let {
+        (it["purchase_token"] as JsonPrimitive).content + " " + (it["product_id"] as JsonPrimitive).content
     }
 
     @Test
-    fun `offers the three tiers in both rhythms with Play's prices`() = runTest {
+    fun `offers the server's products with Play's prices in both rhythms`() = runTest {
         val viewModel = checkout()
         val offers = viewModel.state.value.offers.valueOrNull!!
         assertEquals(listOf("solidar", "oase", "maezen"), offers.map { it.tier })
@@ -51,41 +70,54 @@ class PlayCheckoutTest {
     }
 
     @Test
-    fun `a purchase is unlocked by the server and only then acknowledged`() = runTest {
+    fun `a purchase carries the account id, goes to the server and its welcome is shown`() = runTest {
         val gateway = FakeBillingGateway(outcome = PurchaseOutcome.Purchased(listOf(Fixtures.purchase())))
-        val verifier = FakeVerifier()
-        val viewModel = checkout(gateway, verifier)
+        val viewModel = checkout(gateway)
         val oase = viewModel.state.value.offers.valueOrNull!![1].monthly!!
 
         assertTrue(viewModel.purchase(null, oase))
 
-        assertEquals(listOf(PlayProducts.OASE_MONTHLY to "3f2b7c1e-8a4d-5b6e-9c0f-1a2b3c4d5e6f"), gateway.purchased)
-        assertEquals(PlayProducts.OASE_MONTHLY, verifier.receipts.single().productId)
-        assertEquals("token-${PlayProducts.OASE_MONTHLY}", verifier.receipts.single().purchaseToken)
-        assertEquals(listOf("token-${PlayProducts.OASE_MONTHLY}"), gateway.acknowledged)
-        assertEquals("Willkommen als Mitglied!", viewModel.state.value.message)
-        assertEquals("Willkommen als Mitglied!", events.take().message)
+        assertEquals(listOf(Catalogue.OASE_MONTHLY to Fixtures.ACCOUNT_ID), gateway.purchased)
+        assertEquals("token-${Catalogue.OASE_MONTHLY} ${Catalogue.OASE_MONTHLY}", sent())
+        assertEquals(Fixtures.WELCOME, viewModel.state.value.message)
+        assertEquals(Fixtures.WELCOME, events.take().message)
         assertNull(viewModel.state.value.purchasing)
     }
 
     @Test
-    fun `a refused purchase is an error and not acknowledged`() = runTest {
+    fun `a refusal shows the server's reason`() = runTest {
         val gateway = FakeBillingGateway(outcome = PurchaseOutcome.Purchased(listOf(Fixtures.purchase())))
-        val viewModel = checkout(gateway, FakeVerifier.refusing("Dieser Kauf gehört zu einem anderen Konto."))
-        assertFalse(viewModel.purchase(null, Fixtures.product(PlayProducts.OASE_MONTHLY, "5,00 €")))
-        assertEquals("Dieser Kauf gehört zu einem anderen Konto.", viewModel.state.value.error)
-        assertTrue(gateway.acknowledged.isEmpty())
+        val viewModel = checkout(gateway, purchase = refused)
+        assertFalse(viewModel.purchase(null, Fixtures.product(Catalogue.OASE_MONTHLY, "5,00 €")))
+        assertEquals(otherAccount, viewModel.state.value.error)
+        assertEquals(0, events.version.value)
     }
 
     @Test
-    fun `pending, cancelled and failed purchases unlock nothing`() = runTest {
+    fun `an unreachable check keeps the purchase, restoring sends it again`() = runTest {
+        val gateway = FakeBillingGateway(outcome = PurchaseOutcome.Purchased(listOf(Fixtures.purchase())))
+        val viewModel = checkout(
+            gateway,
+            purchase = Stub("POST", "membership/google-purchases", status = 503, json = """{"message":"$unreachable"}""")
+        )
+        assertFalse(viewModel.purchase(null, Fixtures.product(Catalogue.OASE_MONTHLY, "5,00 €")))
+        assertEquals(unreachable, viewModel.state.value.error)
+
+        gateway.owned = listOf(Fixtures.purchase())
+        transport.add("POST", "membership/google-purchases", json = welcome)
+        viewModel.restore()
+        assertEquals(Fixtures.WELCOME, viewModel.state.value.message)
+    }
+
+    @Test
+    fun `pending, cancelled, failed and unavailable purchases send nothing`() = runTest {
         val gateway = FakeBillingGateway(outcome = PurchaseOutcome.Pending)
         val viewModel = checkout(gateway)
-        val product = Fixtures.product(PlayProducts.SOLIDAR_MONTHLY, "3,00 €")
+        val product = Fixtures.product(Catalogue.SOLIDAR_MONTHLY, "3,00 €")
         assertFalse(viewModel.purchase(null, product))
         assertEquals(PlayCheckoutViewModel.PENDING, viewModel.state.value.message)
-
         viewModel.dismissMessage()
+
         gateway.outcome = PurchaseOutcome.Cancelled
         assertFalse(viewModel.purchase(null, product))
         assertNull(viewModel.state.value.message)
@@ -94,164 +126,127 @@ class PlayCheckoutTest {
         gateway.outcome = PurchaseOutcome.Failed
         assertFalse(viewModel.purchase(null, product))
         assertEquals(PlayCheckoutViewModel.FAILED, viewModel.state.value.error)
-        assertTrue(gateway.acknowledged.isEmpty())
+        viewModel.dismissError()
+
+        gateway.outcome = PurchaseOutcome.Unavailable
+        assertFalse(viewModel.purchase(null, product))
+        assertEquals(PlayCheckoutViewModel.UNAVAILABLE, viewModel.state.value.error)
+
+        gateway.outcome = PurchaseOutcome.Purchased(listOf(Fixtures.purchase(purchased = false)))
+        assertFalse("a purchase still pending at Play is not sent", viewModel.purchase(null, product))
+        assertNull(sent())
     }
 
     @Test
-    fun `without the server check the prices show but nothing can be bought`() = runTest {
+    fun `a second tap while buying starts nothing`() = runTest {
+        val gateway = FakeBillingGateway()
+        val viewModel = checkout(gateway)
+        val product = Fixtures.product(Catalogue.OASE_MONTHLY, "5,00 €")
+        val gate = CompletableDeferred<Unit>()
+        gateway.gate = gate
+        val first = async { viewModel.purchase(null, product) }
+        testScheduler.runCurrent()
+        assertEquals(product.id, viewModel.state.value.purchasing)
+        assertFalse(viewModel.purchase(null, product))
+        gate.complete(Unit)
+        assertFalse(first.await())
+        assertEquals(1, gateway.purchased.size)
+    }
+
+    @Test
+    fun `while the server takes no Play purchases the prices show but nothing can be bought`() = runTest {
         val gateway = FakeBillingGateway(outcome = PurchaseOutcome.Purchased(listOf(Fixtures.purchase())))
-        val viewModel = checkout(gateway, ServerPendingPlayPurchaseVerifier())
+        val viewModel = checkout(gateway, overview = Fixtures.noMembershipOverview.replace("\"available\":true", "\"available\":false"))
         assertFalse(viewModel.state.value.canPurchase)
         assertEquals(3, viewModel.state.value.offers.valueOrNull?.size)
-        assertFalse(viewModel.purchase(null, Fixtures.product(PlayProducts.OASE_MONTHLY, "5,00 €")))
+        assertFalse(viewModel.purchase(null, Fixtures.product(Catalogue.OASE_MONTHLY, "5,00 €")))
         assertTrue("Play's sheet is not even opened", gateway.purchased.isEmpty())
     }
 
     @Test
-    fun `a paid purchase without the server check is reported honestly`() = runTest {
-        val gateway = FakeBillingGateway(owned = listOf(Fixtures.purchase()))
-        val viewModel = checkout(gateway, ServerPendingPlayPurchaseVerifier())
-        viewModel.restore()
-        assertEquals(PlayCheckoutViewModel.AWAITING_SERVER, viewModel.state.value.message)
-        assertTrue(gateway.acknowledged.isEmpty())
-        assertEquals(0, events.version.value)
+    fun `restore sends the account's purchases, says when there are none, and shows refusals`() = runTest {
+        val empty = checkout()
+        empty.restore()
+        assertEquals(PlayCheckoutViewModel.NOTHING_TO_RESTORE, empty.state.value.message)
+
+        val pending = checkout(FakeBillingGateway(owned = listOf(Fixtures.purchase(purchased = false))))
+        pending.restore()
+        assertEquals(PlayCheckoutViewModel.NOTHING_TO_RESTORE, pending.state.value.message)
+
+        val refusedOne = checkout(FakeBillingGateway(owned = listOf(Fixtures.purchase())), purchase = refused)
+        refusedOne.restore()
+        assertNull(refusedOne.state.value.message)
+        assertEquals(otherAccount, refusedOne.state.value.error)
+
+        val restored = checkout(FakeBillingGateway(owned = listOf(Fixtures.purchase(acknowledged = true))))
+        restored.restore()
+        assertEquals("an acknowledged purchase is sent again (idempotent)", Fixtures.WELCOME, restored.state.value.message)
     }
 
     @Test
-    fun `restore without purchases says so`() = runTest {
-        val viewModel = checkout()
-        viewModel.restore()
-        assertEquals(PlayCheckoutViewModel.NOTHING_TO_RESTORE, viewModel.state.value.message)
+    fun `members are not sold a second membership`() = runTest {
+        val subscribed = Fixtures.noMembershipOverview.replace("\"state\":\"expired\"", "\"state\":\"subscription\"")
+        assertEquals(AlreadyMember.Web, checkout(overview = subscribed).state.value.alreadyMember)
+        val google = subscribed.replace("\"managed_by_google\":false", "\"managed_by_google\":true")
+        assertEquals(AlreadyMember.Google, checkout(overview = google).state.value.alreadyMember)
+        val apple = checkout(overview = subscribed.replace("\"managed_by_apple\":false", "\"managed_by_apple\":true"))
+        assertEquals(AlreadyMember.Apple, apple.state.value.alreadyMember)
+        assertEquals(emptyList<Any>(), apple.state.value.offers.valueOrNull)
+        assertTrue(AlreadyMember.Google.text().contains("Google Play"))
+        assertTrue(AlreadyMember.Apple.text().contains("Apple-ID"))
+        assertTrue(AlreadyMember.Web.text().contains("Website"))
     }
 
     @Test
-    fun `members of the website and devices without Play are offered nothing`() = runTest {
-        val member = checkout(overview = Fixtures.subscriptionOverview)
-        assertEquals(AlreadyMember.Web, member.state.value.alreadyMember)
-        assertEquals(emptyList<Any>(), member.state.value.offers.valueOrNull)
+    fun `servers without the Google block, devices without Play and tiers Play does not know`() = runTest {
+        val old = checkout(overview = Fixtures.subscriptionOverview.replace("\"state\":\"subscription\"", "\"state\":\"expired\""))
+        assertEquals(emptyList<Any>(), old.state.value.offers.valueOrNull)
+        assertFalse(old.state.value.canPurchase)
 
-        val withoutPlay = checkout(FakeBillingGateway(catalogue = null))
-        assertNull(withoutPlay.state.value.alreadyMember)
-        assertEquals(emptyList<Any>(), withoutPlay.state.value.offers.valueOrNull)
-    }
+        assertEquals(emptyList<Any>(), checkout(FakeBillingGateway(catalogue = null)).state.value.offers.valueOrNull)
 
-    @Test
-    fun `background purchases are delivered and only acknowledged after the server`() = runTest {
-        val unacknowledged = Fixtures.purchase()
-        val gateway = FakeBillingGateway(owned = listOf(unacknowledged, Fixtures.purchase(PlayProducts.MAEZEN_YEARLY, acknowledged = true)))
-        val verifier = FakeVerifier()
-        val transactions = PlayTransactions(gateway, PlayDelivery(gateway, verifier), events)
-        val job = launch { transactions.observe() }
-        testScheduler.runCurrent()
-        assertEquals(listOf(unacknowledged.purchaseToken), gateway.acknowledged)
-        assertEquals(1, events.version.value)
-
-        gateway.updates.emit(Fixtures.purchase(PlayProducts.SOLIDAR_YEARLY, purchased = false))
-        testScheduler.runCurrent()
-        assertEquals("a pending payment is not delivered", 1, verifier.receipts.size)
-        job.cancel()
-
-        val waiting = FakeBillingGateway(owned = listOf(Fixtures.purchase()))
-        val pending = launch { PlayTransactions(waiting, PlayDelivery(waiting, ServerPendingPlayPurchaseVerifier()), events).observe() }
-        testScheduler.runCurrent()
-        assertTrue("nothing is acknowledged while the server cannot check it", waiting.acknowledged.isEmpty())
-        pending.cancel()
-    }
-
-    @Test
-    fun `members billed by Apple and servers without in-app purchases are offered nothing`() = runTest {
-        val apple = Fixtures.noMembershipOverview.replace("\"state\":\"expired\"", "\"state\":\"subscription\"")
-            .replace("\"managed_by_apple\":false", "\"managed_by_apple\":true")
-        assertEquals(AlreadyMember.Apple, checkout(overview = apple).state.value.alreadyMember)
-        val web = Fixtures.noMembershipOverview.replace("\"state\":\"expired\"", "\"state\":\"subscription\"")
-        assertEquals(AlreadyMember.Web, checkout(overview = web).state.value.alreadyMember)
-
-        val switchedOff = checkout(overview = Fixtures.noMembershipOverview.replace("\"available\":true", "\"available\":false"))
-        assertEquals(emptyList<Any>(), switchedOff.state.value.offers.valueOrNull)
-    }
-
-    @Test
-    fun `a failed overview leaves the checkout on its error page`() = runTest {
-        val (repository, _) = Fixtures.repository(Stub("GET", "membership", status = 500, json = """{"message":"Server Error"}"""))
-        val gateway = FakeBillingGateway()
-        val verifier = FakeVerifier()
-        val viewModel = PlayCheckoutViewModel(repository, gateway, PlayDelivery(gateway, verifier), verifier, events, Fixtures.session())
-        viewModel.load()
-        assertTrue(viewModel.state.value.offers is de.velwebsolutions.oasis.core.model.Loadable.Failed)
-    }
-
-    @Test
-    fun `a tier Play only sells yearly still shows`() = runTest {
-        val gateway = FakeBillingGateway(catalogue = listOf(Fixtures.product(PlayProducts.MAEZEN_YEARLY, "120,00 €")))
-        val offers = checkout(gateway).state.value.offers.valueOrNull!!
+        val yearlyOnly = checkout(FakeBillingGateway(catalogue = listOf(Fixtures.product(Catalogue.MAEZEN_YEARLY, "120,00 €"))))
+        val offers = yearlyOnly.state.value.offers.valueOrNull!!
         assertEquals(listOf("maezen"), offers.map { it.tier })
         assertNull(offers.single().product(PlayProducts.MONTHLY))
     }
 
     @Test
-    fun `Play missing on the device, a second tap while buying and dismissing the toasts`() = runTest {
-        val gateway = FakeBillingGateway(outcome = PurchaseOutcome.Unavailable)
-        val viewModel = checkout(gateway)
-        val product = Fixtures.product(PlayProducts.OASE_MONTHLY, "5,00 €")
-        assertFalse(viewModel.purchase(null, product))
-        assertEquals(PlayCheckoutViewModel.UNAVAILABLE, viewModel.state.value.error)
-        viewModel.dismissError()
-        assertNull(viewModel.state.value.error)
+    fun `a failed first load shows the error page, a cancelled one is passed on`() = runTest {
+        val failing = FakeMembershipRepository().apply { overview = FakeMembershipRepository.failure() }
+        val failed = PlayCheckoutViewModel(failing, FakeBillingGateway(), PlayDelivery(failing), events, Fixtures.session())
+        failed.load()
+        assertTrue(failed.state.value.offers is Loadable.Failed)
 
-        val gate = kotlinx.coroutines.CompletableDeferred<Unit>()
-        gateway.gate = gate
-        gateway.outcome = PurchaseOutcome.Cancelled
-        val first = async { viewModel.purchase(null, product) }
+        val cancelled = FakeMembershipRepository().apply { overview = Result.failure(CancellationException("left")) }
+        val cancelling = PlayCheckoutViewModel(cancelled, FakeBillingGateway(), PlayDelivery(cancelled), events, Fixtures.session())
+        assertTrue(runCatching { cancelling.load() }.exceptionOrNull() is CancellationException)
+    }
+
+    @Test
+    fun `purchases outside the checkout go to the server, then the member is reloaded`() = runTest {
+        val open = Fixtures.purchase()
+        val gateway = FakeBillingGateway(owned = listOf(open, Fixtures.purchase(Catalogue.MAEZEN_YEARLY, acknowledged = true)))
+        val repository = FakeMembershipRepository()
+        val job = launch { PlayTransactions(gateway, PlayDelivery(repository), events, Fixtures.session()).observe() }
         testScheduler.runCurrent()
-        assertEquals(product.id, viewModel.state.value.purchasing)
-        assertFalse("a second purchase does not start", viewModel.purchase(null, product))
-        gate.complete(Unit)
-        assertFalse(first.await())
-        assertEquals("Play opened once per accepted tap", 2, gateway.purchased.size)
+        assertEquals("only open purchases are sent at start", listOf(open.purchaseToken), repository.receipts.map { it.purchaseToken })
+        assertEquals(1, events.version.value)
+
+        gateway.updates.emit(Fixtures.purchase(Catalogue.SOLIDAR_YEARLY, purchased = false))
+        testScheduler.runCurrent()
+        assertEquals("a pending payment is not sent", 1, repository.receipts.size)
+        job.cancel()
     }
 
     @Test
-    fun `restoring a refused or still pending purchase says so instead of "nothing found"`() = runTest {
-        val refused = checkout(FakeBillingGateway(owned = listOf(Fixtures.purchase())), FakeVerifier.refusing("Abgelaufen."))
-        refused.restore()
-        assertEquals("Abgelaufen.", refused.state.value.error)
-        assertNull(refused.state.value.message)
-
-        val pending = checkout(FakeBillingGateway(owned = listOf(Fixtures.purchase(purchased = false))))
-        pending.restore()
-        assertEquals(PlayCheckoutViewModel.NOTHING_TO_RESTORE, pending.state.value.message)
-        pending.dismissMessage()
-        assertNull(pending.state.value.message)
-
-        val restored = checkout(FakeBillingGateway(owned = listOf(Fixtures.purchase())))
-        restored.restore()
-        assertEquals("Willkommen als Mitglied!", restored.state.value.message)
-    }
-
-    @Test
-    fun `a cancelled load is passed on`() = runTest {
-        val fake = FakeMembershipRepository().apply { overview = Result.failure(kotlinx.coroutines.CancellationException("left")) }
-        val cancelling =
-            PlayCheckoutViewModel(
-                fake,
-                FakeBillingGateway(),
-                PlayDelivery(FakeBillingGateway(), FakeVerifier()),
-                FakeVerifier(),
-                events,
-                Fixtures.session()
-            )
-        val failure = runCatching { cancelling.load() }.exceptionOrNull()
-        assertTrue(failure is kotlinx.coroutines.CancellationException)
-    }
-
-    @Test
-    fun `background delivery ends with Play's updates and skips refusals`() = runTest {
-        val gateway = object : de.velwebsolutions.oasis.membership.billing.BillingGateway by FakeBillingGateway(
-            owned = listOf(Fixtures.purchase())
-        ) {
-            override val purchaseUpdates = kotlinx.coroutines.flow.flowOf(Fixtures.purchase(PlayProducts.SOLIDAR_YEARLY))
+    fun `background delivery keeps refused purchases and ends with Play's updates`() = runTest {
+        val gateway = object : BillingGateway by FakeBillingGateway(owned = listOf(Fixtures.purchase())) {
+            override val purchaseUpdates = flowOf(Fixtures.purchase(Catalogue.SOLIDAR_YEARLY))
         }
-        PlayTransactions(gateway, PlayDelivery(gateway, FakeVerifier.refusing("Abgelaufen.")), events).observe()
+        val repository = FakeMembershipRepository().apply { googlePurchase = FakeMembershipRepository.failure("Abgelaufen.") }
+        PlayTransactions(gateway, PlayDelivery(repository), events, Fixtures.session()).observe()
         assertEquals("a refused purchase changes nothing", 0, events.version.value)
+        assertEquals(2, repository.receipts.size)
     }
 }

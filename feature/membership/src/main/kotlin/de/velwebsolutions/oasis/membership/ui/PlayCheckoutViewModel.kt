@@ -15,7 +15,6 @@ import de.velwebsolutions.oasis.membership.billing.PlayDelivery
 import de.velwebsolutions.oasis.membership.billing.PlayProduct
 import de.velwebsolutions.oasis.membership.billing.PlayProducts
 import de.velwebsolutions.oasis.membership.billing.PlayPurchase
-import de.velwebsolutions.oasis.membership.billing.PlayPurchaseVerifier
 import de.velwebsolutions.oasis.membership.billing.PurchaseOutcome
 import de.velwebsolutions.oasis.membership.data.MembershipEvents
 import de.velwebsolutions.oasis.membership.data.MembershipRepository
@@ -34,7 +33,17 @@ data class CheckoutOffer(val tier: String, val monthly: PlayProduct?, val yearly
 }
 
 /** Why the checkout sells nothing to this member. */
-enum class AlreadyMember { Web, Apple }
+enum class AlreadyMember { Web, Apple, Google }
+
+/** What the checkout says to someone who already pays, so they do not pay twice. */
+fun AlreadyMember.text(): String = when (this) {
+    AlreadyMember.Apple -> "Du bist schon Mitglied. Deine Mitgliedschaft läuft über deine Apple-ID; eine zweite brauchst du nicht."
+
+    AlreadyMember.Google ->
+        "Du bist schon Mitglied. Deine Mitgliedschaft läuft über Google Play; Stufe und Laufzeit änderst du im Play Store."
+
+    else -> "Du bist schon Mitglied. Deine Mitgliedschaft läuft über die Website; eine zweite brauchst du nicht."
+}
 
 /** The checkout: Play's offers, the chosen rhythm, a running purchase and snackbars. */
 data class CheckoutUiState(
@@ -45,29 +54,29 @@ data class CheckoutUiState(
     val purchasing: String? = null,
     val message: String? = null,
     val error: String? = null,
-    /** The member already pays (website or Apple); a second subscription would charge twice. */
+    /** The member already pays (website, Apple or Google Play); a second subscription would charge twice. */
     val alreadyMember: AlreadyMember? = null,
-    /** False while the server cannot check Google Play purchases: the prices show, buying is switched off. */
+    /** False while the server does not take Google Play purchases (`google.available`): the prices show, buying is off. */
     val canPurchase: Boolean = false
 )
 
 /**
- * Buying the membership in the app through Google Play (iOS `AppleStoreModel`): the products and prices come from
- * Play, a purchase carries the member's account token, and the purchase goes to the server, which unlocks the
- * membership; it is acknowledged only after that (PlayDelivery).
+ * Buying the membership in the app through Google Play (iOS `AppleStoreModel`): the server lists the products
+ * (`google.products`), Play adds names and prices, a purchase carries the member's account id
+ * (`obfuscatedAccountId`), and the purchase goes to the server, which unlocks the membership and acknowledges it
+ * (PlayDelivery).
  */
 @HiltViewModel
 class PlayCheckoutViewModel @Inject constructor(
     private val repository: MembershipRepository,
     private val gateway: BillingGateway,
     private val delivery: PlayDelivery,
-    private val verifier: PlayPurchaseVerifier,
     private val events: MembershipEvents,
     private val session: Session
 ) : ViewModel() {
-    private val mutableState = MutableStateFlow(CheckoutUiState(canPurchase = verifier.isAvailable))
+    private val mutableState = MutableStateFlow(CheckoutUiState())
     val state: StateFlow<CheckoutUiState> = mutableState.asStateFlow()
-    private var accountToken: String? = null
+    private var accountId: String? = null
 
     init {
         viewModelScope.launch { load() }
@@ -78,15 +87,18 @@ class PlayCheckoutViewModel @Inject constructor(
         mutableState.update { it.copy(offers = it.offers.refreshing()) }
         try {
             val overview = repository.overview()
-            val apple = overview.apple
-            accountToken = apple?.accountToken
+            val google = overview.google
+            accountId = google?.accountId
             val alreadyMember = when {
                 overview.state != MembershipOverview.State.Subscription -> null
-                apple?.managedByApple == true -> AlreadyMember.Apple
+                overview.apple?.managedByApple == true -> AlreadyMember.Apple
+                google?.managedByGoogle == true -> AlreadyMember.Google
                 else -> AlreadyMember.Web
             }
-            val offers = if (apple?.available != true || alreadyMember != null) emptyList() else offers()
-            mutableState.update { it.copy(offers = Loadable.Loaded(offers), alreadyMember = alreadyMember) }
+            val offers = if (google == null || alreadyMember != null) emptyList() else offers(google.products)
+            mutableState.update {
+                it.copy(offers = Loadable.Loaded(offers), alreadyMember = alreadyMember, canPurchase = google?.available == true)
+            }
         } catch (error: CancellationException) {
             throw error
         } catch (error: Exception) {
@@ -94,10 +106,11 @@ class PlayCheckoutViewModel @Inject constructor(
         }
     }
 
-    private suspend fun offers(): List<CheckoutOffer> {
-        val products = gateway.products(PlayProducts.ids).orEmpty().associateBy(PlayProduct::id)
-        return PlayProducts.tiers.map { tier ->
-            val byRhythm = PlayProducts.all.filter { it.tier == tier }.associate { it.rhythm to products[it.id] }
+    /** The server's products with Play's details, one offer per tier in the server's order; tiers Play does not know are left out. */
+    private suspend fun offers(listed: List<MembershipOverview.Google.Product>): List<CheckoutOffer> {
+        val products = gateway.products(listed.map { it.id }).orEmpty().associateBy(PlayProduct::id)
+        return listed.map { it.tier }.distinct().map { tier ->
+            val byRhythm = listed.filter { it.tier == tier }.associate { it.rhythm to products[it.id] }
             CheckoutOffer(tier, byRhythm[PlayProducts.MONTHLY], byRhythm[PlayProducts.YEARLY])
         }.filter { it.monthly != null || it.yearly != null }
     }
@@ -107,10 +120,10 @@ class PlayCheckoutViewModel @Inject constructor(
 
     /** "Abonnieren". Returns true once the server unlocked the membership. */
     suspend fun purchase(activity: Activity?, product: PlayProduct): Boolean {
-        if (!verifier.isAvailable || mutableState.value.purchasing != null) return false
+        if (!mutableState.value.canPurchase || mutableState.value.purchasing != null) return false
         mutableState.update { it.copy(error = null, purchasing = product.id) }
         try {
-            return when (val outcome = gateway.purchase(activity, product, accountToken)) {
+            return when (val outcome = gateway.purchase(activity, product, accountId)) {
                 is PurchaseOutcome.Purchased -> deliver(outcome.purchases)
 
                 PurchaseOutcome.Pending -> {
@@ -143,8 +156,8 @@ class PlayCheckoutViewModel @Inject constructor(
         mutableState.update { it.copy(error = null) }
         val purchases = gateway.ownedPurchases()
         val restored = deliver(purchases)
-        val state = mutableState.value
-        if (!restored && state.error == null && state.message == null) {
+        // A refusal already says why; otherwise "nothing found".
+        if (!restored && mutableState.value.error == null) {
             mutableState.update { it.copy(message = NOTHING_TO_RESTORE) }
         }
     }
@@ -159,13 +172,11 @@ class PlayCheckoutViewModel @Inject constructor(
                 mutableState.update { it.copy(error = error.userMessage) }
                 continue
             }
-            // Skipped purchases (pending, not ours) say nothing.
+            // Skipped purchases (still pending, without a product) say nothing.
             if (result is PlayDelivery.Result.Unlocked) {
                 unlocked = true
                 mutableState.update { it.copy(message = result.update.message) }
                 events.changed(message = result.update.message)
-            } else if (result == PlayDelivery.Result.AwaitingServer) {
-                mutableState.update { it.copy(message = AWAITING_SERVER) }
             }
         }
         if (unlocked) session.refreshMe()
@@ -184,14 +195,9 @@ class PlayCheckoutViewModel @Inject constructor(
         const val FAILED = "Der Kauf ist leider nicht gelungen. Bitte versuche es noch einmal."
         const val UNAVAILABLE = "Google Play ist auf diesem Gerät gerade nicht erreichbar. Bitte versuche es später noch einmal."
         const val NOTHING_TO_RESTORE = "Für dein Google-Konto haben wir keine laufende Mitgliedschaft gefunden."
-        const val AWAITING_SERVER =
-            "Dein Kauf ist bei Google Play eingegangen, Oasis kann ihn aber noch nicht bestätigen. Deine Mitgliedschaft ist deshalb " +
-                "noch nicht freigeschaltet. Bestätigt Oasis den Kauf nicht innerhalb von drei Tagen, erstattet Google Play den Betrag " +
-                "automatisch."
 
-        /** Shown above the offers while the server cannot check Google Play purchases. */
+        /** Shown above the offers while the server takes no Google Play purchases (`google.available` false). */
         const val NOT_YET_AVAILABLE =
-            "Der Kauf über Google Play ist in der App noch nicht freigeschaltet, weil Oasis solche Käufe noch nicht bestätigen kann. " +
-                "Bitte versuche es später noch einmal."
+            "Der Kauf über Google Play ist in der App gerade nicht freigeschaltet. Bitte versuche es später noch einmal."
     }
 }

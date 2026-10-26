@@ -161,15 +161,35 @@ fun StatusCard(overview: MembershipOverview, onSubscriptionManaged: () -> Unit =
     }
 }
 
-/** Buying in the app needs the server's switch for in-app subscriptions (`apple.available`). */
-private val MembershipOverview.canBuy: Boolean get() = apple?.available == true
+/** Buying in the app needs the server's switch for Google Play subscriptions (`google.available`). */
+private val MembershipOverview.canBuy: Boolean get() = google?.available == true
+
+/** A membership billed by a store: changed and cancelled there, not here. */
+data class StoreManagement(val hint: String, val manageUrl: String?, val tag: String)
+
+/** Where the running membership is managed: in the App Store (bought on an iPhone), in the Play Store, or here (null). */
+fun MembershipOverview.storeManagement(): StoreManagement? = when {
+    apple?.managedByApple == true -> StoreManagement(
+        "Deine Mitgliedschaft läuft über deine Apple-ID. Stufe, Laufzeit und Kündigung verwaltest du im App Store.",
+        apple.manageUrl,
+        "membership.manageApple"
+    )
+
+    google?.managedByGoogle == true -> StoreManagement(
+        "Deine Mitgliedschaft läuft über Google Play. Stufe, Laufzeit und Kündigung verwaltest du im Play Store.",
+        google.manageUrl,
+        "membership.manageGoogle"
+    )
+
+    else -> null
+}
 
 @Composable
 private fun SubscriptionStatus(overview: MembershipOverview, onSubscriptionManaged: () -> Unit) {
     val subscription = overview.subscription ?: return
     val navigator = LocalNavigator.current
-    // Back from Apple's subscription page (a Custom Tab): the membership may have changed there (iOS reloads when its
-    // manage sheet closes).
+    // Back from the store's subscription page (a Custom Tab): the membership may have changed there (iOS reloads when
+    // its manage sheet closes).
     var managingSubscription by remember { mutableStateOf(false) }
     LifecycleEventEffect(Lifecycle.Event.ON_RESUME) {
         if (managingSubscription) {
@@ -204,15 +224,10 @@ private fun SubscriptionStatus(overview: MembershipOverview, onSubscriptionManag
                 .testTag("membership.gracePeriod")
         )
     }
-    // Billed by Apple: changed and cancelled in the App Store, not here.
-    val apple = overview.apple?.takeIf { it.managedByApple }
-    if (apple != null) {
-        Text(
-            "Deine Mitgliedschaft läuft über deine Apple-ID. Stufe, Laufzeit und Kündigung verwaltest du im App Store.",
-            style = OasisType.Small,
-            color = OasisColors.Ink2
-        )
-        val manageUrl = apple.manageUrl
+    val store = overview.storeManagement()
+    if (store != null) {
+        Text(store.hint, style = OasisType.Small, color = OasisColors.Ink2)
+        val manageUrl = store.manageUrl
         if (!manageUrl.isNullOrEmpty()) {
             OasisButton(
                 "Abo verwalten",
@@ -220,16 +235,16 @@ private fun SubscriptionStatus(overview: MembershipOverview, onSubscriptionManag
                     managingSubscription = true
                     navigator.open(WebRoute(manageUrl))
                 },
-                Modifier.testTag("membership.manageApple")
+                Modifier.testTag(store.tag)
             )
         }
     } else {
         OasisButton("Rechnungen ansehen", { navigator.open(MembershipRoute.Portal) }, Modifier.testTag("membership.portal"))
     }
-    if (overview.canCancel && apple == null) {
+    if (overview.canCancel && store == null) {
         InlineLink("Vertrag kündigen", { navigator.open(MembershipRoute.Cancel) }, Modifier.testTag("membership.cancel"), OasisColors.Night)
     }
-    if (overview.canWithdraw && apple == null) {
+    if (overview.canWithdraw && store == null) {
         InlineLink(
             "Mitgliedschaft widerrufen (14 Tage)",
             { navigator.open(MembershipRoute.Withdraw) },

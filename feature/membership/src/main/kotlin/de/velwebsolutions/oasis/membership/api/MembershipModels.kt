@@ -18,8 +18,10 @@ data class MembershipOverview(
     val canCancel: Boolean = false,
     val canWithdraw: Boolean = false,
     val purchasedGifts: List<PurchasedGift> = emptyList(),
-    /** In-app subscriptions through Apple (`apple` of MembershipResource); null from servers before they existed. */
-    val apple: Apple? = null
+    /** A membership billed by Apple (bought on an iPhone); null from servers before in-app subscriptions existed. */
+    val apple: Apple? = null,
+    /** In-app subscriptions through Google Play (`google` of MembershipResource); null from servers before they existed. */
+    val google: Google? = null
 ) {
     /** Which status card the web shows. */
     @Serializable
@@ -55,17 +57,29 @@ data class MembershipOverview(
     data class PurchasedGift(val id: Int, val code: String, val tierName: String, val redeemed: Boolean = false)
 
     /**
-     * The App Store side of the membership. The server has no Google Play counterpart yet, so the Android app reads only
-     * [available] (in-app subscriptions are switched on) and whether the running membership is billed by Apple (then it
-     * is changed and cancelled there, see [manageUrl]).
+     * The App Store side of the membership, as far as Android needs it: whether the running membership is billed by
+     * Apple (then it is changed and cancelled there, see [manageUrl]).
      */
     @Serializable
-    data class Apple(
+    data class Apple(val managedByApple: Boolean = false, val manageUrl: String? = null)
+
+    /**
+     * The Google Play side of the membership: whether the app may sell ([available]), the products to offer, the
+     * account id a purchase carries (`obfuscatedAccountId`) and whether the running membership is billed by Google
+     * (then it is changed and cancelled in the Play Store, see [manageUrl]).
+     */
+    @Serializable
+    data class Google(
         val available: Boolean = false,
-        val accountToken: String? = null,
-        val managedByApple: Boolean = false,
+        val accountId: String? = null,
+        val products: List<Product> = emptyList(),
+        val managedByGoogle: Boolean = false,
         val manageUrl: String? = null
-    )
+    ) {
+        /** One Play subscription: the product id, its tier and its rhythm ("monat" or "jahr"). */
+        @Serializable
+        data class Product(val id: String, val tier: String, val rhythm: String)
+    }
 }
 
 /** One paid contribution (`PaymentResource`). */

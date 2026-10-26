@@ -100,9 +100,8 @@ class MembershipScreensWiringTest {
     }
 
     private fun checkout(gateway: FakeBillingGateway): PlayCheckoutViewModel {
-        val verifier = FakeVerifier()
         repository.overview = Result.success(Fixtures.overview(Fixtures.noMembershipOverview))
-        return PlayCheckoutViewModel(repository, gateway, PlayDelivery(gateway, verifier), verifier, events, Fixtures.session())
+        return PlayCheckoutViewModel(repository, gateway, PlayDelivery(repository), events, Fixtures.session())
     }
 
     @Test
@@ -115,7 +114,7 @@ class MembershipScreensWiringTest {
         compose.onNodeWithTag("checkout.subscribe.oase").performScrollTo().performClick()
         compose.waitForIdle()
         assertEquals(listOf(MembershipRoute.Overview), navigator.stack(MainTab.Profile).toList())
-        assertEquals(PlayProducts.OASE_MONTHLY, gateway.purchased.single().first)
+        assertEquals(Catalogue.OASE_MONTHLY, gateway.purchased.single().first)
     }
 
     @Test

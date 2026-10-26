@@ -3,17 +3,12 @@ package de.velwebsolutions.oasis.membership
 import android.app.Activity
 import de.velwebsolutions.oasis.core.auth.InMemoryTokenStore
 import de.velwebsolutions.oasis.core.auth.Session
-import de.velwebsolutions.oasis.core.network.ApiError
-import de.velwebsolutions.oasis.core.network.Confirmed
 import de.velwebsolutions.oasis.core.network.OasisJson
 import de.velwebsolutions.oasis.membership.api.MembershipOverview
 import de.velwebsolutions.oasis.membership.billing.BillingGateway
 import de.velwebsolutions.oasis.membership.billing.BillingPeriod
 import de.velwebsolutions.oasis.membership.billing.PlayProduct
-import de.velwebsolutions.oasis.membership.billing.PlayProducts
 import de.velwebsolutions.oasis.membership.billing.PlayPurchase
-import de.velwebsolutions.oasis.membership.billing.PlayPurchaseReceipt
-import de.velwebsolutions.oasis.membership.billing.PlayPurchaseVerifier
 import de.velwebsolutions.oasis.membership.billing.PurchaseOutcome
 import de.velwebsolutions.oasis.membership.data.DefaultMembershipRepository
 import de.velwebsolutions.oasis.testing.StubTransport
@@ -21,11 +16,37 @@ import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.MutableSharedFlow
 
+/** The Play products as the server lists them (`google.products`), with the prices they were created with. */
+object Catalogue {
+    const val SOLIDAR_MONTHLY = "de.velwebsolutions.oasis.solidar.monat"
+    const val SOLIDAR_YEARLY = "de.velwebsolutions.oasis.solidar.jahr"
+    const val OASE_MONTHLY = "de.velwebsolutions.oasis.oase.monat"
+    const val OASE_YEARLY = "de.velwebsolutions.oasis.oase.jahr"
+    const val MAEZEN_MONTHLY = "de.velwebsolutions.oasis.maezen.monat"
+    const val MAEZEN_YEARLY = "de.velwebsolutions.oasis.maezen.jahr"
+
+    /** One listed product. */
+    data class Entry(val id: String, val tier: String, val rhythm: String, val price: String)
+
+    val all = listOf(
+        Entry(SOLIDAR_MONTHLY, "solidar", "monat", "3,00 €"),
+        Entry(SOLIDAR_YEARLY, "solidar", "jahr", "30,00 €"),
+        Entry(OASE_MONTHLY, "oase", "monat", "5,00 €"),
+        Entry(OASE_YEARLY, "oase", "jahr", "50,00 €"),
+        Entry(MAEZEN_MONTHLY, "maezen", "monat", "12,00 €"),
+        Entry(MAEZEN_YEARLY, "maezen", "jahr", "120,00 €")
+    )
+    val ids = all.map { it.id }
+    val tiers = all.map { it.tier }.distinct()
+
+    fun entry(id: String) = all.firstOrNull { it.id == id }
+}
+
 /** Real answers of the Laravel resources (copied from http://localhost/api/v1/membership… for demo accounts, as on iOS). */
 object Fixtures {
     /** A member without membership (there is no free trial): only "Mitglied werden" is open. */
     val noMembershipOverview = """
-        {"data":{"state":"expired","subscription":null,"gift":null,"is_founding_member":false,"remaining_founding_seats":1000,"can_cancel":false,"can_withdraw":false,"purchased_gifts":[],"gift_offers":[{"tier":"solidar","name":"Solidar","price_label":"12 Monate für 30 €"},{"tier":"oase","name":"Oase","price_label":"12 Monate für 50 €"},{"tier":"maezen","name":"Mäzen","price_label":"12 Monate für 120 €"}],"checkout_enabled":true,"referral":{"earned_this_year":0,"waiting":0,"months_per_year":12},"apple":{"available":true,"account_token":"3f2b7c1e-8a4d-5b6e-9c0f-1a2b3c4d5e6f","products":[{"id":"de.velwebsolutions.oasis.solidar.monat","tier":"solidar","rhythm":"monat"},{"id":"de.velwebsolutions.oasis.oase.jahr","tier":"oase","rhythm":"jahr"}],"managed_by_apple":false,"manage_url":"https:\/\/apps.apple.com\/account\/subscriptions"}}}
+        {"data":{"state":"expired","subscription":null,"gift":null,"is_founding_member":false,"remaining_founding_seats":1000,"can_cancel":false,"can_withdraw":false,"purchased_gifts":[],"gift_offers":[{"tier":"solidar","name":"Solidar","price_label":"12 Monate für 30 €"},{"tier":"oase","name":"Oase","price_label":"12 Monate für 50 €"},{"tier":"maezen","name":"Mäzen","price_label":"12 Monate für 120 €"}],"checkout_enabled":true,"referral":{"earned_this_year":0,"waiting":0,"months_per_year":12},"apple":{"managed_by_apple":false,"manage_url":"https:\/\/apps.apple.com\/account\/subscriptions"},"google":{"available":true,"account_id":"9f86d081884c7d659a2feaa0c55ad015a3bf4f1b2b0b822cd15d6c15b0f00a08","products":[{"id":"de.velwebsolutions.oasis.solidar.monat","tier":"solidar","rhythm":"monat"},{"id":"de.velwebsolutions.oasis.solidar.jahr","tier":"solidar","rhythm":"jahr"},{"id":"de.velwebsolutions.oasis.oase.monat","tier":"oase","rhythm":"monat"},{"id":"de.velwebsolutions.oasis.oase.jahr","tier":"oase","rhythm":"jahr"},{"id":"de.velwebsolutions.oasis.maezen.monat","tier":"maezen","rhythm":"monat"},{"id":"de.velwebsolutions.oasis.maezen.jahr","tier":"maezen","rhythm":"jahr"}],"managed_by_google":false,"manage_url":"https:\/\/play.google.com\/store\/account\/subscriptions"}}}
     """.trimIndent()
 
     val subscriptionOverview = """
@@ -62,26 +83,21 @@ object Fixtures {
 
     fun product(id: String, price: String) = PlayProduct(
         id = id,
-        name = PlayProducts.entry(id)!!.tier.replaceFirstChar(Char::uppercase),
+        name = Catalogue.entry(id)!!.tier.replaceFirstChar(Char::uppercase),
         description = "",
         price = price,
         period = if (id.endsWith(".jahr")) BillingPeriod.Year else BillingPeriod.Month,
         offerToken = "offer-$id"
     )
 
-    /** The prices the Play products were created with (PlayProducts' table). */
-    private val CATALOGUE_PRICES = mapOf(
-        PlayProducts.SOLIDAR_MONTHLY to "3,00 €",
-        PlayProducts.SOLIDAR_YEARLY to "30,00 €",
-        PlayProducts.OASE_MONTHLY to "5,00 €",
-        PlayProducts.OASE_YEARLY to "50,00 €",
-        PlayProducts.MAEZEN_MONTHLY to "12,00 €",
-        PlayProducts.MAEZEN_YEARLY to "120,00 €"
-    )
+    val playCatalogue = Catalogue.all.map { product(it.id, it.price) }
 
-    val playCatalogue = PlayProducts.all.map { product(it.id, CATALOGUE_PRICES.getValue(it.id)) }
+    /** The account id the server hands out for `obfuscatedAccountId`. */
+    const val ACCOUNT_ID = "9f86d081884c7d659a2feaa0c55ad015a3bf4f1b2b0b822cd15d6c15b0f00a08"
 
-    fun purchase(productId: String = PlayProducts.OASE_MONTHLY, purchased: Boolean = true, acknowledged: Boolean = false) =
+    const val WELCOME = "Willkommen als Mitglied! Deine Mitgliedschaft „Oase“ läuft, bezahlt bis 18.11.2026."
+
+    fun purchase(productId: String = Catalogue.OASE_MONTHLY, purchased: Boolean = true, acknowledged: Boolean = false) =
         PlayPurchase("token-$productId", listOf(productId), isPurchased = purchased, isAcknowledged = acknowledged)
 }
 
@@ -95,7 +111,6 @@ class FakeBillingGateway(
 
     /** Holds a purchase until the test completes it. */
     var gate: kotlinx.coroutines.CompletableDeferred<Unit>? = null
-    val acknowledged = mutableListOf<String>()
     val updates = MutableSharedFlow<PlayPurchase>(extraBufferCapacity = 8)
 
     override suspend fun products(ids: List<String>) = catalogue?.filter { it.id in ids }
@@ -108,30 +123,5 @@ class FakeBillingGateway(
 
     override suspend fun ownedPurchases() = owned
 
-    override suspend fun acknowledge(purchase: PlayPurchase): Boolean {
-        acknowledged += purchase.purchaseToken
-        return true
-    }
-
     override val purchaseUpdates = updates
-}
-
-/** The server check of Play purchases as it will work once the backend has its endpoint. */
-class FakeVerifier(
-    override val isAvailable: Boolean = true,
-    var answer: Result<Confirmed<MembershipOverview>> = Result.success(
-        Confirmed(Fixtures.overview(Fixtures.subscriptionOverview), "Willkommen als Mitglied!")
-    )
-) : PlayPurchaseVerifier {
-    val receipts = mutableListOf<PlayPurchaseReceipt>()
-
-    override suspend fun verify(receipt: PlayPurchaseReceipt): Confirmed<MembershipOverview> {
-        receipts += receipt
-        return answer.getOrThrow()
-    }
-
-    companion object {
-        fun refusing(message: String) =
-            FakeVerifier(answer = Result.failure(ApiError.Validation(message, mapOf("purchase_token" to listOf(message)))))
-    }
 }

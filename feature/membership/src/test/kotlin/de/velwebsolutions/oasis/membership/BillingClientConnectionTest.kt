@@ -62,7 +62,7 @@ class BillingClientConnectionTest {
     /** Play's product JSON (as `queryProductDetails` delivers it) with the given offers. */
     private fun details(offers: String?): ProductDetails {
         val json = """
-            {"productId":"${PlayProducts.OASE_MONTHLY}","type":"${if (offers == null) "inapp" else "subs"}","title":"Oase (Oasis)","name":"Oase",
+            {"productId":"${Catalogue.OASE_MONTHLY}","type":"${if (offers == null) "inapp" else "subs"}","title":"Oase (Oasis)","name":"Oase",
              "description":"Werbefrei","localizedIn":["de-DE"],"skuDetailsToken":"token"${offers?.let {
             ",\"subscriptionOfferDetails\":[$it]"
         } ?: ""}}
@@ -86,7 +86,7 @@ class BillingClientConnectionTest {
                     offer("intro", "intro-token", "0,00 €" to "P1W") + "," + offer(null, "base-token", "1,00 €" to "P1M", "5,00 €" to "P1M")
                 )
             )
-        assertEquals(PlayProduct(PlayProducts.OASE_MONTHLY, "Oase", "Werbefrei", "5,00 €", BillingPeriod.Month, "base-token"), product)
+        assertEquals(PlayProduct(Catalogue.OASE_MONTHLY, "Oase", "Werbefrei", "5,00 €", BillingPeriod.Month, "base-token"), product)
     }
 
     @Test
@@ -100,12 +100,12 @@ class BillingClientConnectionTest {
     @Test
     fun `purchases keep their token, products, payment and acknowledgement`() {
         val paid = Purchase(
-            """{"purchaseToken":"token","productIds":["${PlayProducts.OASE_MONTHLY}"],"purchaseState":0,"acknowledged":true}""",
+            """{"purchaseToken":"token","productIds":["${Catalogue.OASE_MONTHLY}"],"purchaseState":0,"acknowledged":true}""",
             "signature"
         )
         val mapped = playPurchase(paid)
         assertEquals("token", mapped.purchaseToken)
-        assertEquals(listOf(PlayProducts.OASE_MONTHLY), mapped.productIds)
+        assertEquals(listOf(Catalogue.OASE_MONTHLY), mapped.productIds)
         assertTrue(mapped.isPurchased)
         assertTrue(mapped.isAcknowledged)
         val pending = Purchase("""{"purchaseToken":"t","productIds":[],"purchaseState":4}""", "signature")
@@ -137,7 +137,7 @@ class BillingClientConnectionTest {
         override fun queryPurchasesAsync(params: QueryPurchasesParams, listener: PurchasesResponseListener) =
             listener.onQueryPurchasesResponse(
                 result(),
-                listOf(Purchase("""{"purchaseToken":"t","productIds":["${PlayProducts.OASE_MONTHLY}"],"purchaseState":1}""", "s"))
+                listOf(Purchase("""{"purchaseToken":"t","productIds":["${Catalogue.OASE_MONTHLY}"],"purchaseState":1}""", "s"))
             )
         override fun acknowledgePurchase(params: AcknowledgePurchaseParams, listener: AcknowledgePurchaseResponseListener) =
             listener.onAcknowledgePurchaseResponse(result())
@@ -182,22 +182,21 @@ class BillingClientConnectionTest {
         assertTrue(connection.isReady)
 
         client.details = listOf(details(offer(null, "base-token", "5,00 € " to "P1M")), details(""))
-        val products = connection.products(listOf(PlayProducts.OASE_MONTHLY))
-        assertEquals(listOf(PlayProducts.OASE_MONTHLY), products.value.map { it.id })
+        val products = connection.products(listOf(Catalogue.OASE_MONTHLY))
+        assertEquals(listOf(Catalogue.OASE_MONTHLY), products.value.map { it.id })
         client.details = emptyList()
         client.code = BillingClient.BillingResponseCode.ERROR
-        assertEquals(BillingClient.BillingResponseCode.ERROR, connection.products(listOf(PlayProducts.OASE_MONTHLY)).responseCode)
+        assertEquals(BillingClient.BillingResponseCode.ERROR, connection.products(listOf(Catalogue.OASE_MONTHLY)).responseCode)
         client.code = BillingClient.BillingResponseCode.OK
 
         val activity = Robolectric.buildActivity(Activity::class.java).get()
-        assertEquals(BillingClient.BillingResponseCode.OK, connection.launch(activity, PlayProducts.OASE_MONTHLY, "base-token", "account"))
-        connection.launch(activity, PlayProducts.OASE_MONTHLY, "base-token", null)
+        assertEquals(BillingClient.BillingResponseCode.OK, connection.launch(activity, Catalogue.OASE_MONTHLY, "base-token", "account"))
+        connection.launch(activity, Catalogue.OASE_MONTHLY, "base-token", null)
         assertEquals(2, client.launches)
 
         val purchases = connection.purchases()
         assertEquals(listOf("t"), purchases.value.map { it.purchaseToken })
         client.code = BillingClient.BillingResponseCode.ERROR
-        assertEquals(BillingClient.BillingResponseCode.ERROR, connection.acknowledge("t"))
     }
 
     @Test

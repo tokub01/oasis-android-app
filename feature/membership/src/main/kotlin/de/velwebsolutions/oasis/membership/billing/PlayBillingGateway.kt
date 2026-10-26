@@ -65,9 +65,6 @@ class PlayBillingGateway @Inject constructor(private val connection: PlayBilling
         return if (answer.responseCode == BillingResponseCode.OK) answer.value else emptyList()
     }
 
-    override suspend fun acknowledge(purchase: PlayPurchase): Boolean =
-        connected() && guarded { connection.acknowledge(purchase.purchaseToken) } == BillingResponseCode.OK
-
     private fun onPurchasesUpdated(responseCode: Int, purchases: List<PlayPurchase>) {
         val waiting = waitingFlow
         if (waiting != null) {

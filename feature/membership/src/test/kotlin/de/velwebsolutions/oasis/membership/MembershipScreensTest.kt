@@ -68,8 +68,8 @@ class MembershipScreensTest {
 
     @Test
     fun `the checkout buys the chosen tier`() {
-        val offers = PlayProducts.tiers.map { tier ->
-            val products = Fixtures.playCatalogue.filter { PlayProducts.entry(it.id)?.tier == tier }
+        val offers = Catalogue.tiers.map { tier ->
+            val products = Fixtures.playCatalogue.filter { Catalogue.entry(it.id)?.tier == tier }
             CheckoutOffer(tier, products.first { it.id.endsWith(".monat") }, products.first { it.id.endsWith(".jahr") })
         }
         val bought = mutableListOf<PlayProduct>()
@@ -86,13 +86,13 @@ class MembershipScreensTest {
         compose.onNodeWithTag("checkout.price.oase").performScrollTo().assertIsDisplayed()
         compose.onNodeWithTag("checkout.subscribe.oase").performScrollTo().performClick()
         compose.waitForIdle()
-        assertEquals(listOf(PlayProducts.OASE_MONTHLY), bought.map { it.id })
+        assertEquals(listOf(Catalogue.OASE_MONTHLY), bought.map { it.id })
         compose.onNodeWithTag("checkout.restore").performScrollTo().assertIsDisplayed()
     }
 
     @Test
     fun `without the server check the checkout says so and cannot buy`() {
-        val offer = CheckoutOffer("oase", Fixtures.product(PlayProducts.OASE_MONTHLY, "5,00 €"), null)
+        val offer = CheckoutOffer("oase", Fixtures.product(Catalogue.OASE_MONTHLY, "5,00 €"), null)
         show {
             PlayCheckoutContent(
                 CheckoutUiState(Loadable.Loaded(listOf(offer)), canPurchase = false),
