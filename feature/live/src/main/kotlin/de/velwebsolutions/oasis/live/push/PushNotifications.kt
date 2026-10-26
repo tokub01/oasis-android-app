@@ -15,7 +15,7 @@ import de.velwebsolutions.oasis.live.R
 /** The notification channel of a push: the member silences hints and chat messages separately in Android's settings. */
 enum class PushChannel(val id: String, val title: String, val description: String) {
     Hints("hints", "Hinweise", "Neue Hinweise aus Oasis – nie mit dem Text eines Tropfens."),
-    Chat("chat", "Chat-Nachrichten", "Neue Chat-Nachrichten – nie mit dem Text einer Nachricht.")
+    Chat("chat", "Chats", "Neue Chat-Nachrichten – nie mit dem Text einer Nachricht.")
 }
 
 /** A push hint as the notification shows it: the generic line, or the named text once the preview was fetched. */
@@ -57,15 +57,13 @@ object PushNotifications {
     /** The intent extra the app reads (`AppHost.EXTRA_URL`). */
     const val EXTRA_URL = "de.velwebsolutions.oasis.url"
 
-    /** Creates the channels "Hinweise" and "Chat-Nachrichten" once (no-op afterwards). */
+    /** Creates the channels "Hinweise" and "Chats"; again later it only renames them (the member's choices stay). */
     fun ensureChannel(context: Context) {
         val manager: NotificationManager = context.getSystemService(NotificationManager::class.java)
         PushChannel.entries.forEach { kind ->
-            if (manager.getNotificationChannel(kind.id) == null) {
-                val channel = NotificationChannel(kind.id, kind.title, NotificationManager.IMPORTANCE_DEFAULT)
-                channel.description = kind.description
-                manager.createNotificationChannel(channel)
-            }
+            val channel = NotificationChannel(kind.id, kind.title, NotificationManager.IMPORTANCE_DEFAULT)
+            channel.description = kind.description
+            manager.createNotificationChannel(channel)
         }
     }
 
