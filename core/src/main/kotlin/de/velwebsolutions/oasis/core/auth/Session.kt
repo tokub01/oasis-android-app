@@ -28,10 +28,21 @@ class Session(
     private val tokenStore: TokenStore,
     /** The device name sent with sign-ins (shown in the token list), e.g. "Pixel 9 von Mira". */
     private val deviceName: String,
-    private val scope: CoroutineScope
+    private val scope: CoroutineScope,
+    /**
+     * Where the sign-in calls come from, asked on first use: the API client needs the session for its token and the
+     * calls need the client, so the DI graph hands over a lazy source instead of the calls themselves.
+     */
+    private val authSource: () -> AuthApi = { error("No AuthApi for this session") }
 ) : TokenProvider {
-    /** Set once by the DI graph: the API client needs the session for its token, the session needs the API. */
-    lateinit var auth: AuthApi
+    private var authApi: AuthApi? = null
+
+    /** The sign-in calls ([authSource] unless a test sets them). */
+    var auth: AuthApi
+        get() = authApi ?: authSource().also { authApi = it }
+        set(value) {
+            authApi = value
+        }
 
     private val mutableState = MutableStateFlow<SessionState>(SessionState.Loading)
     val state: StateFlow<SessionState> = mutableState.asStateFlow()

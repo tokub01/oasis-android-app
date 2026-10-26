@@ -89,13 +89,14 @@ abstract class HiltScreenTest {
     @OptIn(ExperimentalRoborazziApi::class)
     fun screenShot(name: String) = captureScreenRoboImage("build/outputs/roborazzi/account-$name.png")
 
+    // The first request of a test starts OkHttp's threads; under a loaded machine that can take several seconds.
     fun waitForText(text: String, substring: Boolean = false) =
-        compose.waitUntil(5_000) { compose.onAllNodes(hasText(text, substring = substring)).fetchSemanticsNodes().isNotEmpty() }
+        compose.waitUntil(15_000) { compose.onAllNodes(hasText(text, substring = substring)).fetchSemanticsNodes().isNotEmpty() }
 
-    fun waitForTag(tag: String) = compose.waitUntil(5_000) { compose.onAllNodes(hasTestTag(tag)).fetchSemanticsNodes().isNotEmpty() }
+    fun waitForTag(tag: String) = compose.waitUntil(15_000) { compose.onAllNodes(hasTestTag(tag)).fetchSemanticsNodes().isNotEmpty() }
 
     fun waitForRequest(method: String, path: String) =
-        compose.waitUntil(5_000) { transport.requests.any { it.request.method == method && it.path == path } }
+        compose.waitUntil(15_000) { transport.requests.any { it.request.method == method && it.path == path } }
 
     /** Clicks through the semantics, so a snackbar over the node cannot catch the tap. */
     fun SemanticsNodeInteraction.tap() = performScrollTo().performSemanticsAction(SemanticsActions.OnClick)

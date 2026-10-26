@@ -1,6 +1,7 @@
 package de.velwebsolutions.oasis.core.di
 
 import android.content.Context
+import dagger.Lazy
 import dagger.Module
 import dagger.Provides
 import dagger.hilt.InstallIn
@@ -46,8 +47,8 @@ object CoreModule {
 
     @Provides
     @Singleton
-    fun session(tokenStore: TokenStore, deviceName: DeviceName, @AppScope scope: CoroutineScope): Session =
-        Session(tokenStore, deviceName.value, scope)
+    fun session(tokenStore: TokenStore, deviceName: DeviceName, @AppScope scope: CoroutineScope, auth: Lazy<AuthApi>): Session =
+        Session(tokenStore, deviceName.value, scope) { auth.get() }
 
     @Provides
     @Singleton
@@ -56,13 +57,12 @@ object CoreModule {
             .connectTimeout(20, TimeUnit.SECONDS)
             .readTimeout(60, TimeUnit.SECONDS)
             .build()
-        return ApiClient(config, session, okHttp).also { session.auth = RemoteAuthApi(it) }
+        return ApiClient(config, session, okHttp)
     }
 
     @Provides
     @Singleton
-    fun authApi(@Suppress("UNUSED_PARAMETER") client: ApiClient, session: Session): AuthApi =
-        session.auth // set while the client is created
+    fun authApi(client: ApiClient): AuthApi = RemoteAuthApi(client)
 
     @Provides
     @Singleton

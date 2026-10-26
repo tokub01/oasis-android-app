@@ -41,15 +41,16 @@ object TestCoreModule {
 
     @Provides
     @Singleton
-    fun session(@AppScope scope: CoroutineScope): Session = Session(InMemoryTokenStore("token"), "Test", scope)
+    fun session(@AppScope scope: CoroutineScope, auth: dagger.Lazy<AuthApi>): Session =
+        Session(InMemoryTokenStore("token"), "Test", scope) { auth.get() }
 
     @Provides
     @Singleton
-    fun apiClient(transport: StubTransport, session: Session): ApiClient = transport.client.also { session.auth = RemoteAuthApi(it) }
+    fun apiClient(transport: StubTransport): ApiClient = transport.client
 
     @Provides
     @Singleton
-    fun authApi(@Suppress("UNUSED_PARAMETER") client: ApiClient, session: Session): AuthApi = session.auth
+    fun authApi(client: ApiClient): AuthApi = RemoteAuthApi(client)
 
     @Provides
     @Singleton

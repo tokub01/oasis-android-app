@@ -26,7 +26,7 @@ class SessionTest {
 
         override suspend fun twoFactor(challenge: String, code: String?, recoveryCode: String?) = login("", "", "")
 
-        override suspend fun registrationForm() = RegistrationForm("hp", "tf", "t", 14)
+        override suspend fun registrationForm() = RegistrationForm("hp", "tf", "t")
 
         override suspend fun register(registration: Registration, form: RegistrationForm, deviceName: String) = login("", "", "")
 
@@ -91,7 +91,7 @@ class SessionTest {
         assertEquals(SessionState.Loading, session.state.value)
         session.completeTwoFactor("ch", "123456", null)
         assertEquals("new", tokens.read())
-        session.register(Registration(), RegistrationForm("hp", "tf", "t", 14))
+        session.register(Registration(), RegistrationForm("hp", "tf", "t"))
         assertEquals(mira, session.me)
         val renamed = mira.copy(displayName = "Mira S.")
         auth.meResult = Result.success(renamed)
@@ -145,5 +145,24 @@ class SessionTest {
         }
         session.signOut()
         assertNull(tokens.read())
+    }
+
+    @Test
+    fun `the sign-in calls come from their source once, on first use`() = runTest {
+        var asked = 0
+        val session = Session(InMemoryTokenStore("t"), "Pixel", TestScope()) {
+            asked++
+            FakeAuth(Result.success(mira))
+        }
+        assertEquals(0, asked)
+        session.restore()
+        session.refreshMe()
+        assertEquals(1, asked)
+        assertEquals(SessionState.SignedIn(mira), session.state.value)
+    }
+
+    @Test(expected = IllegalStateException::class)
+    fun `a session without a source for its calls says so`() {
+        Session(InMemoryTokenStore(), "Pixel", TestScope()).auth
     }
 }
