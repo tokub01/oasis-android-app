@@ -166,7 +166,15 @@ class ChatRepositoryTest {
             StubTransport.Stub("DELETE", "chat/conversations/2/members/5", json = conversation),
             StubTransport.Stub("POST", "chat/conversations/2/key-grants", json = "{}"),
             StubTransport.Stub("POST", "chat/conversations/2/rotate", json = conversation),
-            StubTransport.Stub("POST", "chat/conversations/2/messages", status = 201, json = "{}"),
+            StubTransport.Stub(
+                "POST",
+                "chat/conversations/2/messages",
+                status = 201,
+                json = """{"data":{"id":"9","envelope":${Json.encodeToString(
+                    MessageEnvelope.serializer(),
+                    ENVELOPE_FOR_SEND
+                )},"attachments":[{"id":"7","view_once":true,"status":"sent","available":true}]}}"""
+            ),
             StubTransport.Stub("POST", "chat/conversations/2/read", json = """{"count":3}"""),
             StubTransport.Stub("POST", "chat/conversations/2/accept", json = "{}"),
             StubTransport.Stub("PUT", "chat/conversations/2/mute", json = conversation),
@@ -213,8 +221,9 @@ class ChatRepositoryTest {
         api.storeKeyGrants("2", 1, listOf(grant))
         assertEquals(1, body(transport, "chat/conversations/2/key-grants").getValue("grants").jsonArray.size)
         api.activateKey("2", 1)
-        val envelope = MessageEnvelope(1, "2", 1, "1", "bg", "Yw", "cw", "2100-01-01T00:00:00Z")
-        api.sendMessage("2", envelope)
+        val envelope = ENVELOPE_FOR_SEND
+        assertEquals("sent", api.sendMessage("2", envelope).attachments.single().status)
+        assertTrue("no ids without files", "attachment_ids" !in body(transport, "chat/conversations/2/messages"))
         assertEquals(
             "2100-01-01T00:00:00Z",
             body(transport, "chat/conversations/2/messages").getValue("envelope").jsonObject.getValue("expires_at").jsonPrimitive.content
@@ -235,6 +244,54 @@ class ChatRepositoryTest {
     }
 
     private fun body(transport: StubTransport, path: String) = checkNotNull(transport.lastBody(path)).jsonObject
+
+    @Test
+    fun attachmentsGoUpAsRawPartsAndComeDownAsBytes() = runTest {
+        val (transport, api) = repository(
+            StubTransport.Stub(
+                "POST",
+                "chat/conversations/2/attachments",
+                status = 201,
+                json = """{"data":{"id":7,"parts":2,"part_bytes":5242880}}"""
+            ),
+            StubTransport.Stub("PUT", "chat/conversations/2/attachments/7/parts/1", json = """{"data":{"received_parts":2}}"""),
+            StubTransport.Stub("POST", "chat/conversations/2/attachments/7/complete", json = """{"data":{"id":"7"}}"""),
+            StubTransport.Stub(
+                "POST",
+                "chat/conversations/2/attachments/7/accept",
+                json = """{"data":{"id":"7","view_once":false,"status":"accepted","available":true}}"""
+            ),
+            StubTransport.Stub("GET", "chat/conversations/2/attachments/7", json = "rohe-bytes"),
+            StubTransport.Stub(
+                "POST",
+                "chat/conversations/2/messages",
+                status = 201,
+                json = """{"data":{"envelope":${Json.encodeToString(MessageEnvelope.serializer(), ENVELOPE_FOR_SEND)}}}"""
+            )
+        )
+        val upload = api.startAttachment("2", 6_000_000, viewOnce = true)
+        assertEquals("7", upload.id)
+        assertEquals(2, upload.parts)
+        assertEquals(5_242_880, upload.partBytes)
+        val started = body(transport, "chat/conversations/2/attachments")
+        assertEquals(6_000_000, started.getValue("size").jsonPrimitive.int)
+        assertEquals(true, started.getValue("view_once").jsonPrimitive.content.toBoolean())
+        assertEquals(2, api.putAttachmentPart("2", "7", 1, byteArrayOf(1, 2, 3)))
+        val part = transport.requests.last()
+        assertEquals("PUT", part.request.method)
+        assertEquals("application/octet-stream", part.request.body?.contentType().toString())
+        assertEquals(3L, part.request.body?.contentLength())
+        api.completeAttachment("2", "7")
+        assertEquals("accepted", api.answerAttachment("2", "7", "accept").status)
+        assertEquals("rohe-bytes", api.downloadAttachment("2", "7").toString(Charsets.UTF_8))
+        assertTrue(api.sendMessage("2", ENVELOPE_FOR_SEND, listOf("7", "8")).attachments.isEmpty())
+        assertEquals(
+            listOf("7", "8"),
+            body(transport, "chat/conversations/2/messages").getValue("attachment_ids").jsonArray.map {
+                it.jsonPrimitive.content
+            }
+        )
+    }
 
     @Test
     fun namesTitlesAndChoicesFollowTheWeb() {
@@ -328,3 +385,6 @@ class ChatRepositoryTest {
             """{"chat_invites_audience":"members","friend_requests":true,"choices":{"members":"Alle Mitglieder","contacts":"Freund:innen und Menschen, denen du folgst","following":"Menschen, denen du folgst","nobody":"Niemand"}}"""
     }
 }
+
+/** The envelope the request-body test sends. */
+private val ENVELOPE_FOR_SEND = MessageEnvelope(1, "2", 1, "1", "bg", "Yw", "cw", "2100-01-01T00:00:00Z")

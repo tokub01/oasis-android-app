@@ -3,6 +3,8 @@ package de.velwebsolutions.oasis.chat.api
 import de.velwebsolutions.oasis.chatcrypto.KeyGrant
 import de.velwebsolutions.oasis.core.network.DataEnvelope
 import kotlinx.serialization.json.JsonObject
+import okhttp3.RequestBody
+import okhttp3.ResponseBody
 import retrofit2.http.Body
 import retrofit2.http.DELETE
 import retrofit2.http.GET
@@ -11,6 +13,7 @@ import retrofit2.http.POST
 import retrofit2.http.PUT
 import retrofit2.http.Path
 import retrofit2.http.Query
+import retrofit2.http.Streaming
 
 /**
  * The chat endpoints (`/api/v1/chat/…`, routes/api/v1/members/chat.php – the web's `/app/chat/api` behind the app token;
@@ -125,7 +128,40 @@ interface ChatService {
 
     /** `POST /api/v1/chat/conversations/{id}/messages`. */
     @POST("chat/conversations/{id}/messages")
-    suspend fun sendMessage(@Path("id") conversationId: String, @Body body: JsonObject)
+    suspend fun sendMessage(@Path("id") conversationId: String, @Body body: JsonObject): DataEnvelope<MessageRecord>
+
+    /** `POST /api/v1/chat/conversations/{id}/attachments` with `{"size": ciphertext bytes}`. */
+    @POST("chat/conversations/{id}/attachments")
+    suspend fun startAttachment(@Path("id") conversationId: String, @Body body: JsonObject): DataEnvelope<AttachmentUpload>
+
+    /** `PUT /api/v1/chat/conversations/{id}/attachments/{attachment}/parts/{index}`: raw bytes (`application/octet-stream`). */
+    @PUT("chat/conversations/{id}/attachments/{attachment}/parts/{index}")
+    suspend fun putAttachmentPart(
+        @Path("id") conversationId: String,
+        @Path("attachment") attachmentId: String,
+        @Path("index") index: Int,
+        @Body part: RequestBody
+    ): DataEnvelope<ReceivedParts>
+
+    /** `POST /api/v1/chat/conversations/{id}/attachments/{attachment}/complete`. */
+    @POST("chat/conversations/{id}/attachments/{attachment}/complete")
+    suspend fun completeAttachment(
+        @Path("id") conversationId: String,
+        @Path("attachment") attachmentId: String
+    ): DataEnvelope<CompletedAttachment>
+
+    /** `POST /api/v1/chat/conversations/{id}/attachments/{attachment}/{answer}`: `accept`, `decline` or `viewed`. */
+    @POST("chat/conversations/{id}/attachments/{attachment}/{answer}")
+    suspend fun answerAttachment(
+        @Path("id") conversationId: String,
+        @Path("attachment") attachmentId: String,
+        @Path("answer") answer: String
+    ): DataEnvelope<AttachmentState>
+
+    /** `GET /api/v1/chat/conversations/{id}/attachments/{attachment}`: the whole ciphertext. */
+    @Streaming
+    @GET("chat/conversations/{id}/attachments/{attachment}")
+    suspend fun attachment(@Path("id") conversationId: String, @Path("attachment") attachmentId: String): ResponseBody
 
     /** `POST /api/v1/chat/conversations/{id}/read`. */
     @POST("chat/conversations/{id}/read")

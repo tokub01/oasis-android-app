@@ -34,6 +34,7 @@ import de.velwebsolutions.oasis.chat.ui.ConversationListState
 import de.velwebsolutions.oasis.chat.ui.ConversationViewModel
 import de.velwebsolutions.oasis.chat.ui.NewConversationContent
 import de.velwebsolutions.oasis.chat.ui.NewConversationState
+import de.velwebsolutions.oasis.chat.ui.attachmentActions
 import de.velwebsolutions.oasis.core.realtime.NoRealtime
 import de.velwebsolutions.oasis.design.theme.OasisTheme
 import kotlin.time.Duration
@@ -289,7 +290,8 @@ class ChatScreensTest {
                     onDecline = {},
                     onBlockFlagged = {},
                     onDismissFlagged = model::dismissFlagged,
-                    onNoticeSpoken = model::noticeSpoken
+                    onNoticeSpoken = model::noticeSpoken,
+                    attachments = model.attachmentActions()
                 )
             }
         }

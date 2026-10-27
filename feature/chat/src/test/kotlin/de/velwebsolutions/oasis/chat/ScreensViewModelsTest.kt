@@ -15,6 +15,7 @@ import de.velwebsolutions.oasis.chat.ui.ConversationKind
 import de.velwebsolutions.oasis.chat.ui.ConversationListViewModel
 import de.velwebsolutions.oasis.chat.ui.NewConversationViewModel
 import de.velwebsolutions.oasis.chat.ui.ReportModel
+import de.velwebsolutions.oasis.chatcrypto.MessageContent
 import de.velwebsolutions.oasis.chatcrypto.MessageEnvelope
 import de.velwebsolutions.oasis.chatcrypto.createLinkKeyPair
 import de.velwebsolutions.oasis.core.realtime.RealtimeEvent
@@ -500,7 +501,7 @@ class ScreensViewModelsTest {
     fun reportsSendTheReasonAndOfferToBlock() = runTest {
         val mira = support.member(1)
         val envelope = MessageEnvelope(1, "7", 1, "2", "n", "c", "s")
-        val item = ChatMessageItem("s", envelope, "2", null, ChatMessageItem.State.Readable, "Hallo")
+        val item = ChatMessageItem("s", envelope, "2", null, ChatMessageItem.State.Readable, "Hallo", MessageContent("Hallo"))
         server.conversations[7] =
             de.velwebsolutions.oasis.chat.FakeChatServer.Conversation(
                 7,

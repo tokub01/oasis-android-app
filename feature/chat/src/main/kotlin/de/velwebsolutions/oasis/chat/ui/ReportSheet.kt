@@ -115,6 +115,14 @@ internal fun ReportContent(
                         .padding(horizontal = 16.dp, vertical = 12.dp)
                 )
             }
+            if (state.attachments > 0) {
+                Text(
+                    "Die angehängten Fotos, Sprachnachrichten und Videos dieser Nachricht gehen mit an das Moderationsteam.",
+                    style = OasisType.Small,
+                    color = OasisColors.Ink2,
+                    modifier = Modifier.testTag("chat.report.attachments")
+                )
+            }
             Text("Was ist das Problem?", style = OasisType.SmallBold, color = OasisColors.Ink)
             ReportModel.categories.forEach { category ->
                 val selected = state.category == category

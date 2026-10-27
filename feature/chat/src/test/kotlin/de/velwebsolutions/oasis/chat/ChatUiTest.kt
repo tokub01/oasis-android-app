@@ -45,6 +45,7 @@ import de.velwebsolutions.oasis.chat.ui.ReportSheet
 import de.velwebsolutions.oasis.chat.ui.ReportState
 import de.velwebsolutions.oasis.chat.ui.SafetyFlag
 import de.velwebsolutions.oasis.chatcrypto.KdfLimits
+import de.velwebsolutions.oasis.chatcrypto.MessageContent
 import de.velwebsolutions.oasis.chatcrypto.MessageEnvelope
 import de.velwebsolutions.oasis.design.theme.OasisTheme
 import org.junit.Assert.assertEquals
@@ -216,7 +217,7 @@ class ChatUiTest {
     private val envelope = MessageEnvelope(1, "7", 1, "2", "n", "c", "s1", "2100-01-01T00:00:00Z")
 
     private fun item(signature: String, state: ChatMessageItem.State, sender: String = "2", text: String = "") =
-        ChatMessageItem(signature, envelope.copy(signature = signature), sender, null, state, text)
+        ChatMessageItem(signature, envelope.copy(signature = signature), sender, null, state, text, MessageContent(text))
 
     @Composable
     private fun Conversation(state: ConversationState) = ConversationContent(
@@ -231,7 +232,8 @@ class ChatUiTest {
         onDecline = { calls += "decline $it" },
         onBlockFlagged = { calls += "block $it" },
         onDismissFlagged = { calls += "dismiss" },
-        onNoticeSpoken = { calls += "spoken" }
+        onNoticeSpoken = { calls += "spoken" },
+        attachments = attachmentActions(calls)
     )
 
     @Test
@@ -488,7 +490,7 @@ class ChatUiTest {
     fun theReportSheetShowsTheModel() {
         val support = ChatTestSupport()
         val mira = support.member(1)
-        val item = ChatMessageItem("s", envelope, "2", null, ChatMessageItem.State.Readable, "Hallo")
+        val item = ChatMessageItem("s", envelope, "2", null, ChatMessageItem.State.Readable, "Hallo", MessageContent("Hallo"))
         show { ReportSheet(ReportModel(mira, "7", item, "Jonas"), onDismiss = { calls += "dismiss" }) }
         compose.waitUntilAtLeastOneExists(hasText("Jonas: Hallo"), 5_000)
         capture("report-sheet")

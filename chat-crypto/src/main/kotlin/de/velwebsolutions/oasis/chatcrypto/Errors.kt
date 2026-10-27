@@ -11,6 +11,9 @@ sealed class ChatCryptoException(message: String) : Exception(message) {
     /** A message envelope failed verification (signature, sender key, AEAD tag, bound metadata or encoding). */
     data object TamperedMessage : ChatCryptoException("The message failed verification.")
 
+    /** A downloaded attachment failed verification (AEAD tag, key or nonce from the message, or the chat). */
+    data object TamperedAttachment : ChatCryptoException("The attachment failed verification.")
+
     /** A correctly signed message whose `expires_at` lies in the past; it must be dropped, not shown. */
     data object ExpiredMessage : ChatCryptoException("The message has expired.")
 

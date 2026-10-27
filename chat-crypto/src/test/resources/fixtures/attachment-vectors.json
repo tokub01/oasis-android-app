@@ -1,0 +1,29 @@
+{
+  "source": "libsodium-wrappers-sumo (resources/js/chat), crypto_aead_xchacha20poly1305_ietf_encrypt",
+  "vectors": [
+    {
+      "note": "short UTF-8 file",
+      "conversation_id": "4242",
+      "key": "AAECAwQFBgcICQoLDA0ODxAREhMUFRYXGBkaGxwdHh8",
+      "nonce": "QEFCQ0RFRkdISUpLTE1OT1BRUlNUVVZX",
+      "plaintext": "T2FzaXMtQW5oYW5nOiBGb3RvIPCfjLQg4pyT",
+      "ciphertext": "m1h2GaPNOHjnlenZlbwj_ebVjTSM1ee6iK1uzIiOpFmA1HXqq0DKbtnLUA"
+    },
+    {
+      "note": "1000 bytes (i * 7 mod 256)",
+      "conversation_id": "7",
+      "key": "oKGio6SlpqeoqaqrrK2ur7CxsrO0tba3uLm6u7y9vr8",
+      "nonce": "EBESExQVFhcYGRobHB0eHyAhIiMkJSYn",
+      "plaintext": "AAcOFRwjKjE4P0ZNVFtiaXB3foWMk5qhqK-2vcTL0tng5-71_AMKERgfJi00O0JJUFdeZWxzeoGIj5adpKuyucDHztXc4-rx-P8GDRQbIikwNz5FTFNaYWhvdn2Ei5KZoKeutbzDytHY3-bt9PsCCRAXHiUsMzpBSE9WXWRrcnmAh46VnKOqsbi_xs3U2-Lp8Pf-BQwTGiEoLzY9REtSWWBnbnV8g4qRmJ-mrbS7wsnQ197l7PP6AQgPFh0kKzI5QEdOVVxjanF4f4aNlJuiqbC3vsXM09rh6O_2_QQLEhkgJy41PENKUVhfZm10e4KJkJeepayzusHIz9bd5Ovy-QAHDhUcIyoxOD9GTVRbYmlwd36FjJOaoaivtr3Ey9LZ4Ofu9fwDChEYHyYtNDtCSVBXXmVsc3qBiI-WnaSrsrnAx87V3OPq8fj_Bg0UGyIpMDc-RUxTWmFob3Z9hIuSmaCnrrW8w8rR2N_m7fT7AgkQFx4lLDM6QUhPVl1ka3J5gIeOlZyjqrG4v8bN1Nvi6fD3_gUMExohKC82PURLUllgZ251fIOKkZifpq20u8LJ0Nfe5ezz-gEIDxYdJCsyOUBHTlVcY2pxeH-GjZSboqmwt77FzNPa4ejv9v0ECxIZICcuNTxDSlFYX2ZtdHuCiZCXnqWss7rByM_W3eTr8vkABw4VHCMqMTg_Rk1UW2JpcHd-hYyTmqGor7a9xMvS2eDn7vX8AwoRGB8mLTQ7QklQV15lbHN6gYiPlp2kq7K5wMfO1dzj6vH4_wYNFBsiKTA3PkVMU1phaG92fYSLkpmgp661vMPK0djf5u30-wIJEBceJSwzOkFIT1ZdZGtyeYCHjpWco6qxuL_GzdTb4unw9_4FDBMaISgvNj1ES1JZYGdudXyDipGYn6attLvCydDX3uXs8_oBCA8WHSQrMjlAR05VXGNqcXh_ho2Um6KpsLe-xczT2uHo7_b9BAsSGSAnLjU8Q0pRWF9mbXR7gomQl56lrLO6wcjP1t3k6_L5AAcOFRwjKjE4P0ZNVFtiaXB3foWMk5qhqK-2vcTL0tng5-71_AMKERgfJi00O0JJUFdeZWxzeoGIj5adpKuyucDHztXc4-rx-P8GDRQbIikwNz5FTFNaYWhvdn2Ei5KZoKeutbzDytHY3-bt9PsCCRAXHiUsMzpBSE9WXWRrcnmAh46VnKOqsbi_xs3U2-Lp8Pf-BQwTGiEoLzY9REtSWWBnbnV8g4qRmJ-mrbS7wsnQ197l7PP6AQgPFh0kKzI5QEdOVVxjanF4f4aNlJuiqbC3vsXM09rh6O_2_QQLEhkgJy41PENKUQ",
+      "ciphertext": "Y6mcgu-1WNFNeiz9OCxGUqSNhX18diUBhDvCFHYW4SUOIm-hr5dbIt0xJ5wzY-4E95y7DPhZYQhddZM3_tS5bAEwHO99gTfS9-oXxTl3Zw69dm61nzAiwLatLE3HBBClXybzPhlcuaHWoMlMZq1RuZQjybn0jzJPmblHbX69HNRIEGtBu2LhihQS1z0FWPdnsPR1HF9dr4IM1PeobSf1WQlIypOFO3qGnSrCWBvprdzVlxBwUIdwzfAibUYNgE4SBYN_Eibm5UVCt6gWh5NemtBKAbqlth1GVigr5Rw6AmbiN9_7QqSb3-JROwPUQKkAGh8bJrlEb20l8jg_mJSPNssBODTj-stMDyK2kVkk9wO_E4txeKxODTJlWz5Mru_xu5imaCMH6hW8A2dsKba0wp61ugFNI7BRTMu66zMJx0kj3nnij5Yla5UrC1jOGuiQsGYbrjGdVcLMl1Co_cpD4mEqSMMd9yP3ftiwdvkOv1tpeCZ25VMH8aXJ4F3jz9009jaI-nJwprI97D2rj_ZtUcqJhDwx3_whX55AVaSDLUPjgFiYfg_bzSEd7pegll_t-PsMplFR2MkMJK5HvIdveOq1MFBB_H80ldOTFBdGd10P0XXVX57m440DmWIZw736FzmSeeFcuwP6CSN-ceBwPYEykbGPHWbPM-gSKrpJfJSeG6LiVjm0Kexps-JLl7mXqP6K-_Ou8Y4vQRKp7hyP30P9guUt-ER2O5JbbZs5eSqJc0ZC_IeDYyDG0egDLP85G2mw0zbVE3uYR_GnEviN0fThLiQ8QioX9MyTvU1efkVLJUMpAHnh-q6VXm2kiXjIXTHRDla2weIpC9-OEg9_Tz2Ef9h_M6FBRgBsR3WVqme2iJtmOKjmaRHR8tjdr4AUQTRDh2UbYB2Ms0NDYFx2Ws4g9T7qhN9YW49fx6O0K8czZ0FynRMdilHfQ8wzJkSVm9c_mHXqugfOnvttHdv3SDDD8bR0YNizt6YMkcMtk62gsocamwBJGlF66ggM9nbg7DM8i6CJ-yoJsje_rcEQZre5ga0MGtn49xUC-OJZpo1Ob-JJCSWRGh81NjXi_rrCqwTThrs3fUd7gk1uPdUqBkTvA7_0mo264m0IKimkBitb1n-MtV-Jjb4KDWgItyH1M0winr6vcHRopDhZ25-IQvPwNhSK20nq-B7WEj5aS7N7Q82sORuqKY3ri2IGq7No4QqdUPMCyicZHSKgN9E4-Y0wDm_pUCShfrjh_UUtPK-S-tSr20kYuCOC6T20gTBYIBayDNgDIrQImn3GDgL1jESQKWGZ-rXa6OcO9pPUKBrjYmWdrGxaeOFB9RzVJSBVx3NzK2rIes4"
+    },
+    {
+      "note": "empty file",
+      "conversation_id": "99",
+      "key": "ERITFBUWFxgZGhscHR4fICEiIyQlJicoKSorLC0uLzA",
+      "nonce": "IiMkJSYnKCkqKywtLi8wMTIzNDU2Nzg5",
+      "plaintext": "",
+      "ciphertext": "9p1GB__74dxbcGMBgxoUGg"
+    }
+  ]
+}

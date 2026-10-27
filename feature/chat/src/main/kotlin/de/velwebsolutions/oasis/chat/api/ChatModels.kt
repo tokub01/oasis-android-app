@@ -91,9 +91,32 @@ data class ConversationPage(
     @SerialName("last_page") val lastPage: Int = 1
 )
 
-/** One stored message: the signed envelope as sent (the server's metadata is not needed). */
+/**
+ * One stored message: the signed envelope as sent and the caller's view of its attachments (the rest of the server's
+ * metadata is not needed).
+ */
 @Serializable
-data class MessageRecord(val envelope: MessageEnvelope)
+data class MessageRecord(val envelope: MessageEnvelope, val attachments: List<AttachmentState> = emptyList())
+
+/**
+ * The caller's view of one attachment (`ManageAttachments::statusFor`): `sent` (own), `pending`, `accepted`, `declined`
+ * or `viewed`; [available] false once the server deleted the files (view once, everyone declined).
+ */
+@Serializable
+data class AttachmentState(
+    @Serializable(with = FlexibleIdSerializer::class) val id: String,
+    @SerialName("view_once") val viewOnce: Boolean = false,
+    val status: String = PENDING,
+    val available: Boolean = true
+) {
+    companion object {
+        const val SENT = "sent"
+        const val PENDING = "pending"
+        const val ACCEPTED = "accepted"
+        const val DECLINED = "declined"
+        const val VIEWED = "viewed"
+    }
+}
 
 /** `GET …/messages`: 50 newest first and the cursor for older ones. */
 @Serializable
@@ -156,6 +179,22 @@ data class SafetyLists(
         val Empty = SafetyLists()
     }
 }
+
+/** `POST …/attachments`: the reserved upload, its number of parts and the size of every part but the last. */
+@Serializable
+data class AttachmentUpload(
+    @Serializable(with = FlexibleIdSerializer::class) val id: String,
+    val parts: Int,
+    @SerialName("part_bytes") val partBytes: Int
+)
+
+/** `PUT …/parts/{index}`: how many parts arrived so far. */
+@Serializable
+data class ReceivedParts(@SerialName("received_parts") val receivedParts: Int)
+
+/** `POST …/complete`: the id to send with the message. */
+@Serializable
+data class CompletedAttachment(@Serializable(with = FlexibleIdSerializer::class) val id: String)
 
 /** `POST …/read`: the unread count afterwards. */
 @Serializable

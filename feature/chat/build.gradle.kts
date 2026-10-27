@@ -16,6 +16,9 @@ dependencies {
     implementation(libs.androidx.biometric)
     implementation(libs.androidx.datastore.preferences)
     implementation(libs.androidx.lifecycle.process)
+    // The photo picker and the microphone permission (activity results), ContextCompat for the permission check.
+    implementation(libs.androidx.activity.compose)
+    implementation(libs.androidx.core.ktx)
 
     // The unit tests run the real crypto on the JVM (lazysodium-java through the chat-crypto test fixture).
     testImplementation(testFixtures(project(":chat-crypto")))

@@ -1,5 +1,7 @@
 package de.velwebsolutions.oasis.chat.data
 
+import de.velwebsolutions.oasis.chat.api.AttachmentState
+import de.velwebsolutions.oasis.chat.api.AttachmentUpload
 import de.velwebsolutions.oasis.chat.api.ChatConversation
 import de.velwebsolutions.oasis.chat.api.ChatService
 import de.velwebsolutions.oasis.chat.api.ChatSettings
@@ -8,6 +10,7 @@ import de.velwebsolutions.oasis.chat.api.CreatedDeviceLink
 import de.velwebsolutions.oasis.chat.api.DeviceLinkRequest
 import de.velwebsolutions.oasis.chat.api.DeviceUnlockRow
 import de.velwebsolutions.oasis.chat.api.MessagePage
+import de.velwebsolutions.oasis.chat.api.MessageRecord
 import de.velwebsolutions.oasis.chat.api.PublicUser
 import de.velwebsolutions.oasis.chat.api.SafetyLists
 import de.velwebsolutions.oasis.chat.api.StoredIdentity
@@ -25,6 +28,8 @@ import kotlinx.serialization.json.JsonNull
 import kotlinx.serialization.json.JsonPrimitive
 import kotlinx.serialization.json.buildJsonObject
 import kotlinx.serialization.json.put
+import okhttp3.MediaType.Companion.toMediaType
+import okhttp3.RequestBody.Companion.toRequestBody
 
 /** A value of `PATCH /chat/settings`: the audience (text) or the friend-request switch (flag). */
 sealed interface SettingValue {
@@ -123,8 +128,26 @@ interface ChatRepository {
     /** 50 messages before [beforeId] (the newest without it). */
     suspend fun messages(conversationId: String, beforeId: String? = null): MessagePage
 
-    /** Sends one encrypted envelope. */
-    suspend fun sendMessage(conversationId: String, envelope: MessageEnvelope)
+    /**
+     * Sends one encrypted envelope, with the ids of the completed uploads it carries (at most 4); returns the stored
+     * message with the attachments' states.
+     */
+    suspend fun sendMessage(conversationId: String, envelope: MessageEnvelope, attachmentIds: List<String> = emptyList()): MessageRecord
+
+    /** Reserves an upload of [size] ciphertext bytes; [viewOnce] deletes it for good once every recipient viewed it. */
+    suspend fun startAttachment(conversationId: String, size: Int, viewOnce: Boolean): AttachmentUpload
+
+    /** A recipient's answer to an attachment: `accept`, `decline` or (view once, after showing it) `viewed`. */
+    suspend fun answerAttachment(conversationId: String, attachmentId: String, answer: String): AttachmentState
+
+    /** Sends part [index] (in order) of an upload; returns the number of parts received. */
+    suspend fun putAttachmentPart(conversationId: String, attachmentId: String, index: Int, bytes: ByteArray): Int
+
+    /** Finishes an upload once every part arrived. */
+    suspend fun completeAttachment(conversationId: String, attachmentId: String)
+
+    /** The whole ciphertext of an attachment. */
+    suspend fun downloadAttachment(conversationId: String, attachmentId: String): ByteArray
 
     /** The chat is open: everything so far counts as seen. Returns the unread count. */
     suspend fun markRead(conversationId: String): Int
@@ -259,8 +282,34 @@ class DefaultChatRepository(client: ApiClient) : ChatRepository {
 
     override suspend fun messages(conversationId: String, beforeId: String?) = service.messages(conversationId, beforeId)
 
-    override suspend fun sendMessage(conversationId: String, envelope: MessageEnvelope) =
-        service.sendMessage(conversationId, buildJsonObject { put("envelope", envelope.toJsonObject()) })
+    override suspend fun sendMessage(conversationId: String, envelope: MessageEnvelope, attachmentIds: List<String>) = service.sendMessage(
+        conversationId,
+        buildJsonObject {
+            put("envelope", envelope.toJsonObject())
+            if (attachmentIds.isNotEmpty()) put("attachment_ids", JsonArray(attachmentIds.map(::JsonPrimitive)))
+        }
+    ).data
+
+    override suspend fun startAttachment(conversationId: String, size: Int, viewOnce: Boolean) = service.startAttachment(
+        conversationId,
+        buildJsonObject {
+            put("size", size)
+            put("view_once", viewOnce)
+        }
+    ).data
+
+    override suspend fun answerAttachment(conversationId: String, attachmentId: String, answer: String) =
+        service.answerAttachment(conversationId, attachmentId, answer).data
+
+    override suspend fun putAttachmentPart(conversationId: String, attachmentId: String, index: Int, bytes: ByteArray) =
+        service.putAttachmentPart(conversationId, attachmentId, index, bytes.toRequestBody(OctetStream)).data.receivedParts
+
+    override suspend fun completeAttachment(conversationId: String, attachmentId: String) {
+        service.completeAttachment(conversationId, attachmentId)
+    }
+
+    override suspend fun downloadAttachment(conversationId: String, attachmentId: String) =
+        service.attachment(conversationId, attachmentId).use { it.bytes() }
 
     override suspend fun markRead(conversationId: String) = service.markRead(conversationId).count
 
@@ -285,5 +334,8 @@ class DefaultChatRepository(client: ApiClient) : ChatRepository {
     private companion object {
         /** Crypto objects as declared (camelCase `publicKeys`, nothing renamed). */
         val CryptoJson = Json { encodeDefaults = true }
+
+        /** Attachment parts go as raw bytes. */
+        val OctetStream = "application/octet-stream".toMediaType()
     }
 }

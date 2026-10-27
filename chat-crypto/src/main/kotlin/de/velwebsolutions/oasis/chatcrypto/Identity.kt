@@ -301,6 +301,7 @@ class ChatCrypto(val sodium: Sodium) {
         internal const val MESSAGE_AD_LABEL = "oasis-chat/message-ad/v1"
         internal const val MESSAGE_SIGNATURE_LABEL = "oasis-chat/message-signature/v1"
         internal const val KEY_GRANT_LABEL = "oasis-chat/key-grant/v1"
+        internal const val ATTACHMENT_AD_LABEL = "oasis-chat/attachment/v1|"
         internal const val DEVICE_LINK_LABEL = "oasis-chat/device-link/v1"
         internal const val SERIALISED_SECRET_BYTES = 32 + 64
     }

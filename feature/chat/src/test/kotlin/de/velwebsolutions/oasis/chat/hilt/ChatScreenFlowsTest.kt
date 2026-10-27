@@ -1,6 +1,7 @@
 package de.velwebsolutions.oasis.chat.hilt
 
 import android.view.ContextThemeWrapper
+import androidx.activity.compose.LocalActivity
 import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.ui.platform.ComposeView
 import androidx.compose.ui.test.ExperimentalTestApi
@@ -88,7 +89,13 @@ class ChatScreenFlowsTest {
         activity.setContentView(
             ComposeView(context).apply {
                 setContent {
-                    OasisTheme { CompositionLocalProvider(LocalNavigator provides navigator) { ChatScreen(route) } }
+                    // "Wrapped" stands for a preview: a themed context and no activity.
+                    val shownActivity = if (wrapped) null else activity
+                    OasisTheme {
+                        CompositionLocalProvider(LocalNavigator provides navigator, LocalActivity provides shownActivity) {
+                            ChatScreen(route)
+                        }
+                    }
                 }
             }
         )

@@ -43,6 +43,25 @@ class KotlinVectorExportTest {
         val memberMin = crypto.lockIdentity(member, passphrase, KdfLimits.Minimum)
         val deviceCopy = crypto.lockForDevice(member, deviceSecret)
         val canonicalFields = listOf("ab", "c", "", "ü🌴")
+        val file = "Foto aus der App 🌴".toByteArray()
+        val sealedFile = crypto.encryptAttachment(file, "4242")
+        val attachmentPlaintext = MessagePayload.encode(
+            MessageContent(
+                "Mit Anhang",
+                listOf(
+                    MessageAttachment(
+                        "31",
+                        "image",
+                        "image/jpeg",
+                        file.size.toLong(),
+                        crypto.toBase64(sealedFile.key),
+                        crypto.toBase64(sealedFile.nonce)
+                    )
+                )
+            )
+        )
+        val attachmentEnvelope =
+            crypto.encryptMessage(key, "4242", 3, "11", owner, attachmentPlaintext, Instant.ofEpochSecond(4_102_444_800))
 
         val vectors = buildJsonObject {
             put("passphrase", passphrase)
@@ -69,6 +88,16 @@ class KotlinVectorExportTest {
                 buildJsonObject {
                     put("plaintext", plaintext)
                     put("envelope", envelope.toJsonObject())
+                }
+            )
+            put(
+                "attachment",
+                buildJsonObject {
+                    put("conversation_id", "4242")
+                    put("plaintext", crypto.toBase64(file))
+                    put("ciphertext", crypto.toBase64(sealedFile.ciphertext))
+                    put("message_plaintext", attachmentPlaintext)
+                    put("envelope", attachmentEnvelope.toJsonObject())
                 }
             )
             put(
@@ -127,6 +156,12 @@ class KotlinVectorExportTest {
                 owner.signingPublicKey,
                 expectedConversationId = "4242"
             ).plaintext
+        )
+        val attachmentMessage = crypto.decryptMessage(attachmentEnvelope, opened.conversationKey, owner.signingPublicKey).plaintext
+        val reference = MessagePayload.decode(attachmentMessage).attachments.single()
+        assertArrayEquals(
+            file,
+            crypto.decryptAttachment(sealedFile.ciphertext, "4242", crypto.fromBase64(reference.key), crypto.fromBase64(reference.nonce))
         )
         val linkCopy = LinkKeyPair(crypto.fromBase64(linkPublicKey), crypto.fromBase64(linkPrivateKey), crypto)
         assertEquals(

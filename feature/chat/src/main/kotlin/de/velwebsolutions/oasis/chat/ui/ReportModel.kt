@@ -16,12 +16,15 @@ data class ReportState(
     val sent: Boolean = false,
     val blocked: Boolean = false,
     /** The quoted message; forgotten after sending. */
-    val quote: String? = null
+    val quote: String? = null,
+    /** Files of the message, which go to the moderation team with it. */
+    val attachments: Int = 0
 )
 
 /**
  * Dialog "report" (ui/report-dialog.js; iOS `ReportModel`): consent-based reporting of one decrypted message – the
- * signed envelope plus the plaintext the reporter sees and the reason. Lives as long as the dialog (owned by the
+ * signed envelope plus the plaintext the reporter sees and the reason. A message with files forwards its v2 plaintext
+ * unchanged: the server opens exactly those files with the keys in it for the moderation case. Lives as long as the dialog (owned by the
  * conversation screen).
  */
 class ReportModel(
@@ -30,7 +33,12 @@ class ReportModel(
     val item: ChatMessageItem,
     senderName: String
 ) {
-    private val mutableState = MutableStateFlow(ReportState(quote = "$senderName: ${item.plaintext}"))
+    private val mutableState = MutableStateFlow(
+        ReportState(
+            quote = "$senderName: ${item.content.text.ifEmpty { "(nur Anhänge)" }}",
+            attachments = item.content.attachments.size
+        )
+    )
     val state: StateFlow<ReportState> = mutableState.asStateFlow()
 
     /** The picked problem. */

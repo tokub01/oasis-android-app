@@ -44,6 +44,7 @@ import de.velwebsolutions.oasis.design.components.FieldError
 import de.velwebsolutions.oasis.design.components.OasisButton
 import de.velwebsolutions.oasis.design.components.OasisTextButton
 import de.velwebsolutions.oasis.design.components.OasisTextField
+import de.velwebsolutions.oasis.design.media.ImageCodec
 import de.velwebsolutions.oasis.design.navigation.LocalNavigator
 import de.velwebsolutions.oasis.design.navigation.WebRoute
 import de.velwebsolutions.oasis.design.theme.OasisColors
@@ -242,7 +243,7 @@ private fun ImagesSection(state: ComposeUiState, callbacks: ComposerCallbacks, l
         state.fieldError("images")?.let { FieldError(it) }
         state.images.forEachIndexed { index, picked ->
             Row(horizontalArrangement = Arrangement.spacedBy(12.dp), verticalAlignment = Alignment.Top) {
-                val thumbnail = remember(picked.id) { ImageConverter.thumbnail(picked.upload.data)?.asImageBitmap() }
+                val thumbnail = remember(picked.id) { ImageCodec.thumbnail(picked.upload.data)?.asImageBitmap() }
                 if (thumbnail != null) {
                     Image(
                         thumbnail,

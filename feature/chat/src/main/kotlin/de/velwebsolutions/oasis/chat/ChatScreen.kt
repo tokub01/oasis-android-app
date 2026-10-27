@@ -1,11 +1,10 @@
 package de.velwebsolutions.oasis.chat
 
-import android.app.Activity
+import androidx.activity.compose.LocalActivity
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.key
-import androidx.compose.ui.platform.LocalContext
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
@@ -38,8 +37,8 @@ import kotlinx.coroutines.flow.stateIn
 fun ChatScreen(route: ChatRoute) {
     val root: ChatRootViewModel = hiltViewModel()
     val me by root.me.collectAsStateWithLifecycle()
-    // The biometric prompt needs the activity; inside a wrapped context (previews) there is none.
-    val activity = LocalContext.current as? Activity
+    // The biometric prompt needs the activity; previews have none.
+    val activity = LocalActivity.current
     DisposableEffect(activity) {
         activity?.let(root.prompter::attach)
         onDispose { activity?.let(root.prompter::detach) }

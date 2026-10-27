@@ -10,6 +10,7 @@ import kotlinx.serialization.json.JsonElement
 import kotlinx.serialization.json.JsonNull
 import kotlinx.serialization.json.JsonObject
 import kotlinx.serialization.json.JsonPrimitive
+import kotlinx.serialization.json.boolean
 import kotlinx.serialization.json.buildJsonArray
 import kotlinx.serialization.json.buildJsonObject
 import kotlinx.serialization.json.int
@@ -54,6 +55,29 @@ class FakeChatServer : Interceptor {
     val deviceUnlocks = mutableListOf<Pair<Int, JsonObject>>()
     val deviceLinks = mutableMapOf<Int, MutableMap<String, JsonElement>>()
     val reports = mutableListOf<JsonObject>()
+
+    /** An encrypted upload (ChatAttachment): parts as they arrived, the message it went with and each recipient's answer. */
+    class Upload(
+        val id: Int,
+        val conversationId: Int,
+        val uploader: Int,
+        val size: Int,
+        val parts: Int,
+        val viewOnce: Boolean,
+        val received: MutableList<ByteArray> = mutableListOf(),
+        var completed: Boolean = false,
+        var messageId: Int? = null,
+        var deleted: Boolean = false,
+        /** Per recipient: accepted, declined or viewed. */
+        val answers: MutableMap<Int, String> = mutableMapOf()
+    ) {
+        val ciphertext: ByteArray get() = received.fold(ByteArray(0)) { all, part -> all + part }
+    }
+
+    val uploads = mutableMapOf<Int, Upload>()
+
+    /** The part size the fake announces (the server's is 5 MiB; small here, so files go in several parts). */
+    var partBytes = 1_000
     val blocks = mutableListOf<Pair<Int, Int>>()
     private var nextId = 100
 
@@ -154,11 +178,23 @@ class FakeChatServer : Interceptor {
         val request = chain.request()
         val user = request.header("Authorization")?.removePrefix("Bearer t")?.toIntOrNull() ?: 0
         val path = request.url.encodedPath.substringAfter("/api/v1/chat/")
-        val text = request.body?.let { Buffer().also(it::writeTo).readUtf8() }.orEmpty()
+        val raw = request.body?.let { Buffer().also(it::writeTo).readByteArray() } ?: ByteArray(0)
+        val binary = request.body?.contentType()?.subtype == "octet-stream"
+        val text = if (binary) "" else raw.toString(Charsets.UTF_8)
         val body = if (text.isEmpty()) JsonObject(emptyMap()) else Json.parseToJsonElement(text).jsonObject
+        lastPart = raw.takeIf { binary }
         val query = request.url.queryParameterNames.associateWith { request.url.queryParameter(it) }
         val key = "${request.method} $path"
         onRequest(key)
+        download(request.method, path, user)?.takeIf { key !in failures }?.let { bytes ->
+            return Response.Builder()
+                .request(request)
+                .protocol(Protocol.HTTP_1_1)
+                .code(200)
+                .message("fake")
+                .body(bytes.toResponseBody("application/octet-stream".toMediaType()))
+                .build()
+        }
         val (status, json) = failures.remove(key)?.let { (code, text) -> code to Json.parseToJsonElement(text) }
             ?: route(request.method, path.split("/").filter { it.isNotEmpty() }, user, body, query)
         return Response.Builder()
@@ -169,6 +205,101 @@ class FakeChatServer : Interceptor {
             .body(json.toString().toResponseBody("application/json".toMediaType()))
             .build()
     }
+
+    private var lastPart: ByteArray? = null
+
+    /** Replaces the ciphertext the server hands out for an upload (a tampering server). */
+    val tampered = mutableMapOf<Int, ByteArray>()
+
+    /**
+     * `GET conversations/{c}/attachments/{id}`: the ciphertext, when this member may download it (docs, "Anhänge"): the
+     * sender their own files except view-once ones once sent, recipients after accepting.
+     */
+    private fun download(method: String, path: String, user: Int): ByteArray? {
+        val parts = path.split("/")
+        if (method != "GET" || parts.size != 4 || parts[2] != "attachments") return null
+        val upload = uploads[parts[3].toIntOrNull()] ?: return null
+        val mayDownload = upload.completed && !upload.deleted &&
+            if (upload.uploader == user) upload.messageId == null || !upload.viewOnce else upload.answers[user] == "accepted"
+        return if (mayDownload) tampered[upload.id] ?: upload.ciphertext else null
+    }
+
+    private fun attachmentState(upload: Upload, user: Int) = buildJsonObject {
+        put("id", upload.id.toString())
+        put("view_once", upload.viewOnce)
+        put("status", if (upload.uploader == user) "sent" else upload.answers[user] ?: "pending")
+        put("available", !upload.deleted)
+    }
+
+    private fun notFound() = 404 to buildJsonObject { put("message", "Not found") }
+
+    private fun attachmentRoute(
+        method: String,
+        parts: List<String>,
+        user: Int,
+        body: JsonObject,
+        conversation: Conversation
+    ): Pair<Int, JsonElement> {
+        if (method == "POST" && parts.size == 3) {
+            val size = body.getValue("size").jsonPrimitive.int
+            val upload = Upload(
+                newId(),
+                conversation.id,
+                user,
+                size,
+                (size + partBytes - 1) / partBytes,
+                body["view_once"]?.jsonPrimitive?.boolean == true
+            )
+            uploads[upload.id] = upload
+            return 201 to data(
+                buildJsonObject {
+                    put("id", upload.id.toString())
+                    put("parts", upload.parts)
+                    put("part_bytes", partBytes)
+                }
+            )
+        }
+        val upload = uploads[parts.getOrNull(3)?.toIntOrNull()]?.takeIf { it.conversationId == conversation.id } ?: return notFound()
+        return when {
+            method == "PUT" && parts.getOrNull(4) == "parts" -> {
+                val index = parts[5].toInt()
+                val bytes = lastPart ?: ByteArray(0)
+                val expected = if (index == upload.parts - 1) upload.size - index * partBytes else partBytes
+                if (index != upload.received.size || bytes.size != expected) {
+                    422 to buildJsonObject { put("message", "Dieser Teil des Anhangs passt nicht.") }
+                } else {
+                    upload.received += bytes
+                    200 to data(buildJsonObject { put("received_parts", upload.received.size) })
+                }
+            }
+
+            method == "POST" && parts.getOrNull(4) == "complete" -> {
+                upload.completed = upload.received.size == upload.parts
+                200 to data(buildJsonObject { put("id", upload.id.toString()) })
+            }
+
+            method == "POST" && parts.getOrNull(4) in setOf("accept", "decline", "viewed") -> {
+                val answer = parts[4]
+                val current = upload.answers[user]
+                val allowed = upload.uploader != user && !upload.deleted && current != "declined" && current != "viewed" &&
+                    (answer != "viewed" || (upload.viewOnce && current == "accepted"))
+                if (!allowed) return notFound()
+                upload.answers[user] = mapOf("accept" to "accepted", "decline" to "declined", "viewed" to "viewed").getValue(answer)
+                val recipients = conversation.members.filter { it != upload.uploader }
+                val done = recipients.all { upload.answers[it] == "declined" || upload.answers[it] == "viewed" }
+                if (done && (upload.viewOnce || recipients.all { upload.answers[it] == "declined" })) upload.deleted = true
+                200 to data(attachmentState(upload, user))
+            }
+
+            else -> notFound()
+        }
+    }
+
+    private fun states(messageId: Int, user: Int) = JsonArray(
+        uploads.values.filter {
+            it.messageId == messageId
+        }.map { attachmentState(it, user) }
+    )
 
     private fun route(
         method: String,
@@ -327,6 +458,7 @@ class FakeChatServer : Interceptor {
         val id = parts[1].toIntOrNull() ?: return 404 to buildJsonObject { put("message", "Not found") }
         val conversation = conversations[id] ?: return 404 to buildJsonObject { put("message", "Not found") }
         if (user !in conversation.members) return 403 to buildJsonObject { put("message", "This action is unauthorized.") }
+        if (parts.getOrNull(2) == "attachments") return attachmentRoute(method, parts, user, body, conversation)
         return when (method to parts.getOrElse(2) { "" }) {
             "GET" to "" -> 200 to data(conversationData(conversation, user))
 
@@ -356,6 +488,7 @@ class FakeChatServer : Interceptor {
                         put("envelope", envelope)
                         put("created_at", "2026-10-22T12:00:00.000000Z")
                         put("expires_at", envelope.getValue("expires_at"))
+                        put("attachments", states(messageId, user))
                     }
                 }
                 200 to buildJsonObject {
@@ -371,14 +504,35 @@ class FakeChatServer : Interceptor {
                 ) {
                     409 to buildJsonObject { put("message", "rotation") }
                 } else {
-                    messages.getOrPut(id) { mutableListOf() } += newId() to envelope
+                    val ids = body["attachment_ids"]?.jsonArray?.map { it.jsonPrimitive.content.toInt() }.orEmpty()
+                    val linked = ids.mapNotNull { uploads[it] }.filter { it.uploader == user && it.completed && it.messageId == null }
+                    if (linked.size != ids.size) {
+                        return 422 to buildJsonObject {
+                            put("message", "x")
+                            put(
+                                "errors",
+                                buildJsonObject {
+                                    put(
+                                        "attachment_ids",
+                                        JsonArray(
+                                            listOf(JsonPrimitive("Ein Anhang ist nicht mehr verfügbar. Bitte füge ihn noch einmal hinzu."))
+                                        )
+                                    )
+                                }
+                            )
+                        }
+                    }
+                    val messageId = newId()
+                    linked.forEach { it.messageId = messageId }
+                    messages.getOrPut(id) { mutableListOf() } += messageId to envelope
                     conversation.accepted += user
                     201 to data(
                         buildJsonObject {
-                            put("id", "1")
+                            put("id", messageId.toString())
                             put("envelope", envelope)
                             put("created_at", serverTime)
                             put("expires_at", envelope.getValue("expires_at"))
+                            put("attachments", states(messageId, user))
                         }
                     )
                 }

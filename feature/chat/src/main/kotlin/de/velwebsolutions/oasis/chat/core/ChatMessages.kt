@@ -1,9 +1,13 @@
 package de.velwebsolutions.oasis.chat.core
 
+import de.velwebsolutions.oasis.chat.api.AttachmentState
 import de.velwebsolutions.oasis.chat.api.ChatConversation
 import de.velwebsolutions.oasis.chatcrypto.ChatCrypto
 import de.velwebsolutions.oasis.chatcrypto.ChatCryptoException
+import de.velwebsolutions.oasis.chatcrypto.MessageAttachment
+import de.velwebsolutions.oasis.chatcrypto.MessageContent
 import de.velwebsolutions.oasis.chatcrypto.MessageEnvelope
+import de.velwebsolutions.oasis.chatcrypto.MessagePayload
 import de.velwebsolutions.oasis.chatcrypto.decryptMessage
 import de.velwebsolutions.oasis.chatcrypto.encryptMessage
 import de.velwebsolutions.oasis.core.format.GermanTime
@@ -17,9 +21,17 @@ data class ChatMessageItem(
     val senderId: String,
     val expiresAt: Instant?,
     val state: State,
-    /** The text of a readable message; empty otherwise. */
-    val plaintext: String = ""
+    /** The decrypted plaintext of a readable message (the v2 JSON for one with files); empty otherwise. */
+    val plaintext: String = "",
+    /** Text and files of [plaintext]. */
+    val content: MessageContent = MessageContent(""),
+    /** The member's view of the files by id (from the history; empty until it was loaded for a realtime message). */
+    val attachmentStates: Map<String, AttachmentState> = emptyMap()
 ) {
+    /** The state of one file; before the server named it: pending for others' files, sent for own ones. */
+    fun state(attachmentId: String, mine: Boolean): AttachmentState = attachmentStates[attachmentId]
+        ?: AttachmentState(attachmentId, status = if (mine) AttachmentState.SENT else AttachmentState.PENDING)
+
     /** Whether the message could be read. */
     enum class State {
         Readable,
@@ -39,11 +51,28 @@ data class DraftMeasure(val characters: Int, val bytes: Int, val tooLong: Boolea
 
 /** Encrypt, verify and keep messages in order. */
 object ChatMessages {
-    /** Characters (code points) and UTF-8 bytes of a draft against the message limits. */
-    fun measure(text: String): DraftMeasure {
+    /**
+     * The largest entry a file can add to the plaintext, so a draft with [attachments] files is measured with room for
+     * all of them (the text limit shrinks by the metadata).
+     */
+    private val largestAttachment = MessageAttachment(
+        id = "9".repeat(19),
+        kind = "video",
+        mime = "video/quicktime",
+        size = 52_428_800,
+        key = "k".repeat(43),
+        nonce = "n".repeat(32),
+        width = 99_999,
+        height = 99_999,
+        durationMs = 180_000
+    )
+
+    /** Characters (code points) of the text, and UTF-8 bytes of the whole plaintext, against the message limits. */
+    fun measure(text: String, attachments: Int = 0): DraftMeasure {
         val characters = text.codePointCount(0, text.length)
-        val bytes = text.toByteArray(Charsets.UTF_8).size
-        return DraftMeasure(characters, bytes, characters > ChatCrypto.MAX_MESSAGE_LENGTH || bytes > ChatCrypto.MAX_MESSAGE_BYTES)
+        val plaintext = MessagePayload.plaintext(MessageContent(text, List(attachments) { largestAttachment }))
+        val bytes = plaintext.toByteArray(Charsets.UTF_8).size
+        return DraftMeasure(characters, bytes, characters > ChatCrypto.MAX_MESSAGE_LENGTH || !MessagePayload.fits(plaintext))
     }
 
     /** Encrypt for the conversation's current key version with the server-clock expiry. */
@@ -64,9 +93,22 @@ object ChatMessages {
     }
 
     /** Verify and decrypt one envelope; never throws – bad input becomes a visible placeholder. Null if already expired. */
-    fun open(envelope: MessageEnvelope, conversationId: String, vault: ChatVault, crypto: ChatCrypto): ChatMessageItem? {
+    fun open(
+        envelope: MessageEnvelope,
+        conversationId: String,
+        vault: ChatVault,
+        crypto: ChatCrypto,
+        states: List<AttachmentState> = emptyList()
+    ): ChatMessageItem? {
         val expiry = envelope.expiresAt?.let(OasisJson::parseInstant)
-        val item = ChatMessageItem(envelope.signature, envelope, envelope.senderId, expiry, ChatMessageItem.State.Unverifiable)
+        val item = ChatMessageItem(
+            envelope.signature,
+            envelope,
+            envelope.senderId,
+            expiry,
+            ChatMessageItem.State.Unverifiable,
+            attachmentStates = states.associateBy { it.id }
+        )
         val key = vault.conversationKey(conversationId, envelope.keyVersion) ?: return item.copy(state = ChatMessageItem.State.NoKey)
         val sender = vault.publicKeys(envelope.senderId) ?: return item
         return try {
@@ -77,7 +119,7 @@ object ChatMessages {
                 vault.clock.now(),
                 expectedConversationId = conversationId
             ).plaintext
-            item.copy(state = ChatMessageItem.State.Readable, plaintext = plaintext)
+            item.copy(state = ChatMessageItem.State.Readable, plaintext = plaintext, content = MessagePayload.decode(plaintext))
         } catch (_: ChatCryptoException.ExpiredMessage) {
             null
         } catch (_: ChatCryptoException) {

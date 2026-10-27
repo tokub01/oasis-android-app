@@ -15,10 +15,12 @@ import dagger.Provides
 import dagger.hilt.InstallIn
 import dagger.hilt.android.qualifiers.ApplicationContext
 import dagger.hilt.components.SingletonComponent
+import de.velwebsolutions.oasis.chat.core.AndroidChatMedia
 import de.velwebsolutions.oasis.chat.core.AndroidKeystoreBiometricKeys
 import de.velwebsolutions.oasis.chat.core.AndroidSodium
 import de.velwebsolutions.oasis.chat.core.BiometricPrompter
 import de.velwebsolutions.oasis.chat.core.ChatContext
+import de.velwebsolutions.oasis.chat.core.ChatMedia
 import de.velwebsolutions.oasis.chat.core.ChatPreferences
 import de.velwebsolutions.oasis.chat.core.ChatVault
 import de.velwebsolutions.oasis.chat.core.DataStoreChatPreferences
@@ -94,6 +96,11 @@ object ChatModule {
     @Singleton
     fun preferences(@ChatStore dataStore: DataStore<Preferences>): ChatPreferences = DataStoreChatPreferences(dataStore)
 
+    /** Photos, videos and voice messages of the chat; its cache folder is emptied when the process starts. */
+    @Provides
+    @Singleton
+    fun media(@ApplicationContext context: Context): ChatMedia = AndroidChatMedia(context)
+
     /** The context of the signed-in member; chat screens are only shown while someone is signed in. */
     @Provides
     fun context(
@@ -102,7 +109,8 @@ object ChatModule {
         crypto: ChatCrypto,
         secrets: DeviceSecretStore,
         preferences: ChatPreferences,
-        session: Session
+        session: Session,
+        media: ChatMedia
     ): ChatContext = ChatContext(
         repository,
         vault,
@@ -111,6 +119,7 @@ object ChatModule {
         preferences,
         checkNotNull(session.me) {
             "Chat screens need a signed-in member."
-        }
+        },
+        media
     )
 }

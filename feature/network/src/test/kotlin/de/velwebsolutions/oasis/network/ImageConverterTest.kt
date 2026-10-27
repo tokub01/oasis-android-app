@@ -4,6 +4,7 @@ import android.graphics.Bitmap
 import android.graphics.Color
 import android.net.Uri
 import androidx.test.core.app.ApplicationProvider
+import de.velwebsolutions.oasis.design.media.ImageCodec
 import de.velwebsolutions.oasis.network.ui.ImageConverter
 import java.io.ByteArrayOutputStream
 import java.io.File
@@ -32,7 +33,7 @@ class ImageConverterTest {
     @Test
     fun `a small PNG goes as it is`() {
         val data = png(40, 20)
-        assertEquals(40 to 20, ImageConverter.pixelSize(data))
+        assertEquals(40 to 20, ImageCodec.pixelSize(data))
         val upload = ImageConverter.upload(data, "bild-1")!!
         assertEquals("bild-1.png", upload.filename)
         assertEquals("image/png", upload.mimeType)
@@ -45,13 +46,13 @@ class ImageConverterTest {
         assertEquals("banner.jpg", upload.filename)
         assertEquals("image/jpeg", upload.mimeType)
         assertNull(ImageConverter.upload("kein bild".toByteArray(), "x"))
-        assertNull(ImageConverter.pixelSize("kein bild".toByteArray()))
-        assertNull(ImageConverter.thumbnail("kein bild".toByteArray()))
+        assertNull(ImageCodec.pixelSize("kein bild".toByteArray()))
+        assertNull(ImageCodec.thumbnail("kein bild".toByteArray()))
     }
 
     @Test
     fun `the composer preview is decoded small`() {
-        val thumbnail = ImageConverter.thumbnail(png(800, 400), edge = 100)
+        val thumbnail = ImageCodec.thumbnail(png(800, 400), edge = 100)
         assertNotNull(thumbnail)
         assertTrue(thumbnail!!.width <= 400)
     }

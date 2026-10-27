@@ -1,5 +1,10 @@
 package de.velwebsolutions.oasis.chat.ui
 
+import android.Manifest
+import android.content.pm.PackageManager
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.PickVisualMediaRequest
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.animateContentSize
 import androidx.compose.foundation.background
@@ -10,6 +15,7 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.RowScope
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.imePadding
@@ -24,7 +30,10 @@ import androidx.compose.foundation.text.BasicTextField
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.text.selection.SelectionContainer
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.outlined.AddPhotoAlternate
 import androidx.compose.material.icons.outlined.Info
+import androidx.compose.material.icons.outlined.Mic
+import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.Text
@@ -39,6 +48,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.SolidColor
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.semantics.LiveRegionMode
 import androidx.compose.ui.semantics.contentDescription
@@ -48,6 +58,7 @@ import androidx.compose.ui.text.font.FontStyle
 import androidx.compose.ui.text.input.KeyboardCapitalization
 import androidx.compose.ui.text.style.TextDecoration
 import androidx.compose.ui.unit.dp
+import androidx.core.content.ContextCompat
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import de.velwebsolutions.oasis.chat.core.ChatMessageItem
@@ -60,6 +71,7 @@ import de.velwebsolutions.oasis.design.components.LoadingView
 import de.velwebsolutions.oasis.design.components.OasisButton
 import de.velwebsolutions.oasis.design.components.OasisButtonKind
 import de.velwebsolutions.oasis.design.components.OasisScreen
+import de.velwebsolutions.oasis.design.components.OasisTextButton
 import de.velwebsolutions.oasis.design.components.Panel
 import de.velwebsolutions.oasis.design.components.PanelTone
 import de.velwebsolutions.oasis.design.components.pressable
@@ -117,11 +129,26 @@ internal fun ConversationScreen(conversationId: Int) {
             onDecline = { block -> scope.launch { if (model.declineRequest(block)) navigator.back() } },
             onBlockFlagged = { senderId -> scope.launch { if (model.blockAndLeave(senderId)) navigator.back() } },
             onDismissFlagged = model::dismissFlagged,
-            onNoticeSpoken = model::noticeSpoken
+            onNoticeSpoken = model::noticeSpoken,
+            attachments = model.attachmentActions()
         )
     }
     report?.let { ReportSheet(it, onDismiss = { report = null }) }
 }
+
+/** The view model's attachment steps for the screen. */
+internal fun ConversationViewModel.attachmentActions() = AttachmentActions(
+    onPicked = ::addPicked,
+    onRemove = ::removeDraft,
+    onViewOnce = ::setViewOnce,
+    onStartRecording = ::startRecording,
+    onFinishRecording = ::finishRecording,
+    onCancelRecording = ::cancelRecording,
+    onLoad = ::loadAttachment,
+    onAnswer = ::answer,
+    onOpenViewOnce = ::openViewOnce,
+    onCloseViewOnce = ::closeViewOnce
+)
 
 @Composable
 internal fun ConversationContent(
@@ -136,7 +163,8 @@ internal fun ConversationContent(
     onDecline: (block: Boolean) -> Unit,
     onBlockFlagged: (String) -> Unit,
     onDismissFlagged: () -> Unit,
-    onNoticeSpoken: () -> Unit
+    onNoticeSpoken: () -> Unit,
+    attachments: AttachmentActions
 ) {
     val listState = rememberLazyListState()
     val items = state.timeline.items
@@ -240,10 +268,13 @@ internal fun ConversationContent(
                 }
             }
             items(items, key = { it.id }) { item ->
-                MessageBubble(item, mine = item.senderId == myId, senderName = senderName(item.senderId), onReport = { onReport(item) })
+                MessageBubble(item, mine = item.senderId == myId, senderName = senderName(item.senderId), onReport = { onReport(item) }) {
+                    MessageAttachments(item, item.senderId == myId, senderName(item.senderId), state.attachmentViews, attachments)
+                }
             }
         }
-        ConversationComposer(state, onDraftChange, onSend)
+        ConversationComposer(state, onDraftChange, onSend, attachments)
+        state.viewOnce?.let { ViewOnceViewer(it, attachments, onReport) }
         state.spokenNotice?.let { notice ->
             Box(
                 Modifier.size(1.dp).semantics {
@@ -273,10 +304,29 @@ internal fun ConversationContent(
     }
 }
 
-/** The composer with counter, tone hint and the sensitive-data warning. */
+/**
+ * The composer with counter, tone hint and the sensitive-data warning; photos and videos from the photo picker, voice
+ * messages with the microphone (asked for with an explanation first).
+ */
 @Composable
-private fun ConversationComposer(state: ConversationState, onDraftChange: (String) -> Unit, onSend: suspend () -> Unit) {
+private fun ConversationComposer(
+    state: ConversationState,
+    onDraftChange: (String) -> Unit,
+    onSend: suspend () -> Unit,
+    attachments: AttachmentActions
+) {
     val shape = RoundedCornerShape(OasisRadius.XS.dp)
+    val context = LocalContext.current
+    val scope = rememberCoroutineScope()
+    var explainMicrophone by remember { mutableStateOf(false) }
+    var microphoneDenied by remember { mutableStateOf(false) }
+    val picker = rememberLauncherForActivityResult(ActivityResultContracts.PickVisualMedia()) { uri ->
+        if (uri != null) scope.launch { attachments.onPicked(uri) }
+    }
+    val permission = rememberLauncherForActivityResult(ActivityResultContracts.RequestPermission()) { granted ->
+        microphoneDenied = !granted
+        if (granted) attachments.onStartRecording()
+    }
     Column(
         modifier = Modifier
             .fillMaxWidth()
@@ -298,48 +348,125 @@ private fun ConversationComposer(state: ConversationState, onDraftChange: (Strin
             )
         }
         AnimatedVisibility(state.composerError != null) { FieldError(state.composerError.orEmpty()) }
-        Row(verticalAlignment = Alignment.Bottom, horizontalArrangement = Arrangement.spacedBy(10.dp)) {
-            BasicTextField(
-                value = state.draft,
-                onValueChange = onDraftChange,
-                enabled = state.canSend,
-                textStyle = OasisType.Body.copy(color = OasisColors.Ink),
-                cursorBrush = SolidColor(OasisColors.Night),
-                keyboardOptions = KeyboardOptions(capitalization = KeyboardCapitalization.Sentences),
-                minLines = 1,
-                maxLines = 6,
-                modifier = Modifier
-                    .weight(1f)
-                    .semantics { contentDescription = "Nachricht" }
-                    .testTag("chat.composer.field"),
-                decorationBox = { inner ->
-                    Box(
-                        Modifier
-                            .fillMaxWidth()
-                            .background(OasisColors.Field, shape)
-                            .border(1.dp, OasisColors.FieldLine, shape)
-                            .padding(horizontal = 14.dp, vertical = 10.dp)
-                    ) {
-                        if (state.draft.isEmpty()) Text("Nachricht", style = OasisType.Body, color = OasisColors.Muted)
-                        inner()
-                    }
+        if (microphoneDenied) {
+            Text(
+                "Ohne Zugriff aufs Mikrofon geht keine Sprachnachricht. Du kannst ihn in den Einstellungen deines Geräts erlauben.",
+                style = OasisType.Small,
+                color = OasisColors.SunText,
+                modifier = Modifier.testTag("chat.composer.microphoneDenied")
+            )
+        }
+        DraftAttachments(state, attachments)
+        val seconds = state.recordingSeconds
+        if (seconds != null) {
+            RecordingBar(seconds, attachments)
+        } else {
+            Row(verticalAlignment = Alignment.Bottom, horizontalArrangement = Arrangement.spacedBy(4.dp)) {
+                IconButton(
+                    onClick = { picker.launch(PickVisualMediaRequest(ActivityResultContracts.PickVisualMedia.ImageAndVideo)) },
+                    enabled = state.canAttach,
+                    modifier = Modifier.testTag("chat.composer.attach")
+                ) {
+                    Icon(Icons.Outlined.AddPhotoAlternate, contentDescription = "Foto oder Video anhängen", tint = OasisColors.Night)
                 }
-            )
-            AsyncOasisButton(
-                "Senden",
-                onSend,
-                fullWidth = false,
-                enabled = state.canSend && state.draft.isNotBlank() && !state.tooLong,
-                modifier = Modifier.testTag("chat.composer.send")
-            )
+                IconButton(
+                    onClick = {
+                        val granted =
+                            ContextCompat.checkSelfPermission(context, Manifest.permission.RECORD_AUDIO) ==
+                                PackageManager.PERMISSION_GRANTED
+                        if (granted) attachments.onStartRecording() else explainMicrophone = true
+                    },
+                    enabled = state.canAttach,
+                    modifier = Modifier.testTag("chat.composer.record")
+                ) {
+                    Icon(Icons.Outlined.Mic, contentDescription = "Sprachnachricht aufnehmen", tint = OasisColors.Night)
+                }
+                ComposerField(state, onDraftChange, onSend, shape)
+            }
         }
         Text(state.counter, style = OasisType.Caption, color = if (state.tooLong) OasisColors.SunText else OasisColors.Muted)
     }
+    if (explainMicrophone) {
+        AlertDialog(
+            onDismissRequest = { explainMicrophone = false },
+            title = { Text("Mikrofon für Sprachnachrichten", style = OasisType.heading(19), color = OasisColors.Night) },
+            text = {
+                Text(
+                    "Oasis nutzt dein Mikrofon nur, solange du eine Sprachnachricht aufnimmst. Die Aufnahme wird auf deinem Gerät verschlüsselt, bevor sie verschickt wird – lesen und hören können sie nur die Menschen in diesem Chat.",
+                    style = OasisType.Body,
+                    color = OasisColors.Ink
+                )
+            },
+            confirmButton = {
+                OasisTextButton(
+                    "Weiter",
+                    {
+                        explainMicrophone = false
+                        permission.launch(Manifest.permission.RECORD_AUDIO)
+                    },
+                    modifier = Modifier.testTag("chat.microphone.continue")
+                )
+            },
+            dismissButton = { OasisTextButton("Nicht jetzt", { explainMicrophone = false }) },
+            containerColor = OasisColors.Paper
+        )
+    }
 }
 
-/** One message bubble: own messages right on night, others left on paper; expiry and "Melden" below. */
+/** The text field and "Senden". */
 @Composable
-internal fun MessageBubble(item: ChatMessageItem, mine: Boolean, senderName: String, onReport: () -> Unit) {
+private fun RowScope.ComposerField(
+    state: ConversationState,
+    onDraftChange: (String) -> Unit,
+    onSend: suspend () -> Unit,
+    shape: RoundedCornerShape
+) {
+    Row(Modifier.weight(1f), verticalAlignment = Alignment.Bottom, horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+        BasicTextField(
+            value = state.draft,
+            onValueChange = onDraftChange,
+            enabled = state.canSend,
+            textStyle = OasisType.Body.copy(color = OasisColors.Ink),
+            cursorBrush = SolidColor(OasisColors.Night),
+            keyboardOptions = KeyboardOptions(capitalization = KeyboardCapitalization.Sentences),
+            minLines = 1,
+            maxLines = 6,
+            modifier = Modifier
+                .weight(1f)
+                .semantics { contentDescription = "Nachricht" }
+                .testTag("chat.composer.field"),
+            decorationBox = { inner ->
+                Box(
+                    Modifier
+                        .fillMaxWidth()
+                        .background(OasisColors.Field, shape)
+                        .border(1.dp, OasisColors.FieldLine, shape)
+                        .padding(horizontal = 14.dp, vertical = 10.dp)
+                ) {
+                    if (state.draft.isEmpty()) Text("Nachricht", style = OasisType.Body, color = OasisColors.Muted)
+                    inner()
+                }
+            }
+        )
+        AsyncOasisButton(
+            "Senden",
+            onSend,
+            fullWidth = false,
+            enabled = state.canSubmit,
+            modifier = Modifier.testTag("chat.composer.send")
+        )
+    }
+}
+
+/** One message bubble: own messages right on night, others left on paper; its files, expiry and "Melden" below. */
+@Composable
+internal fun MessageBubble(
+    item: ChatMessageItem,
+    mine: Boolean,
+    senderName: String,
+    onReport: () -> Unit,
+    attachments: @Composable () -> Unit
+) {
     Column(
         modifier = Modifier.fillMaxWidth(),
         horizontalAlignment = if (mine) Alignment.End else Alignment.Start,
@@ -355,18 +482,21 @@ internal fun MessageBubble(item: ChatMessageItem, mine: Boolean, senderName: Str
             val color = if (mine) OasisColors.OnNight else OasisColors.Ink
             Text(if (mine) "Du" else senderName, style = OasisType.SmallBold, color = color)
             val (text, italic) = when (item.state) {
-                ChatMessageItem.State.Readable -> item.plaintext to false
+                ChatMessageItem.State.Readable -> item.content.text to false
                 ChatMessageItem.State.NoKey -> "Für diese Nachricht hast du keinen Schlüssel." to true
                 ChatMessageItem.State.Unverifiable -> "Diese Nachricht ließ sich nicht prüfen und wird nicht angezeigt." to true
             }
-            SelectionContainer {
-                Text(
-                    text,
-                    style = OasisType.Body.copy(fontStyle = if (italic) FontStyle.Italic else FontStyle.Normal),
-                    color = color,
-                    modifier = Modifier.testTag("chat.message.text")
-                )
+            if (text.isNotEmpty()) {
+                SelectionContainer {
+                    Text(
+                        text,
+                        style = OasisType.Body.copy(fontStyle = if (italic) FontStyle.Italic else FontStyle.Normal),
+                        color = color,
+                        modifier = Modifier.testTag("chat.message.text")
+                    )
+                }
             }
+            attachments()
         }
         Row(
             modifier = Modifier.padding(horizontal = 8.dp),

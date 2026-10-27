@@ -14,6 +14,8 @@ class ChatContext(
     val secrets: DeviceSecretStore,
     val preferences: ChatPreferences,
     val me: Me,
+    /** Picked and recorded files, and the decrypted ones on screen. */
+    val media: ChatMedia,
     /** The label of this device in the device lists (iOS: "iPhone (Oasis-App)"). */
     val deviceLabel: String = DEFAULT_DEVICE_LABEL,
     /** Where Argon2id and the other expensive crypto runs (iOS: a detached task). */

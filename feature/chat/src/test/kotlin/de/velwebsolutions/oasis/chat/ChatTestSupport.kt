@@ -1,9 +1,14 @@
 package de.velwebsolutions.oasis.chat
 
+import android.net.Uri
+import de.velwebsolutions.oasis.chat.core.AttachmentKind
+import de.velwebsolutions.oasis.chat.core.AttachmentView
 import de.velwebsolutions.oasis.chat.core.ChatContext
+import de.velwebsolutions.oasis.chat.core.ChatMedia
 import de.velwebsolutions.oasis.chat.core.ChatPreferences
 import de.velwebsolutions.oasis.chat.core.ChatVault
 import de.velwebsolutions.oasis.chat.core.DeviceSecretStore
+import de.velwebsolutions.oasis.chat.core.DraftAttachment
 import de.velwebsolutions.oasis.chat.core.MemoryChatPreferences
 import de.velwebsolutions.oasis.chat.core.MemoryDeviceSecretStore
 import de.velwebsolutions.oasis.chat.data.ChatRepository
@@ -11,6 +16,7 @@ import de.velwebsolutions.oasis.chat.data.DefaultChatRepository
 import de.velwebsolutions.oasis.chatcrypto.ChatCrypto
 import de.velwebsolutions.oasis.chatcrypto.JvmSodium
 import de.velwebsolutions.oasis.chatcrypto.KdfLimits
+import java.io.File
 import kotlin.time.Duration
 import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.CoroutineScope
@@ -33,7 +39,8 @@ class ChatTestSupport(val server: FakeChatServer = FakeChatServer()) {
         preferences: ChatPreferences = MemoryChatPreferences(),
         vault: ChatVault = ChatVault(vaultScope, idleLock = Duration.INFINITE),
         cryptoDispatcher: CoroutineDispatcher = Dispatchers.Default,
-        repository: (ChatRepository) -> ChatRepository = { it }
+        repository: (ChatRepository) -> ChatRepository = { it },
+        media: ChatMedia = FakeChatMedia()
     ): ChatContext {
         vault.prepare(userId.toString())
         return ChatContext(
@@ -43,6 +50,7 @@ class ChatTestSupport(val server: FakeChatServer = FakeChatServer()) {
             secrets = secrets,
             preferences = preferences,
             me = server.me(userId, canParticipate),
+            media = media,
             cryptoDispatcher = cryptoDispatcher
         )
     }
@@ -57,9 +65,10 @@ fun ChatTestSupport.member(
     secrets: DeviceSecretStore = MemoryDeviceSecretStore(available = false),
     passphrase: String = TEST_PASSPHRASE,
     locked: Boolean = false,
-    preferences: ChatPreferences = MemoryChatPreferences()
+    preferences: ChatPreferences = MemoryChatPreferences(),
+    media: ChatMedia = FakeChatMedia()
 ): ChatContext {
-    val context = context(userId, secrets = secrets, preferences = preferences)
+    val context = context(userId, secrets = secrets, preferences = preferences, media = media)
     val identity = testCrypto.createIdentity()
     val copy = testCrypto.lockIdentity(identity, passphrase, KdfLimits.Minimum)
     val stored = runBlocking { context.repository.saveIdentity(copy, testCrypto.exportPublicKeys(identity)) }
@@ -95,3 +104,63 @@ suspend fun settle(scheduler: kotlinx.coroutines.test.TestCoroutineScheduler, se
     }
     scheduler.runCurrent()
 }
+
+/**
+ * The device side of attachments without a device: picked files and recordings come from the test, decrypted files
+ * become [AttachmentView.Playable] with the decrypted bytes kept in [presented].
+ */
+class FakeChatMedia : ChatMedia {
+    /** What a pick turns into (a 3-byte photo by default), or throw an AttachmentProblem. */
+    var prepared: (
+        Uri,
+        Long
+    ) -> DraftAttachment = { _, id -> DraftAttachment(id, AttachmentKind.Image, "image/jpeg", byteArrayOf(1, 2, 3), 2, 1) }
+    var recordingStarts = true
+    var recorded: ByteArray? = byteArrayOf(9, 9)
+    var onLimit: (() -> Unit)? = null
+    val presented = mutableListOf<Pair<AttachmentKind, ByteArray>>()
+    val discarded = mutableListOf<AttachmentView>()
+    var cancels = 0
+    var clears = 0
+
+    override suspend fun prepare(uri: Uri, localId: Long): DraftAttachment = prepared(uri, localId)
+
+    override fun startRecording(onLimit: () -> Unit): Boolean {
+        this.onLimit = onLimit
+        return recordingStarts
+    }
+
+    override suspend fun finishRecording(localId: Long): DraftAttachment? =
+        recorded?.let { DraftAttachment(localId, AttachmentKind.Audio, "audio/mp4", it, durationMs = 1_500) }
+
+    override fun cancelRecording() {
+        cancels++
+    }
+
+    override suspend fun present(kind: AttachmentKind, data: ByteArray): AttachmentView {
+        presented += kind to data
+        return AttachmentView.Playable(File("entschluesselt-${presented.size}"), null)
+    }
+
+    override fun discard(view: AttachmentView) {
+        discarded += view
+    }
+
+    override fun clear() {
+        clears++
+    }
+}
+
+/** Attachment steps that only write down what was asked ("picked …", "load 7 retry", …). */
+fun attachmentActions(calls: MutableList<String>) = de.velwebsolutions.oasis.chat.ui.AttachmentActions(
+    onPicked = { calls += "picked $it" },
+    onRemove = { calls += "remove $it" },
+    onViewOnce = { id, on -> calls += "viewOnce $id $on" },
+    onStartRecording = { calls += "record" },
+    onFinishRecording = { calls += "finish" },
+    onCancelRecording = { calls += "cancel" },
+    onLoad = { attachment, retry -> calls += "load ${attachment.id}${if (retry) " retry" else ""}" },
+    onAnswer = { _, attachment, accept -> calls += "${if (accept) "accept" else "decline"} ${attachment.id}" },
+    onOpenViewOnce = { _, attachment -> calls += "open ${attachment.id}" },
+    onCloseViewOnce = { calls += "close" }
+)
