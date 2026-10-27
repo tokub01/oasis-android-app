@@ -14,7 +14,7 @@ package de.velwebsolutions.oasis.membership.billing
  * | `de.velwebsolutions.oasis.oase.monat`      | Oase    | monat  | 5 € / Monat   |
  * | `de.velwebsolutions.oasis.oase.jahr`       | Oase    | jahr   | 50 € / Jahr   |
  * | `de.velwebsolutions.oasis.maezen.monat`    | Mäzen   | monat  | 12 € / Monat  |
- * | `de.velwebsolutions.oasis.maezen.jahr`     | Mäzen   | jahr   | 120 € / Jahr  |
+ * | `de.velwebsolutions.oasis.maezen.jahr`     | Mäzen   | jahr   | 119,99 € / Jahr |
  */
 object PlayProducts {
     /** The server's monthly rhythm key. */
