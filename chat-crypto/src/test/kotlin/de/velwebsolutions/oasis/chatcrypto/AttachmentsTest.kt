@@ -168,4 +168,32 @@ class AttachmentsTest {
             assertEquals(entry, 0, MessagePayload.decode("""{"t":"oasis-message","v":2,"attachments":[$entry]}""").attachments.size)
         }
     }
+
+    @Test
+    fun filesOfAnyWellFormedTypeKeepASafeName() {
+        val pdf = MessageAttachment("9", "file", "application/pdf", 240_000, key, nonce, name = "Rechnung.pdf")
+        val plaintext = MessagePayload.encode(MessageContent("", listOf(pdf)))
+        assertEquals(true, plaintext.contains(""""nonce":"$nonce","name":"Rechnung.pdf""""))
+        assertEquals(listOf(pdf), MessagePayload.decode(plaintext).attachments)
+
+        fun decoded(mime: String, name: String?): MessageAttachment? {
+            val named = if (name == null) "" else ""","name":${kotlinx.serialization.json.JsonPrimitive(name)}"""
+            val entry = """{"id":"9","kind":"file","mime":"$mime","size":5,"key":"$key","nonce":"$nonce"$named}"""
+            return MessagePayload.decode("""{"t":"oasis-message","v":2,"attachments":[$entry]}""").attachments.singleOrNull()
+        }
+        val word = "application/vnd.openxmlformats-officedocument.wordprocessingml.document"
+        assertEquals("Bericht.docx", decoded(word, "C:\\Users\\mira\\Bericht.docx")?.name)
+        assertEquals("passwd", decoded("text/plain", "../../etc/passwd")?.name)
+        assertEquals("ab", decoded("text/plain", " a\u0007b\n ")?.name)
+        assertEquals("ordner", decoded("application/zip", "ordner/")?.name)
+        assertEquals(null, decoded("application/zip", "/// ")?.name)
+        assertEquals(null, decoded("application/octet-stream", null)?.name)
+        assertEquals(120, decoded("text/plain", "ä".repeat(130))?.name?.length)
+        assertEquals("🌴".repeat(120), decoded("text/plain", "🌴".repeat(121))?.name)
+        assertEquals(null, decoded("Application/PDF", "a.pdf"))
+        assertEquals(null, decoded("kein-typ", "a.pdf"))
+        assertEquals(null, MessagePayload.fileName(null))
+        assertEquals(true, MessagePayload.allowedMime("image", "image/png"))
+        assertEquals(false, MessagePayload.allowedMime("image", "application/pdf"))
+    }
 }

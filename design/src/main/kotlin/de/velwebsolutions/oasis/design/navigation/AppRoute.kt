@@ -116,6 +116,9 @@ sealed interface ChatRoute : AppRoute {
 
     /** Devices that may open the chat (biometric unlock, device links). */
     @Serializable data object Devices : ChatRoute
+
+    /** "Teilen mit …": pick the chat for what another app shared into Oasis (it becomes that chat's drafts). */
+    @Serializable data object Share : ChatRoute
 }
 
 /** Account, privacy, safety and help screens. Owned by `:feature:account`. */

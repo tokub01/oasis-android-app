@@ -31,6 +31,13 @@ class ChatAttachmentsTest {
         assertEquals(3_000L, entry.durationMs)
         assertTrue(support.server.uploads.values.single().viewOnce)
         assertTrue(draft.withViewOnce(false).let { !it.viewOnce && it.data === file })
+        val named = ChatAttachments.upload(
+            mira,
+            id,
+            DraftAttachment(2, AttachmentKind.File, "application/pdf", file, name = "Rechnung.pdf")
+        ) {
+        }
+        assertEquals("Rechnung.pdf", named.name)
 
         // The uploader may fetch an unsent upload: it decrypts to the same bytes.
         assertArrayEquals(file, ChatAttachments.download(mira, id, entry))
@@ -44,8 +51,12 @@ class ChatAttachmentsTest {
 
     @Test
     fun theWordsForFiles() {
-        assertEquals(listOf("Foto", "Sprachnachricht", "Video"), AttachmentKind.entries.map(AttachmentTexts::title))
-        assertEquals(listOf("ein Foto", "eine Sprachnachricht", "ein Video"), AttachmentKind.entries.map(AttachmentTexts::withArticle))
+        assertEquals(listOf("Foto", "Sprachnachricht", "Video", "Datei"), AttachmentKind.entries.map(AttachmentTexts::title))
+        assertEquals(
+            listOf("ein Foto", "eine Sprachnachricht", "ein Video", "eine Datei"),
+            AttachmentKind.entries.map(AttachmentTexts::withArticle)
+        )
+        assertEquals(listOf("Rechnung.pdf", "Datei"), listOf("Rechnung.pdf", null).map(AttachmentTexts::fileName))
         assertEquals("1 KB", AttachmentTexts.size(3))
         assertEquals("820 KB", AttachmentTexts.size(820 * 1024))
         assertEquals("1,4 MB", AttachmentTexts.size(1_468_006))
@@ -58,8 +69,8 @@ class ChatAttachmentsTest {
 
     @Test
     fun filesShortenTheTextAndHaveAStateBeforeTheServerNamesIt() {
-        assertFalse(ChatMessages.measure("a".repeat(3_000), attachments = 4).tooLong)
-        assertTrue(ChatMessages.measure("a".repeat(3_200), attachments = 4).tooLong)
+        assertFalse(ChatMessages.measure("a".repeat(2_400), attachments = 4).tooLong)
+        assertTrue(ChatMessages.measure("a".repeat(2_600), attachments = 4).tooLong)
         assertEquals(10, ChatMessages.measure("Mit Anhang", attachments = 1).characters)
         val item =
             ChatMessageItem(

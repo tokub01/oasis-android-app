@@ -13,8 +13,7 @@ import android.net.Uri
 import android.os.ParcelFileDescriptor
 import android.widget.VideoView
 import androidx.test.core.app.ApplicationProvider
-import de.velwebsolutions.oasis.design.media.VoicePlayer
-import de.velwebsolutions.oasis.design.media.playFile
+import de.velwebsolutions.oasis.core.share.SharedFile
 import java.io.ByteArrayOutputStream
 import java.io.File
 import java.io.IOException
@@ -46,8 +45,14 @@ class PickedFiles : ContentProvider() {
     override fun openFile(uri: Uri, mode: String): ParcelFileDescriptor =
         ParcelFileDescriptor.open(File(context!!.cacheDir, uri.lastPathSegment!!), ParcelFileDescriptor.MODE_READ_ONLY)
 
-    override fun query(uri: Uri, projection: Array<out String>?, selection: String?, args: Array<out String>?, sort: String?): Cursor? =
-        null
+    /** The display name is the file name; "anonym…" files have none, "nocursor…" ones not even a cursor. */
+    override fun query(uri: Uri, projection: Array<out String>?, selection: String?, args: Array<out String>?, sort: String?): Cursor? {
+        val name = uri.lastPathSegment.orEmpty()
+        if (name.startsWith("nocursor")) return null
+        return android.database.MatrixCursor(arrayOf(android.provider.OpenableColumns.DISPLAY_NAME)).apply {
+            if (!name.startsWith("anonym")) addRow(arrayOf(name))
+        }
+    }
 
     override fun insert(uri: Uri, values: ContentValues?): Uri? = null
 
@@ -79,8 +84,8 @@ class AndroidChatMediaTest {
         }
     }
 
-    private suspend fun problem(media: AndroidChatMedia, uri: Uri): String = try {
-        media.prepare(uri, 1)
+    private suspend fun problem(media: AndroidChatMedia, uri: Uri, file: Boolean = false): String = try {
+        if (file) media.prepareFile(uri, 1) else media.prepare(uri, 1)
         "kein Problem"
     } catch (problem: AttachmentProblem) {
         problem.message.orEmpty()
@@ -102,14 +107,89 @@ class AndroidChatMediaTest {
             problem(AndroidChatMedia(context, maxImageBytes = 10), picked("image/png", "b.png", png(40, 40)))
         )
         assertEquals("Die Datei ließ sich nicht lesen.", problem(media, Uri.parse("content://oasis.test.files/image/png/fehlt.png")))
+        assertEquals(AttachmentKind.File, media.prepare(picked("none", "ohne-typ.bin", byteArrayOf(1)), 1).kind)
+        org.junit.Assert.assertNotNull(ChatFileProvider())
         assertEquals(
-            "Das kann Oasis nicht verschicken. Wähl ein Foto oder ein Video.",
-            problem(media, picked("application/pdf", "a.pdf", byteArrayOf(1)))
+            "anything else from the picker goes as a file",
+            AttachmentKind.File,
+            media.prepare(picked("application/pdf", "a.pdf", byteArrayOf(1)), 1).kind
         )
+    }
+
+    @Test
+    fun filesGoAsTheyAreWithNameAndType() = runTest {
+        val media = AndroidChatMedia(context, maxFileBytes = 100)
+        val pdf = media.prepareFile(picked("application/pdf", "Rechnung.pdf", byteArrayOf(1, 2, 3)), 5)
+        assertEquals(listOf("file", "application/pdf", "Rechnung.pdf"), listOf(pdf.kind.wire, pdf.mime, pdf.name))
+        assertArrayEquals(byteArrayOf(1, 2, 3), pdf.data)
+        File(context.cacheDir, "notiz.txt").writeBytes(byteArrayOf(7))
+        val text = media.prepareFile(Uri.parse("content://oasis.test.files/Text/Plain;%20charset=utf-8/notiz.txt"), 6)
+        assertEquals("text/plain", text.mime)
+        assertEquals("application/octet-stream", media.prepareFile(picked("none", "anonym.bin", byteArrayOf(1)), 7).mime)
+        assertEquals("Datei", media.prepareFile(picked("none", "anonym.bin", byteArrayOf(1)), 7).name)
+        assertEquals("Datei", media.prepareFile(picked("none", "nocursor.bin", byteArrayOf(1)), 7).name)
+        assertEquals("Die Datei ist leer.", problem(media, picked("application/zip", "leer.zip", ByteArray(0)), file = true))
+        assertEquals(AndroidChatMedia.FILE_TOO_LARGE, problem(media, picked("application/zip", "gross.zip", ByteArray(200)), file = true))
+    }
+
+    @Test
+    fun sharedItemsFollowTheRulesOfTheirKind() = runTest {
+        val media = AndroidChatMedia(context)
+        fun shared(name: String, mime: String, bytes: ByteArray) =
+            SharedFile(File(context.cacheDir, name).apply { writeBytes(bytes) }, name, mime)
+        fun durationOf(file: SharedFile, ms: String) = ShadowMediaMetadataRetriever.addMetadata(
+            DataSource.toDataSource(context, Uri.fromFile(file.file)),
+            MediaMetadataRetriever.METADATA_KEY_DURATION,
+            ms
+        )
+        assertEquals(AttachmentKind.Image, media.prepareShared(shared("Screenshot.png", "image/png", png(100, 50)), 1).kind)
+        val clip = shared("clip.mp4", "video/mp4", ByteArray(10))
+        durationOf(clip, "5000")
+        assertEquals(AttachmentKind.Video, media.prepareShared(clip, 2).kind)
+        val voice = shared("sprachmemo.m4a", "audio/mp4", ByteArray(10))
+        durationOf(voice, "60000")
+        assertEquals(60_000L, media.prepareShared(voice, 3).durationMs)
+        val song = shared("lied.mp3", "audio/mpeg", ByteArray(10))
+        durationOf(song, "240000")
+        val asFile = media.prepareShared(song, 4)
         assertEquals(
-            "Das kann Oasis nicht verschicken. Wähl ein Foto oder ein Video.",
-            problem(media, picked("none", "x.bin", byteArrayOf(1)))
+            "a long recording goes as a file",
+            listOf(AttachmentKind.File, "lied.mp3", "audio/mpeg"),
+            listOf(asFile.kind, asFile.name, asFile.mime)
         )
+        assertEquals(AttachmentKind.File, media.prepareShared(shared("unbekannt.ogg", "audio/ogg", ByteArray(10)), 5).kind)
+        assertEquals(AttachmentKind.File, media.prepareShared(shared("Vertrag.pdf", "application/pdf", ByteArray(10)), 6).kind)
+    }
+
+    @Test
+    fun decryptedFilesWaitUnderTheirNameForOtherApps() = runTest {
+        androidx.core.content.FileProvider::class.java.getDeclaredField("sCache").apply { isAccessible = true }.let {
+            (it.get(null) as MutableMap<*, *>).clear()
+        }
+        val media = AndroidChatMedia(context)
+        val document = media.present(AttachmentKind.File, byteArrayOf(4, 2), "application/pdf", "Rechnung.pdf") as AttachmentView.Document
+        assertEquals("Rechnung.pdf", document.file.name)
+        assertEquals("application/pdf", document.mime)
+        assertArrayEquals(byteArrayOf(4, 2), document.file.readBytes())
+        assertEquals("Datei", (media.present(AttachmentKind.File, byteArrayOf(1), "text/plain", null) as AttachmentView.Document).file.name)
+        assertEquals("Datei", (media.present(AttachmentKind.File, byteArrayOf(1), "text/plain", "..") as AttachmentView.Document).file.name)
+        assertEquals("Datei", (media.present(AttachmentKind.File, byteArrayOf(1), "text/plain", ".") as AttachmentView.Document).file.name)
+
+        val view = fileIntent(context, document, share = false)
+        assertEquals(android.content.Intent.ACTION_VIEW, view.action)
+        assertEquals("application/pdf", view.type)
+        assertEquals("content", view.data?.scheme)
+        assertTrue(view.flags and android.content.Intent.FLAG_GRANT_READ_URI_PERMISSION != 0)
+        val share = fileIntent(context, document, share = true)
+        assertEquals(android.content.Intent.ACTION_CHOOSER, share.action)
+        // The bubbles start it from the activity; from the application context it needs a task of its own.
+        val started = android.content.Intent(view).addFlags(android.content.Intent.FLAG_ACTIVITY_NEW_TASK)
+        assertTrue(context.startOrFalse(started))
+        shadowOf(context as android.app.Application).checkActivities(true)
+        assertFalse("no app opens it", context.startOrFalse(started))
+
+        media.discard(document)
+        assertFalse(document.file.exists())
     }
 
     @Test
@@ -223,11 +303,14 @@ class AndroidChatMediaTest {
     @Test
     fun decryptedFilesBecomePhotosOrPlayableFilesUntilCleared() = runTest {
         val media = AndroidChatMedia(context)
-        val photo = media.present(AttachmentKind.Image, png(200, 100))
+        val photo = media.present(AttachmentKind.Image, png(200, 100), "x/y", null)
         assertEquals(200, (photo as AttachmentView.Photo).image.width)
-        assertEquals(AttachmentView.Failed(AndroidChatMedia.UNVERIFIABLE), media.present(AttachmentKind.Image, byteArrayOf(1, 2)))
+        assertEquals(
+            AttachmentView.Failed(AndroidChatMedia.UNVERIFIABLE),
+            media.present(AttachmentKind.Image, byteArrayOf(1, 2), "x/y", null)
+        )
 
-        val voice = media.present(AttachmentKind.Audio, byteArrayOf(1, 2, 3)) as AttachmentView.Playable
+        val voice = media.present(AttachmentKind.Audio, byteArrayOf(1, 2, 3), "x/y", null) as AttachmentView.Playable
         assertTrue(voice.file.name.endsWith(".m4a"))
         assertNull(voice.poster)
         assertArrayEquals(byteArrayOf(1, 2, 3), voice.file.readBytes())
@@ -235,15 +318,15 @@ class AndroidChatMediaTest {
         val frame = Bitmap.createBitmap(16, 9, Bitmap.Config.ARGB_8888)
         val next = File(media.folder, "anhang-2.mp4").path
         ShadowMediaMetadataRetriever.addFrame(DataSource.toDataSource(next), 0, frame)
-        val video = media.present(AttachmentKind.Video, byteArrayOf(7)) as AttachmentView.Playable
+        val video = media.present(AttachmentKind.Video, byteArrayOf(7), "x/y", null) as AttachmentView.Playable
         assertEquals(16, video.poster?.width)
-        val withoutFrame = media.present(AttachmentKind.Video, byteArrayOf(8)) as AttachmentView.Playable
+        val withoutFrame = media.present(AttachmentKind.Video, byteArrayOf(8), "x/y", null) as AttachmentView.Playable
         assertNull(withoutFrame.poster)
         ShadowMediaMetadataRetriever.addException(
             DataSource.toDataSource(File(media.folder, "anhang-4.mp4").path),
             IllegalStateException("x")
         )
-        assertNull((media.present(AttachmentKind.Video, byteArrayOf(9)) as AttachmentView.Playable).poster)
+        assertNull((media.present(AttachmentKind.Video, byteArrayOf(9), "x/y", null) as AttachmentView.Playable).poster)
 
         media.discard(photo)
         media.discard(voice)
@@ -254,43 +337,6 @@ class AndroidChatMediaTest {
         assertFalse(video.file.exists())
         assertTrue(media.folder.exists())
         assertEquals(0, media.folder.listFiles()!!.size)
-    }
-
-    @Test
-    fun voiceMessagesPlayAndPauseAndReportUnplayableFiles() {
-        val file = File(context.cacheDir, "stimme.m4a").apply { writeBytes(byteArrayOf(1)) }
-        ShadowMediaPlayer.addMediaInfo(DataSource.toDataSource(file.path), ShadowMediaPlayer.MediaInfo(3_000, 0))
-        val players = mutableListOf<MediaPlayer>()
-        val voice = VoicePlayer(file) { MediaPlayer().also { players += it } }
-        voice.toggle()
-        assertTrue(voice.playing)
-        voice.toggle()
-        assertFalse(voice.playing)
-        voice.toggle()
-        assertTrue(voice.playing)
-        shadowOf(players.single()).invokeCompletionListener()
-        assertFalse(voice.playing)
-        voice.release()
-        voice.release()
-        assertFalse(voice.failed)
-
-        val unknown = VoicePlayer(File(context.cacheDir, "unbekannt.m4a"))
-        unknown.toggle()
-        assertTrue(unknown.failed)
-        assertFalse(unknown.playing)
-    }
-
-    @Test
-    fun videosPlayInThePlatformViewAndReportErrors() {
-        val view = VideoView(context)
-        var errors = 0
-        view.playFile(File(context.cacheDir, "video.mp4")) { errors++ }
-        val shadow = shadowOf(view)
-        assertTrue(shadow.videoPath.endsWith("video.mp4"))
-        shadow.onPreparedListener.onPrepared(MediaPlayer())
-        assertEquals(org.robolectric.shadows.ShadowVideoView.START, shadow.currentVideoState)
-        assertTrue(shadow.onErrorListener.onError(MediaPlayer(), 1, 0))
-        assertEquals(1, errors)
     }
 
     @Test

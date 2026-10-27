@@ -14,6 +14,9 @@ import de.velwebsolutions.oasis.chatcrypto.MessageAttachment
 import de.velwebsolutions.oasis.chatcrypto.MessageEnvelope
 import de.velwebsolutions.oasis.chatcrypto.MessagePayload
 import de.velwebsolutions.oasis.core.realtime.RealtimeEvent
+import de.velwebsolutions.oasis.core.share.PendingShare
+import de.velwebsolutions.oasis.core.share.Share
+import de.velwebsolutions.oasis.core.share.SharedFile
 import de.velwebsolutions.oasis.testing.MainDispatcherRule
 import kotlin.time.Duration
 import kotlin.time.Duration.Companion.milliseconds
@@ -321,5 +324,78 @@ class ConversationAttachmentsTest {
         assertEquals(1, MessagePayload.decode(message(reader).plaintext).attachments.size)
         clear(reader)
         clear(writer)
+    }
+
+    @Test
+    fun filesAndSharesBecomeDraftsAndViewOnceFilesNeedAnApp() = runTest {
+        val (mira, jonas, id) = chat()
+        val context = androidx.test.core.app.ApplicationProvider.getApplicationContext<android.content.Context>()
+        fun shared(name: String) =
+            SharedFile(java.io.File(context.cacheDir, name).apply { writeBytes(byteArrayOf(1, 2)) }, name, "application/pdf")
+        val copies = listOf("a.pdf", "kaputt.pdf", "b.pdf", "c.pdf", "d.pdf", "e.pdf").map(::shared)
+        PendingShare.offer(Share(copies, "Geteilt aus einer anderen App"))
+        PendingShare.target(id)
+        val writer = model(mira, id)
+        writer.open()
+        assertEquals("Geteilt aus einer anderen App", writer.state.value.draft)
+        assertEquals(listOf("a.pdf", "b.pdf", "c.pdf", "d.pdf"), writer.state.value.drafts.map { it.name })
+        assertEquals("kaputt.pdf: Die Datei ließ sich nicht lesen.", writer.state.value.composerError)
+        assertTrue("the copies are gone", copies.none { it.file.exists() })
+        assertNull(PendingShare.share.value)
+
+        // A share without text, for another chat, waits.
+        PendingShare.offer(Share(listOf(shared("f.pdf")), null))
+        PendingShare.target("999")
+        writer.open()
+        assertTrue(writer.state.value.drafts.isEmpty())
+        PendingShare.target(id)
+        writer.open()
+        assertEquals(listOf("f.pdf"), writer.state.value.drafts.map { it.name })
+        assertEquals("", writer.state.value.draft)
+        assertNull(writer.state.value.composerError)
+
+        writer.addPicked(picked, asFile = true)
+        val file = writer.state.value.drafts.last()
+        assertEquals("Rechnung.pdf", file.name)
+        writer.setViewOnce(file.localId, true)
+        writer.removeDraft(writer.state.value.drafts.first().localId)
+        writer.send()
+        val entry = message(writer).content.attachments.single()
+        assertEquals(listOf("file", "Rechnung.pdf"), listOf(entry.kind, entry.name))
+
+        val reader = model(jonas, id)
+        reader.open()
+        reader.cancelViewOnce()
+        reader.answer(message(reader), entry, true)
+        reader.openViewOnce(message(reader), entry)
+        val viewer = checkNotNull(reader.state.value.viewOnce)
+        reader.cancelViewOnce()
+        assertNull(reader.state.value.viewOnce)
+        assertEquals(ConversationViewModel.NO_APP, reader.state.value.actionError)
+        assertEquals(listOf(viewer.view), jonasMedia.discarded)
+        assertEquals("not viewed: it can be opened again", "accepted", server.uploads.values.last().answers[2])
+        clear(reader)
+        clear(writer)
+    }
+
+    @Test
+    fun theShareTargetListsChatsButNoRequests() = runTest {
+        val (mira, jonas, id) = chat()
+        val target = de.velwebsolutions.oasis.chat.ui.ShareTargetViewModel(jonas)
+        target.load()
+        assertTrue("Mira's chat is still a request for Jonas", target.state.value.conversations.isEmpty())
+        val own = de.velwebsolutions.oasis.chat.ui.ShareTargetViewModel(mira)
+        own.load()
+        assertEquals(listOf(id), own.state.value.conversations.map { it.id })
+        assertEquals("1", own.myId)
+        own.pick(own.state.value.conversations.single())
+        PendingShare.offer(Share(emptyList(), "x"))
+        own.cancel()
+        assertNull(PendingShare.share.value)
+        server.failures["GET conversations"] = 500 to """{"message":"kaputt"}"""
+        own.load()
+        assertEquals("Da ist etwas schiefgegangen. Versuch es gleich noch einmal.", own.state.value.error)
+        clear(target)
+        clear(own)
     }
 }

@@ -33,6 +33,7 @@ import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.text.selection.SelectionContainer
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.outlined.AddPhotoAlternate
+import androidx.compose.material.icons.outlined.AttachFile
 import androidx.compose.material.icons.outlined.Info
 import androidx.compose.material.icons.outlined.Mic
 import androidx.compose.material3.AlertDialog
@@ -152,7 +153,8 @@ internal fun ConversationViewModel.attachmentActions() = AttachmentActions(
     onLoad = ::loadAttachment,
     onAnswer = ::answer,
     onOpenViewOnce = ::openViewOnce,
-    onCloseViewOnce = ::closeViewOnce
+    onCloseViewOnce = ::closeViewOnce,
+    onCancelViewOnce = ::cancelViewOnce
 )
 
 @Composable
@@ -348,7 +350,10 @@ private fun ConversationComposer(
     var explainMicrophone by remember { mutableStateOf(false) }
     var microphoneDenied by remember { mutableStateOf(false) }
     val picker = rememberLauncherForActivityResult(ActivityResultContracts.PickVisualMedia()) { uri ->
-        if (uri != null) scope.launch { attachments.onPicked(uri) }
+        if (uri != null) scope.launch { attachments.onPicked(uri, false) }
+    }
+    val documents = rememberLauncherForActivityResult(ActivityResultContracts.OpenDocument()) { uri ->
+        if (uri != null) scope.launch { attachments.onPicked(uri, true) }
     }
     val permission = rememberLauncherForActivityResult(ActivityResultContracts.RequestPermission()) { granted ->
         microphoneDenied = !granted
@@ -395,6 +400,13 @@ private fun ConversationComposer(
                     modifier = Modifier.testTag("chat.composer.attach")
                 ) {
                     Icon(Icons.Outlined.AddPhotoAlternate, contentDescription = "Foto oder Video anhängen", tint = OasisColors.Night)
+                }
+                IconButton(
+                    onClick = { documents.launch(arrayOf("*/*")) },
+                    enabled = state.canAttach,
+                    modifier = Modifier.testTag("chat.composer.file")
+                ) {
+                    Icon(Icons.Outlined.AttachFile, contentDescription = "Datei anhängen", tint = OasisColors.Night)
                 }
                 IconButton(
                     onClick = {

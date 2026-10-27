@@ -1,0 +1,5 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Decrypted chat files other apps may open: only the chat's cache folder (emptied when the chat closes or locks). -->
+<paths>
+    <cache-path name="chat" path="chat-attachments/" />
+</paths>

@@ -17,6 +17,7 @@ import de.velwebsolutions.oasis.chat.ui.ConversationDetailsScreen
 import de.velwebsolutions.oasis.chat.ui.ConversationListScreen
 import de.velwebsolutions.oasis.chat.ui.ConversationScreen
 import de.velwebsolutions.oasis.chat.ui.NewConversationScreen
+import de.velwebsolutions.oasis.chat.ui.ShareTargetScreen
 import de.velwebsolutions.oasis.core.auth.Session
 import de.velwebsolutions.oasis.core.auth.SessionState
 import de.velwebsolutions.oasis.core.model.Me
@@ -60,6 +61,8 @@ fun ChatScreen(route: ChatRoute) {
                 is ChatRoute.NewConversationWith -> NewConversationScreen(username = route.username)
 
                 is ChatRoute.Details -> ConversationDetailsScreen(route.conversationId)
+
+                ChatRoute.Share -> ShareTargetScreen()
 
                 // Settings and Devices (the web's two anchors of the same page).
                 else -> ChatSettingsScreen()

@@ -364,4 +364,105 @@ class AttachmentUiTest {
         compose.onNode(hasText("Jonas: (nur Anhänge)")).assertExists()
         capture("report")
     }
+
+    private fun clearFileProvider() = androidx.core.content.FileProvider::class.java.getDeclaredField("sCache").apply {
+        isAccessible = true
+    }.let {
+        (it.get(null) as MutableMap<*, *>).clear()
+    }
+
+    @Test
+    fun filesArePickedOfferedAndHandedToOtherApps() {
+        clearFileProvider()
+        val pdf = MessageAttachment("8", "file", "application/pdf", 245_760, "k", "n", name = "Rechnung.pdf")
+        val document = File(application.cacheDir, "chat-attachments/datei-1/Rechnung.pdf").apply {
+            parentFile!!.mkdirs()
+            writeBytes(byteArrayOf(1))
+        }
+        val pending = item("a", "2", "", listOf(pdf))
+        val accepted = item("b", "2", "Hier", listOf(pdf.copy(id = "9")), listOf(AttachmentState("9", status = AttachmentState.ACCEPTED)))
+        state = ConversationState(
+            conversation = conversation,
+            canSend = true,
+            timeline = ChatTimeline(listOf(pending, accepted)),
+            attachmentViews = mapOf("9" to AttachmentView.Document(document, "application/pdf")),
+            drafts = listOf(DraftAttachment(1, AttachmentKind.File, "application/zip", byteArrayOf(1), name = "Fotos.zip"))
+        )
+        show()
+        compose.onNodeWithText("Jonas möchte dir eine Datei schicken: Rechnung.pdf (240 KB).").assertExists()
+        compose.onNodeWithText("Öffne Dateien nur von Menschen, denen du vertraust.").assertExists()
+        compose.onNodeWithText("Fotos.zip · 1 KB").assertExists()
+        compose.onNodeWithText("Rechnung.pdf · 240 KB").assertExists()
+        capture("files")
+        answer = null
+        tapTag("chat.composer.file")
+        answer = Uri.parse("content://oasis.test/rechnung")
+        tapTag("chat.composer.file")
+        compose.onNodeWithText("Öffnen").performScrollTo().performClick()
+        compose.onNodeWithText("Teilen").performScrollTo().performClick()
+        compose.onNodeWithText("Auf deinem Gerät ist keine App, die diese Datei öffnen kann.").assertDoesNotExist()
+        shadowOf(application).checkActivities(true)
+        compose.onNodeWithText("Teilen").performScrollTo().performClick()
+        compose.onNodeWithText("Auf deinem Gerät ist keine App, die diese Datei öffnen kann.").assertExists()
+        compose.onNodeWithText("Öffnen").performScrollTo().performClick()
+        compose.waitForIdle()
+        assertTrue(calls.containsAll(listOf("launch OpenDocument", "file content://oasis.test/rechnung", "load 9")))
+    }
+
+    /** A lifecycle the test moves, like leaving Oasis for another app and coming back. */
+    private class TestLifecycle : androidx.lifecycle.LifecycleOwner {
+        val registry = androidx.lifecycle.LifecycleRegistry(this).apply { currentState = androidx.lifecycle.Lifecycle.State.RESUMED }
+        override val lifecycle: androidx.lifecycle.Lifecycle get() = registry
+    }
+
+    @Test
+    fun aViewOnceFileOpensOnceInAnotherAppAndCountsAsViewedOnReturn() {
+        clearFileProvider()
+        val pdf = MessageAttachment("8", "file", "application/pdf", 10, "k", "n", name = "Geheim.pdf")
+        val document = File(application.cacheDir, "chat-attachments/datei-2/Geheim.pdf").apply {
+            parentFile!!.mkdirs()
+            writeBytes(byteArrayOf(1))
+        }
+        val lifecycle = TestLifecycle()
+        var viewer by mutableStateOf<ViewOnceViewer?>(
+            ViewOnceViewer(item("a", "2", "", listOf(pdf)), pdf, AttachmentView.Document(document, "application/pdf"))
+        )
+        show {
+            CompositionLocalProvider(androidx.lifecycle.compose.LocalLifecycleOwner provides lifecycle) {
+                viewer?.let { ViewOnceViewer(it, actions) { calls += "report" } }
+            }
+        }
+        compose.waitForIdle()
+        assertEquals("opening it in another app does not close it yet", emptyList<String>(), calls)
+        compose.runOnUiThread {
+            lifecycle.registry.currentState = androidx.lifecycle.Lifecycle.State.STARTED
+            lifecycle.registry.currentState = androidx.lifecycle.Lifecycle.State.RESUMED
+            lifecycle.registry.currentState = androidx.lifecycle.Lifecycle.State.STARTED
+            lifecycle.registry.currentState = androidx.lifecycle.Lifecycle.State.RESUMED
+        }
+        compose.waitForIdle()
+        assertEquals("closed once on the return", listOf("close"), calls)
+
+        shadowOf(application).checkActivities(true)
+        viewer = ViewOnceViewer(item("b", "2", "", listOf(pdf)), pdf, AttachmentView.Document(document, "application/pdf"))
+        compose.waitForIdle()
+        assertEquals(listOf("close", "cancelViewOnce"), calls)
+    }
+
+    @Test
+    fun shareTargetStates() {
+        val share = de.velwebsolutions.oasis.core.share.Share(emptyList(), "Ein geteilter Text")
+        var shown by mutableStateOf(de.velwebsolutions.oasis.chat.ui.ShareTargetState())
+        show { de.velwebsolutions.oasis.chat.ui.ShareTargetContent(shown, share, "1", { calls += "pick" }, { calls += "cancel" }) }
+        compose.onNodeWithText("„Ein geteilter Text“").assertExists()
+        capture("share-loading")
+        shown = de.velwebsolutions.oasis.chat.ui.ShareTargetState(error = "Da ist etwas schiefgegangen.")
+        compose.onNodeWithText("Da ist etwas schiefgegangen.").assertExists()
+        shown = de.velwebsolutions.oasis.chat.ui.ShareTargetState(loaded = true)
+        compose.onNodeWithText("Du hast noch keine Chats.").assertExists()
+        shown = de.velwebsolutions.oasis.chat.ui.ShareTargetState(listOf(conversation.copy(title = "Garten")), loaded = true)
+        tapTag("chat.share.conversation")
+        tapTag("chat.share.cancel")
+        assertEquals(listOf("pick", "cancel"), calls)
+    }
 }

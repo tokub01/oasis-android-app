@@ -123,7 +123,8 @@ class NavigationTest {
             WebRoute("https://get-oasis.com/impressum"),
             NetworkRoute.Compose("garten", 4),
             ChatRoute.Settings,
-            ChatRoute.Devices
+            ChatRoute.Devices,
+            ChatRoute.Share
         )
         listOf(
             NetworkRoute.serializer(),

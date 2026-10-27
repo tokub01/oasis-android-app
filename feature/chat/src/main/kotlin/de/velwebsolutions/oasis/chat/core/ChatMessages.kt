@@ -62,6 +62,7 @@ object ChatMessages {
         size = 52_428_800,
         key = "k".repeat(43),
         nonce = "n".repeat(32),
+        name = "n".repeat(MessagePayload.MAX_NAME_LENGTH),
         width = 99_999,
         height = 99_999,
         durationMs = 180_000

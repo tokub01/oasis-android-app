@@ -20,6 +20,7 @@ import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.selection.toggleable
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.outlined.InsertDriveFile
 import androidx.compose.material.icons.outlined.Close
 import androidx.compose.material.icons.outlined.Mic
 import androidx.compose.material.icons.outlined.Pause
@@ -41,7 +42,9 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.asImageBitmap
+import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.semantics.LiveRegionMode
 import androidx.compose.ui.semantics.Role
@@ -54,6 +57,8 @@ import androidx.compose.ui.viewinterop.AndroidView
 import androidx.compose.ui.window.Dialog
 import androidx.compose.ui.window.DialogProperties
 import androidx.compose.ui.window.SecureFlagPolicy
+import androidx.lifecycle.Lifecycle
+import androidx.lifecycle.compose.LifecycleEventEffect
 import de.velwebsolutions.oasis.chat.api.AttachmentState
 import de.velwebsolutions.oasis.chat.core.AttachmentKind
 import de.velwebsolutions.oasis.chat.core.AttachmentTexts
@@ -61,6 +66,8 @@ import de.velwebsolutions.oasis.chat.core.AttachmentView
 import de.velwebsolutions.oasis.chat.core.ChatAttachments
 import de.velwebsolutions.oasis.chat.core.ChatMessageItem
 import de.velwebsolutions.oasis.chat.core.DraftAttachment
+import de.velwebsolutions.oasis.chat.core.fileIntent
+import de.velwebsolutions.oasis.chat.core.startOrFalse
 import de.velwebsolutions.oasis.chatcrypto.MessageAttachment
 import de.velwebsolutions.oasis.design.components.AsyncOasisButton
 import de.velwebsolutions.oasis.design.components.OasisButtonKind
@@ -77,7 +84,8 @@ import kotlinx.coroutines.launch
 
 /** What the screen does with attachments: the composer's files and recording, and the files in messages. */
 class AttachmentActions(
-    val onPicked: suspend (Uri) -> Unit,
+    /** A picked photo or video, or under "Datei" ([asFile]) any file. */
+    val onPicked: suspend (uri: Uri, asFile: Boolean) -> Unit,
     val onRemove: (Long) -> Unit,
     val onViewOnce: (Long, Boolean) -> Unit,
     val onStartRecording: () -> Unit,
@@ -86,7 +94,8 @@ class AttachmentActions(
     val onLoad: suspend (MessageAttachment, Boolean) -> Unit,
     val onAnswer: suspend (ChatMessageItem, MessageAttachment, Boolean) -> Unit,
     val onOpenViewOnce: suspend (ChatMessageItem, MessageAttachment) -> Unit,
-    val onCloseViewOnce: suspend () -> Unit
+    val onCloseViewOnce: suspend () -> Unit,
+    val onCancelViewOnce: () -> Unit
 )
 
 /** The warning before sending a view-once file (the same words on every platform). */
@@ -97,8 +106,11 @@ internal const val VIEW_ONCE_SENDER_NOTE =
 internal const val VIEW_ONCE_RECIPIENT_NOTE = "Du kannst es nur einmal ansehen, danach ist es weg."
 
 /** "Foto · 1,4 MB" or "Sprachnachricht · 0:42". */
-private fun label(kind: AttachmentKind, size: Long, durationMs: Long?): String =
-    AttachmentTexts.title(kind) + " · " + (durationMs?.let(AttachmentTexts::duration) ?: AttachmentTexts.size(size))
+private fun label(kind: AttachmentKind, size: Long, durationMs: Long?, name: String?): String = when {
+    kind == AttachmentKind.File -> AttachmentTexts.fileName(name) + " · " + AttachmentTexts.size(size)
+    durationMs != null -> AttachmentTexts.title(kind) + " · " + AttachmentTexts.duration(durationMs)
+    else -> AttachmentTexts.title(kind) + " · " + AttachmentTexts.size(size)
+}
 
 /** The composer's files: preview, "Einmal ansehen", remove; the upload progress while sending. */
 @Composable
@@ -146,20 +158,10 @@ private fun DraftRow(draft: DraftAttachment, actions: AttachmentActions, enabled
         if (thumbnail != null) {
             Image(thumbnail, contentDescription = null, contentScale = ContentScale.Crop, modifier = Modifier.size(44.dp))
         } else {
-            Icon(
-                if (draft.kind ==
-                    AttachmentKind.Audio
-                ) {
-                    Icons.Outlined.Mic
-                } else {
-                    Icons.Outlined.Videocam
-                },
-                contentDescription = null,
-                tint = OasisColors.Night
-            )
+            Icon(kindIcon(draft.kind), contentDescription = null, tint = OasisColors.Night)
         }
         Text(
-            label(draft.kind, draft.data.size.toLong(), draft.durationMs),
+            label(draft.kind, draft.data.size.toLong(), draft.durationMs, draft.name),
             style = OasisType.Small,
             color = OasisColors.Ink,
             modifier = Modifier.weight(1f)
@@ -216,7 +218,7 @@ internal fun MessageAttachments(
     item.content.attachments.forEach { attachment ->
         val state = item.state(attachment.id, mine)
         val kind = AttachmentTexts.kind(attachment)
-        val label = label(kind, attachment.size, attachment.durationMs)
+        val label = label(kind, attachment.size, attachment.durationMs, attachment.name)
         val view = views[attachment.id]
         Column(Modifier.testTag("chat.message.attachment"), verticalArrangement = Arrangement.spacedBy(6.dp)) {
             when {
@@ -271,12 +273,18 @@ private fun Consent(
     senderName: String,
     actions: AttachmentActions
 ) {
+    val what = if (kind == AttachmentKind.File) {
+        "eine Datei schicken: ${AttachmentTexts.fileName(attachment.name)} (${AttachmentTexts.size(attachment.size)})."
+    } else {
+        "${AttachmentTexts.withArticle(kind)} schicken (${AttachmentTexts.size(attachment.size)})."
+    }
     Text(
-        "$senderName möchte dir ${AttachmentTexts.withArticle(kind)} schicken (${AttachmentTexts.size(attachment.size)}).",
+        "$senderName möchte dir $what",
         style = OasisType.Small,
         color = OasisColors.Ink,
         modifier = Modifier.testTag("chat.attachment.consent")
     )
+    if (kind == AttachmentKind.File) Text(FILE_TRUST_NOTE, style = OasisType.Small, color = OasisColors.SunText)
     if (viewOnce) Text("Einmal ansehen: $VIEW_ONCE_RECIPIENT_NOTE", style = OasisType.Small, color = OasisColors.Ink2)
     FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
         AsyncOasisButton("Annehmen", {
@@ -325,6 +333,8 @@ private fun Shown(
             )
             if (fullScreen) MediaDialog(secure = false, onClose = { fullScreen = false }) { FullMedia(view, kind) }
         }
+
+        is AttachmentView.Document -> DocumentCard(view, label, color)
 
         is AttachmentView.Playable -> if (kind == AttachmentKind.Audio) {
             VoiceMessage(view.file, label, color)
@@ -421,6 +431,11 @@ internal fun FullMedia(view: AttachmentView, kind: AttachmentKind) {
 @Composable
 internal fun ViewOnceViewer(viewer: ViewOnceViewer, actions: AttachmentActions, onReport: (ChatMessageItem) -> Unit) {
     val scope = rememberCoroutineScope()
+    val view = viewer.view
+    if (view is AttachmentView.Document) {
+        ViewOnceDocument(viewer, view, actions)
+        return
+    }
     MediaDialog(
         secure = true,
         onClose = { scope.launch { actions.onCloseViewOnce() } },
@@ -436,6 +451,66 @@ internal fun ViewOnceViewer(viewer: ViewOnceViewer, actions: AttachmentActions, 
                 color = OasisColors.OnNightMuted,
                 modifier = Modifier.semantics { liveRegion = LiveRegionMode.Polite }.testTag("chat.viewOnce.note")
             )
+        }
+    }
+}
+
+/** The warning on every file someone sends. */
+internal const val FILE_TRUST_NOTE = "Öffne Dateien nur von Menschen, denen du vertraust."
+
+private fun kindIcon(kind: AttachmentKind): ImageVector = when (kind) {
+    AttachmentKind.Audio -> Icons.Outlined.Mic
+    AttachmentKind.File -> Icons.AutoMirrored.Outlined.InsertDriveFile
+    else -> Icons.Outlined.Videocam
+}
+
+/** A decrypted file: name, size and type, "Öffnen" and "Teilen" in other apps – never shown inside Oasis. */
+@Composable
+private fun DocumentCard(document: AttachmentView.Document, label: String, color: Color) {
+    val context = LocalContext.current
+    var noApp by remember { mutableStateOf(false) }
+    Row(
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.spacedBy(8.dp),
+        modifier = Modifier.testTag("chat.attachment.file")
+    ) {
+        Icon(kindIcon(AttachmentKind.File), contentDescription = null, tint = color)
+        Column(Modifier.weight(1f, fill = false)) {
+            Text(label, style = OasisType.SmallBold, color = color)
+            Text(document.mime, style = OasisType.Caption, color = color)
+        }
+    }
+    FlowRow(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+        SmallAction("Öffnen", {
+            noApp = !context.startOrFalse(fileIntent(context, document, share = false))
+        }, color = color, underline = true)
+        SmallAction("Teilen", {
+            noApp = !context.startOrFalse(fileIntent(context, document, share = true))
+        }, color = color, underline = true)
+    }
+    if (noApp) Note(ConversationViewModel.NO_APP, color)
+}
+
+/**
+ * A view-once file: opened once in another app (no "Teilen"); when the member comes back to Oasis it counts as viewed
+ * and its copy is deleted.
+ */
+@Composable
+private fun ViewOnceDocument(viewer: ViewOnceViewer, document: AttachmentView.Document, actions: AttachmentActions) {
+    val context = LocalContext.current
+    val scope = rememberCoroutineScope()
+    var opened by remember(viewer) { mutableStateOf(false) }
+    LaunchedEffect(viewer) {
+        if (context.startOrFalse(fileIntent(context, document, share = false))) opened = true else actions.onCancelViewOnce()
+    }
+    // Oasis goes to the background while the other app shows the file; coming back closes it (once).
+    var left by remember(viewer) { mutableStateOf(false) }
+    LifecycleEventEffect(Lifecycle.Event.ON_PAUSE) { left = opened }
+    LifecycleEventEffect(Lifecycle.Event.ON_RESUME) {
+        if (left) {
+            left = false
+            opened = false
+            scope.launch { actions.onCloseViewOnce() }
         }
     }
 }

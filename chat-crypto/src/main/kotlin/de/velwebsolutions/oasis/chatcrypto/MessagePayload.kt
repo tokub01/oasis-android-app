@@ -15,19 +15,21 @@ import kotlinx.serialization.json.put
 
 /**
  * One file of a message (`Attachment` in docs/oasis-chat.md, "Anhänge"): the upload's id, what it is, the plaintext size,
- * and key and nonce (Base64 URL-safe without padding) to decrypt the downloaded ciphertext. Width and height (photos)
- * and the duration (voice messages, videos) are hints for the layout.
+ * and key and nonce (Base64 URL-safe without padding) to decrypt the downloaded ciphertext. [name] is the file name of a
+ * `file` (without path, at most 120 characters); width and height (photos) and the duration (voice messages, videos) are
+ * hints for the layout.
  */
 @Serializable
 data class MessageAttachment(
     val id: String,
-    /** `image`, `audio` or `video`. */
+    /** `image`, `audio`, `video` or `file`. */
     val kind: String,
     val mime: String,
     /** Plaintext bytes. */
     val size: Long,
     val key: String,
     val nonce: String,
+    val name: String? = null,
     val width: Int? = null,
     val height: Int? = null,
     @SerialName("duration_ms") val durationMs: Long? = null
@@ -52,12 +54,23 @@ object MessagePayload {
     /** The largest file: the server takes 50 MB of ciphertext, which includes the 16-byte tag. */
     const val MAX_ATTACHMENT_BYTES = 50L * 1024 * 1024 - 16
 
-    /** Kinds of attachment and the MIME types each may have (`MessagePayload::KINDS`). */
+    /** The media kinds and the MIME types each may have (`MessagePayload::KINDS`); a `file` may be any type ([FILE_MIME]). */
     val KINDS: Map<String, List<String>> = mapOf(
         "image" to listOf("image/jpeg", "image/png", "image/webp", "image/heic"),
         "audio" to listOf("audio/mp4", "audio/aac", "audio/mpeg", "audio/webm", "audio/ogg"),
         "video" to listOf("video/mp4", "video/quicktime", "video/webm")
     )
+
+    /** The kind of any other file (PDF, ZIP, documents …). */
+    const val FILE = "file"
+
+    /** Any well-formed MIME type, for files (`MessagePayload::FILE_MIME`). */
+    val FILE_MIME = Regex("^[a-z0-9][a-z0-9!#$&^_.+-]{0,63}/[a-z0-9][a-z0-9!#$&^_.+-]{0,63}$")
+
+    /** A file name is shown and stored with at most this many characters. */
+    const val MAX_NAME_LENGTH = 120
+
+    private val NAME_UNSAFE = Regex("[\\u0000-\\u001F\\u007F/\\\\]+")
 
     private val ID = Regex("^[1-9][0-9]{0,18}$")
     private val KEY = Regex("^[A-Za-z0-9_-]{43}$")
@@ -117,15 +130,37 @@ object MessagePayload {
         return payload?.takeIf { type?.isString == true && type.content == TYPE }
     }
 
+    /** Whether a kind may carry this MIME type: the listed ones for media, any well-formed type for files. */
+    fun allowedMime(kind: String, mime: String): Boolean = if (kind ==
+        FILE
+    ) {
+        FILE_MIME.matches(mime)
+    } else {
+        KINDS[kind]?.contains(mime) == true
+    }
+
+    /**
+     * A safe file name for showing and saving (`MessagePayload::fileName`): the last path segment without control
+     * characters or slashes, trimmed, at most 120 characters; null when nothing is left.
+     */
+    fun fileName(raw: String?): String? {
+        if (raw == null) return null
+        val base = raw.replace('\\', '/').trimEnd('/').substringAfterLast('/')
+        val clean = base.replace(NAME_UNSAFE, "").trim()
+        if (clean.isEmpty()) return null
+        val end = clean.offsetByCodePoints(0, minOf(MAX_NAME_LENGTH, clean.codePointCount(0, clean.length)))
+        return clean.substring(0, end)
+    }
+
     /** A well-formed entry (`checkAttachment`): id, known kind and MIME type, size, key and nonce, optional sizes ≥ 0. */
     private fun checked(entry: JsonElement): MessageAttachment? {
         val fields = entry as? JsonObject ?: return null
         val attachment = runCatching { json.decodeFromJsonElement(MessageAttachment.serializer(), fields) }.getOrNull() ?: return null
         val optionals = listOf("width", "height", "duration_ms").mapNotNull { fields[it] }
-        val valid = ID.matches(attachment.id) && KINDS[attachment.kind]?.contains(attachment.mime) == true &&
+        val valid = ID.matches(attachment.id) && allowedMime(attachment.kind, attachment.mime) &&
             (fields["size"].integer() ?: 0) in 1..MAX_ATTACHMENT_BYTES && KEY.matches(attachment.key) &&
             NONCE.matches(attachment.nonce) && optionals.all { (it.integer() ?: -1) >= 0 }
-        return attachment.takeIf { valid }
+        return attachment.takeIf { valid }?.copy(name = fileName(attachment.name))
     }
 
     /** A JSON integer (not a string of digits), or null. */

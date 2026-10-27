@@ -33,6 +33,7 @@ import de.velwebsolutions.oasis.chatcrypto.MessagePayload
 import de.velwebsolutions.oasis.core.network.ApiError
 import de.velwebsolutions.oasis.core.realtime.RealtimeEvent
 import de.velwebsolutions.oasis.core.realtime.RealtimeService
+import de.velwebsolutions.oasis.core.share.PendingShare
 import kotlin.time.Duration
 import kotlin.time.Duration.Companion.seconds
 import kotlinx.coroutines.Job
@@ -198,6 +199,7 @@ class ConversationViewModel @AssistedInject constructor(
             loadHistory()
             if (!isCurrent(token)) return@inScope
             markRead()
+            takeShare()
             jobs += viewModelScope.launch {
                 realtime.subscribe("private-conversation.$conversationId").collect { handle(it) }
             }
@@ -480,7 +482,7 @@ class ConversationViewModel @AssistedInject constructor(
             confirmedDraft = null
             // What was picked stays on screen without a download; view-once files are not shown to the sender again.
             val shown = drafts.zip(references).filter { !it.first.viewOnce }.associate { (draft, reference) ->
-                reference.id to media.present(draft.kind, draft.data)
+                reference.id to media.present(draft.kind, draft.data, draft.mime, draft.name)
             }
             render { it.copy(drafts = it.drafts - drafts.toSet(), uploadProgress = null, attachmentViews = it.attachmentViews + shown) }
             setDraft(remainder(state.value.draft, typed))
@@ -521,19 +523,50 @@ class ConversationViewModel @AssistedInject constructor(
         return false
     }
 
-    /** A photo or video from the photo picker. */
-    suspend fun addPicked(uri: Uri) = inScope {
+    /** A photo or video from the photo picker, or ([asFile]) any file picked under "Datei". */
+    suspend fun addPicked(uri: Uri, asFile: Boolean = false) =
+        addDraft { if (asFile) media.prepareFile(uri, it) else media.prepare(uri, it) }
+
+    private suspend fun addDraft(prepare: suspend (localId: Long) -> DraftAttachment) = inScope {
         vault.touch()
         if (!roomForAttachment()) return@inScope
         render { it.copy(preparing = true, composerError = null) }
         try {
-            val draft = media.prepare(uri, ++nextLocalId)
+            val draft = prepare(++nextLocalId)
             render { it.copy(drafts = it.drafts + draft) }
         } catch (problem: AttachmentProblem) {
             render { it.copy(composerError = problem.message) }
         } finally {
             render { it.copy(preparing = false) }
         }
+    }
+
+    /**
+     * What the member shared into this chat under "Teilen mit …": its files become drafts (photos by the photo rules),
+     * its text the draft text. Nothing is sent before "Senden"; the cache copies are deleted right after.
+     */
+    private suspend fun takeShare() {
+        val share = PendingShare.take(conversationId) ?: return
+        val problems = mutableListOf<String>()
+        try {
+            for (file in share.files) {
+                if (state.value.drafts.size >= ChatAttachments.MAX_PER_MESSAGE) {
+                    problems +=
+                        "Höchstens ${ChatAttachments.MAX_PER_MESSAGE} Anhänge pro Nachricht. Den Rest kannst du mit der nächsten Nachricht teilen."
+                    break
+                }
+                try {
+                    val draft = media.prepareShared(file, ++nextLocalId)
+                    render { it.copy(drafts = it.drafts + draft) }
+                } catch (problem: AttachmentProblem) {
+                    problems += "${file.name}: ${problem.message}"
+                }
+            }
+        } finally {
+            PendingShare.delete(share)
+        }
+        share.text?.let(::setDraft)
+        render { it.copy(composerError = problems.firstOrNull()) }
     }
 
     /** "Anhang entfernen". */
@@ -609,7 +642,12 @@ class ConversationViewModel @AssistedInject constructor(
     private fun setView(id: String, view: AttachmentView) = render { it.copy(attachmentViews = it.attachmentViews + (id to view)) }
 
     private suspend fun fetch(attachment: MessageAttachment): AttachmentView = try {
-        media.present(AttachmentTexts.kind(attachment), ChatAttachments.download(context, conversationId, attachment))
+        media.present(
+            AttachmentTexts.kind(attachment),
+            ChatAttachments.download(context, conversationId, attachment),
+            attachment.mime,
+            attachment.name
+        )
     } catch (error: ApiError) {
         if (error is ApiError.NotFound) {
             AttachmentView.Failed(
@@ -652,6 +690,16 @@ class ConversationViewModel @AssistedInject constructor(
             view is AttachmentView.Failed -> render { it.copy(actionError = view.message) }
             else -> render { it.copy(viewOnce = ViewOnceViewer(item, attachment, view)) }
         }
+    }
+
+    /**
+     * A view-once file no app on the device could open: its copy is deleted, nothing is reported as viewed, so it can
+     * be opened again once such an app is installed.
+     */
+    fun cancelViewOnce() {
+        val open = state.value.viewOnce ?: return
+        media.discard(open.view)
+        render { it.copy(viewOnce = null, actionError = NO_APP) }
     }
 
     /** Closing the view-once viewer: the file is deleted here and reported as viewed, so the server deletes it too. */
@@ -792,6 +840,9 @@ class ConversationViewModel @AssistedInject constructor(
         private const val VIEWED = "viewed"
 
         private const val GONE = "Diesen Anhang gibt es nicht mehr."
+
+        /** No app on the device opens this kind of file. */
+        const val NO_APP = "Auf deinem Gerät ist keine App, die diese Datei öffnen kann."
 
         private const val SENSITIVE_ADVICE =
             "Oasis fragt dich nie im Chat danach – sei vorsichtig, besonders bei Menschen, die du noch nicht kennst. Zum Senden tippe noch einmal auf „Senden“."

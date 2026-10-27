@@ -330,4 +330,35 @@ class ChatScreenFlowsTest {
         compose.onNodeWithTag("chat.new.submit").tap()
         settle { stack().singleOrNull() is ChatRoute.Conversation }
     }
+
+    @Test
+    fun sharingIntoOasisPicksAChatOrIsCancelled() {
+        val (mira, _, id) = chatWithMessages()
+        signIn(mira)
+        val context = androidx.test.core.app.ApplicationProvider.getApplicationContext<android.content.Context>()
+        val copy = java.io.File(context.cacheDir, "Rechnung.pdf").apply { writeBytes(byteArrayOf(1)) }
+        de.velwebsolutions.oasis.core.share.PendingShare.offer(
+            de.velwebsolutions.oasis.core.share.Share(
+                listOf(de.velwebsolutions.oasis.core.share.SharedFile(copy, "Rechnung.pdf", "application/pdf")),
+                "Für dich"
+            )
+        )
+        navigator.handle(ChatRoute.Share)
+        show(ChatRoute.Share)
+        waitForTag("chat.share.conversation")
+        compose.onNodeWithText("Rechnung.pdf").assertExists()
+        compose.onNodeWithTag("chat.share.conversation").tap()
+        assertEquals(listOf(ChatRoute.Conversation(id)), stack())
+        assertEquals(null, de.velwebsolutions.oasis.core.share.PendingShare.take("999"))
+
+        de.velwebsolutions.oasis.core.share.PendingShare.offer(de.velwebsolutions.oasis.core.share.Share(emptyList(), "Nur Text"))
+        navigator.handle(ChatRoute.Share)
+        show(ChatRoute.Share)
+        waitForTag("chat.share.cancel")
+        compose.onNodeWithTag("chat.share.cancel").tap()
+        assertTrue(stack().isEmpty())
+        assertEquals(null, de.velwebsolutions.oasis.core.share.PendingShare.share.value)
+        show(ChatRoute.Share)
+        waitForTag("chat.share.empty")
+    }
 }

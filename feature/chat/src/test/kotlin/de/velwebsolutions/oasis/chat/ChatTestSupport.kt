@@ -125,6 +125,19 @@ class FakeChatMedia : ChatMedia {
 
     override suspend fun prepare(uri: Uri, localId: Long): DraftAttachment = prepared(uri, localId)
 
+    /** What a "Datei" pick turns into (a PDF by default). */
+    var preparedFile: (Uri, Long) -> DraftAttachment = { _, id ->
+        DraftAttachment(id, AttachmentKind.File, "application/pdf", byteArrayOf(5, 6), name = "Rechnung.pdf")
+    }
+
+    override suspend fun prepareFile(uri: Uri, localId: Long): DraftAttachment = preparedFile(uri, localId)
+
+    /** Shared files become files of their name, or throw an AttachmentProblem for names starting with "kaputt". */
+    override suspend fun prepareShared(shared: de.velwebsolutions.oasis.core.share.SharedFile, localId: Long): DraftAttachment {
+        if (shared.name.startsWith("kaputt")) throw de.velwebsolutions.oasis.chat.core.AttachmentProblem("Die Datei ließ sich nicht lesen.")
+        return DraftAttachment(localId, AttachmentKind.File, shared.mime, shared.file.readBytes(), name = shared.name)
+    }
+
     override fun startRecording(onLimit: () -> Unit): Boolean {
         this.onLimit = onLimit
         return recordingStarts
@@ -137,7 +150,7 @@ class FakeChatMedia : ChatMedia {
         cancels++
     }
 
-    override suspend fun present(kind: AttachmentKind, data: ByteArray): AttachmentView {
+    override suspend fun present(kind: AttachmentKind, data: ByteArray, mime: String, name: String?): AttachmentView {
         presented += kind to data
         return AttachmentView.Playable(File("entschluesselt-${presented.size}"), null)
     }
@@ -153,7 +166,7 @@ class FakeChatMedia : ChatMedia {
 
 /** Attachment steps that only write down what was asked ("picked …", "load 7 retry", …). */
 fun attachmentActions(calls: MutableList<String>) = de.velwebsolutions.oasis.chat.ui.AttachmentActions(
-    onPicked = { calls += "picked $it" },
+    onPicked = { uri, asFile -> calls += "${if (asFile) "file" else "picked"} $uri" },
     onRemove = { calls += "remove $it" },
     onViewOnce = { id, on -> calls += "viewOnce $id $on" },
     onStartRecording = { calls += "record" },
@@ -162,5 +175,6 @@ fun attachmentActions(calls: MutableList<String>) = de.velwebsolutions.oasis.cha
     onLoad = { attachment, retry -> calls += "load ${attachment.id}${if (retry) " retry" else ""}" },
     onAnswer = { _, attachment, accept -> calls += "${if (accept) "accept" else "decline"} ${attachment.id}" },
     onOpenViewOnce = { _, attachment -> calls += "open ${attachment.id}" },
-    onCloseViewOnce = { calls += "close" }
+    onCloseViewOnce = { calls += "close" },
+    onCancelViewOnce = { calls += "cancelViewOnce" }
 )

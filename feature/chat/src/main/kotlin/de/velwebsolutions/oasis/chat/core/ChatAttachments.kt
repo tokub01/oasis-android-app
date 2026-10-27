@@ -11,17 +11,18 @@ import kotlin.math.ceil
 import kotlin.math.roundToInt
 import kotlinx.coroutines.withContext
 
-/** The three kinds of attachment and their names in the message plaintext. */
+/** The kinds of attachment and their names in the message plaintext; [File] is any other file (PDF, ZIP, …). */
 enum class AttachmentKind(val wire: String) {
     Image("image"),
     Audio("audio"),
-    Video("video")
+    Video("video"),
+    File("file")
 }
 
 /**
- * A photo, voice message or video picked or recorded for the next message, still unencrypted and only in memory.
- * [localId] tells drafts apart in the composer; [viewOnce] ("Einmal ansehen") deletes it for good once every recipient
- * viewed it.
+ * A photo, voice message, video or file picked, recorded or shared for the next message, still unencrypted and only in
+ * memory. [localId] tells drafts apart in the composer; [name] is a file's name; [viewOnce] ("Einmal ansehen") deletes it
+ * for good once every recipient viewed it.
  */
 class DraftAttachment(
     val localId: Long,
@@ -31,10 +32,11 @@ class DraftAttachment(
     val width: Int? = null,
     val height: Int? = null,
     val durationMs: Long? = null,
-    val viewOnce: Boolean = false
+    val viewOnce: Boolean = false,
+    val name: String? = null
 ) {
     /** The same draft with "Einmal ansehen" switched on or off. */
-    fun withViewOnce(value: Boolean) = DraftAttachment(localId, kind, mime, data, width, height, durationMs, value)
+    fun withViewOnce(value: Boolean) = DraftAttachment(localId, kind, mime, data, width, height, durationMs, value, name)
 }
 
 /** Why a picked or recorded file cannot be sent, in words for the composer. */
@@ -54,6 +56,9 @@ object ChatAttachments {
 
     /** Videos: the server takes 50 MB of ciphertext, which is the file plus the 16-byte tag. */
     const val MAX_VIDEO_BYTES = MessagePayload.MAX_ATTACHMENT_BYTES
+
+    /** Files of any type, as they are. */
+    const val MAX_FILE_BYTES = MessagePayload.MAX_ATTACHMENT_BYTES
 
     /** Videos up to 60 seconds. */
     const val MAX_VIDEO_MS = 60_000L
@@ -89,6 +94,7 @@ object ChatAttachments {
                 size = draft.data.size.toLong(),
                 key = context.crypto.toBase64(sealed.key),
                 nonce = context.crypto.toBase64(sealed.nonce),
+                name = draft.name,
                 width = draft.width,
                 height = draft.height,
                 durationMs = draft.durationMs
@@ -124,15 +130,22 @@ object ChatAttachments {
 
 /** The German words for attachments in bubbles, the composer and the consent question. */
 object AttachmentTexts {
-    /** "Foto", "Sprachnachricht", "Video". */
+    /** "Foto", "Sprachnachricht", "Video", "Datei". */
     fun title(kind: AttachmentKind): String = when (kind) {
         AttachmentKind.Image -> "Foto"
         AttachmentKind.Audio -> "Sprachnachricht"
         AttachmentKind.Video -> "Video"
+        AttachmentKind.File -> "Datei"
     }
 
-    /** "ein Foto", "eine Sprachnachricht", "ein Video" (inside a sentence). */
-    fun withArticle(kind: AttachmentKind): String = if (kind == AttachmentKind.Audio) "eine Sprachnachricht" else "ein ${title(kind)}"
+    /** "ein Foto", "eine Sprachnachricht", "ein Video", "eine Datei" (inside a sentence). */
+    fun withArticle(kind: AttachmentKind): String = when (kind) {
+        AttachmentKind.Audio, AttachmentKind.File -> "eine ${title(kind)}"
+        else -> "ein ${title(kind)}"
+    }
+
+    /** What a file is called on screen: its name, or "Datei" without one. */
+    fun fileName(name: String?): String = name ?: "Datei"
 
     /** "820 KB", "1,4 MB", "12 MB". */
     fun size(bytes: Long): String {

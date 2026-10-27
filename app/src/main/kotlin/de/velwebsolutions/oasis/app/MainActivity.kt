@@ -13,8 +13,8 @@ import de.velwebsolutions.oasis.design.navigation.Navigator
 import javax.inject.Inject
 
 /**
- * The only activity (a FragmentActivity, so the chat can show the androidx BiometricPrompt): hosts [AppHost.Content] and
- * passes links (app links, `oasis://`, push taps) to the navigator.
+ * The main activity (a FragmentActivity, so the chat can show the androidx BiometricPrompt): hosts [AppHost.Content] and
+ * passes links (app links, `oasis://`, push taps) and shares from other apps to the navigator.
  */
 @AndroidEntryPoint
 class MainActivity : FragmentActivity() {
@@ -27,11 +27,11 @@ class MainActivity : FragmentActivity() {
         super.onCreate(savedInstanceState)
         navigator.openWeb = { url -> openWebPage(this, url) }
         setContent { AppHost.Content(navigator, apiClient) }
-        AppHost.url(intent)?.let(navigator::handle)
+        AppHost.open(intent, navigator)
     }
 
     override fun onNewIntent(intent: Intent) {
         super.onNewIntent(intent)
-        AppHost.url(intent)?.let(navigator::handle)
+        AppHost.open(intent, navigator)
     }
 }
