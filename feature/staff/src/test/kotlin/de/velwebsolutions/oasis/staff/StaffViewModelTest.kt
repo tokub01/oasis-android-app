@@ -1,5 +1,9 @@
 package de.velwebsolutions.oasis.staff
 
+import androidx.lifecycle.ViewModel
+import androidx.lifecycle.ViewModelProvider
+import androidx.lifecycle.ViewModelStore
+import androidx.lifecycle.viewmodel.CreationExtras
 import de.velwebsolutions.oasis.core.model.Loadable
 import de.velwebsolutions.oasis.core.network.ApiError
 import de.velwebsolutions.oasis.staff.Fixtures.lastObject
@@ -20,6 +24,7 @@ import de.velwebsolutions.oasis.testing.MainDispatcherRule
 import de.velwebsolutions.oasis.testing.StubTransport.Stub
 import java.nio.file.Files
 import java.time.Instant
+import kotlin.reflect.KClass
 import kotlinx.coroutines.test.runTest
 import kotlinx.serialization.json.JsonPrimitive
 import org.junit.Assert.assertEquals
@@ -28,6 +33,19 @@ import org.junit.Assert.assertNull
 import org.junit.Assert.assertTrue
 import org.junit.Rule
 import org.junit.Test
+
+/** Clears a view model the way leaving its screen does (`onCleared`). */
+private fun clear(model: ViewModel) {
+    val store = ViewModelStore()
+    ViewModelProvider.create(
+        store,
+        object : ViewModelProvider.Factory {
+            @Suppress("UNCHECKED_CAST")
+            override fun <T : ViewModel> create(modelClass: KClass<T>, extras: CreationExtras): T = model as T
+        }
+    )[model::class]
+    store.clear()
+}
 
 class StaffViewModelTest {
     @get:Rule
@@ -112,6 +130,37 @@ class StaffViewModelTest {
         assertEquals("oasis-fall-4-beweise.zip", file?.name)
         assertEquals("PK", file?.readText())
         assertTrue(transport.requests.any { it.path == "staff/moderation/cases/4/evidence" })
+    }
+
+    @Test
+    fun `a reported voice message or video is loaded with the token into a file, and a failure can be retried`() = runTest {
+        val (repository, transport) = Fixtures.repository(
+            Stub("GET", "staff/moderation/cases/2", json = Fixtures.caseChat),
+            Stub("GET", "staff/moderation/cases/2/chat-attachments/1", json = "ID3"),
+            Stub("GET", "staff/moderation/cases/2/chat-attachments/2", status = 404, json = """{"message":"Nicht gefunden."}""")
+        )
+        val directory = Files.createTempDirectory("staff").toFile()
+        val files = StaffFiles(directory)
+        val viewModel = CaseDetailViewModel(2, repository, files)
+        viewModel.load()
+        assertEquals(listOf("image", "audio", "video"), viewModel.state.value.detail.valueOrNull?.report?.attachments?.map { it.kind })
+
+        viewModel.loadAttachment(1)
+        val file = viewModel.state.value.attachmentFiles[1]
+        assertEquals("ID3", file?.readText())
+        assertEquals("fall-2-anhang-2", file?.name)
+        assertTrue(transport.requests.any { it.path == "staff/moderation/cases/2/chat-attachments/1" })
+
+        viewModel.loadAttachment(2)
+        assertEquals(setOf(2), viewModel.state.value.failedAttachments)
+        assertNotNull(viewModel.state.value.error)
+        viewModel.loadAttachment(9)
+        assertEquals(setOf(1), viewModel.state.value.attachmentFiles.keys)
+
+        // Leaving the page deletes the loaded files; without any, there is nothing to delete.
+        clear(viewModel)
+        assertTrue(file?.exists() == false)
+        StaffFiles(Files.createTempDirectory("leer").toFile()).deleteReportedAttachments(2)
     }
 
     @Test

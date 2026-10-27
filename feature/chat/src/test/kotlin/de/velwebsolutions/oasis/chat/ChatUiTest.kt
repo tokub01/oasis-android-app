@@ -5,10 +5,12 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.test.ExperimentalTestApi
+import androidx.compose.ui.test.assertCountEquals
 import androidx.compose.ui.test.hasContentDescription
 import androidx.compose.ui.test.hasText
 import androidx.compose.ui.test.isRoot
 import androidx.compose.ui.test.junit4.createComposeRule
+import androidx.compose.ui.test.onAllNodesWithTag
 import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
@@ -16,6 +18,7 @@ import androidx.compose.ui.test.performScrollTo
 import androidx.compose.ui.test.performTouchInput
 import androidx.compose.ui.test.swipeDown
 import com.github.takahirom.roborazzi.captureRoboImage
+import de.velwebsolutions.oasis.chat.api.ChatAvatar
 import de.velwebsolutions.oasis.chat.api.ChatConversation
 import de.velwebsolutions.oasis.chat.api.ChatSettings
 import de.velwebsolutions.oasis.chat.api.ConversationMember
@@ -179,7 +182,8 @@ class ChatUiTest {
         onOpen = { calls += "open ${it.id}" },
         onNew = { calls += "new" },
         onApprove = { calls += "approve ${it.id}" },
-        onReject = { calls += "reject ${it.id}" }
+        onReject = { calls += "reject ${it.id}" },
+        myId = "1"
     )
 
     @Test
@@ -233,7 +237,8 @@ class ChatUiTest {
         onBlockFlagged = { calls += "block $it" },
         onDismissFlagged = { calls += "dismiss" },
         onNoticeSpoken = { calls += "spoken" },
-        attachments = attachmentActions(calls)
+        attachments = attachmentActions(calls),
+        senderAvatar = { if (it == "2") jonasAvatar else ChatAvatar.Unknown }
     )
 
     @Test
@@ -304,6 +309,43 @@ class ChatUiTest {
         )
     }
 
+    private val jonasAvatar = ChatAvatar("J", "night", "/api/v1/network/profiles/jonas/photo/a.jpg")
+
+    @Test
+    fun avatarsBesideChatsAndTheStartOfEachRun() {
+        val group = chat("9").copy(
+            type = "group",
+            members = members.map { it.copy(avatar = ChatAvatar(it.username.take(1).uppercase(), "spring")) } +
+                ConversationMember("3", "aylin", "Aylin", avatar = jonasAvatar.copy(initials = "A"))
+        )
+        val alone = chat("11").copy(members = members.take(1))
+        val away = chat("12").copy(members = members.map { if (it.userId == "2") it.copy(status = "Im Urlaub bis Sonntag") else it })
+        show { Conversation(ConversationState(conversation = away, title = "Jonas")) }
+        compose.onNodeWithTag("chat.conversation.status").assertExists()
+        switchTo { List(ConversationListState(conversations = listOf(chat("3"), group, alone), loaded = true)) }
+        capture("list-avatars")
+        switchTo {
+            Conversation(
+                ConversationState(
+                    conversation = group,
+                    title = "Garten",
+                    timeline = ChatTimeline(
+                        listOf(
+                            item("a", ChatMessageItem.State.Readable, text = "Hallo"),
+                            item("b", ChatMessageItem.State.Readable, text = "Bist du da?"),
+                            item("c", ChatMessageItem.State.Readable, sender = "1", text = "Ja."),
+                            item("d", ChatMessageItem.State.Readable, sender = "3", text = "Ich auch.")
+                        )
+                    )
+                )
+            )
+        }
+        capture("conversation-avatars")
+        compose.onNodeWithTag("chat.conversation.avatar", useUnmergedTree = true).assertExists()
+        // Jonas' run of two and Aylin's message: one avatar each, none beside my own.
+        compose.onAllNodesWithTag("chat.message.avatar", useUnmergedTree = true).assertCountEquals(2)
+    }
+
     // endregion
 
     // region Details
@@ -315,7 +357,17 @@ class ChatUiTest {
         addError = if (owner) "Gibt es nicht." else null,
         members = listOf(
             MemberRow("1", "Mira – du", "mira", true, null, null, false),
-            MemberRow("2", "Jonas", "jonas", false, "12345 67890", "Neue Schlüssel – Nummer erneut vergleichen.", owner)
+            MemberRow(
+                "2",
+                "Jonas",
+                "jonas",
+                false,
+                "12345 67890",
+                "Neue Schlüssel – Nummer erneut vergleichen.",
+                owner,
+                jonasAvatar,
+                status = "Im Urlaub bis Sonntag"
+            )
         )
     )
 
@@ -343,6 +395,8 @@ class ChatUiTest {
         switchTo { Details(ConversationDetailsState(loadFailed = "Diesen Chat gibt es nicht mehr.")) }
         switchTo { Details(detailsState(owner = true, muted = true)) }
         capture("details-owner-muted")
+        compose.onNodeWithTag("chat.details.avatar.jonas", useUnmergedTree = true).assertExists()
+        compose.onNodeWithTag("chat.details.status.jonas").assertExists()
         tapTag("chat.details.unmute")
         tapTag("chat.details.mute")
         tapTag("chat.details.mute.duration")

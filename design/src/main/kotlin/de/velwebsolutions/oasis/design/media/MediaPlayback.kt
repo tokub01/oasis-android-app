@@ -1,4 +1,4 @@
-package de.velwebsolutions.oasis.chat.core
+package de.velwebsolutions.oasis.design.media
 
 import android.media.MediaPlayer
 import android.widget.MediaController
@@ -9,8 +9,8 @@ import androidx.compose.runtime.setValue
 import java.io.File
 
 /**
- * Play and pause of one decrypted voice message (MediaPlayer on the cache file). The player is created on the first
- * play and released with [release] (leaving the bubble or the chat).
+ * Play and pause of one voice message in the cache (a decrypted chat file, a reported one in the moderation; MediaPlayer
+ * on the file). The player is created on the first play and released with [release] (leaving the bubble or the page).
  */
 class VoicePlayer(private val file: File, private val newPlayer: () -> MediaPlayer = ::MediaPlayer) {
     /** Whether it is playing right now. */
@@ -68,10 +68,10 @@ class VoicePlayer(private val file: File, private val newPlayer: () -> MediaPlay
 }
 
 /**
- * Prepares the platform video view for a decrypted video in the cache: system controls, start when ready, [onError]
- * when the file cannot be played.
+ * Prepares the platform video view for a video in the cache (decrypted chat file, reported file in the moderation):
+ * system controls, start when ready, [onError] when the file cannot be played.
  */
-fun VideoView.playDecrypted(file: File, onError: () -> Unit) {
+fun VideoView.playFile(file: File, onError: () -> Unit) {
     setMediaController(MediaController(context).also { it.setAnchorView(this) })
     setOnPreparedListener { start() }
     setOnErrorListener { _, _, _ ->

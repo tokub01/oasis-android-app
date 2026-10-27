@@ -15,6 +15,7 @@ import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.onRoot
 import androidx.compose.ui.test.performClick
+import androidx.compose.ui.test.performScrollTo
 import androidx.compose.ui.test.performTextInput
 import com.github.takahirom.roborazzi.captureRoboImage
 import de.velwebsolutions.oasis.design.components.LocalScreenChrome
@@ -372,6 +373,7 @@ class ScreenFlowsTest {
         switchTo { EditProfileScreen(model16) }
         text("So sehen dich andere: dein Profil ansehen.").assertIsDisplayed()
         text("Farbe deiner Initialen").assertIsDisplayed()
+        compose.onNodeWithTag("profileEdit.status").performScrollTo().assertIsDisplayed()
         capture("profile-edit")
     }
 

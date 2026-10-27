@@ -130,6 +130,8 @@ class ProfileViewModel @AssistedInject constructor(@Assisted handle: String, pri
 data class EditProfileState(
     val bio: String = "",
     val location: String = "",
+    /** The status line under the name (at most [STATUS_LENGTH] characters). */
+    val status: String = "",
     val color: String = "sun",
     val toneConfirmed: Boolean = false,
     val toneNudge: Boolean = false,
@@ -153,6 +155,9 @@ class EditProfileViewModel @Inject constructor(private val repository: NetworkRe
 
     fun updateLocation(value: String) = mutableForm.update { it.copy(location = value) }
 
+    /** The status line, cut at 80 characters like the web field's `maxlength`. */
+    fun updateStatus(value: String) = mutableForm.update { it.copy(status = value.take(STATUS_LENGTH)) }
+
     fun updateColor(value: String) = mutableForm.update { it.copy(color = value) }
 
     fun setToneConfirmed(value: Boolean) = mutableForm.update { it.copy(toneConfirmed = value) }
@@ -168,11 +173,11 @@ class EditProfileViewModel @Inject constructor(private val repository: NetworkRe
         if (profile.value.valueOrNull == null) load()
     }
 
-    /** The tone check of bio and location while typing (500 ms after the last change). */
+    /** The tone check of bio, location and status while typing (500 ms after the last change). */
     suspend fun checkTone() {
         if (profile.value.valueOrNull == null) return
         mutableForm.update { it.copy(toneConfirmed = false) }
-        val text = "${form.value.bio} ${form.value.location}".trim()
+        val text = listOf(form.value.bio, form.value.location, form.value.status).filter { it.isNotBlank() }.joinToString(" ")
         // A failed check shows nothing.
         val result = attempt { common.toneHint(text, "profile") }.getOrNull() ?: return
         mutableForm.update { it.copy(toneHint = result.hint, toneNudge = result.nudge) }
@@ -181,7 +186,7 @@ class EditProfileViewModel @Inject constructor(private val repository: NetworkRe
     suspend fun save() {
         mutableError.value = null
         val form = form.value
-        val result = attempt { repository.updateOwnProfile(form.bio, form.location, form.color, form.toneConfirmed) }
+        val result = attempt { repository.updateOwnProfile(form.bio, form.location, form.color, form.toneConfirmed, form.status) }
         result.onSuccess { saved ->
             apply(saved.data)
             mutableStatus.value = saved.message
@@ -235,6 +240,7 @@ class EditProfileViewModel @Inject constructor(private val repository: NetworkRe
             it.copy(
                 bio = loaded.bio,
                 location = loaded.location,
+                status = loaded.status,
                 color = loaded.avatarColor,
                 toneHint = null,
                 toneNudge = false,
@@ -244,6 +250,9 @@ class EditProfileViewModel @Inject constructor(private val repository: NetworkRe
         mutableProfile.value = Loadable.Loaded(loaded)
     }
 }
+
+/** The longest status line the server accepts. */
+const val STATUS_LENGTH = 80
 
 /** "Freund:innen" (/app/freunde): incoming requests, friends and own open requests. */
 @HiltViewModel

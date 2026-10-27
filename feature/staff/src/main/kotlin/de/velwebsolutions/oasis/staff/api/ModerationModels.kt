@@ -130,8 +130,20 @@ data class ModerationCaseDetail(
         /** content_report | chat_report | content_check */
         val kind: String,
         val reason: String? = null,
+        /** The written text of a reported chat message ("(nur Anhang)" for one with files only). */
         val plaintext: String? = null,
+        /** The photos, voice messages and videos of a reported chat message, opened with the reporter's key. */
+        val attachments: List<ReportedAttachment> = emptyList(),
         val check: Check? = null
+    )
+
+    /** One file of a reported chat message (`cases/{id}/chat-attachments/{index}`, loaded with the member's token). */
+    @Serializable
+    data class ReportedAttachment(
+        /** image | audio | video */
+        val kind: String,
+        val mime: String,
+        val url: String
     )
 
     /** The automated check of a drop. */

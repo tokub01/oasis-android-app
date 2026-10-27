@@ -16,6 +16,8 @@ data class Profile(
     val joinedAt: OasisInstant,
     val bio: String? = null,
     val location: String? = null,
+    /** The short status line under the name (max. 80 characters); null when empty, held or hidden from the viewer. */
+    val status: String? = null,
     val bioHeld: Boolean = false,
     /** The Karawane size, null when its audience excludes the viewer. */
     val followers: Int? = null,
@@ -47,6 +49,8 @@ data class OwnProfile(
     val member: Member,
     val bio: String = "",
     val location: String = "",
+    /** The status line under the name, "" when empty. */
+    val status: String = "",
     val avatarColor: String = "sun",
     val hasPhoto: Boolean = false,
     val bannerUrl: String? = null,

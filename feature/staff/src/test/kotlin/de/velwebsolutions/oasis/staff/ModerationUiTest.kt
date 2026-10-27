@@ -1,9 +1,14 @@
 package de.velwebsolutions.oasis.staff
 
+import android.media.MediaPlayer
+import android.view.View
+import android.view.ViewGroup
+import android.widget.VideoView
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.semantics.SemanticsActions
+import androidx.compose.ui.test.assertCountEquals
 import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.assertIsNotEnabled
 import androidx.compose.ui.test.hasAnyAncestor
@@ -43,6 +48,7 @@ import de.velwebsolutions.oasis.staff.ui.moderation.ModerationOverviewContent
 import de.velwebsolutions.oasis.staff.ui.moderation.ModerationOverviewScreen
 import de.velwebsolutions.oasis.staff.ui.moderation.ModerationOverviewUiState
 import de.velwebsolutions.oasis.staff.ui.moderation.ModerationOverviewViewModel
+import de.velwebsolutions.oasis.staff.ui.moderation.REPORTED_ATTACHMENT_NOTE
 import de.velwebsolutions.oasis.staff.ui.moderation.RolesScreen
 import de.velwebsolutions.oasis.staff.ui.moderation.RolesViewModel
 import de.velwebsolutions.oasis.staff.ui.moderation.SuspensionsContent
@@ -189,6 +195,45 @@ class ModerationUiTest {
         ui.shot("case-chat")
         compose.onNodeWithText("http://localhost/@mira").performClick()
         assertNotNull(ui.top ?: ui.web.lastOrNull())
+    }
+
+    @Test
+    fun `a reported chat message shows its photo, voice message and video with the note`() {
+        val chat = Decoded.caseChat
+        val loaded = mutableListOf<Int>()
+        var state by mutableStateOf(CaseDetailUiState(Loadable.Loaded(chat), failedAttachments = setOf(2)))
+        ui.show { CaseDetailContent(chat.id, state, CaseDetailActions(onLoadAttachment = { loaded += it })) }
+        compose.onNodeWithText("Schau mal").assertIsDisplayed()
+        compose.onNodeWithTag("case.attachment.image").assertExists()
+        compose.onAllNodesWithText(REPORTED_ATTACHMENT_NOTE).assertCountEquals(3)
+        compose.onNodeWithText("Sprachnachricht laden").performScrollTo().performClick()
+        compose.onNodeWithText("Erneut laden").performScrollTo().performClick()
+        compose.waitForIdle()
+        assertEquals(listOf(1, 2), loaded)
+        ui.shot("case-chat-attachments")
+
+        val voice = files.reportedAttachment(chat.id, 1, "ID3".toByteArray())
+        val video = files.reportedAttachment(chat.id, 2, ByteArray(0))
+        state = state.copy(attachmentFiles = mapOf(1 to voice, 2 to video), failedAttachments = emptySet())
+        compose.onNodeWithTag("case.attachment.player").performScrollTo().assertExists()
+        compose.onNodeWithContentDescription("Sprachnachricht abspielen").performScrollTo().performClick()
+        compose.onNodeWithText("Die Sprachnachricht lässt sich nicht abspielen.").performScrollTo().assertIsDisplayed()
+        failVideo()
+        compose.onNodeWithText("Das Video lässt sich nicht abspielen.").performScrollTo().assertIsDisplayed()
+    }
+
+    /** Lets the platform video view report a file it cannot play. */
+    private fun failVideo() {
+        compose.waitForIdle()
+        val global = Class.forName("android.view.WindowManagerGlobal")
+        val instance = global.getMethod("getInstance").invoke(null)
+        val roots = global.getDeclaredField("mViews").apply { isAccessible = true }.get(instance) as List<*>
+        fun find(view: View): VideoView? = view as? VideoView ?: (view as? ViewGroup)?.let { group ->
+            (0 until group.childCount).firstNotNullOfOrNull { find(group.getChildAt(it)) }
+        }
+        val player = roots.filterIsInstance<View>().firstNotNullOf { find(it) }
+        shadowOf(player).onErrorListener.onError(MediaPlayer(), 1, 0)
+        compose.waitForIdle()
     }
 
     @Test

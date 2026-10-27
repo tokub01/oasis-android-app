@@ -44,6 +44,7 @@ import androidx.compose.ui.semantics.clearAndSetSemantics
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.heading
 import androidx.compose.ui.semantics.semantics
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
@@ -231,6 +232,14 @@ private fun Header(profile: Profile, callbacks: ProfileCallbacks) {
                             heading()
                         }
                     )
+                    profile.status?.takeIf { it.isNotEmpty() }?.let { status ->
+                        Text(
+                            status,
+                            style = OasisType.Body.copy(fontWeight = FontWeight.SemiBold),
+                            color = OasisColors.Ink2,
+                            modifier = Modifier.testTag("profile.status")
+                        )
+                    }
                     Text(
                         "@${profile.member.username} · dabei seit ${monthYear(profile.joinedAt)}",
                         style = OasisType.Body,

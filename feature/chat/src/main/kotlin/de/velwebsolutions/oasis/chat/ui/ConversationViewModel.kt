@@ -7,6 +7,7 @@ import dagger.assisted.AssistedFactory
 import dagger.assisted.AssistedInject
 import dagger.hilt.android.lifecycle.HiltViewModel
 import de.velwebsolutions.oasis.chat.api.AttachmentState
+import de.velwebsolutions.oasis.chat.api.ChatAvatar
 import de.velwebsolutions.oasis.chat.api.ChatConversation
 import de.velwebsolutions.oasis.chat.api.PublicUser
 import de.velwebsolutions.oasis.chat.core.AndroidChatMedia
@@ -151,6 +152,12 @@ class ConversationViewModel @AssistedInject constructor(
 
     /** The display name of a sender, "Unbekannt" for someone not in the directory. */
     fun senderName(userId: String): String = users[userId]?.name ?: "Unbekannt"
+
+    /**
+     * The avatar beside a sender's messages, as the conversation describes its members (photos of an accepted chat); the
+     * "?" avatar of someone no longer in it.
+     */
+    fun senderAvatar(userId: String): ChatAvatar = conversation?.avatarOf(userId) ?: ChatAvatar.Unknown
 
     /** Recomputes the derived fields after a change of the conversation, the keys or the timeline. */
     private fun render(change: (ConversationState) -> ConversationState = { it }) {

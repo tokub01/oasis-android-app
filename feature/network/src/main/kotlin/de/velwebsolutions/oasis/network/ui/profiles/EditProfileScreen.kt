@@ -91,7 +91,7 @@ fun EditProfileScreen(viewModel: EditProfileViewModel = hiltViewModel<EditProfil
     }
 
     LaunchedEffect(Unit) { viewModel.loadIfNeeded() }
-    LaunchedEffect(form.bio, form.location) {
+    LaunchedEffect(form.bio, form.location, form.status) {
         delay(500)
         viewModel.checkTone()
     }
@@ -155,7 +155,7 @@ private fun ProfileForm(
 ) {
     val navigator = LocalNavigator.current
     PaperBox(spacing = 18) {
-        val fields = listOf("bio", "location", "avatar_color", "photo")
+        val fields = listOf("bio", "location", "status", "avatar_color", "photo")
         if (error != null && fields.none { error.message(it) != null }) Banner(error.userMessage)
         Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
             OasisTextField(
@@ -187,6 +187,14 @@ private fun ProfileForm(
             error = error?.message("location"),
             hint = "Zum Beispiel deine Stadt. Lass es leer, wenn du das nicht zeigen möchtest.",
             modifier = Modifier.testTag("profileEdit.location")
+        )
+        OasisTextField(
+            "Status (optional)",
+            form.status,
+            viewModel::updateStatus,
+            error = error?.message("status"),
+            hint = "Was gerade bei dir los ist, zum Beispiel „Im Urlaub bis Sonntag“. Steht unter deinem Namen, auch im Chat.",
+            modifier = Modifier.testTag("profileEdit.status")
         )
         Text(
             buildAnnotatedString {

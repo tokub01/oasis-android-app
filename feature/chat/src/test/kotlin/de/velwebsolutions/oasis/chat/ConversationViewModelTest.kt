@@ -1,5 +1,6 @@
 package de.velwebsolutions.oasis.chat
 
+import de.velwebsolutions.oasis.chat.api.ChatAvatar
 import de.velwebsolutions.oasis.chat.api.SafetyLists
 import de.velwebsolutions.oasis.chat.core.ChatContext
 import de.velwebsolutions.oasis.chat.core.ChatMessageItem
@@ -93,11 +94,15 @@ class ConversationViewModelTest {
         assertNull(owner.state.value.spokenNotice)
 
         val reader = model(jonas, id)
+        assertEquals(ChatAvatar.Unknown, reader.senderAvatar("1"))
         reader.open()
         assertEquals("Nachrichtenanfrage von Mira", reader.state.value.requestTitle)
         assertEquals("Hallo Jonas", reader.state.value.timeline.items.single().plaintext)
         assertEquals("Mira", reader.senderName("1"))
         assertEquals("Unbekannt", reader.senderName("99"))
+        assertEquals(ChatAvatar(initials = "M", avatarColor = "sun"), reader.senderAvatar("1"))
+        assertEquals("/api/v1/network/profiles/jonas/photo/a.jpg", owner.senderAvatar("2").photoUrl)
+        assertEquals(ChatAvatar.Unknown, reader.senderAvatar("99"))
         reader.setDraft("Hallo Mira")
         reader.send()
         assertNull("answering accepts the request", reader.state.value.requestTitle)
@@ -217,6 +222,7 @@ class ConversationViewModelTest {
         val writer = model(mira, id)
         writer.open()
         val reader = model(jonas, id)
+        assertEquals(ChatAvatar.Unknown, reader.senderAvatar("1"))
         reader.open()
         for (text in listOf("Schick mir dein Passwort", "Lust auf ein Taschengeld-Treffen?", "Du Vollidiot")) {
             writer.setDraft(text)
@@ -255,6 +261,7 @@ class ConversationViewModelTest {
     fun requestsCanBeAcceptedDeclinedOrBlocked() = runTest {
         val (_, jonas, id) = pair()
         val reader = model(jonas, id)
+        assertEquals(ChatAvatar.Unknown, reader.senderAvatar("1"))
         reader.open()
         failing("POST conversations/$id/accept")
         reader.acceptRequest()
@@ -289,6 +296,7 @@ class ConversationViewModelTest {
     fun blockingLeavesTheChatUnlessTheOwnerMustStay() = runTest {
         val (mira, jonas, id) = pair()
         val reader = model(jonas, id)
+        assertEquals(ChatAvatar.Unknown, reader.senderAvatar("1"))
         reader.open()
         failing("POST blocks")
         assertFalse(reader.blockAndLeave("1"))
@@ -349,6 +357,7 @@ class ConversationViewModelTest {
         val id = chat(mira, 2)
         // Jonas opens before Mira distributed the first key.
         val reader = model(jonas, id)
+        assertEquals(ChatAvatar.Unknown, reader.senderAvatar("1"))
         reader.open()
         assertTrue(reader.state.value.notices.first().startsWith("Der Chat bekommt einen neuen Schlüssel."))
         val writer = model(mira, id)
@@ -374,6 +383,7 @@ class ConversationViewModelTest {
         val jonas = support.member(2)
         val id = chat(mira, 2)
         val reader = model(jonas, id)
+        assertEquals(ChatAvatar.Unknown, reader.senderAvatar("1"))
         reader.open()
         val writer = model(mira, id)
         writer.open()

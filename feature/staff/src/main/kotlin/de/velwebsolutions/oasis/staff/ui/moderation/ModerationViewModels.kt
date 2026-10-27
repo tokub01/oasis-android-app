@@ -132,7 +132,11 @@ data class CaseDetailUiState(
     val statement: StatementOfReasons = StatementOfReasons(),
     val reference: String = "",
     /** The downloaded evidence archive, ready for the share sheet. */
-    val archiveFile: File? = null
+    val archiveFile: File? = null,
+    /** Voice messages and videos of the reported chat message, loaded for the player, by their index. */
+    val attachmentFiles: Map<Int, File> = emptyMap(),
+    /** Files of the reported chat message that could not be loaded, by their index. */
+    val failedAttachments: Set<Int> = emptySet()
 )
 
 /** One case: assignment, decision, escalation and the admin steps (like /moderation/cases/{id}). */
@@ -225,6 +229,29 @@ class CaseDetailViewModel @AssistedInject constructor(
             load()
         }
         result.apiError?.let { failure -> mutableState.update { it.copy(error = failure.userMessage) } }
+    }
+
+    /** Loads a voice message or video of the reported chat message (with the token) into a file for the player. */
+    suspend fun loadAttachment(index: Int) {
+        val attachment = mutableState.value.detail.valueOrNull?.report?.attachments?.getOrNull(index) ?: return
+        val result = attempt { files.reportedAttachment(caseId, index, repository.reportedAttachment(attachment.url)) }
+        result.onSuccess { file ->
+            mutableState.update {
+                it.copy(
+                    attachmentFiles = it.attachmentFiles + (index to file),
+                    failedAttachments =
+                        it.failedAttachments - index
+                )
+            }
+        }
+        result.apiError?.let { failure ->
+            mutableState.update { it.copy(failedAttachments = it.failedAttachments + index, error = failure.userMessage) }
+        }
+    }
+
+    /** The played files of the reported message do not outlive the page. */
+    override fun onCleared() {
+        files.deleteReportedAttachments(caseId)
     }
 
     private suspend fun run(request: suspend () -> Confirmed<ModerationCaseDetail>): Boolean {

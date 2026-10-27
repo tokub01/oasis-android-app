@@ -61,14 +61,14 @@ import de.velwebsolutions.oasis.chat.core.AttachmentView
 import de.velwebsolutions.oasis.chat.core.ChatAttachments
 import de.velwebsolutions.oasis.chat.core.ChatMessageItem
 import de.velwebsolutions.oasis.chat.core.DraftAttachment
-import de.velwebsolutions.oasis.chat.core.VoicePlayer
-import de.velwebsolutions.oasis.chat.core.playDecrypted
 import de.velwebsolutions.oasis.chatcrypto.MessageAttachment
 import de.velwebsolutions.oasis.design.components.AsyncOasisButton
 import de.velwebsolutions.oasis.design.components.OasisButtonKind
 import de.velwebsolutions.oasis.design.components.OasisCheckbox
 import de.velwebsolutions.oasis.design.components.OasisTextButton
 import de.velwebsolutions.oasis.design.media.ImageCodec
+import de.velwebsolutions.oasis.design.media.VoicePlayer
+import de.velwebsolutions.oasis.design.media.playFile
 import de.velwebsolutions.oasis.design.theme.OasisColors
 import de.velwebsolutions.oasis.design.theme.OasisRadius
 import de.velwebsolutions.oasis.design.theme.OasisType
@@ -403,7 +403,7 @@ internal fun FullMedia(view: AttachmentView, kind: AttachmentKind) {
             val file = (view as AttachmentView.Playable).file
             if (kind == AttachmentKind.Video) {
                 AndroidView(
-                    factory = { context -> VideoView(context).apply { playDecrypted(file) { unplayable = true } } },
+                    factory = { context -> VideoView(context).apply { playFile(file) { unplayable = true } } },
                     modifier = Modifier.fillMaxWidth().testTag("chat.attachment.player")
                 )
             } else {

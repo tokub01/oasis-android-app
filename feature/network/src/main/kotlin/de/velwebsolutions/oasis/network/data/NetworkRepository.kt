@@ -118,7 +118,14 @@ interface NetworkRepository {
 
     suspend fun ownProfile(): OwnProfile
 
-    suspend fun updateOwnProfile(bio: String, location: String, avatarColor: String, toneConfirmed: Boolean): Confirmed<OwnProfile>
+    /** Saves bio, location, colour and the status line ("" clears it). */
+    suspend fun updateOwnProfile(
+        bio: String,
+        location: String,
+        avatarColor: String,
+        toneConfirmed: Boolean,
+        status: String = ""
+    ): Confirmed<OwnProfile>
 
     suspend fun uploadPhoto(image: ImageUpload): Confirmed<OwnProfile>
 
@@ -257,8 +264,8 @@ class DefaultNetworkRepository @Inject constructor(client: ApiClient) : NetworkR
 
     override suspend fun ownProfile() = service.ownProfile().data
 
-    override suspend fun updateOwnProfile(bio: String, location: String, avatarColor: String, toneConfirmed: Boolean) =
-        service.updateOwnProfile(ProfileInput(bio, location, avatarColor, toneConfirmed))
+    override suspend fun updateOwnProfile(bio: String, location: String, avatarColor: String, toneConfirmed: Boolean, status: String) =
+        service.updateOwnProfile(ProfileInput(bio, location, avatarColor, toneConfirmed, status))
 
     override suspend fun uploadPhoto(image: ImageUpload) = service.uploadPhoto(file("photo", image))
 

@@ -15,6 +15,7 @@ object Fixtures {
     val caseDetail get() = json("caseDetail")
     val caseEscalated get() = json("caseEscalated")
     val caseCheck get() = json("caseCheck")
+    val caseChat get() = json("caseChat")
     val complaint get() = json("complaint")
     val roles get() = json("roles")
     val suspensions get() = json("suspensions")

@@ -132,10 +132,11 @@ internal fun NewConversationContent(
                 ) {
                     state.selected.forEach { user ->
                         Row(
-                            modifier = Modifier.background(OasisColors.Dune, CircleShape).padding(start = 16.dp, end = 4.dp),
+                            modifier = Modifier.background(OasisColors.Dune, CircleShape).padding(start = 6.dp, end = 4.dp),
                             verticalAlignment = Alignment.CenterVertically,
                             horizontalArrangement = Arrangement.spacedBy(8.dp)
                         ) {
+                            ChatAvatarView(user.shownAvatar, Modifier.testTag("chat.new.avatar.${user.username}"), size = 32.dp)
                             Text("@${user.username}", style = OasisType.BodyBold, color = OasisColors.Night)
                             IconButton(onClick = { onRemove(user) }, modifier = Modifier.defaultMinSize(44.dp, 44.dp)) {
                                 Icon(Icons.Outlined.Close, contentDescription = "@${user.username} entfernen", tint = OasisColors.Night)

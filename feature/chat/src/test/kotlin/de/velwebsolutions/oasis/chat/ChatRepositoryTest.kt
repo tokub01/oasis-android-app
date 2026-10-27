@@ -1,5 +1,6 @@
 package de.velwebsolutions.oasis.chat
 
+import de.velwebsolutions.oasis.chat.api.ChatAvatar
 import de.velwebsolutions.oasis.chat.api.ChatConversation
 import de.velwebsolutions.oasis.chat.api.ChatSettings
 import de.velwebsolutions.oasis.chat.api.ConversationMember
@@ -306,6 +307,48 @@ class ChatRepositoryTest {
         assertEquals("Nur du", chat.copy(members = chat.members.take(1)).displayTitle("1"))
         val settings = ChatSettings("members", true, mapOf("zzz" to "Neu", "nobody" to "Niemand", "aaa" to "Auch neu"))
         assertEquals(listOf("nobody", "aaa", "zzz"), settings.choices.map { it.first })
+    }
+
+    @Test
+    fun avatarsComeFromTheServerAndOlderAnswersStillDecode() {
+        val json = Json { ignoreUnknownKeys = true }
+        val withAvatar = json.decodeFromString(
+            ConversationMember.serializer(),
+            """{"user_id":"2","username":"jonas","display_name":"Jonas Weber","role":"member",""" +
+                """"avatar":{"initials":"JW","avatar_color":"night","photo_url":"http://localhost/api/v1/network/profiles/jonas/photo/a.jpg"}}"""
+        )
+        assertEquals(ChatAvatar("JW", "night", "http://localhost/api/v1/network/profiles/jonas/photo/a.jpg"), withAvatar.shownAvatar)
+        val user = json.decodeFromString(
+            PublicUser.serializer(),
+            """{"id":3,"username":"aylin","avatar":{"initials":"A","avatar_color":"spring","photo_url":null}}"""
+        )
+        assertEquals(ChatAvatar("A", "spring"), user.shownAvatar)
+        // Without `avatar` (older server): the initials of the name in dune.
+        val old = json.decodeFromString(
+            ConversationMember.serializer(),
+            """{"user_id":"1","username":"mira","display_name":"Mira van Sol"}"""
+        )
+        assertNull(old.avatar)
+        assertEquals(ChatAvatar("MS", "dune"), old.shownAvatar)
+        assertEquals("M", PublicUser("1", "mira").shownAvatar.initials)
+        assertEquals("?", ChatAvatar.initialsOf(" ").initials)
+        assertEquals(ChatAvatar.Unknown, json.decodeFromString(ChatAvatar.serializer(), "{}"))
+
+        val chat = json.decodeFromString(ChatConversation.serializer(), CONVERSATION.substringAfter("\"data\":").dropLast(1))
+        assertEquals(listOf("2"), chat.others("1").map { it.userId })
+        assertEquals("JW", chat.avatarOf("2")?.initials)
+        assertNull(chat.avatarOf("99"))
+
+        // The status line under the other person's name, in a 1:1 chat only; older servers send none.
+        assertNull(chat.directStatus("1"))
+        val away = chat.copy(members = chat.members.map { if (it.userId == "2") it.copy(status = "Im Urlaub bis Sonntag") else it })
+        assertEquals("Im Urlaub bis Sonntag", away.directStatus("1"))
+        assertNull(away.copy(type = "group").directStatus("1"))
+        assertNull(away.copy(members = away.members.map { it.copy(status = "") }).directStatus("1"))
+        assertEquals(
+            "Am Meer",
+            json.decodeFromString(ConversationMember.serializer(), """{"user_id":"2","username":"jonas","status":"Am Meer"}""").status
+        )
     }
 
     @Test

@@ -39,6 +39,7 @@ object Decoded {
     val caseDetail get() = data(Fixtures.caseDetail, ModerationCaseDetail.serializer())
     val caseEscalated get() = data(Fixtures.caseEscalated, ModerationCaseDetail.serializer())
     val caseCheck get() = data(Fixtures.caseCheck, ModerationCaseDetail.serializer())
+    val caseChat get() = data(Fixtures.caseChat, ModerationCaseDetail.serializer())
     val complaint get() = data(Fixtures.complaint, ComplaintDetail.serializer())
     val roles get() = plain(Fixtures.roles, RolePage.serializer())
     val suspensions get() = data(Fixtures.suspensions, SuspensionList.serializer())
@@ -60,6 +61,7 @@ class FakeStaffRepository : StaffRepository {
     var case: Result<ModerationCaseDetail> = Result.success(Decoded.caseDetail)
     var caseAction: Result<Confirmed<ModerationCaseDetail>> = Result.success(Confirmed(Decoded.caseDetail, "Gespeichert."))
     var archive: Result<ByteArray> = Result.success("PK".toByteArray())
+    var attachment: Result<ByteArray> = Result.success("ID3".toByteArray())
     var complaint: Result<ComplaintDetail> = Result.success(Decoded.complaint)
     var review: Result<Confirmed<ComplaintDetail>> = Result.success(Confirmed(Decoded.complaint, "Geprüft."))
     var roles: Result<RolePage> = Result.success(Decoded.roles)
@@ -108,6 +110,8 @@ class FakeStaffRepository : StaffRepository {
     override suspend fun liftQuarantine(caseId: Int) = answer("lift", caseAction)
 
     override suspend fun evidenceArchive(caseId: Int) = answer("archive", archive)
+
+    override suspend fun reportedAttachment(url: String) = answer("attachment $url", attachment)
 
     override suspend fun complaint(id: Int) = answer("complaint $id", complaint)
 

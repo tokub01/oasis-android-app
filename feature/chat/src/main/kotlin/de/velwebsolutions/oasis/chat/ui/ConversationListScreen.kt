@@ -91,7 +91,8 @@ internal fun ConversationListScreen() {
             onOpen = { conversation -> navigator.open(ChatRoute.Conversation(conversation.id.toInt())) },
             onNew = { navigator.open(ChatRoute.NewConversation) },
             onApprove = model::approve,
-            onReject = model::reject
+            onReject = model::reject,
+            myId = model.myId
         )
     }
 }
@@ -108,7 +109,9 @@ internal fun ConversationListContent(
     onOpen: (ChatConversation) -> Unit,
     onNew: () -> Unit,
     onApprove: suspend (DeviceLinkRequest) -> Unit,
-    onReject: suspend (DeviceLinkRequest) -> Unit
+    onReject: suspend (DeviceLinkRequest) -> Unit,
+    /** The signed-in member, left out of the conversation avatars. */
+    myId: String = ""
 ) {
     val scope = rememberCoroutineScope()
     var refreshing by remember { mutableStateOf(false) }
@@ -141,12 +144,12 @@ internal fun ConversationListContent(
                             style = OasisType.Small,
                             color = OasisColors.Ink2
                         )
-                        state.requests.forEach { ConversationRow(it, title(it), meta(it), onOpen) }
+                        state.requests.forEach { ConversationRow(it, myId, title(it), meta(it), onOpen) }
                     }
                 }
             }
             items(state.conversations, key = { it.id }) { conversation ->
-                ConversationRow(conversation, title(conversation), meta(conversation), onOpen)
+                ConversationRow(conversation, myId, title(conversation), meta(conversation), onOpen)
             }
             if (state.loaded && state.conversations.isEmpty()) {
                 item {
@@ -209,32 +212,35 @@ internal fun ConversationListActions(onLock: () -> Unit, onSettings: () -> Unit)
 }
 
 @Composable
-private fun ConversationRow(conversation: ChatConversation, title: String, meta: String, onOpen: (ChatConversation) -> Unit) {
-    Column(
+private fun ConversationRow(conversation: ChatConversation, myId: String, title: String, meta: String, onOpen: (ChatConversation) -> Unit) {
+    Row(
         modifier = Modifier
             .fillMaxWidth()
             .background(OasisColors.Paper, RoundedCornerShape(OasisRadius.S.dp))
             .pressable({ onOpen(conversation) })
-            .padding(horizontal = 20.dp, vertical = 16.dp)
+            .padding(horizontal = 16.dp, vertical = 16.dp)
             .testTag("chat.conversation.${conversation.id}")
             .animateContentSize(),
-        verticalArrangement = Arrangement.spacedBy(4.dp)
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.spacedBy(12.dp)
     ) {
-        Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-            Text(title, style = OasisType.BodyBold, color = OasisColors.Night, modifier = Modifier.weight(1f, fill = false))
-            if (conversation.unread == true) Pill("Neu", tone = PillTone.Sun)
-            if (conversation.muted == true) {
-                Text(
-                    "Stumm",
-                    style = OasisType.Caption.copy(fontWeight = FontWeight.Bold),
-                    color = OasisColors.Muted,
-                    modifier = Modifier.testTag("chat.list.muted")
-                )
+        ConversationAvatar(conversation, myId)
+        Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(4.dp)) {
+            Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                Text(title, style = OasisType.BodyBold, color = OasisColors.Night, modifier = Modifier.weight(1f, fill = false))
+                if (conversation.unread == true) Pill("Neu", tone = PillTone.Sun)
+                if (conversation.muted == true) {
+                    Text(
+                        "Stumm",
+                        style = OasisType.Caption.copy(fontWeight = FontWeight.Bold),
+                        color = OasisColors.Muted,
+                        modifier = Modifier.testTag("chat.list.muted")
+                    )
+                }
             }
-            Box(Modifier.weight(1f))
-            Icon(Icons.AutoMirrored.Outlined.KeyboardArrowRight, contentDescription = null, tint = OasisColors.Muted)
+            Text(meta, style = OasisType.Small, color = OasisColors.Muted)
         }
-        Text(meta, style = OasisType.Small, color = OasisColors.Muted)
+        Icon(Icons.AutoMirrored.Outlined.KeyboardArrowRight, contentDescription = null, tint = OasisColors.Muted)
     }
 }
 

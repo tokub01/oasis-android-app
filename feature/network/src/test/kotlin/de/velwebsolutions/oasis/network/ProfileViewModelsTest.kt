@@ -148,6 +148,10 @@ class ProfileViewModelsTest(private val answersAtOnce: Boolean) {
         model.loadIfNeeded()
         model.loadIfNeeded()
         assertEquals("Leipzig", model.form.value.location)
+        assertEquals("Im Urlaub bis Sonntag", model.form.value.status)
+        model.updateStatus("x".repeat(90))
+        assertEquals(80, model.form.value.status.length)
+        model.updateStatus("")
         model.updateBio("Du Idiot")
         model.updateLocation("Halle")
         model.updateColor("night")
@@ -162,6 +166,8 @@ class ProfileViewModelsTest(private val answersAtOnce: Boolean) {
         val sent = network.last("network/profile").body!!
         assertTrue(sent.contains("\"avatar_color\":\"night\""))
         assertTrue(sent.contains("\"tone_confirmed\":true"))
+        // An empty status is sent, so it clears the line.
+        assertTrue(sent.contains("\"status\":\"\""))
         assertEquals("Dein Profil ist gespeichert.", model.status.value)
         assertTrue(NetworkSignals.profile.value > before)
         assertNull(model.form.value.toneHint)
@@ -187,6 +193,15 @@ class ProfileViewModelsTest(private val answersAtOnce: Boolean) {
         network.add("PUT", "network/profile", 422, """{"message":"Der Ort ist zu lang.","errors":{"location":["Der Ort ist zu lang."]}}""")
         model.save()
         assertEquals("Der Ort ist zu lang.", model.error.value?.message("location"))
+
+        network.add(
+            "PUT",
+            "network/profile",
+            422,
+            """{"message":"Zu lang.","errors":{"status":["Der Status darf höchstens 80 Zeichen haben."]}}"""
+        )
+        model.save()
+        assertEquals("Der Status darf höchstens 80 Zeichen haben.", model.error.value?.message("status"))
     }
 
     @Test

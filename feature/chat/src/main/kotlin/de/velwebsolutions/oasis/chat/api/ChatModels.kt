@@ -21,10 +21,47 @@ data class StoredIdentity(
     @SerialName("public_keys") val publicKeys: PublicKeyBundle
 )
 
+/**
+ * The avatar of someone in the chat for the signed-in member (`ChatAvatar` on the server): the profile photo where they
+ * may see it (token route below /api, loaded with the app's image loader), otherwise the initials in the chosen colour.
+ */
+@Serializable
+data class ChatAvatar(
+    val initials: String = "?",
+    @SerialName("avatar_color") val avatarColor: String = "dune",
+    @SerialName("photo_url") val photoUrl: String? = null
+) {
+    companion object {
+        /** Someone the app knows no avatar of (e.g. a former member), like the web's `UNKNOWN`. */
+        val Unknown = ChatAvatar()
+
+        /**
+         * The initials of a name, as `User::initials()` (first and last word's capital), in dune: for answers of an
+         * older server without `avatar`.
+         */
+        fun initialsOf(name: String): ChatAvatar {
+            val letters = name.removePrefix("@").split(' ', '-', '_', '.').filter { it.isNotBlank() }.map { it.first().uppercaseChar() }
+            val initials = when {
+                letters.isEmpty() -> "?"
+                letters.size == 1 -> letters.first().toString()
+                else -> "${letters.first()}${letters.last()}"
+            }
+            return ChatAvatar(initials = initials)
+        }
+    }
+}
+
 /** Someone in the chat, shown by their display name or, without one, as "@username". */
 interface ChatPerson {
     val username: String
     val displayName: String?
+
+    /** The avatar the server sent; null in answers of an older server. */
+    val avatar: ChatAvatar?
+
+    /** The avatar to show: the server's, or the initials of the name in dune. */
+    val shownAvatar: ChatAvatar
+        get() = avatar ?: ChatAvatar.initialsOf(name)
 
     /** "Mira Sol" or "@mira" (`memberName` in ui/dom.js). */
     val name: String
@@ -41,7 +78,8 @@ data class PublicUser(
     override val username: String,
     @SerialName("display_name") override val displayName: String? = null,
     @SerialName("public_keys") val publicKeys: PublicKeyBundle? = null,
-    @SerialName("key_changed_at") val keyChangedAt: String? = null
+    @SerialName("key_changed_at") val keyChangedAt: String? = null,
+    override val avatar: ChatAvatar? = null
 ) : ChatPerson
 
 /** An active member of a conversation. */
@@ -50,7 +88,10 @@ data class ConversationMember(
     @SerialName("user_id") @Serializable(with = FlexibleIdSerializer::class) val userId: String,
     override val username: String,
     @SerialName("display_name") override val displayName: String? = null,
-    val role: String = "member"
+    val role: String = "member",
+    override val avatar: ChatAvatar? = null,
+    /** The status line of their profile; null when empty, held or hidden from the signed-in member. */
+    val status: String? = null
 ) : ChatPerson
 
 /** A conversation (`Conversation::apiData()` plus `unread` / `request` where the endpoint adds them). */
@@ -81,6 +122,15 @@ data class ChatConversation(
         if (others.isEmpty()) return "Nur du"
         return others.joinToString(", ") { it.name }
     }
+
+    /** The other members, whose avatars stand for the chat (`conversationAvatar` in ui/avatar.js). */
+    fun others(myId: String): List<ConversationMember> = members.filter { it.userId != myId }
+
+    /** The other person's status line in a 1:1 chat, shown under the name; null in groups or without one. */
+    fun directStatus(myId: String): String? = others(myId).singleOrNull()?.status?.takeIf { !isGroup && it.isNotEmpty() }
+
+    /** The avatar of a member, null for someone no longer in the chat. */
+    fun avatarOf(userId: String): ChatAvatar? = members.firstOrNull { it.userId == userId }?.shownAvatar
 }
 
 /** Laravel's page-number paginator (`GET /chat/conversations`, 30 per page). */

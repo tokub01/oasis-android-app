@@ -13,6 +13,8 @@ import android.net.Uri
 import android.os.ParcelFileDescriptor
 import android.widget.VideoView
 import androidx.test.core.app.ApplicationProvider
+import de.velwebsolutions.oasis.design.media.VoicePlayer
+import de.velwebsolutions.oasis.design.media.playFile
 import java.io.ByteArrayOutputStream
 import java.io.File
 import java.io.IOException
@@ -282,7 +284,7 @@ class AndroidChatMediaTest {
     fun videosPlayInThePlatformViewAndReportErrors() {
         val view = VideoView(context)
         var errors = 0
-        view.playDecrypted(File(context.cacheDir, "video.mp4")) { errors++ }
+        view.playFile(File(context.cacheDir, "video.mp4")) { errors++ }
         val shadow = shadowOf(view)
         assertTrue(shadow.videoPath.endsWith("video.mp4"))
         shadow.onPreparedListener.onPrepared(MediaPlayer())

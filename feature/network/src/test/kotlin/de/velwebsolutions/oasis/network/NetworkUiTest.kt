@@ -20,6 +20,7 @@ import androidx.compose.ui.test.onNodeWithContentDescription
 import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
+import androidx.compose.ui.test.performScrollTo
 import androidx.compose.ui.test.performScrollToNode
 import androidx.compose.ui.test.performTextInput
 import de.velwebsolutions.oasis.core.model.Loadable
@@ -149,10 +150,12 @@ class NetworkUiTest {
         val asked = mutableListOf<ProfileConfirmation>()
         show { NetworkPage { profileContent(profile, posts, noFeed, ProfileCallbacks(perform = {}, confirm = { asked += it })) } }
 
-        compose.onNodeWithText("Jonas Weber nimmt gerade nur Nachrichten von bestimmten Personen an.").assertIsDisplayed()
+        compose.onNodeWithTag("profile.status").assertIsDisplayed()
+        compose.onNodeWithText("Erntet gerade Tomaten").assertIsDisplayed()
+        compose.onNodeWithText("Jonas Weber nimmt gerade nur Nachrichten von bestimmten Personen an.").performScrollTo().assertIsDisplayed()
         compose.onNodeWithText("Schreiben").assertDoesNotExist()
-        compose.onNodeWithText("Karawane: 3").assertIsDisplayed()
-        compose.onNodeWithTag("profile.unfollow").performClick()
+        compose.onNodeWithText("Karawane: 3").performScrollTo().assertIsDisplayed()
+        compose.onNodeWithTag("profile.unfollow").performScrollTo().performClick()
         assertEquals(listOf(ProfileConfirmation.Unfollow), asked)
     }
 

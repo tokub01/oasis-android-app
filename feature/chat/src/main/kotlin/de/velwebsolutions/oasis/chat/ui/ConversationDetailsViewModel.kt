@@ -4,6 +4,7 @@ import dagger.assisted.Assisted
 import dagger.assisted.AssistedFactory
 import dagger.assisted.AssistedInject
 import dagger.hilt.android.lifecycle.HiltViewModel
+import de.velwebsolutions.oasis.chat.api.ChatAvatar
 import de.velwebsolutions.oasis.chat.api.ChatConversation
 import de.velwebsolutions.oasis.chat.api.ConversationMember
 import de.velwebsolutions.oasis.chat.core.ChatContext
@@ -27,7 +28,11 @@ data class MemberRow(
     /** 12 groups of 5 digits, or "Keine gültigen Schlüssel"; null for the member themselves. */
     val safetyNumber: String?,
     val warning: String?,
-    val removable: Boolean
+    val removable: Boolean,
+    /** Photo or initials beside the name. */
+    val avatar: ChatAvatar = ChatAvatar.Unknown,
+    /** The status line of their profile, under the name. */
+    val status: String? = null
 )
 
 /** What the details screen shows. */
@@ -134,7 +139,9 @@ class ConversationDetailsViewModel @AssistedInject constructor(
                 isMe = isMe,
                 safetyNumber = if (isMe) null else keyring.safetyNumber(member.userId) ?: "Keine gültigen Schlüssel",
                 warning = if (!isMe && changed) "Neue Schlüssel – Nummer erneut vergleichen." else null,
-                removable = isOwner && conversation.isGroup && !isMe
+                removable = isOwner && conversation.isGroup && !isMe,
+                avatar = member.shownAvatar,
+                status = member.status
             )
         }
         mutableState.update { it.copy(members = rows) }

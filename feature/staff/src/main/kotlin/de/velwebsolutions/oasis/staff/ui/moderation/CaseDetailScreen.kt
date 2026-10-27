@@ -83,6 +83,8 @@ class CaseDetailActions(
     val onDeleteEvidence: suspend () -> Unit = {},
     val onLiftQuarantine: suspend () -> Unit = {},
     val onPrepareArchive: suspend () -> Unit = {},
+    /** Loads a voice message or video of the reported chat message for the player. */
+    val onLoadAttachment: suspend (Int) -> Unit = {},
     val onDismissMessage: () -> Unit = {},
     val onDismissError: () -> Unit = {}
 )
@@ -116,6 +118,7 @@ fun CaseDetailScreen(
             onDeleteEvidence = viewModel::deleteEvidence,
             onLiftQuarantine = viewModel::liftQuarantine,
             onPrepareArchive = viewModel::prepareArchive,
+            onLoadAttachment = viewModel::loadAttachment,
             onDismissMessage = viewModel::dismissMessage,
             onDismissError = viewModel::dismissError
         )
@@ -146,7 +149,7 @@ fun CaseDetailContent(caseId: Int, state: CaseDetailUiState, actions: CaseDetail
                         Pill(detail.priority.label, tone = PillTone.Outline)
                     }
                 }
-                ReportSection(detail)
+                ReportSection(detail, state, actions)
                 val escalation = detail.escalation
                 if (escalation != null) {
                     EscalatedSection(
@@ -249,7 +252,7 @@ fun CaseDetailContent(caseId: Int, state: CaseDetailUiState, actions: CaseDetail
 
 /** "Meldung": what was reported and by which source; the reporter is never shown. */
 @Composable
-private fun ReportSection(detail: ModerationCaseDetail) {
+private fun ReportSection(detail: ModerationCaseDetail, state: CaseDetailUiState, actions: CaseDetailActions) {
     SectionCard("Meldung") {
         Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
             Text("Gemeldeter Inhalt", style = OasisType.SmallBold, color = OasisColors.Ink)
@@ -260,6 +263,7 @@ private fun ReportSection(detail: ModerationCaseDetail) {
                 Text("Gemeldeter Klartext", style = OasisType.SmallBold, color = OasisColors.Ink)
                 SandBox { Text(detail.report.plaintext.orEmpty(), style = OasisType.Digits.copy(fontSize = OasisType.Caption.fontSize)) }
             }
+            ReportedAttachments(detail.report.attachments, state.attachmentFiles, state.failedAttachments, actions.onLoadAttachment)
             FactRow(
                 "Hinweis zur Prüfung",
                 "Vom meldenden Mitglied übermittelt. Absender, Chat und Zeit sind per Signatur geprüft; ob der Text zur verschlüsselten " +

@@ -136,6 +136,15 @@ class FakeChatServer : Interceptor {
                             put("display_name", name(member))
                             put("role", if (member == conversation.createdBy) "owner" else "member")
                             put("joined_at", "2026-10-22T11:00:00.000000Z")
+                            // ChatAvatar: initials in the colour, a photo for Jonas (2).
+                            put(
+                                "avatar",
+                                buildJsonObject {
+                                    put("initials", name(member).take(1))
+                                    put("avatar_color", "sun")
+                                    put("photo_url", if (member == 2) "/api/v1/network/profiles/jonas/photo/a.jpg" else null)
+                                }
+                            )
                         }
                     )
                 }

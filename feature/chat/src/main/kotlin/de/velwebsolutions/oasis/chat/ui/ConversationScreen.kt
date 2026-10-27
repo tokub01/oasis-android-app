@@ -16,6 +16,7 @@ import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.RowScope
+import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.imePadding
@@ -24,6 +25,7 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.BasicTextField
@@ -55,12 +57,14 @@ import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.liveRegion
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.font.FontStyle
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardCapitalization
 import androidx.compose.ui.text.style.TextDecoration
 import androidx.compose.ui.unit.dp
 import androidx.core.content.ContextCompat
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import de.velwebsolutions.oasis.chat.api.ChatAvatar
 import de.velwebsolutions.oasis.chat.core.ChatMessageItem
 import de.velwebsolutions.oasis.chat.core.formatDateTime
 import de.velwebsolutions.oasis.design.components.AsyncOasisButton
@@ -121,6 +125,7 @@ internal fun ConversationScreen(conversationId: Int) {
             state = state,
             myId = model.context.userId,
             senderName = model::senderName,
+            senderAvatar = model::senderAvatar,
             onLoadOlder = model::loadOlder,
             onDraftChange = model::setDraft,
             onSend = model::send,
@@ -164,7 +169,9 @@ internal fun ConversationContent(
     onBlockFlagged: (String) -> Unit,
     onDismissFlagged: () -> Unit,
     onNoticeSpoken: () -> Unit,
-    attachments: AttachmentActions
+    attachments: AttachmentActions,
+    /** The avatar beside someone else's messages. */
+    senderAvatar: (String) -> ChatAvatar = { ChatAvatar.Unknown }
 ) {
     val listState = rememberLazyListState()
     val items = state.timeline.items
@@ -196,14 +203,25 @@ internal fun ConversationContent(
             verticalArrangement = Arrangement.spacedBy(12.dp)
         ) {
             item {
-                Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
-                    Text(
-                        state.title,
-                        style = OasisType.display(26),
-                        color = OasisColors.Night,
-                        modifier = Modifier.testTag("chat.conversation.title")
-                    )
-                    Text(state.lifetimeLine, style = OasisType.Small, color = OasisColors.Muted)
+                Row(horizontalArrangement = Arrangement.spacedBy(14.dp), verticalAlignment = Alignment.CenterVertically) {
+                    state.conversation?.let { ConversationAvatar(it, myId, Modifier.testTag("chat.conversation.avatar"), size = 52.dp) }
+                    Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(6.dp)) {
+                        Text(
+                            state.title,
+                            style = OasisType.display(26),
+                            color = OasisColors.Night,
+                            modifier = Modifier.testTag("chat.conversation.title")
+                        )
+                        state.conversation?.directStatus(myId)?.let { status ->
+                            Text(
+                                status,
+                                style = OasisType.Body.copy(fontWeight = FontWeight.SemiBold),
+                                color = OasisColors.Ink2,
+                                modifier = Modifier.testTag("chat.conversation.status")
+                            )
+                        }
+                        Text(state.lifetimeLine, style = OasisType.Small, color = OasisColors.Muted)
+                    }
                 }
             }
             items(state.notices) { Banner(it, kind = BannerKind.Info) }
@@ -267,9 +285,18 @@ internal fun ConversationContent(
                     )
                 }
             }
-            items(items, key = { it.id }) { item ->
-                MessageBubble(item, mine = item.senderId == myId, senderName = senderName(item.senderId), onReport = { onReport(item) }) {
-                    MessageAttachments(item, item.senderId == myId, senderName(item.senderId), state.attachmentViews, attachments)
+            itemsIndexed(items, key = { _, item -> item.id }) { index, item ->
+                val mine = item.senderId == myId
+                MessageBubble(
+                    item,
+                    mine = mine,
+                    senderName = senderName(item.senderId),
+                    onReport = { onReport(item) },
+                    // Beside someone else's messages: the avatar at the start of each of their runs, room for it below.
+                    avatar = if (mine) null else senderAvatar(item.senderId),
+                    startsRun = index == 0 || items[index - 1].senderId != item.senderId
+                ) {
+                    MessageAttachments(item, mine, senderName(item.senderId), state.attachmentViews, attachments)
                 }
             }
         }
@@ -458,17 +485,48 @@ private fun RowScope.ComposerField(
     }
 }
 
-/** One message bubble: own messages right on night, others left on paper; its files, expiry and "Melden" below. */
+/**
+ * One message bubble: own messages right on night, others left on paper; its files, expiry and "Melden" below. With an
+ * [avatar], someone else's bubble has it beside it where their run of messages [startsRun], and room for it otherwise.
+ */
 @Composable
 internal fun MessageBubble(
     item: ChatMessageItem,
     mine: Boolean,
     senderName: String,
     onReport: () -> Unit,
+    avatar: ChatAvatar? = null,
+    startsRun: Boolean = true,
     attachments: @Composable () -> Unit
 ) {
+    if (avatar == null) {
+        BubbleColumn(item, mine, senderName, onReport, attachments)
+        return
+    }
+    Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+        if (startsRun) {
+            ChatAvatarView(avatar, Modifier.testTag("chat.message.avatar"), size = MESSAGE_AVATAR_SIZE)
+        } else {
+            Spacer(Modifier.size(MESSAGE_AVATAR_SIZE))
+        }
+        BubbleColumn(item, mine, senderName, onReport, attachments, Modifier.weight(1f))
+    }
+}
+
+/** The avatar beside someone else's messages. */
+private val MESSAGE_AVATAR_SIZE = 32.dp
+
+@Composable
+private fun BubbleColumn(
+    item: ChatMessageItem,
+    mine: Boolean,
+    senderName: String,
+    onReport: () -> Unit,
+    attachments: @Composable () -> Unit,
+    modifier: Modifier = Modifier
+) {
     Column(
-        modifier = Modifier.fillMaxWidth(),
+        modifier = modifier.fillMaxWidth(),
         horizontalAlignment = if (mine) Alignment.End else Alignment.Start,
         verticalArrangement = Arrangement.spacedBy(4.dp)
     ) {

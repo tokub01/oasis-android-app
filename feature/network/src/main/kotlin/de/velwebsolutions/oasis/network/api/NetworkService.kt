@@ -20,7 +20,14 @@ import retrofit2.http.Query
 internal data class BodyInput(val body: String)
 
 @Serializable
-internal data class ProfileInput(val bio: String, val location: String, val avatarColor: String, val toneConfirmed: Boolean)
+internal data class ProfileInput(
+    val bio: String,
+    val location: String,
+    val avatarColor: String,
+    val toneConfirmed: Boolean,
+    /** "" clears it. */
+    val status: String
+)
 
 @Serializable
 internal data class RoleInput(val role: String)

@@ -6,11 +6,9 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.defaultMinSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.selection.SelectionContainer
 import androidx.compose.material.icons.Icons
@@ -32,6 +30,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
@@ -247,10 +246,20 @@ private fun MuteSection(
 @Composable
 private fun MemberRowView(row: MemberRow, onRemove: () -> Unit) {
     Column(Modifier.fillMaxWidth().padding(vertical = 6.dp), verticalArrangement = Arrangement.spacedBy(4.dp)) {
-        Row(verticalAlignment = Alignment.CenterVertically) {
-            Text(row.label, style = OasisType.BodyBold, color = OasisColors.Night, modifier = Modifier.weight(1f))
+        Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+            ChatAvatarView(row.avatar, Modifier.testTag("chat.details.avatar.${row.username}"), size = 40.dp)
+            Column(Modifier.weight(1f)) {
+                Text(row.label, style = OasisType.BodyBold, color = OasisColors.Night)
+                row.status?.takeIf { it.isNotEmpty() }?.let {
+                    Text(
+                        it,
+                        style = OasisType.Small.copy(fontWeight = FontWeight.SemiBold),
+                        color = OasisColors.Ink2,
+                        modifier = Modifier.testTag("chat.details.status.${row.username}")
+                    )
+                }
+            }
             if (row.removable) {
-                Spacer(Modifier.width(8.dp))
                 SmallAction(
                     "Entfernen",
                     onRemove,

@@ -59,6 +59,9 @@ interface StaffRepository {
     /** The evidence ZIP for the police (admins only); the bytes as the web download serves them. */
     suspend fun evidenceArchive(caseId: Int): ByteArray
 
+    /** A file of a reported chat message (the `url` of the case's report), as the server opened it. */
+    suspend fun reportedAttachment(url: String): ByteArray
+
     suspend fun complaint(id: Int): ComplaintDetail
 
     suspend fun review(complaintId: Int, result: String, explanation: String, replacement: StatementOfReasons): Confirmed<ComplaintDetail>
@@ -146,6 +149,8 @@ class DefaultStaffRepository @Inject constructor(private val client: ApiClient) 
     override suspend fun liftQuarantine(caseId: Int) = service.liftQuarantine(caseId)
 
     override suspend fun evidenceArchive(caseId: Int) = client.download(client.url("staff/moderation/cases/$caseId/evidence").toString())
+
+    override suspend fun reportedAttachment(url: String) = client.download(url)
 
     override suspend fun complaint(id: Int) = service.complaint(id).data
 
