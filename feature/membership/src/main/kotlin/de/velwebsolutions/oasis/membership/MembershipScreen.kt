@@ -3,8 +3,10 @@ package de.velwebsolutions.oasis.membership
 import androidx.compose.runtime.Composable
 import de.velwebsolutions.oasis.design.navigation.MembershipRoute
 import de.velwebsolutions.oasis.membership.ui.CancelScreen
+import de.velwebsolutions.oasis.membership.ui.CompanionLinkScreen
 import de.velwebsolutions.oasis.membership.ui.InvoiceScreen
 import de.velwebsolutions.oasis.membership.ui.OverviewScreen
+import de.velwebsolutions.oasis.membership.ui.PerksScreen
 import de.velwebsolutions.oasis.membership.ui.PlayCheckoutScreen
 import de.velwebsolutions.oasis.membership.ui.PortalScreen
 import de.velwebsolutions.oasis.membership.ui.WithdrawScreen
@@ -22,6 +24,10 @@ fun MembershipScreen(route: MembershipRoute) {
         MembershipRoute.Cancel -> CancelScreen()
 
         MembershipRoute.Withdraw -> WithdrawScreen()
+
+        MembershipRoute.Perks -> PerksScreen()
+
+        is MembershipRoute.CompanionLink -> CompanionLinkScreen(route.token)
 
         // MembershipRoute.Checkout, the last route (an `else` instead of a check that could never fail).
         else -> PlayCheckoutScreen()

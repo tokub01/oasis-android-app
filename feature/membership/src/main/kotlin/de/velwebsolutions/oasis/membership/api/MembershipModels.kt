@@ -21,7 +21,9 @@ data class MembershipOverview(
     /** A membership billed by Apple (bought on an iPhone); null from servers before in-app subscriptions existed. */
     val apple: Apple? = null,
     /** In-app subscriptions through Google Play (`google` of MembershipResource); null from servers before they existed. */
-    val google: Google? = null
+    val google: Google? = null,
+    /** What the tier allows (TierFeatures); empty from servers before the tiers. */
+    val features: MembershipPerks.Features = MembershipPerks.Features()
 ) {
     /** Which status card the web shows. */
     @Serializable
@@ -104,3 +106,45 @@ data class CancellationDetails(
 /** The withdrawal confirmation page data (GET /api/v1/membership/withdrawal). */
 @Serializable
 data class WithdrawalDetails(val tierName: String, val name: String, val email: String)
+
+/**
+ * Deine Vorteile (GET /api/v1/membership/perks): what the tier includes, the companion places a Mäzen gives, the place
+ * a companion holds and the supporter choices.
+ */
+@Serializable
+data class MembershipPerks(
+    val tier: String? = null,
+    val tierName: String = "",
+    val features: Features = Features(),
+    /** The lines of "In … enthalten". */
+    val highlights: List<String> = emptyList(),
+    val seats: List<Seat> = emptyList(),
+    val remainingSeats: Int = 0,
+    /** The place this member holds from a Mäzen, null without one. */
+    val heldSeat: HeldSeat? = null,
+    val supporterBadge: Boolean = false,
+    val thankYouList: Boolean = false
+) {
+    /** What the tier allows, as far as this screen needs it (TierFeatures). */
+    @Serializable
+    data class Features(val companionSeats: Int = 0, val supporterBadge: Boolean = false)
+
+    /** A given companion place: taken by [member] since [acceptedAt], or open with the share link [url]. */
+    @Serializable
+    data class Seat(val id: Int, val member: Member? = null, val acceptedAt: OasisInstant? = null, val url: String? = null) {
+        @Serializable
+        data class Member(val displayName: String, val username: String)
+    }
+
+    /** The held place: whose it is and whether it is active (the sponsor is still Mäzen) or resting. */
+    @Serializable
+    data class HeldSeat(val sponsor: String, val active: Boolean = false)
+}
+
+/** Who offers the place behind a companion link (GET membership/companion-links/{token}); null: no longer valid. */
+@Serializable
+data class CompanionLinkInfo(val sponsor: String? = null)
+
+/** The supporter choices to change (PATCH membership/supporter); a null choice stays as it is. */
+@Serializable
+data class SupporterInput(val supporterBadge: Boolean? = null, val thankYouList: Boolean? = null)

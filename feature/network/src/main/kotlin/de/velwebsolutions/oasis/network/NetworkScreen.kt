@@ -23,6 +23,8 @@ import de.velwebsolutions.oasis.network.ui.profiles.InvitationScreen
 import de.velwebsolutions.oasis.network.ui.profiles.InvitationsScreen
 import de.velwebsolutions.oasis.network.ui.profiles.ProfileScreen
 import de.velwebsolutions.oasis.network.ui.profiles.StatisticsScreen
+import de.velwebsolutions.oasis.network.ui.profiles.TimeCapsulesScreen
+import de.velwebsolutions.oasis.network.ui.profiles.YearbookScreen
 
 /** Entry point of the Network module: the screen for each [NetworkRoute] (mapped in the app). */
 @Composable
@@ -61,6 +63,10 @@ fun NetworkScreen(route: NetworkRoute) {
         NetworkRoute.Friends -> FriendsScreen()
 
         NetworkRoute.Statistics -> StatisticsScreen()
+
+        NetworkRoute.TimeCapsules -> TimeCapsulesScreen()
+
+        is NetworkRoute.Yearbook -> YearbookScreen(route.year)
 
         NetworkRoute.Invitations -> InvitationsScreen()
 

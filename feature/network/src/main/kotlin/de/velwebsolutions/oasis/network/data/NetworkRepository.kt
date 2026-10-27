@@ -35,6 +35,9 @@ import de.velwebsolutions.oasis.network.api.SearchContext
 import de.velwebsolutions.oasis.network.api.SourceContext
 import de.velwebsolutions.oasis.network.api.SwipeDeck
 import de.velwebsolutions.oasis.network.api.TagContext
+import de.velwebsolutions.oasis.network.api.TimeCapsuleInput
+import de.velwebsolutions.oasis.network.api.TimeCapsules
+import de.velwebsolutions.oasis.network.api.Yearbook
 import javax.inject.Inject
 import okhttp3.MediaType.Companion.toMediaType
 import okhttp3.MultipartBody
@@ -52,6 +55,20 @@ interface NetworkRepository {
     suspend fun bookmarks(cursor: String?): FeedPage<NoContext>
 
     suspend fun statistics(): MemberStatistics
+
+    // Zeitkapseln and Jahrbuch
+    suspend fun timeCapsules(): TimeCapsules
+
+    /** Seals a Zeitkapsel; returns the server's confirmation. */
+    suspend fun sealTimeCapsule(input: TimeCapsuleInput): String
+
+    /** Opens a waiting Zeitkapsel now; the confirmation says whether it opened or why not. */
+    suspend fun openTimeCapsule(id: Int): String
+
+    suspend fun deleteTimeCapsule(id: Int): String
+
+    /** The Jahrbuch of [year], the current year when null. */
+    suspend fun yearbook(year: Int?): Yearbook
 
     suspend fun search(query: String, cursor: String?): FeedPage<SearchContext>
 
@@ -169,6 +186,16 @@ class DefaultNetworkRepository @Inject constructor(client: ApiClient) : NetworkR
     override suspend fun bookmarks(cursor: String?) = service.bookmarks(cursor)
 
     override suspend fun statistics() = service.statistics().data
+
+    override suspend fun timeCapsules() = service.timeCapsules().data
+
+    override suspend fun sealTimeCapsule(input: TimeCapsuleInput) = service.sealTimeCapsule(input).message
+
+    override suspend fun openTimeCapsule(id: Int) = service.openTimeCapsule(id).message
+
+    override suspend fun deleteTimeCapsule(id: Int) = service.deleteTimeCapsule(id).message
+
+    override suspend fun yearbook(year: Int?) = (if (year == null) service.yearbook() else service.yearbook(year)).data
 
     override suspend fun search(query: String, cursor: String?) = service.search(query, cursor)
 

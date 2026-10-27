@@ -187,10 +187,18 @@ data class ComposerContext(
     val oasis: OasisName? = null,
     val links: List<ExternalLink> = emptyList(),
     val maxLength: Int = 500,
-    val maxImages: Int = 4
+    val maxImages: Int = 4,
+    /** The longest edge of a Tropfen photo in pixels (2048, or 4096 from Mäzen); servers before tiers leave it out. */
+    val imageEdge: Int = ImageEdge.DEFAULT
 ) {
     @Serializable
     data class OasisName(val slug: String, val name: String)
+}
+
+/** The longest edge of Tropfen photos the server keeps. */
+object ImageEdge {
+    /** What every membership gets, and the size before the server sent `image_edge`. */
+    const val DEFAULT = 2048
 }
 
 /** The answer after publishing. */

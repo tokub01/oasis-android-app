@@ -148,7 +148,8 @@ class ShellUiTest {
         val pages = listOf(
             "Hinweise" to LiveRoute.Inbox, "Freund:innen" to NetworkRoute.Friends, "Gemerkt" to NetworkRoute.Bookmarks,
             "Einstellungen" to AccountRoute.Settings, "Mitgliedschaft" to MembershipRoute.Overview,
-            "Deine Zahlen" to NetworkRoute.Statistics, "Menschen einladen" to NetworkRoute.Invitations,
+            "Deine Zahlen" to NetworkRoute.Statistics, "Zeitkapseln" to NetworkRoute.TimeCapsules, "Jahrbuch" to NetworkRoute.Yearbook(),
+            "Menschen einladen" to NetworkRoute.Invitations,
             "Privatsphäre" to AccountRoute.Privacy, "Blockiert & stumm" to AccountRoute.Safety, "Abstimmungen" to AccountRoute.Votes,
             "Begriffe erklärt" to AccountRoute.Glossary, "Moderation" to StaffRoute.Moderation, "Verwaltung" to StaffRoute.AdminDashboard
         )
@@ -231,6 +232,14 @@ class ShellUiTest {
         compose.onNodeWithText("Abmelden").performClick()
         compose.onNodeWithText("Anmelden-Screen").assertIsDisplayed()
         assertEquals("SignedOut", model.state.value.javaClass.simpleName)
+    }
+
+    @Test
+    fun `a companion link opens without a membership`() {
+        start(mira.copy(hasPaidAccess = false))
+        val link = "https://get-oasis.com/app/mitgliedschaft/mitkommen/" + "a".repeat(40)
+        compose.runOnIdle { navigator.handle(link) }
+        compose.onNodeWithText("Inhalt ${MembershipRoute.CompanionLink("a".repeat(40))}").assertIsDisplayed()
     }
 
     @Test

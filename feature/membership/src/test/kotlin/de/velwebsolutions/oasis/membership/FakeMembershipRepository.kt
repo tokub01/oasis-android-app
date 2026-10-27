@@ -5,6 +5,8 @@ import de.velwebsolutions.oasis.core.network.Confirmed
 import de.velwebsolutions.oasis.membership.api.CancellationDetails
 import de.velwebsolutions.oasis.membership.api.MembershipOverview
 import de.velwebsolutions.oasis.membership.api.MembershipPayment
+import de.velwebsolutions.oasis.membership.api.MembershipPerks
+import de.velwebsolutions.oasis.membership.api.SupporterInput
 import de.velwebsolutions.oasis.membership.api.WithdrawalDetails
 import de.velwebsolutions.oasis.membership.billing.PlayPurchaseReceipt
 import de.velwebsolutions.oasis.membership.data.MembershipRepository
@@ -58,6 +60,25 @@ class FakeMembershipRepository : MembershipRepository {
     override suspend fun withdraw() = end.getOrThrow()
 
     override suspend fun export() = export.getOrThrow()
+
+    var perks: Result<MembershipPerks> = Result.success(Fixtures.perks())
+    var companionSponsor: Result<String?> = Result.success("Mia Mäzen")
+    var action: Result<String> = Result.success("Gespeichert.")
+    val calls = mutableListOf<String>()
+
+    override suspend fun perks() = perks.getOrThrow()
+
+    override suspend fun createSeat() = action.also { calls += "createSeat" }.getOrThrow()
+
+    override suspend fun releaseSeat(id: Int) = action.also { calls += "releaseSeat $id" }.getOrThrow()
+
+    override suspend fun companionSponsor(token: String) = companionSponsor.getOrThrow()
+
+    override suspend fun acceptCompanionLink(token: String) = action.also { calls += "accept $token" }.getOrThrow()
+
+    override suspend fun leaveSeat() = action.also { calls += "leaveSeat" }.getOrThrow()
+
+    override suspend fun updateSupporter(input: SupporterInput) = action.also { calls += "supporter $input" }.getOrThrow()
 
     companion object {
         /** A server error as the API client reports it. */

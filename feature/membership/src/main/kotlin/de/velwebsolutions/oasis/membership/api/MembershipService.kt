@@ -2,10 +2,14 @@ package de.velwebsolutions.oasis.membership.api
 
 import de.velwebsolutions.oasis.core.network.Confirmed
 import de.velwebsolutions.oasis.core.network.DataEnvelope
+import de.velwebsolutions.oasis.core.network.MessageResponse
 import de.velwebsolutions.oasis.membership.billing.PlayPurchaseReceipt
 import retrofit2.http.Body
+import retrofit2.http.DELETE
 import retrofit2.http.GET
+import retrofit2.http.PATCH
 import retrofit2.http.POST
+import retrofit2.http.Path
 
 /**
  * The membership endpoints the app uses (`routes/api/v1/members/membership.php`, names `api.v1.membership.*`). Buying
@@ -37,4 +41,31 @@ interface MembershipService {
 
     @POST("membership/withdrawal")
     suspend fun withdraw(): Confirmed<MembershipOverview>
+
+    // Deine Vorteile: companion places and the supporter mark
+
+    @GET("membership/perks")
+    suspend fun perks(): DataEnvelope<MembershipPerks>
+
+    /** 201 with the new place's link; 422 `errors.seat` when none is free. */
+    @POST("membership/companion-seats")
+    suspend fun createSeat(): MessageResponse
+
+    @DELETE("membership/companion-seats/{id}")
+    suspend fun releaseSeat(@Path("id") id: Int): MessageResponse
+
+    @GET("membership/companion-links/{token}")
+    suspend fun companionLink(@Path("token") token: String): DataEnvelope<CompanionLinkInfo>
+
+    /** Takes the place; 422 `errors.seat` names why not. */
+    @POST("membership/companion-links/{token}")
+    suspend fun acceptCompanionLink(@Path("token") token: String): MessageResponse
+
+    /** A companion gives the held place back. */
+    @DELETE("membership/companion-seat")
+    suspend fun leaveSeat(): MessageResponse
+
+    /** 403 below Mäzen. */
+    @PATCH("membership/supporter")
+    suspend fun updateSupporter(@Body input: SupporterInput): MessageResponse
 }

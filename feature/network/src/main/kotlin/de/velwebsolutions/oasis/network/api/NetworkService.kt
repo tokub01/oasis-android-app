@@ -47,6 +47,27 @@ internal interface NetworkService {
     @GET("network/statistics")
     suspend fun statistics(): DataEnvelope<MemberStatistics>
 
+    // Zeitkapseln and Jahrbuch (from Oase)
+
+    @GET("network/time-capsules")
+    suspend fun timeCapsules(): DataEnvelope<TimeCapsules>
+
+    /** Answers 201 with the capsule as well; the list reloads, so only the confirmation is read. */
+    @POST("network/time-capsules")
+    suspend fun sealTimeCapsule(@Body input: TimeCapsuleInput): MessageResponse
+
+    @POST("network/time-capsules/{id}/open")
+    suspend fun openTimeCapsule(@Path("id") id: Int): MessageResponse
+
+    @DELETE("network/time-capsules/{id}")
+    suspend fun deleteTimeCapsule(@Path("id") id: Int): MessageResponse
+
+    @GET("network/yearbook")
+    suspend fun yearbook(): DataEnvelope<Yearbook>
+
+    @GET("network/yearbook/{year}")
+    suspend fun yearbook(@Path("year") year: Int): DataEnvelope<Yearbook>
+
     @GET("network/search")
     suspend fun search(@Query("q") query: String, @Query("cursor") cursor: String?): FeedPage<SearchContext>
 

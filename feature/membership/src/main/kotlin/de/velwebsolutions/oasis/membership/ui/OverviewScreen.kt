@@ -26,6 +26,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.testTag
+import androidx.compose.ui.semantics.heading
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
@@ -37,6 +38,7 @@ import de.velwebsolutions.oasis.design.components.LoadableView
 import de.velwebsolutions.oasis.design.components.OasisButton
 import de.velwebsolutions.oasis.design.components.OasisScreen
 import de.velwebsolutions.oasis.design.components.PageHeader
+import de.velwebsolutions.oasis.design.components.Panel
 import de.velwebsolutions.oasis.design.components.PanelTone
 import de.velwebsolutions.oasis.design.components.SectionCard
 import de.velwebsolutions.oasis.design.components.SideCard
@@ -44,6 +46,7 @@ import de.velwebsolutions.oasis.design.components.pressable
 import de.velwebsolutions.oasis.design.navigation.AccountRoute
 import de.velwebsolutions.oasis.design.navigation.LocalNavigator
 import de.velwebsolutions.oasis.design.navigation.MembershipRoute
+import de.velwebsolutions.oasis.design.navigation.Navigator
 import de.velwebsolutions.oasis.design.navigation.WebRoute
 import de.velwebsolutions.oasis.design.theme.OasisColors
 import de.velwebsolutions.oasis.design.theme.OasisRadius
@@ -97,6 +100,7 @@ private fun OverviewSections(overview: MembershipOverview, onSubscriptionManaged
     val context = LocalContext.current
     Column(verticalArrangement = Arrangement.spacedBy(18.dp)) {
         StatusCard(overview, onSubscriptionManaged)
+        PerksCard(overview, navigator)
         if (overview.purchasedGifts.isNotEmpty()) {
             SectionCard("Deine gekauften Gutscheine") {
                 overview.purchasedGifts.forEachIndexed { index, gift ->
@@ -143,6 +147,21 @@ private fun OverviewSections(overview: MembershipOverview, onSubscriptionManaged
             InlineLink("AGB", { openWebsite("/agb") }, color = OasisColors.Night)
             InlineLink("Hilfe & Kontakt", { openWebsite("/hilfe") }, color = OasisColors.Night)
         }
+    }
+}
+
+/** "Deine Vorteile": the way to what the tier includes (and to the companion places and the supporter mark of a Mäzen). */
+@Composable
+private fun PerksCard(overview: MembershipOverview, navigator: Navigator) {
+    Panel(Modifier.pressable({ navigator.open(MembershipRoute.Perks) }).testTag("membership.perks"), spacing = 6) {
+        Text("Deine Vorteile", style = OasisType.heading(), color = OasisColors.Night, modifier = Modifier.semantics { heading() })
+        Text(
+            "Was deine Stufe enthält" +
+                (if (overview.features.companionSeats > 0) ", deine Plätze für andere und dein Unterstützer-Zeichen" else "") +
+                ".",
+            style = OasisType.Small,
+            color = OasisColors.Ink2
+        )
     }
 }
 

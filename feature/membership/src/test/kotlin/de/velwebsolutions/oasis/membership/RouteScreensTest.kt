@@ -24,8 +24,10 @@ import de.velwebsolutions.oasis.membership.billing.PlayDelivery
 import de.velwebsolutions.oasis.membership.data.MembershipEvents
 import de.velwebsolutions.oasis.membership.data.MembershipFiles
 import de.velwebsolutions.oasis.membership.ui.CancelViewModel
+import de.velwebsolutions.oasis.membership.ui.CompanionLinkViewModel
 import de.velwebsolutions.oasis.membership.ui.InvoiceViewModel
 import de.velwebsolutions.oasis.membership.ui.OverviewViewModel
+import de.velwebsolutions.oasis.membership.ui.PerksViewModel
 import de.velwebsolutions.oasis.membership.ui.PlayCheckoutViewModel
 import de.velwebsolutions.oasis.membership.ui.PortalViewModel
 import de.velwebsolutions.oasis.membership.ui.WithdrawViewModel
@@ -83,6 +85,8 @@ class RouteScreensTest {
             InvoiceViewModel::class -> InvoiceViewModel(7, repository, files)
             CancelViewModel::class -> CancelViewModel(repository, files, events, Fixtures.session())
             WithdrawViewModel::class -> WithdrawViewModel(repository, files, events, Fixtures.session())
+            PerksViewModel::class -> PerksViewModel(repository, events, Fixtures.session())
+            CompanionLinkViewModel::class -> CompanionLinkViewModel("a".repeat(40), repository, events, Fixtures.session())
             else -> PlayCheckoutViewModel(repository, gateway, PlayDelivery(repository), events, Fixtures.session())
         } as T
     }
@@ -97,6 +101,8 @@ class RouteScreensTest {
         provider[CancelViewModel::class]
         provider[WithdrawViewModel::class]
         provider[PlayCheckoutViewModel::class]
+        provider[PerksViewModel::class]
+        provider[CompanionLinkViewModel::class]
     }
 
     @Test
@@ -123,5 +129,9 @@ class RouteScreensTest {
         compose.onNodeWithText("Gesetzliches Widerrufsrecht innerhalb von 14 Tagen (§ 355 BGB).").assertExists()
         route = MembershipRoute.Checkout
         compose.onNodeWithText("Bleib in der Oase.").assertExists()
+        route = MembershipRoute.Perks
+        compose.onNodeWithText("In Mäzen enthalten").assertExists()
+        route = MembershipRoute.CompanionLink("a".repeat(40))
+        compose.onNodeWithText("Mia Mäzen nimmt dich mit nach Oasis").assertExists()
     }
 }

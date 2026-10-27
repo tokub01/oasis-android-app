@@ -38,6 +38,24 @@ class DeepLinkTest {
     }
 
     @Test
+    fun `maps the tier pages and a companion link with a valid token`() {
+        val token = "a".repeat(20) + "B7".repeat(10)
+        assertEquals(NetworkRoute.TimeCapsules, route("https://get-oasis.com/app/zeitkapseln"))
+        assertEquals(NetworkRoute.Yearbook(), route("https://get-oasis.com/app/jahrbuch"))
+        assertEquals(NetworkRoute.Yearbook(2025), route("https://get-oasis.com/app/jahrbuch/2025"))
+        assertEquals(MembershipRoute.Perks, route("https://get-oasis.com/app/mitgliedschaft/vorteile"))
+        assertEquals(MembershipRoute.CompanionLink(token), route("https://get-oasis.com/app/mitgliedschaft/mitkommen/$token"))
+        assertEquals(null, route("https://get-oasis.com/app/mitgliedschaft/mitkommen/kurz"))
+        assertEquals(null, route("https://get-oasis.com/app/mitgliedschaft/mitkommen"))
+        assertEquals(IncomingLink.Browser("https://get-oasis.com/anmelden"), DeepLink.incoming("https://get-oasis.com/anmelden"))
+        assertEquals(IncomingLink.Browser("https://get-oasis.com/anmelden/neu"), DeepLink.incoming("https://get-oasis.com/anmelden/neu"))
+        val navigator = Navigator()
+        assertTrue(navigator.handle("https://get-oasis.com/app/mitgliedschaft/mitkommen/$token"))
+        assertEquals(MainTab.Profile, navigator.selectedTab)
+        assertEquals(listOf(MembershipRoute.CompanionLink(token)), navigator.stack(MainTab.Profile).toList())
+    }
+
+    @Test
     fun `maps the chat hash routes`() {
         assertEquals(ChatRoute.Conversation(5), route("https://get-oasis.com/app/nachrichten#c/5"))
         assertEquals(ChatRoute.Details(5), route("https://get-oasis.com/app/nachrichten#c/5/info"))

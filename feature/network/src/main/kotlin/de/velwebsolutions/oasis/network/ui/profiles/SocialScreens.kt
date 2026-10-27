@@ -50,6 +50,7 @@ import de.velwebsolutions.oasis.design.components.PageHeader
 import de.velwebsolutions.oasis.design.components.Panel
 import de.velwebsolutions.oasis.design.components.PanelTone
 import de.velwebsolutions.oasis.design.components.SideCard
+import de.velwebsolutions.oasis.design.components.TierLoadableView
 import de.velwebsolutions.oasis.design.navigation.AccountRoute
 import de.velwebsolutions.oasis.design.navigation.LocalNavigator
 import de.velwebsolutions.oasis.design.navigation.NetworkRoute
@@ -209,7 +210,7 @@ fun StatisticsScreen(viewModel: StatisticsViewModel = hiltViewModel<StatisticsVi
     val navigator = LocalNavigator.current
     LaunchedEffect(Unit) { viewModel.loadIfNeeded() }
     OasisScreen(title = "Deine Zahlen") {
-        LoadableView(statistics, onRetry = viewModel::load) { stats ->
+        TierLoadableView(statistics, "Deine Zahlen", onRetry = viewModel::load) { stats ->
             NetworkPage(onRefresh = viewModel::load) {
                 block("header") {
                     PageHeader(

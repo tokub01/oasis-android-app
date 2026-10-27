@@ -36,7 +36,8 @@ object DeepLink {
         if (uri.scheme != "oasis" && BrowserOnly.any { path.startsWith(it) }) return IncomingLink.Browser(url)
         val appScheme = uri.scheme == "oasis"
         // `oasis://email/bestaetigen/…` (the website's "In der App öffnen") carries the first segment as host.
-        val parts = (if (appScheme) listOfNotNull(uri.host) else emptyList()) + path.split("/").filter { it.isNotEmpty() }.map { decode(it) }
+        val parts =
+            (if (appScheme) listOfNotNull(uri.host) else emptyList()) + path.split("/").filter { it.isNotEmpty() }.map { decode(it) }
         val query = query(uri)
         return when {
             parts.size == 4 && parts[0] == "email" && parts[1] == "bestaetigen" -> {
@@ -46,7 +47,11 @@ object DeepLink {
             }
 
             // A reset token never comes over `oasis://`: any app could claim the scheme, so the website keeps it.
-            !appScheme && parts.size == 2 && parts[0] == "passwort-zuruecksetzen" -> IncomingLink.ResetPassword(parts[1], query["email"].orEmpty(), url)
+            !appScheme && parts.size == 2 && parts[0] == "passwort-zuruecksetzen" -> IncomingLink.ResetPassword(
+                parts[1],
+                query["email"].orEmpty(),
+                url
+            )
 
             parts.firstOrNull() == "anmelden" && parts.getOrNull(1)?.startsWith("code") == true -> IncomingLink.LoginCode
 
@@ -56,6 +61,9 @@ object DeepLink {
 
     private val Username = Regex("[a-z0-9_]{3,30}")
     private val ConversationId = Regex("[1-9]\\d{0,15}")
+
+    /** The token of a companion place link (`[A-Za-z0-9]{40}`, routes/membership.php). */
+    private val CompanionToken = Regex("[A-Za-z0-9]{40}")
 
     fun route(url: String): AppRoute? {
         val uri = runCatching { URI(url) }.getOrNull() ?: return null
@@ -163,6 +171,10 @@ object DeepLink {
 
         "statistik" -> NetworkRoute.Statistics
 
+        "zeitkapseln" -> NetworkRoute.TimeCapsules
+
+        "jahrbuch" -> NetworkRoute.Yearbook(rest.firstOrNull()?.toIntOrNull())
+
         "einladen" -> NetworkRoute.Invitations
 
         "suche" -> NetworkRoute.Search(query["q"])
@@ -203,6 +215,8 @@ object DeepLink {
             "kuendigen" -> MembershipRoute.Cancel
             "widerrufen" -> MembershipRoute.Withdraw
             "rechnungen" -> rest.getOrNull(1)?.toIntOrNull()?.let { MembershipRoute.Invoice(it) }
+            "vorteile" -> MembershipRoute.Perks
+            "mitkommen" -> rest.getOrNull(1)?.takeIf { CompanionToken.matches(it) }?.let { MembershipRoute.CompanionLink(it) }
             else -> MembershipRoute.Overview
         }
 

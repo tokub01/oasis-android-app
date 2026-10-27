@@ -11,6 +11,7 @@ import de.velwebsolutions.oasis.core.network.ApiError
 import de.velwebsolutions.oasis.core.network.CommonApi
 import de.velwebsolutions.oasis.network.NetworkSignals
 import de.velwebsolutions.oasis.network.api.ComposerContext
+import de.velwebsolutions.oasis.network.api.ImageEdge
 import de.velwebsolutions.oasis.network.api.ImageUpload
 import de.velwebsolutions.oasis.network.api.PostDraft
 import de.velwebsolutions.oasis.network.api.PublishResult
@@ -47,6 +48,9 @@ data class ComposeUiState(
 ) {
     val maxLength: Int get() = context.valueOrNull?.maxLength ?: 500
     val maxImages: Int get() = context.valueOrNull?.maxImages ?: 4
+
+    /** The longest edge a picked photo is scaled to before upload (the server's `image_edge` for the member's tier). */
+    val imageEdge: Int get() = context.valueOrNull?.imageEdge ?: ImageEdge.DEFAULT
     val isReply: Boolean get() = replyTo != null
     val isCarry: Boolean get() = carried != null
 

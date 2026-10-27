@@ -46,7 +46,11 @@ class RouterTest {
             NetworkRoute.CarryPost(1), NetworkRoute.Compose(), NetworkRoute.Oases, NetworkRoute.Oasis("garten"),
             NetworkRoute.CreateOasis, NetworkRoute.EditOasis("garten"), NetworkRoute.CloseOasis("garten"),
             NetworkRoute.OasisStatistics("garten"), NetworkRoute.Profile("jonas"), NetworkRoute.EditProfile, NetworkRoute.Friends,
-            NetworkRoute.Statistics, NetworkRoute.Invitations, NetworkRoute.Invitation("abc"), NetworkRoute.Search(),
+            NetworkRoute.Statistics, NetworkRoute.TimeCapsules, NetworkRoute.Yearbook(),
+            NetworkRoute.Yearbook(
+                2025
+            ),
+            NetworkRoute.Invitations, NetworkRoute.Invitation("abc"), NetworkRoute.Search(),
             NetworkRoute.Search("garten"), NetworkRoute.Tag("garten"), NetworkRoute.Bookmarks
         )
         ActivityScenario.launch(NetworkTestActivity::class.java).use { scenario ->

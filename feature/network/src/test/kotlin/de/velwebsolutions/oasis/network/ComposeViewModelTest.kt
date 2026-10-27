@@ -61,6 +61,7 @@ class ComposeViewModelTest(private val answersAtOnce: Boolean) {
         val model = composer(network, oasisSlug = "stadtgarten")
         model.load()
         assertEquals("public", model.state.value.visibility)
+        assertEquals(4096, model.state.value.imageEdge)
         model.updateBody("Hallo Garten")
         model.add(jpeg)
         model.updateAlt(0, "Ein Beet")

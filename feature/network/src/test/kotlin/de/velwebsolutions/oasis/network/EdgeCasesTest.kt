@@ -106,6 +106,7 @@ class EdgeCasesTest(private val answersAtOnce: Boolean) {
     @Test
     fun `the composer's limits, empty choices and stale answers`() = runTest {
         assertEquals(4, ComposeUiState().maxImages)
+        assertEquals(2048, ComposeUiState().imageEdge)
         assertEquals("Kaputt.", ComposeUiState(error = ApiError.Validation("Kaputt.", emptyMap())).generalError)
 
         val open = """{"data": {"default_visibility": "friends", "visibilities": [], "kinds": [], "links": [], "max_length": 500,
@@ -122,6 +123,8 @@ class EdgeCasesTest(private val answersAtOnce: Boolean) {
         val model = models.keep(ComposeViewModel("grenzen", 12, null, network.repository, slowTone, network.session))
         model.load()
         assertEquals("friends", model.state.value.visibility)
+        // A server before the tiers sends no image_edge: Tropfen photos stay at 2048.
+        assertEquals(2048, model.state.value.imageEdge)
 
         model.updateBody("Erste Fassung")
         val check = launch { model.checkTone() }

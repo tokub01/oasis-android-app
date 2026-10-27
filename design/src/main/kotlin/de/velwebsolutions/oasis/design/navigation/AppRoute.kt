@@ -68,6 +68,12 @@ sealed interface NetworkRoute : AppRoute {
     /** Deine Zahlen (/app/statistik). */
     @Serializable data object Statistics : NetworkRoute
 
+    /** Zeitkapseln – Tropfen sealed for a later day (/app/zeitkapseln). */
+    @Serializable data object TimeCapsules : NetworkRoute
+
+    /** Dein Jahrbuch – the own Tropfen of a year, the current one without [year] (/app/jahrbuch/{year?}). */
+    @Serializable data class Yearbook(val year: Int? = null) : NetworkRoute
+
     /** Menschen einladen (/app/einladen). */
     @Serializable data object Invitations : NetworkRoute
 
@@ -182,6 +188,15 @@ sealed interface MembershipRoute : AppRoute {
 
     /** Mitglied werden / checkout (/mitglied-werden). */
     @Serializable data object Checkout : MembershipRoute
+
+    /** Deine Vorteile: what the tier includes, companion places, supporter mark (/app/mitgliedschaft/vorteile). */
+    @Serializable data object Perks : MembershipRoute
+
+    /**
+     * The link of a companion place a Mäzen shares (/app/mitgliedschaft/mitkommen/{token}); opens without a membership,
+     * since taking the place is what gives one.
+     */
+    @Serializable data class CompanionLink(val token: String) : MembershipRoute
 }
 
 /** Moderation and administration (staff only). Owned by `:feature:staff`. */

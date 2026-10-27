@@ -15,6 +15,7 @@ import de.velwebsolutions.oasis.design.components.LoadableView
 import de.velwebsolutions.oasis.design.components.OasisButtonKind
 import de.velwebsolutions.oasis.design.components.OasisScreen
 import de.velwebsolutions.oasis.design.components.PageHeader
+import de.velwebsolutions.oasis.design.components.TierLoadableView
 import de.velwebsolutions.oasis.design.navigation.LocalNavigator
 import de.velwebsolutions.oasis.design.navigation.MainTab
 import de.velwebsolutions.oasis.design.theme.OasisColors
@@ -93,7 +94,7 @@ fun OasisStatisticsScreen(
     val statistics by viewModel.statistics.collectAsStateWithLifecycle()
     LaunchedEffect(Unit) { viewModel.load() }
     OasisScreen(title = "Statistik") {
-        LoadableView(statistics, onRetry = viewModel::load) { stats ->
+        TierLoadableView(statistics, "Statistik", onRetry = viewModel::load) { stats ->
             NetworkPage {
                 block("header") {
                     PageHeader(

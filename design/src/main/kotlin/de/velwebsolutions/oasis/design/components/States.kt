@@ -18,8 +18,10 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.outlined.CheckCircle
 import androidx.compose.material.icons.outlined.ErrorOutline
@@ -35,13 +37,18 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.semantics.clearAndSetSemantics
 import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.heading
+import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import de.velwebsolutions.oasis.core.model.Loadable
 import de.velwebsolutions.oasis.core.network.ApiError
+import de.velwebsolutions.oasis.design.navigation.LocalNavigator
+import de.velwebsolutions.oasis.design.navigation.MembershipRoute
 import de.velwebsolutions.oasis.design.theme.OasisColors
 import de.velwebsolutions.oasis.design.theme.OasisRadius
 import de.velwebsolutions.oasis.design.theme.OasisType
@@ -152,6 +159,38 @@ fun ErrorStateView(error: ApiError, onRetry: suspend () -> Unit, modifier: Modif
         Icon(Icons.Outlined.WarningAmber, contentDescription = null, tint = OasisColors.SunText, modifier = Modifier.size(32.dp))
         Text(error.userMessage, style = OasisType.Body, color = OasisColors.Ink, textAlign = TextAlign.Center)
         AsyncOasisButton("Noch einmal versuchen", onRetry, kind = OasisButtonKind.Secondary, fullWidth = false)
+    }
+}
+
+/**
+ * [LoadableView] for a feature the member's tier may not include: the server's 403 (`Das gibt es ab der Mitgliedschaft
+ * Oase.`) shows [TierLockedView] with [title] instead of an error with retry.
+ */
+@Composable
+fun <T> TierLoadableView(
+    state: Loadable<T>,
+    title: String,
+    onRetry: suspend () -> Unit,
+    modifier: Modifier = Modifier,
+    content: @Composable (T) -> Unit
+) {
+    val locked = state.errorOrNull as? ApiError.Forbidden
+    if (locked != null) TierLockedView(title, locked.userMessage, modifier) else LoadableView(state, onRetry, modifier, content = content)
+}
+
+/**
+ * Shown instead of a feature the tier does not include (the web's `x-network.tier-locked`): its name, the server's
+ * message naming the tier, and the way to the membership.
+ */
+@Composable
+fun TierLockedView(title: String, message: String, modifier: Modifier = Modifier) {
+    val navigator = LocalNavigator.current
+    Column(modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(16.dp).testTag("tier.locked")) {
+        Panel(spacing = 16) {
+            Text(title, style = OasisType.display(28), color = OasisColors.Night, modifier = Modifier.semantics { heading() })
+            Text(message, style = OasisType.Lead, color = OasisColors.Ink2)
+            OasisButton("Mitgliedschaft ansehen", { navigator.open(MembershipRoute.Overview) }, fullWidth = false)
+        }
     }
 }
 

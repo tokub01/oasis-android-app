@@ -16,6 +16,7 @@ import androidx.compose.foundation.lazy.LazyListScope
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.outlined.Favorite
 import androidx.compose.material.icons.outlined.MoreHoriz
 import androidx.compose.material.icons.outlined.People
 import androidx.compose.material.icons.outlined.Place
@@ -56,6 +57,8 @@ import de.velwebsolutions.oasis.design.components.OasisButton
 import de.velwebsolutions.oasis.design.components.OasisButtonKind
 import de.velwebsolutions.oasis.design.components.OasisScreen
 import de.velwebsolutions.oasis.design.components.PanelTone
+import de.velwebsolutions.oasis.design.components.Pill
+import de.velwebsolutions.oasis.design.components.PillTone
 import de.velwebsolutions.oasis.design.components.SideCard
 import de.velwebsolutions.oasis.design.components.SkeletonLayout
 import de.velwebsolutions.oasis.design.navigation.AccountRoute
@@ -233,6 +236,14 @@ private fun Header(profile: Profile, callbacks: ProfileCallbacks) {
                         style = OasisType.Body,
                         color = OasisColors.Muted
                     )
+                    if (profile.supporter) {
+                        Pill(
+                            "Trägt Oasis mit",
+                            Modifier.padding(top = 4.dp).testTag("profile.supporter"),
+                            PillTone.Spring,
+                            Icons.Outlined.Favorite
+                        )
+                    }
                 }
                 profile.bio?.let { Text(it, style = OasisType.Body, color = OasisColors.Ink) }
                 if (profile.bioHeld) HeldBadge()

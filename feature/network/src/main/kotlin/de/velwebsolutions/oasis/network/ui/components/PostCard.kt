@@ -594,17 +594,25 @@ private fun HeldNotice(held: Post.Held) {
  */
 @Composable
 private fun PostImages(post: Post) {
-    var revealed by rememberSaveable(post.id) { mutableStateOf(setOf<Int>()) }
-    var viewing by remember { mutableStateOf<Post.Image?>(null) }
     if (post.imagesLocked) {
         DashedNote { Text("Bilder gesperrt.", style = OasisType.Small, color = OasisColors.Ink2) }
         return
     }
-    if (post.images.isEmpty()) return
+    if (post.images.isNotEmpty()) ImageGrid(post.images, post.id)
+}
+
+/**
+ * Images of a Tropfen in one or two columns (the cards, the Jahrbuch); covered ones load only after "Bild anzeigen". A
+ * tap opens the image full screen. [key] keeps the uncovered images per Tropfen.
+ */
+@Composable
+fun ImageGrid(images: List<Post.Image>, key: Int) {
+    var revealed by rememberSaveable(key) { mutableStateOf(setOf<Int>()) }
+    var viewing by remember { mutableStateOf<Post.Image?>(null) }
     val shape = RoundedCornerShape(OasisRadius.TILE.dp)
-    val columns = if (post.images.size > 1) 2 else 1
+    val columns = if (images.size > 1) 2 else 1
     Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-        post.images.chunked(columns).forEach { row ->
+        images.chunked(columns).forEach { row ->
             Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                 row.forEach { image ->
                     val cell = Modifier.weight(1f).aspectRatio(image.aspectRatio)
@@ -632,7 +640,7 @@ private fun PostImages(post: Post) {
         }
     }
     viewing?.let { start ->
-        ImageViewer(post.images.filter { !it.covered || it.id in revealed }, start) { viewing = null }
+        ImageViewer(images.filter { !it.covered || it.id in revealed }, start) { viewing = null }
     }
 }
 

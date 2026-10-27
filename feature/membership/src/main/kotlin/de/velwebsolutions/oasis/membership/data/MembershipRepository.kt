@@ -5,7 +5,9 @@ import de.velwebsolutions.oasis.core.network.Confirmed
 import de.velwebsolutions.oasis.membership.api.CancellationDetails
 import de.velwebsolutions.oasis.membership.api.MembershipOverview
 import de.velwebsolutions.oasis.membership.api.MembershipPayment
+import de.velwebsolutions.oasis.membership.api.MembershipPerks
 import de.velwebsolutions.oasis.membership.api.MembershipService
+import de.velwebsolutions.oasis.membership.api.SupporterInput
 import de.velwebsolutions.oasis.membership.api.WithdrawalDetails
 import de.velwebsolutions.oasis.membership.billing.PlayPurchaseReceipt
 import javax.inject.Inject
@@ -35,6 +37,27 @@ interface MembershipRepository {
      * the cancel and withdraw pages like the web.
      */
     suspend fun export(): ByteArray
+
+    /** Deine Vorteile: the tier's lines, the companion places and the supporter choices. */
+    suspend fun perks(): MembershipPerks
+
+    /** A link for a free companion place; returns the confirmation (422 `seat` when none is free). */
+    suspend fun createSeat(): String
+
+    /** Ends one of the own companion places. */
+    suspend fun releaseSeat(id: Int): String
+
+    /** Who offers the place behind a companion link, null when it no longer works. */
+    suspend fun companionSponsor(token: String): String?
+
+    /** Takes the place behind a companion link; returns the welcome. */
+    suspend fun acceptCompanionLink(token: String): String
+
+    /** Gives the held companion place back. */
+    suspend fun leaveSeat(): String
+
+    /** Switches the supporter mark or the thank-you list. */
+    suspend fun updateSupporter(input: SupporterInput): String
 }
 
 class DefaultMembershipRepository @Inject constructor(private val client: ApiClient) : MembershipRepository {
@@ -57,4 +80,18 @@ class DefaultMembershipRepository @Inject constructor(private val client: ApiCli
     override suspend fun withdraw() = service.withdraw()
 
     override suspend fun export() = client.download(client.url("account/export").toString())
+
+    override suspend fun perks() = service.perks().data
+
+    override suspend fun createSeat() = service.createSeat().message
+
+    override suspend fun releaseSeat(id: Int) = service.releaseSeat(id).message
+
+    override suspend fun companionSponsor(token: String) = service.companionLink(token).data.sponsor
+
+    override suspend fun acceptCompanionLink(token: String) = service.acceptCompanionLink(token).message
+
+    override suspend fun leaveSeat() = service.leaveSeat().message
+
+    override suspend fun updateSupporter(input: SupporterInput) = service.updateSupporter(input).message
 }

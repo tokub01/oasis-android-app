@@ -31,7 +31,7 @@ object Fixtures {
     """.trimIndent()
 
     val composer = """
-{"data": {"default_visibility": "public", "visibilities": [{"value": "public", "label": "Öffentlich"}, {"value": "members", "label": "Nur für Mitglieder"}], "kinds": [{"value": "post", "label": "Tropfen"}, {"value": "question", "label": "Frage an meine Karawane"}], "oasis": null, "links": [], "max_length": 500, "max_images": 4}}
+{"data": {"default_visibility": "public", "visibilities": [{"value": "public", "label": "Öffentlich"}, {"value": "members", "label": "Nur für Mitglieder"}], "kinds": [{"value": "post", "label": "Tropfen"}, {"value": "question", "label": "Frage an meine Karawane"}], "oasis": null, "links": [], "max_length": 500, "max_images": 4, "image_edge": 4096}}
     """.trimIndent()
 
     val search = """

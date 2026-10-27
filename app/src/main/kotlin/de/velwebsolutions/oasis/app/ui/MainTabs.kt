@@ -305,6 +305,8 @@ private val MorePages: List<Pair<String, AppRoute>> = listOf(
     "Einstellungen" to AccountRoute.Settings,
     "Mitgliedschaft" to MembershipRoute.Overview,
     "Deine Zahlen" to NetworkRoute.Statistics,
+    "Zeitkapseln" to NetworkRoute.TimeCapsules,
+    "Jahrbuch" to NetworkRoute.Yearbook(),
     "Menschen einladen" to NetworkRoute.Invitations,
     "Privatsphäre" to AccountRoute.Privacy,
     "Blockiert & stumm" to AccountRoute.Safety,

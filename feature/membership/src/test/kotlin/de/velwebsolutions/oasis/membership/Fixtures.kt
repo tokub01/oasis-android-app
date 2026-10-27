@@ -5,6 +5,7 @@ import de.velwebsolutions.oasis.core.auth.InMemoryTokenStore
 import de.velwebsolutions.oasis.core.auth.Session
 import de.velwebsolutions.oasis.core.network.OasisJson
 import de.velwebsolutions.oasis.membership.api.MembershipOverview
+import de.velwebsolutions.oasis.membership.api.MembershipPerks
 import de.velwebsolutions.oasis.membership.billing.BillingGateway
 import de.velwebsolutions.oasis.membership.billing.BillingPeriod
 import de.velwebsolutions.oasis.membership.billing.PlayProduct
@@ -67,6 +68,27 @@ object Fixtures {
 
     /** The subscription overview as the answer of an action (`{message, data}`). */
     fun confirmed(message: String) = subscriptionOverview.replaceFirst("""{"data":""", """{"message":"$message","data":""")
+
+    /** Deine Vorteile of a Mäzen with one taken and one open place (as PerksController answers). */
+    val maezenPerks = """
+        {"data":{"tier":"maezen","tier_name":"Mäzen","features":{"tier":"maezen","oases":10,"post_length":2000,"images":10,"image_edge":4096,
+        "time_capsule":true,"yearbook":true,"statistics":true,"companion_seats":2,"supporter_badge":true},
+        "highlights":["Alles aus Oase","Fotos in voller Auflösung","Zwei volle Plätze für deine Leute"],
+        "seats":[{"id":1,"member":{"display_name":"Jonas Weber","username":"jonas"},"accepted_at":"2026-10-20T10:00:00.000000Z","url":null},
+        {"id":2,"member":null,"accepted_at":null,"url":"http://localhost/app/mitgliedschaft/mitkommen/aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"}],
+        "remaining_seats":0,"held_seat":null,"supporter_badge":true,"thank_you_list":false}}
+    """.trimIndent()
+
+    /** Deine Vorteile of a companion whose sponsor is no Mäzen any more (the place rests). */
+    val companionPerks = """
+        {"data":{"tier":"oase","tier_name":"Oase","features":{"companion_seats":0,"supporter_badge":false},"highlights":["Zeitkapseln"],
+        "seats":[],"remaining_seats":0,"held_seat":{"sponsor":"Mia Mäzen","active":false},"supporter_badge":false,"thank_you_list":false}}
+    """.trimIndent()
+
+    fun perks(json: String = maezenPerks): MembershipPerks = OasisJson.snake.decodeFromString(
+        de.velwebsolutions.oasis.core.network.DataEnvelope.serializer(MembershipPerks.serializer()),
+        json
+    ).data
 
     fun overview(json: String): MembershipOverview = OasisJson.snake.decodeFromString(
         de.velwebsolutions.oasis.core.network.DataEnvelope.serializer(MembershipOverview.serializer()),

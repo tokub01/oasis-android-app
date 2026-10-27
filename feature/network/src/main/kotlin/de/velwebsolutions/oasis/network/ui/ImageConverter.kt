@@ -5,6 +5,7 @@ import android.graphics.Bitmap
 import android.graphics.BitmapFactory
 import android.graphics.ImageDecoder
 import android.net.Uri
+import de.velwebsolutions.oasis.network.api.ImageEdge
 import de.velwebsolutions.oasis.network.api.ImageUpload
 import java.io.ByteArrayOutputStream
 import java.nio.ByteBuffer
@@ -16,9 +17,10 @@ import kotlinx.coroutines.withContext
 
 /**
  * Turns a picked photo (often HEIC) into a JPEG the server accepts (JPEG, PNG, WebP or GIF), scaled down to at most
- * `maxEdge` pixels – the server re-encodes as WebP anyway (longest edge 2048 for Tropfen), so a smaller upload loses
- * nothing. GIFs, PNGs, WebPs and JPEGs that are already small enough are sent as they are. Re-encoding applies the EXIF
- * orientation and drops the camera data; the server strips it from passed-through files.
+ * `maxEdge` pixels – the server re-encodes as WebP anyway (longest edge for Tropfen: the composer's `image_edge`, 2048
+ * or 4096 by tier), so a smaller upload loses nothing. GIFs, PNGs, WebPs and JPEGs that are already small enough are
+ * sent as they are. Re-encoding applies the EXIF orientation and drops the camera data; the server strips it from
+ * passed-through files.
  */
 object ImageConverter {
     /** The server's own limit is higher; larger files are re-encoded. */
@@ -28,7 +30,7 @@ object ImageConverter {
     /** A file type with its extension and MIME type. */
     data class FileType(val ext: String, val mime: String)
 
-    fun upload(data: ByteArray, name: String, maxEdge: Int = 2048): ImageUpload? {
+    fun upload(data: ByteArray, name: String, maxEdge: Int = ImageEdge.DEFAULT): ImageUpload? {
         val passthrough = passthroughType(data)
         val size = pixelSize(data)
         if (passthrough != null && data.size < PASSTHROUGH_BYTES && size != null && max(size.first, size.second) <= maxEdge) {
@@ -39,12 +41,13 @@ object ImageConverter {
     }
 
     /** Reads a picked or photographed image off the main thread and converts it. */
-    suspend fun upload(context: Context, uri: Uri, name: String, maxEdge: Int = 2048): ImageUpload? = withContext(Dispatchers.IO) {
-        val data =
-            // openInputStream only returns null when the provider crashed: that, like a missing file, ends in null.
-            runCatching { context.contentResolver.openInputStream(uri)!!.use { it.readBytes() } }.getOrNull() ?: return@withContext null
-        withContext(Dispatchers.Default) { upload(data, name, maxEdge) }
-    }
+    suspend fun upload(context: Context, uri: Uri, name: String, maxEdge: Int = ImageEdge.DEFAULT): ImageUpload? =
+        withContext(Dispatchers.IO) {
+            val data =
+                // openInputStream only returns null when the provider crashed: that, like a missing file, ends in null.
+                runCatching { context.contentResolver.openInputStream(uri)!!.use { it.readBytes() } }.getOrNull() ?: return@withContext null
+            withContext(Dispatchers.Default) { upload(data, name, maxEdge) }
+        }
 
     /** Formats the server accepts as they are (detected by their magic bytes). */
     fun passthroughType(data: ByteArray): FileType? {

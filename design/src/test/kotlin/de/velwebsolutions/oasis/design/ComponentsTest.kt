@@ -68,10 +68,13 @@ import de.velwebsolutions.oasis.design.components.SideCard
 import de.velwebsolutions.oasis.design.components.SkeletonLayout
 import de.velwebsolutions.oasis.design.components.SkeletonView
 import de.velwebsolutions.oasis.design.components.SupportContacts
+import de.velwebsolutions.oasis.design.components.TierLoadableView
 import de.velwebsolutions.oasis.design.components.oasisScreenBackground
 import de.velwebsolutions.oasis.design.components.openWebPage
 import de.velwebsolutions.oasis.design.components.pressable
 import de.velwebsolutions.oasis.design.navigation.LocalNavigator
+import de.velwebsolutions.oasis.design.navigation.MembershipRoute
+import de.velwebsolutions.oasis.design.navigation.Navigator
 import de.velwebsolutions.oasis.design.theme.OasisColors
 import de.velwebsolutions.oasis.design.theme.OasisMotion
 import de.velwebsolutions.oasis.design.theme.OasisTheme
@@ -204,6 +207,33 @@ class ComponentsTest {
         assertEquals(OasisColors.OnNight, AvatarTint.foreground("night"))
         assertEquals(OasisColors.SunInk, AvatarTint.foreground("sun"))
         OasisMotion.spec<Float>()
+    }
+
+    @Test
+    fun `a feature of a higher tier shows the server's message and leads to the membership`() {
+        val navigator = Navigator()
+        compose.setContent {
+            OasisTheme {
+                CompositionLocalProvider(LocalNavigator provides navigator) {
+                    Column {
+                        // The locked view fills the screen, so it comes first and the others still exist below it.
+                        TierLoadableView<String>(
+                            Loadable.Failed(ApiError.Forbidden("Das gibt es ab der Mitgliedschaft Oase.")),
+                            "Dein Jahrbuch",
+                            onRetry = {}
+                        ) { Text(it) }
+                        TierLoadableView<String>(Loadable.Loaded("Zahlen"), "Deine Zahlen", onRetry = {}) { Text(it) }
+                        TierLoadableView<String>(Loadable.Failed(ApiError.NotFound), "Deine Zahlen", onRetry = {}) { Text(it) }
+                    }
+                }
+            }
+        }
+        compose.onNodeWithText("Zahlen").assertExists()
+        compose.onNodeWithText("Noch einmal versuchen").assertExists()
+        compose.onNodeWithText("Dein Jahrbuch").assertExists()
+        compose.onNodeWithText("Das gibt es ab der Mitgliedschaft Oase.").assertExists()
+        compose.onNodeWithText("Mitgliedschaft ansehen").performClick()
+        assertEquals(listOf(MembershipRoute.Overview), navigator.stack(navigator.selectedTab).toList())
     }
 
     @Test

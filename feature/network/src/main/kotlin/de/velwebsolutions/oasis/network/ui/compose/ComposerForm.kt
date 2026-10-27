@@ -211,7 +211,9 @@ private fun ImagesSection(state: ComposeUiState, callbacks: ComposerCallbacks, l
             onLoading(true)
             try {
                 uris.forEachIndexed { offset, uri ->
-                    callbacks.onAddImage(ImageConverter.upload(context, uri, "bild-${state.images.size + offset + 1}"))
+                    callbacks.onAddImage(
+                        ImageConverter.upload(context, uri, "bild-${state.images.size + offset + 1}", maxEdge = state.imageEdge)
+                    )
                 }
             } finally {
                 onLoading(false)
