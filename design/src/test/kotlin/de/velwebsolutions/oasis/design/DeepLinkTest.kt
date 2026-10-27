@@ -93,6 +93,18 @@ class DeepLinkTest {
         assertEquals(IncomingLink.Browser("https://get-oasis.com/email/andere/5/a"), incoming("/email/andere/5/a"))
     }
 
+    /** The website's "In der App öffnen" (mail apps open links in their own browser) hands pages over via oasis://. */
+    @Test
+    fun `account links handed over by the website, but never a reset token`() {
+        assertEquals(
+            IncomingLink.VerifyEmail("5", "a1b2", "1790000000", "sig%"),
+            DeepLink.incoming("oasis://email/bestaetigen/5/a1b2?expires=1790000000&signature=sig%25")
+        )
+        assertEquals(IncomingLink.LoginCode, DeepLink.incoming("oasis://anmelden/code"))
+        assertEquals(IncomingLink.Screen(NetworkRoute.Post(12)), DeepLink.incoming("oasis://tropfen/12"))
+        assertFalse(DeepLink.incoming("oasis://passwort-zuruecksetzen/tok") is IncomingLink.ResetPassword)
+    }
+
     @Test
     fun `account links wait in the navigator and the rest goes to the browser`() {
         val opened = mutableListOf<String>()

@@ -34,20 +34,21 @@ object DeepLink {
         val uri = runCatching { URI(url) }.getOrNull() ?: return IncomingLink.Browser(url)
         val path = uri.rawPath ?: ""
         if (uri.scheme != "oasis" && BrowserOnly.any { path.startsWith(it) }) return IncomingLink.Browser(url)
-        val parts = path.split("/").filter { it.isNotEmpty() }.map { decode(it) }
+        val appScheme = uri.scheme == "oasis"
+        // `oasis://email/bestaetigen/…` (the website's "In der App öffnen") carries the first segment as host.
+        val parts = (if (appScheme) listOfNotNull(uri.host) else emptyList()) + path.split("/").filter { it.isNotEmpty() }.map { decode(it) }
         val query = query(uri)
         return when {
-            uri.scheme == "oasis" -> null
-
             parts.size == 4 && parts[0] == "email" && parts[1] == "bestaetigen" -> {
                 val expires = query["expires"]
                 val signature = query["signature"]
                 if (expires == null || signature == null) null else IncomingLink.VerifyEmail(parts[2], parts[3], expires, signature)
             }
 
-            parts.size == 2 && parts[0] == "passwort-zuruecksetzen" -> IncomingLink.ResetPassword(parts[1], query["email"].orEmpty(), url)
+            // A reset token never comes over `oasis://`: any app could claim the scheme, so the website keeps it.
+            !appScheme && parts.size == 2 && parts[0] == "passwort-zuruecksetzen" -> IncomingLink.ResetPassword(parts[1], query["email"].orEmpty(), url)
 
-            path.startsWith("/anmelden/code") -> IncomingLink.LoginCode
+            parts.firstOrNull() == "anmelden" && parts.getOrNull(1)?.startsWith("code") == true -> IncomingLink.LoginCode
 
             else -> null
         } ?: route(url)?.let(IncomingLink::Screen) ?: IncomingLink.Browser(url)
