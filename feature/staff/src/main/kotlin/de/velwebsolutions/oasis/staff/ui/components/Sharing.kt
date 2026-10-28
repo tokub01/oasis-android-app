@@ -25,6 +25,21 @@ object Sharing {
         start(context, Intent.createChooser(send, title))
     }
 
+    /**
+     * Opens [file] read-only in another app (ACTION_VIEW with its MIME type) – reported files are never shown inside
+     * Oasis. False when no app on the device opens this type.
+     */
+    fun openFile(context: Context, file: File, mimeType: String): Boolean {
+        val uri = FileProvider.getUriForFile(context, "${context.packageName}.staff.files", file)
+        val view = Intent(Intent.ACTION_VIEW).setDataAndType(uri, mimeType).addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
+        return try {
+            context.startActivity(view.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK))
+            true
+        } catch (_: ActivityNotFoundException) {
+            false
+        }
+    }
+
     /** Hands a text to the share sheet. */
     fun shareText(context: Context, text: String, title: String) {
         start(context, Intent.createChooser(Intent(Intent.ACTION_SEND).setType("text/plain").putExtra(Intent.EXTRA_TEXT, text), title))

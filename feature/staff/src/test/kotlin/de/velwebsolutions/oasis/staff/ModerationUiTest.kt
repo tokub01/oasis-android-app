@@ -49,6 +49,8 @@ import de.velwebsolutions.oasis.staff.ui.moderation.ModerationOverviewScreen
 import de.velwebsolutions.oasis.staff.ui.moderation.ModerationOverviewUiState
 import de.velwebsolutions.oasis.staff.ui.moderation.ModerationOverviewViewModel
 import de.velwebsolutions.oasis.staff.ui.moderation.REPORTED_ATTACHMENT_NOTE
+import de.velwebsolutions.oasis.staff.ui.moderation.REPORTED_FILE_WARNING
+import de.velwebsolutions.oasis.staff.ui.moderation.ReportedAttachments
 import de.velwebsolutions.oasis.staff.ui.moderation.RolesScreen
 import de.velwebsolutions.oasis.staff.ui.moderation.RolesViewModel
 import de.velwebsolutions.oasis.staff.ui.moderation.SuspensionsContent
@@ -205,7 +207,7 @@ class ModerationUiTest {
         ui.show { CaseDetailContent(chat.id, state, CaseDetailActions(onLoadAttachment = { loaded += it })) }
         compose.onNodeWithText("Schau mal").assertIsDisplayed()
         compose.onNodeWithTag("case.attachment.image").assertExists()
-        compose.onAllNodesWithText(REPORTED_ATTACHMENT_NOTE).assertCountEquals(3)
+        compose.onAllNodesWithText(REPORTED_ATTACHMENT_NOTE).assertCountEquals(4)
         compose.onNodeWithText("Sprachnachricht laden").performScrollTo().performClick()
         compose.onNodeWithText("Erneut laden").performScrollTo().performClick()
         compose.waitForIdle()
@@ -220,6 +222,50 @@ class ModerationUiTest {
         compose.onNodeWithText("Die Sprachnachricht lässt sich nicht abspielen.").performScrollTo().assertIsDisplayed()
         failVideo()
         compose.onNodeWithText("Das Video lässt sich nicht abspielen.").performScrollTo().assertIsDisplayed()
+    }
+
+    @Test
+    fun `a reported file is loaded into the cache and only opened in another app`() {
+        clearFileProviders()
+        val chat = Decoded.caseChat
+        val loaded = mutableListOf<Int>()
+        var state by mutableStateOf(CaseDetailUiState(Loadable.Loaded(chat)))
+        val nameless = chat.report!!.attachments.last().copy(name = null)
+        var alone by mutableStateOf(false)
+        ui.show {
+            if (alone) {
+                ReportedAttachments(listOf(nameless), emptyMap(), emptySet()) {}
+            } else {
+                CaseDetailContent(chat.id, state, CaseDetailActions(onLoadAttachment = { loaded += it }))
+            }
+        }
+        compose.onNodeWithText("Anhang 4: Rechnung.pdf").performScrollTo().assertIsDisplayed()
+        compose.onNodeWithText(REPORTED_FILE_WARNING).performScrollTo().assertIsDisplayed()
+        compose.onNodeWithText("Datei laden").performScrollTo().performClick()
+        compose.waitForIdle()
+        assertEquals(listOf(3), loaded)
+        state = state.copy(failedAttachments = setOf(3))
+        compose.onAllNodesWithText("Erneut laden").assertCountEquals(1)
+
+        val pdf = files.reportedAttachment(chat.id, 3, "%PDF".toByteArray(), "Rechnung.pdf")
+        state = state.copy(attachmentFiles = mapOf(3 to pdf), failedAttachments = emptySet())
+        ui.shot("case-chat-file")
+        compose.onNodeWithTag("case.attachment.open").performScrollTo().performClick()
+        compose.onNodeWithText("Auf diesem Gerät ist keine App, die diese Datei öffnen kann.").assertDoesNotExist()
+        shadowOf(androidx.test.core.app.ApplicationProvider.getApplicationContext<android.app.Application>()).checkActivities(true)
+        compose.onNodeWithTag("case.attachment.open").performScrollTo().performClick()
+        compose.onNodeWithText("Auf diesem Gerät ist keine App, die diese Datei öffnen kann.").performScrollTo().assertIsDisplayed()
+
+        alone = true
+        compose.onNodeWithText("Anhang 1: Datei").assertExists()
+        // FileProvider remembers its folders per process; every Robolectric test has its own cache folder.
+        clearFileProviders()
+    }
+
+    private fun clearFileProviders() = androidx.core.content.FileProvider::class.java.getDeclaredField("sCache").apply {
+        isAccessible = true
+    }.let {
+        (it.get(null) as MutableMap<*, *>).clear()
     }
 
     /** Lets the platform video view report a file it cannot play. */

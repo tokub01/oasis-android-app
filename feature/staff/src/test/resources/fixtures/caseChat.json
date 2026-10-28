@@ -31,6 +31,12 @@
      "kind": "video",
      "mime": "video/mp4",
      "url": "http://localhost/api/v1/staff/moderation/cases/2/chat-attachments/2"
+    },
+    {
+     "kind": "file",
+     "mime": "application/pdf",
+     "url": "http://localhost/api/v1/staff/moderation/cases/2/chat-attachments/3",
+     "name": "Rechnung.pdf"
     }
    ]
   },

@@ -234,7 +234,7 @@ class CaseDetailViewModel @AssistedInject constructor(
     /** Loads a voice message or video of the reported chat message (with the token) into a file for the player. */
     suspend fun loadAttachment(index: Int) {
         val attachment = mutableState.value.detail.valueOrNull?.report?.attachments?.getOrNull(index) ?: return
-        val result = attempt { files.reportedAttachment(caseId, index, repository.reportedAttachment(attachment.url)) }
+        val result = attempt { files.reportedAttachment(caseId, index, repository.reportedAttachment(attachment.url), attachment.name) }
         result.onSuccess { file ->
             mutableState.update {
                 it.copy(

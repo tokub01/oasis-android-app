@@ -14,12 +14,13 @@ class StaffFiles(private val cacheDirectory: File) {
     }
 
     /**
-     * Writes a voice message or video of a reported chat message as `Meldungen/fall-<id>-anhang-<n>` for the platform
-     * player, which plays files only.
+     * Writes a voice message, video or file of a reported chat message as `Meldungen/fall-<id>-anhang-<n>` (a file
+     * with its [name] appended, slashes replaced) for the platform player or the app that opens it.
      */
-    fun reportedAttachment(caseId: Int, index: Int, bytes: ByteArray): File {
+    fun reportedAttachment(caseId: Int, index: Int, bytes: ByteArray, name: String? = null): File {
         val directory = File(cacheDirectory, REPORTED).apply { mkdirs() }
-        return File(directory, "fall-$caseId-anhang-${index + 1}").apply { writeBytes(bytes) }
+        val suffix = name?.let { "-" + it.replace('/', '_').replace('\\', '_') }.orEmpty()
+        return File(directory, "fall-$caseId-anhang-${index + 1}$suffix").apply { writeBytes(bytes) }
     }
 
     /** Deletes the played files of a case once its page is closed. */

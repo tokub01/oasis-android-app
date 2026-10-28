@@ -137,13 +137,19 @@ class StaffViewModelTest {
         val (repository, transport) = Fixtures.repository(
             Stub("GET", "staff/moderation/cases/2", json = Fixtures.caseChat),
             Stub("GET", "staff/moderation/cases/2/chat-attachments/1", json = "ID3"),
-            Stub("GET", "staff/moderation/cases/2/chat-attachments/2", status = 404, json = """{"message":"Nicht gefunden."}""")
+            Stub("GET", "staff/moderation/cases/2/chat-attachments/2", status = 404, json = """{"message":"Nicht gefunden."}"""),
+            Stub("GET", "staff/moderation/cases/2/chat-attachments/3", json = "%PDF")
         )
         val directory = Files.createTempDirectory("staff").toFile()
         val files = StaffFiles(directory)
         val viewModel = CaseDetailViewModel(2, repository, files)
         viewModel.load()
-        assertEquals(listOf("image", "audio", "video"), viewModel.state.value.detail.valueOrNull?.report?.attachments?.map { it.kind })
+        assertEquals(
+            listOf("image", "audio", "video", "file"),
+            viewModel.state.value.detail.valueOrNull?.report?.attachments?.map {
+                it.kind
+            }
+        )
 
         viewModel.loadAttachment(1)
         val file = viewModel.state.value.attachmentFiles[1]
@@ -154,8 +160,16 @@ class StaffViewModelTest {
         viewModel.loadAttachment(2)
         assertEquals(setOf(2), viewModel.state.value.failedAttachments)
         assertNotNull(viewModel.state.value.error)
+        viewModel.loadAttachment(3)
+        assertEquals(
+            "a file keeps its name for the app that opens it",
+            "fall-2-anhang-4-Rechnung.pdf",
+            viewModel.state.value.attachmentFiles[3]?.name
+        )
+        assertEquals("%PDF", viewModel.state.value.attachmentFiles[3]?.readText())
+        assertEquals("fall-2-anhang-1-a_b_c.pdf", files.reportedAttachment(2, 0, byteArrayOf(1), "a/b\\c.pdf").name)
         viewModel.loadAttachment(9)
-        assertEquals(setOf(1), viewModel.state.value.attachmentFiles.keys)
+        assertEquals(setOf(1, 3), viewModel.state.value.attachmentFiles.keys)
 
         // Leaving the page deletes the loaded files; without any, there is nothing to delete.
         clear(viewModel)

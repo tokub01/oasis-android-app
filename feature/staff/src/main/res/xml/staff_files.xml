@@ -2,4 +2,6 @@
 <!-- The evidence archive for the police, shared through StaffFileProvider (StaffFiles writes it). -->
 <paths>
     <cache-path name="evidence" path="Beweise/" />
+    <!-- Files of reported chat messages, opened read-only in another app ("Öffnen"). -->
+    <cache-path name="reported" path="Meldungen/" />
 </paths>
