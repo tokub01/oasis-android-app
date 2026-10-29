@@ -39,8 +39,10 @@ class ChatWiringTest {
         process.handleLifecycleEvent(Lifecycle.Event.ON_START)
         process.handleLifecycleEvent(Lifecycle.Event.ON_STOP)
         assertFalse("the app went to the background", vault.unlocked)
+        assertFalse("keys stay closed there", vault.unlock(testCrypto.createIdentity(), vault.generation))
 
-        vault.unlock(testCrypto.createIdentity(), vault.generation)
+        process.handleLifecycleEvent(Lifecycle.Event.ON_START)
+        assertTrue("back in front", vault.unlock(testCrypto.createIdentity(), vault.generation))
         runBlocking { session.signOut() }
         idle()
         assertFalse(vault.unlocked)

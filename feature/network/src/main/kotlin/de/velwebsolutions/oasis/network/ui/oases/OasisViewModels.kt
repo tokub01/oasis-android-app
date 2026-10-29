@@ -83,8 +83,18 @@ class OasisViewModel @AssistedInject constructor(@Assisted val slug: String, pri
         if (loaded.isMember) loadMembers() else mutableMembers.value = null
     }
 
+    /**
+     * Loads the page once. What a load cancelled with the screen (a rotation) did not get to loads again with it: the
+     * Tropfen, and for members the member list.
+     */
     suspend fun loadIfNeeded() {
-        if (detail.value.valueOrNull == null) load()
+        val loaded = detail.value.valueOrNull
+        if (loaded == null) {
+            load()
+            return
+        }
+        posts.loadIfNeeded()
+        if (loaded.isMember && members.value == null) loadMembers()
     }
 
     suspend fun loadMembers() {
@@ -140,6 +150,7 @@ class OasisFormViewModel @AssistedInject constructor(@Assisted val slug: String?
 
     fun updateInput(change: (OasisInput) -> OasisInput) = mutableState.update { it.copy(input = change(it.input)) }
 
+    /** The form: an edited oasis with its saved texts, banner and roles, or the choices for founding one. */
     suspend fun load() {
         val result = attempt {
             if (slug != null) {
@@ -181,7 +192,7 @@ class OasisFormViewModel @AssistedInject constructor(@Assisted val slug: String?
         if (slug != null) {
             if (confirm { repository.uploadBanner(slug, upload) }) {
                 NetworkSignals.didChangeOases()
-                load()
+                refresh(slug)
             }
         } else {
             mutableState.update { it.copy(banner = upload) }
@@ -197,7 +208,7 @@ class OasisFormViewModel @AssistedInject constructor(@Assisted val slug: String?
         }
         if (confirm { repository.removeBanner(slug) }) {
             NetworkSignals.didChangeOases()
-            load()
+            refresh(slug)
         }
     }
 
@@ -209,7 +220,7 @@ class OasisFormViewModel @AssistedInject constructor(@Assisted val slug: String?
         NetworkSignals.didChangeOases()
         if (change.data.stillHost) {
             mutableStatus.value = change.message
-            load()
+            refresh(slug)
         } else {
             NetworkSignals.confirmation.value = change.message
             mutableState.update { it.copy(outcome = OasisFormOutcome.Close) }
@@ -217,6 +228,16 @@ class OasisFormViewModel @AssistedInject constructor(@Assisted val slug: String?
     }
 
     fun consumeOutcome() = mutableState.update { it.copy(outcome = null) }
+
+    /**
+     * The banner and the roles again after a stored banner or a changed role. What the member typed into the form and has
+     * not saved yet stays, and a refresh that fails keeps the form (its error shows above it).
+     */
+    private suspend fun refresh(slug: String) {
+        val result = attempt { repository.oasisEditForm(slug) }
+        result.onSuccess { form -> mutableState.update { it.copy(edit = form, options = form.options) } }
+        mutableError.value = result.apiError
+    }
 
     companion object {
         /** The fields with their own error line; anything else shows as a banner above the form. */

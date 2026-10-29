@@ -56,7 +56,12 @@ class PlayBillingGateway @Inject constructor(private val connection: PlayBilling
             waitingFlow = null
             return outcome(launched, emptyList())
         }
-        return waiting.await()
+        return try {
+            waiting.await()
+        } finally {
+            // Nobody waits any more (the checkout went away): Play's late answer goes to the updates instead.
+            if (waitingFlow === waiting) waitingFlow = null
+        }
     }
 
     override suspend fun ownedPurchases(): List<PlayPurchase> {
@@ -116,6 +121,8 @@ class PlayBillingGateway @Inject constructor(private val connection: PlayBilling
             }
 
             BillingResponseCode.USER_CANCELED -> PurchaseOutcome.Cancelled
+
+            BillingResponseCode.ITEM_ALREADY_OWNED -> PurchaseOutcome.AlreadyOwned
 
             BillingResponseCode.BILLING_UNAVAILABLE, BillingResponseCode.SERVICE_UNAVAILABLE, BillingResponseCode.FEATURE_NOT_SUPPORTED ->
                 PurchaseOutcome.Unavailable

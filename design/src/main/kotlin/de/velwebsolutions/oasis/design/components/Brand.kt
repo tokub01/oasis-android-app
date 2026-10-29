@@ -3,6 +3,7 @@ package de.velwebsolutions.oasis.design.components
 import android.content.Context
 import android.content.Intent
 import androidx.browser.customtabs.CustomTabColorSchemeParams
+import androidx.browser.customtabs.CustomTabsClient
 import androidx.browser.customtabs.CustomTabsIntent
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
@@ -130,9 +131,16 @@ fun SupportContacts(modifier: Modifier = Modifier) {
     }
 }
 
-/** Opens a public website page (legal pages, help) in a Custom Tab in the Oasis colours; other schemes go to the system. */
+/**
+ * Opens a public website page (legal pages, help) in a Custom Tab in the Oasis colours; other schemes go to the system.
+ * The tab opens in a browser that shows Custom Tabs: without one named, Android would hand a page of the app's own
+ * verified App Links (an invoice, the data export, a reset link while signed in) straight back to the app, which would
+ * open the tab again, without end. For the same reason the app's own `oasis://` scheme is never handed to the system:
+ * the app is its only handler.
+ */
 fun openWebPage(context: Context, url: String) {
     val uri = url.toUri()
+    if (uri.scheme == "oasis") return
     if (uri.scheme != "http" && uri.scheme != "https") {
         runCatching { context.startActivity(Intent(Intent.ACTION_VIEW, uri).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)) }
         return
@@ -140,5 +148,18 @@ fun openWebPage(context: Context, url: String) {
     val colors = CustomTabColorSchemeParams.Builder().setToolbarColor(OasisColors.Sand.toArgb()).build()
     val intent = CustomTabsIntent.Builder().setDefaultColorSchemeParams(colors).setShowTitle(true).build()
     intent.intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+    customTabsBrowser(context)?.let { intent.intent.setPackage(it) }
     runCatching { intent.launchUrl(context, uri) }
+}
+
+/**
+ * The browser for a Custom Tab: the default browser if it shows them, otherwise the first one that does; null without
+ * any (the `<queries>` of this module's manifest make them visible). The flags overload of `queryIntentActivities` needs
+ * Android 13; the deprecated one works on every version the app supports.
+ */
+@Suppress("DEPRECATION")
+private fun customTabsBrowser(context: Context): String? {
+    val browsers = context.packageManager.queryIntentActivities(Intent(Intent.ACTION_VIEW, "http://".toUri()), 0)
+        .map { it.activityInfo.packageName }
+    return CustomTabsClient.getPackageName(context, browsers)
 }

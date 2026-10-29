@@ -48,7 +48,8 @@ internal const val REPORTED_ATTACHMENT_NOTE =
 /**
  * The files of a reported chat message (web: "Anhang 1", …): photos inline, voice messages with play/pause and videos
  * in the platform player, other files only to open in another app – all loaded with the member's token. Everything but
- * photos is loaded into a cache file first ([onLoad]), deleted when the page closes.
+ * photos is loaded into a cache file first ([onLoad]), deleted when the page closes. Photos stay out of the image
+ * loader's disk cache: the server sends these decrypted copies with `no-store`.
  */
 @Composable
 internal fun ReportedAttachments(
@@ -70,7 +71,8 @@ internal fun ReportedAttachments(
                         .heightIn(max = 420.dp)
                         .clip(RoundedCornerShape(OasisRadius.CHIP.dp))
                         .testTag("case.attachment.image"),
-                    contentScale = ContentScale.Fit
+                    contentScale = ContentScale.Fit,
+                    cacheOnDisk = false
                 )
 
                 "file" -> FileAttachment(attachment.mime, files[index], index in failed) { onLoad(index) }

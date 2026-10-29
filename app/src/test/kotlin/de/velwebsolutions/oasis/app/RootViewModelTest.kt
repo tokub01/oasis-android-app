@@ -49,6 +49,18 @@ class RootViewModelTest {
         assertEquals(listOf(7, 7), live.started)
     }
 
+    /** Einstellungen, deleting the account, the phone and lock screens and a revoked token sign out through the session. */
+    @Test
+    fun `signing out elsewhere lets the same member go live again`() = runTest {
+        val model = RootViewModel(session, live, purchases)
+        model.tabsAppeared(7)
+        session.signOut()
+        assertEquals(1, live.stops)
+        model.tabsAppeared(7)
+        assertEquals(listOf(7, 7), live.started)
+        assertEquals(2, purchases.observed)
+    }
+
     @Test
     fun `the confirmation is cleared once shown`() {
         val model = RootViewModel(session, live, purchases)

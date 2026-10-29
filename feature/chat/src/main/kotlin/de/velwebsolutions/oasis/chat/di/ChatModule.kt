@@ -57,7 +57,10 @@ object ChatModule {
     @Singleton
     fun repository(client: ApiClient): ChatRepository = DefaultChatRepository(client)
 
-    /** Locks on sign-out (also a revoked token) and when the app goes to the background, like iOS and the web. */
+    /**
+     * Locks on sign-out (also a revoked token) and when the app goes to the background, like iOS and the web; hears when
+     * Oasis is in front again (keys only open then, and a screen Oasis opened itself is done).
+     */
     @Provides
     @Singleton
     fun vault(@AppScope scope: CoroutineScope, session: Session): ChatVault = ChatVault(scope).also { vault ->
@@ -65,6 +68,8 @@ object ChatModule {
         Handler(Looper.getMainLooper()).post {
             ProcessLifecycleOwner.get().lifecycle.addObserver(
                 object : DefaultLifecycleObserver {
+                    override fun onStart(owner: LifecycleOwner) = vault.cameToForeground()
+
                     override fun onStop(owner: LifecycleOwner) = vault.lockForBackground()
                 }
             )

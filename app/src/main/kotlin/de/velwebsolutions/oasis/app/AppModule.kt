@@ -8,13 +8,18 @@ import dagger.Provides
 import dagger.hilt.InstallIn
 import dagger.hilt.android.qualifiers.ApplicationContext
 import dagger.hilt.components.SingletonComponent
+import de.velwebsolutions.oasis.app.shell.AppHost
+import de.velwebsolutions.oasis.core.auth.Session
+import de.velwebsolutions.oasis.core.di.AppScope
 import de.velwebsolutions.oasis.core.di.DeviceName
 import de.velwebsolutions.oasis.core.network.ApiConfig
 import de.velwebsolutions.oasis.core.network.RealtimeConfig
 import de.velwebsolutions.oasis.design.navigation.Navigator
 import javax.inject.Singleton
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.launch
 
-/** Server, user agent and device name of this build (BuildConfig per build type: debug, staging, release). */
+/** Server, user agent and device name of this build (BuildConfig per build type: debug, staging, release); the navigator. */
 @Module
 @InstallIn(SingletonComponent::class)
 object AppModule {
@@ -38,7 +43,9 @@ object AppModule {
             ?: "${Build.MANUFACTURER.replaceFirstChar(Char::uppercase)} ${Build.MODEL}"
     )
 
+    /** The app's one navigator; after a sign-out the next member starts on the roots of the tabs ([AppHost.resetAfterSignOut]). */
     @Provides
     @Singleton
-    fun navigator(): Navigator = Navigator()
+    fun navigator(session: Session, @AppScope scope: CoroutineScope): Navigator =
+        Navigator().also { navigator -> scope.launch { AppHost.resetAfterSignOut(session.state, navigator) } }
 }

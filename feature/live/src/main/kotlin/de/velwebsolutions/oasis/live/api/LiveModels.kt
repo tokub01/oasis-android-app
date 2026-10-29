@@ -24,7 +24,7 @@ data class Hint(
 @Serializable
 data class HintKindSetting(val key: String, val label: String, val enabled: Boolean)
 
-/** A browser (Web Push) or app installation (APNs) that gets push hints. */
+/** A browser (Web Push) or app installation (APNs, FCM) that gets push hints. */
 @Serializable
 data class PushDevice(
     val id: Int,
@@ -41,7 +41,7 @@ data class PushDevice(
 /** Push availability and devices in the hint settings. */
 @Serializable
 data class PushSettings(
-    /** Whether the server sends app pushes (APNs configured). */
+    /** Whether the server sends pushes to this app (FCM configured; the settings are asked for as Android). */
     val available: Boolean = false,
     val devices: List<PushDevice> = emptyList()
 )

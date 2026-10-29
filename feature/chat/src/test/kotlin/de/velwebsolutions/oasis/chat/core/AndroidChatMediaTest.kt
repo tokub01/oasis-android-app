@@ -17,6 +17,9 @@ import de.velwebsolutions.oasis.core.share.SharedFile
 import java.io.ByteArrayOutputStream
 import java.io.File
 import java.io.IOException
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.async
+import kotlinx.coroutines.awaitAll
 import kotlinx.coroutines.test.runTest
 import org.junit.Assert.assertArrayEquals
 import org.junit.Assert.assertEquals
@@ -190,6 +193,53 @@ class AndroidChatMediaTest {
 
         media.discard(document)
         assertFalse(document.file.exists())
+    }
+
+    @Test
+    fun longNamesAreShortenedToWhatAFileNameMayHave() = runTest {
+        val media = AndroidChatMedia(context)
+        suspend fun stored(name: String): File {
+            val document = media.present(AttachmentKind.File, byteArrayOf(3), "application/pdf", name) as AttachmentView.Document
+            return document.file
+        }
+        // 116 palm trees and ".pdf" are 468 bytes: the end of the name goes, the extension stays.
+        val palms = stored("🌴".repeat(116) + ".pdf")
+        assertEquals("🌴".repeat(62) + ".pdf", palms.name)
+        assertTrue(palms.name.toByteArray(Charsets.UTF_8).size <= AndroidChatMedia.MAX_NAME_BYTES)
+        assertArrayEquals(byteArrayOf(3), palms.readBytes())
+        assertEquals("without an extension", "文".repeat(85), stored("文".repeat(120)).name)
+        assertEquals("a dot far from the end is no extension", "文".repeat(85), stored("文".repeat(100) + "." + "文".repeat(19)).name)
+        // Up to 16 characters after the last dot are the extension.
+        assertEquals("文".repeat(79) + "." + "x".repeat(16), stored("文".repeat(100) + "." + "x".repeat(16)).name)
+        assertEquals("文".repeat(85), stored("文".repeat(100) + "." + "x".repeat(17)).name)
+        assertEquals("Rechnung.pdf", stored("Rechnung.pdf").name)
+    }
+
+    @Test
+    fun filesDecryptedAtTheSameTimeGetFilesOfTheirOwn() = runTest {
+        val media = AndroidChatMedia(context)
+        val views = List(64) { index ->
+            async(Dispatchers.Default) {
+                media.present(AttachmentKind.Audio, byteArrayOf(index.toByte()), "audio/mp4", null) as AttachmentView.Playable
+            }
+        }.awaitAll()
+        assertEquals(64, views.map { it.file.path }.toSet().size)
+        views.forEachIndexed { index, view -> assertArrayEquals(byteArrayOf(index.toByte()), view.file.readBytes()) }
+    }
+
+    @Test
+    fun aNewProcessDeletesTheFilesAKilledOneLeftBehind() {
+        val leftover = File(context.cacheDir, "chat-attachments/datei-9/Geheim.pdf").apply {
+            parentFile!!.mkdirs()
+            writeBytes(byteArrayOf(1))
+        }
+        // Android attaches the provider as the process starts.
+        val info = android.content.pm.ProviderInfo().apply {
+            authority = AndroidChatMedia.authority(context)
+            grantUriPermissions = true
+        }
+        ChatFileProvider().attachInfo(context, info)
+        assertFalse(leftover.exists())
     }
 
     @Test

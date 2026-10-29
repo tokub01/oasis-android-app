@@ -65,11 +65,13 @@ import androidx.compose.ui.unit.dp
 import de.velwebsolutions.oasis.core.format.GermanTime
 import de.velwebsolutions.oasis.core.model.Loadable
 import de.velwebsolutions.oasis.core.network.ApiError
+import de.velwebsolutions.oasis.design.components.AsyncOasisButton
 import de.velwebsolutions.oasis.design.components.CountBadge
 import de.velwebsolutions.oasis.design.components.EmptyStateView
 import de.velwebsolutions.oasis.design.components.FieldError
 import de.velwebsolutions.oasis.design.components.LoadableView
 import de.velwebsolutions.oasis.design.components.OasisButton
+import de.velwebsolutions.oasis.design.components.OasisButtonKind
 import de.velwebsolutions.oasis.design.components.pressable
 import de.velwebsolutions.oasis.design.navigation.AccountRoute
 import de.velwebsolutions.oasis.design.navigation.AppRoute
@@ -330,6 +332,18 @@ fun StaffHeading(text: String, modifier: Modifier = Modifier) {
 fun Modifier.staffBox(border: Color = OasisColors.PaperLine, width: Int = 1, radius: Int = OasisRadius.S): Modifier {
     val shape = RoundedCornerShape(radius.dp)
     return fillMaxWidth().background(OasisColors.Paper, shape).border(width.dp, border, shape)
+}
+
+/**
+ * "Weitere … laden" below a list with more pages (queue, roles, payments): the next page comes when it is asked for. A
+ * staff page is one scrolling column that composes all of its content at once, so a loader at the end of a list would
+ * start by itself and fetch every page – every account with its address on "Rollen", every payment.
+ */
+@Composable
+fun LoadMoreButton(label: String, onLoadMore: suspend () -> Unit, modifier: Modifier = Modifier) {
+    Box(modifier.fillMaxWidth(), contentAlignment = Alignment.Center) {
+        AsyncOasisButton(label, onLoadMore, kind = OasisButtonKind.Secondary, fullWidth = false)
+    }
 }
 
 /** The scrolling page of the staff screens (padding 16, at most 760 wide) with pull-to-refresh. */

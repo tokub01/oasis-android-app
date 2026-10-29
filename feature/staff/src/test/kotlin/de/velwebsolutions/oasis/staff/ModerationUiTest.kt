@@ -4,9 +4,11 @@ import android.media.MediaPlayer
 import android.view.View
 import android.view.ViewGroup
 import android.widget.VideoView
+import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
+import androidx.compose.ui.platform.LocalInspectionMode
 import androidx.compose.ui.semantics.SemanticsActions
 import androidx.compose.ui.test.assertCountEquals
 import androidx.compose.ui.test.assertIsDisplayed
@@ -27,6 +29,13 @@ import androidx.compose.ui.test.performSemanticsAction
 import androidx.compose.ui.test.performTextInput
 import androidx.compose.ui.test.performTouchInput
 import androidx.compose.ui.test.swipeDown
+import coil3.ImageLoader
+import coil3.annotation.ExperimentalCoilApi
+import coil3.compose.AsyncImagePainter
+import coil3.compose.AsyncImagePreviewHandler
+import coil3.compose.LocalAsyncImagePreviewHandler
+import coil3.request.CachePolicy
+import coil3.request.ImageRequest
 import de.velwebsolutions.oasis.core.model.Loadable
 import de.velwebsolutions.oasis.core.network.ApiError
 import de.velwebsolutions.oasis.design.navigation.StaffRoute
@@ -35,6 +44,7 @@ import de.velwebsolutions.oasis.staff.api.ModerationOverview
 import de.velwebsolutions.oasis.staff.api.QueueFilter
 import de.velwebsolutions.oasis.staff.api.StatementOfReasons
 import de.velwebsolutions.oasis.staff.data.StaffFiles
+import de.velwebsolutions.oasis.staff.ui.components.LoadMoreButton
 import de.velwebsolutions.oasis.staff.ui.moderation.CaseDetailActions
 import de.velwebsolutions.oasis.staff.ui.moderation.CaseDetailContent
 import de.velwebsolutions.oasis.staff.ui.moderation.CaseDetailScreen
@@ -107,7 +117,10 @@ class ModerationUiTest {
         compose.onNode(isToggleable()).performScrollTo().performClick()
         assertTrue(filters.last().mine)
         compose.waitForIdle()
-        assertTrue(more > 0)
+        assertEquals("further pages come only when asked for", 0, more)
+        compose.onNodeWithTag("queue.more").performScrollTo().performClick()
+        compose.waitForIdle()
+        assertEquals(1, more)
         compose.onAllNodesWithText(
             "Fall #${overview.activity.first().caseId} · ${overview.activity.first().type.label}",
             substring = true
@@ -124,6 +137,17 @@ class ModerationUiTest {
         compose.onNodeWithText("Keine Fälle für diese Auswahl. Gute Arbeit.").performScrollTo().assertIsDisplayed()
         compose.onNodeWithText("Noch keine Aktivität.").performScrollTo().assertIsDisplayed()
         ui.shot("moderation-empty")
+    }
+
+    @Test
+    fun `the button for further pages loads one only when tapped`() {
+        var more = 0
+        ui.show { LoadMoreButton("Weitere Fälle laden", { more++ }) }
+        compose.waitForIdle()
+        assertEquals(0, more)
+        compose.onNodeWithText("Weitere Fälle laden").performClick()
+        compose.waitForIdle()
+        assertEquals(1, more)
     }
 
     @Test
@@ -260,6 +284,28 @@ class ModerationUiTest {
         compose.onNodeWithText("Anhang 1: Datei").assertExists()
         // FileProvider remembers its folders per process; every Robolectric test has its own cache folder.
         clearFileProviders()
+    }
+
+    @OptIn(ExperimentalCoilApi::class)
+    @Test
+    fun `a reported photo is never written to the image loader's disk cache`() {
+        val photo = Decoded.caseChat.report!!.attachments.first()
+        val requests = mutableListOf<ImageRequest>()
+        // In inspection mode Coil hands each request to the preview handler instead of loading it.
+        ui.show {
+            CompositionLocalProvider(
+                LocalInspectionMode provides true,
+                LocalAsyncImagePreviewHandler provides object : AsyncImagePreviewHandler {
+                    override suspend fun handle(imageLoader: ImageLoader, request: ImageRequest): AsyncImagePainter.State {
+                        requests += request
+                        return AsyncImagePainter.State.Empty
+                    }
+                }
+            ) { ReportedAttachments(listOf(photo), emptyMap(), emptySet()) {} }
+        }
+        compose.waitForIdle()
+        assertEquals(photo.url, requests.last().data)
+        assertEquals("the server sends the decrypted copy with no-store", CachePolicy.DISABLED, requests.last().diskCachePolicy)
     }
 
     private fun clearFileProviders() = androidx.core.content.FileProvider::class.java.getDeclaredField("sCache").apply {
@@ -499,7 +545,11 @@ class ModerationUiTest {
         compose.onNodeWithTag("roles.save.${first.id}").performClick()
         compose.waitForIdle()
         compose.onNodeWithText("Nicht erlaubt.").assertIsDisplayed()
+        assertTrue("no further accounts by themselves", repository.calls.none { it.startsWith("roles 2") })
+        compose.onNodeWithTag("roles.more").performScrollTo().performClick()
+        compose.waitForIdle()
         assertTrue(repository.calls.any { it.startsWith("roles 2") })
+        compose.onNodeWithTag("roles.more").assertDoesNotExist()
     }
 
     @Test

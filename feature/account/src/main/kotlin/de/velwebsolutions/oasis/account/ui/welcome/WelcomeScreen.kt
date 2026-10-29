@@ -46,6 +46,8 @@ import androidx.compose.ui.semantics.selected
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.unit.dp
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
+import androidx.lifecycle.Lifecycle
+import androidx.lifecycle.compose.LifecycleEventEffect
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import de.velwebsolutions.oasis.account.api.WelcomeTour
 import de.velwebsolutions.oasis.account.ui.components.FlowChoices
@@ -77,12 +79,15 @@ import kotlinx.coroutines.launch
 
 /**
  * Einstieg (/app/willkommen): about you, who sees you, oases, people. Every step can be skipped, the whole tour too
- * („Später“); finishing or skipping ends it for good, so the app stops opening it. A new step fades in at the top.
+ * („Später“); finishing or skipping ends it for good, so the app stops opening it. A new step fades in at the top. Back
+ * from the Privatsphäre-Check, „Wer dich sieht“ shows what was saved there.
  */
 @Composable
 internal fun WelcomeScreen(viewModel: WelcomeViewModel = hiltViewModel()) {
     val navigator = LocalNavigator.current
     val ui by viewModel.ui.collectAsStateWithLifecycle()
+    val scope = rememberCoroutineScope()
+    LifecycleEventEffect(Lifecycle.Event.ON_RESUME) { scope.launch { viewModel.appeared() } }
     // The live hint waits for a short pause in typing.
     LaunchedEffect(ui.bio, ui.location) {
         delay(500)
@@ -260,12 +265,12 @@ private fun ColumnScope.VisibilityStep(ui: WelcomeUiState, tour: WelcomeTour, vi
     )
     Text("Wer darf dein Profil sehen?", style = OasisType.BodyBold, color = OasisColors.Night)
     FlowChoices(tour.audiences, ui.profileAudience, tag = "welcome.audience") { value ->
-        viewModel.edit { it.copy(profileAudience = value) }
+        viewModel.edit { it.copy(profileAudience = value, visibilityChanged = true) }
     }
     ui.fieldErrors["profile_audience"]?.let { FieldError(it) }
     Text("Wer liest deine Tropfen normalerweise?", style = OasisType.BodyBold, color = OasisColors.Night)
     FlowChoices(tour.visibilities, ui.defaultPostVisibility, tag = "welcome.visibility") { value ->
-        viewModel.edit { it.copy(defaultPostVisibility = value) }
+        viewModel.edit { it.copy(defaultPostVisibility = value, visibilityChanged = true) }
     }
     ui.fieldErrors["default_post_visibility"]?.let { FieldError(it) }
     LinkText("Alle Einstellungen im Privatsphäre-Check", { open(AccountRoute.PrivacyCheckup) })

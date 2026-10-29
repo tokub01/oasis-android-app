@@ -35,23 +35,33 @@ class ChatDevices(private val context: ChatContext) {
 
     /**
      * First use without a passphrase: the secret first (nothing is stored when the device cannot), then fresh keys
-     * published without a passphrase copy, then the device copy.
+     * published without a passphrase copy, then the device copy. A failed copy does not throw published keys away: they
+     * stay open and [ChatKeyringException.DeviceCopyNotStored] says so, so the member can still keep a copy; the keystore
+     * secret stays too, since the server may have stored the row before its answer got lost. Published while Oasis went
+     * to the background, they become the stored identity, to be unlocked with the device copy on return (keys never stay
+     * open in the background: without a copy they are gone then).
+     * @return the stored identity, or null if the vault was locked meanwhile or Oasis is in the background.
      */
     suspend fun setUpWithDevice(): StoredIdentity? {
         val generation = vault.generation
         val device = secrets.create(vault.userId)
         val identity = crypto.createIdentity()
-        try {
-            val stored = api.saveIdentity(null, crypto.exportPublicKeys(identity))
-            storeCopy(identity, device)
-            if (!vault.unlock(identity, generation)) return null
-            vault.setStoredIdentity(stored)
-            return stored
+        val stored = try {
+            api.saveIdentity(null, crypto.exportPublicKeys(identity))
         } catch (error: Exception) {
             identity.wipe()
             secrets.delete(vault.userId)
             throw error
         }
+        val copied = runCatching { storeCopy(identity, device) }.isSuccess
+        if (!vault.unlock(identity, generation)) {
+            // Only the background stood in the way (a lock or another member counts up the generation).
+            if (generation == vault.generation) vault.setStoredIdentity(stored)
+            return null
+        }
+        vault.setStoredIdentity(stored)
+        if (!copied) throw ChatKeyringException.DeviceCopyNotStored
+        return stored
     }
 
     /** Add this device to the unlocked chat. */

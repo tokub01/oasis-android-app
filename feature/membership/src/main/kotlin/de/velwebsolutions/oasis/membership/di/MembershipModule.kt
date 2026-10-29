@@ -7,6 +7,7 @@ import dagger.Provides
 import dagger.hilt.InstallIn
 import dagger.hilt.android.qualifiers.ApplicationContext
 import dagger.hilt.components.SingletonComponent
+import de.velwebsolutions.oasis.core.auth.Session
 import de.velwebsolutions.oasis.membership.billing.BillingClientConnection
 import de.velwebsolutions.oasis.membership.billing.BillingGateway
 import de.velwebsolutions.oasis.membership.billing.PlayBillingConnection
@@ -33,8 +34,14 @@ abstract class MembershipModule {
     abstract fun billingConnection(connection: BillingClientConnection): PlayBillingConnection
 
     companion object {
+        /** Invoices and exports: leftovers of an earlier process go at once, all of them when the member signs out. */
         @Provides
         @Singleton
-        fun files(@ApplicationContext context: Context): MembershipFiles = MembershipFiles(context.cacheDir)
+        fun files(@ApplicationContext context: Context, session: Session): MembershipFiles {
+            val files = MembershipFiles(context.cacheDir)
+            files.clear()
+            session.addOnSignedOut(files::clear)
+            return files
+        }
     }
 }

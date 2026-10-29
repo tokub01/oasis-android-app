@@ -93,4 +93,28 @@ class LiveRepositoryTest {
             }.request.url.query
         )
     }
+
+    @Test
+    fun asksForTheHintSettingsAsAndroid() = runTest {
+        val transport = StubTransport(
+            StubTransport.Stub("GET", "hints/settings", json = LiveJson.SETTINGS),
+            StubTransport.Stub("PUT", "hints/settings", json = LiveJson.saved("Gespeichert.")),
+            StubTransport.Stub("POST", "hints/pause", json = LiveJson.saved("Pause.")),
+            StubTransport.Stub("DELETE", "hints/pause", json = LiveJson.saved("Weiter."))
+        )
+        val repository = repository(transport)
+        repository.save(repository.settings())
+        repository.pause(1)
+        repository.resume()
+        // Without it the server answers push and the chat_push switch for iOS (APNs), not for FCM.
+        assertEquals(
+            listOf(
+                "GET hints/settings platform=android",
+                "PUT hints/settings platform=android",
+                "POST hints/pause platform=android",
+                "DELETE hints/pause platform=android"
+            ),
+            transport.requests.map { "${it.request.method} ${it.path} ${it.request.url.query}" }
+        )
+    }
 }

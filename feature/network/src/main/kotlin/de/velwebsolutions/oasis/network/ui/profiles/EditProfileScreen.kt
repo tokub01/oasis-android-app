@@ -155,8 +155,7 @@ private fun ProfileForm(
 ) {
     val navigator = LocalNavigator.current
     PaperBox(spacing = 18) {
-        val fields = listOf("bio", "location", "status", "avatar_color", "photo")
-        if (error != null && fields.none { error.message(it) != null }) Banner(error.userMessage)
+        if (error != null && EditProfileViewModel.FIELDS.none { error.message(it) != null }) Banner(error.userMessage)
         Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
             OasisTextField(
                 "Über dich (optional)",

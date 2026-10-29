@@ -52,26 +52,29 @@ data class DraftMeasure(val characters: Int, val bytes: Int, val tooLong: Boolea
 /** Encrypt, verify and keep messages in order. */
 object ChatMessages {
     /**
-     * The largest entry a file can add to the plaintext, so a draft with [attachments] files is measured with room for
-     * all of them (the text limit shrinks by the metadata).
+     * The entry [draft] adds to the plaintext once uploaded (`measureDraft`): its own kind, type, size, name and
+     * dimensions, and the longest id, key and nonce an upload can get – a long file name or type shortens the text.
      */
-    private val largestAttachment = MessageAttachment(
+    private fun entry(draft: DraftAttachment) = MessageAttachment(
         id = "9".repeat(19),
-        kind = "video",
-        mime = "video/quicktime",
-        size = 52_428_800,
+        kind = draft.kind.wire,
+        mime = draft.mime,
+        size = draft.data.size.toLong(),
         key = "k".repeat(43),
         nonce = "n".repeat(32),
-        name = "n".repeat(MessagePayload.MAX_NAME_LENGTH),
-        width = 99_999,
-        height = 99_999,
-        durationMs = 180_000
+        name = draft.name,
+        width = draft.width,
+        height = draft.height,
+        durationMs = draft.durationMs
     )
 
-    /** Characters (code points) of the text, and UTF-8 bytes of the whole plaintext, against the message limits. */
-    fun measure(text: String, attachments: Int = 0): DraftMeasure {
+    /**
+     * Characters (code points) of the text, and UTF-8 bytes of the whole plaintext with the entries of [attachments],
+     * against the message limits.
+     */
+    fun measure(text: String, attachments: List<DraftAttachment> = emptyList()): DraftMeasure {
         val characters = text.codePointCount(0, text.length)
-        val plaintext = MessagePayload.plaintext(MessageContent(text, List(attachments) { largestAttachment }))
+        val plaintext = MessagePayload.plaintext(MessageContent(text, attachments.map(::entry)))
         val bytes = plaintext.toByteArray(Charsets.UTF_8).size
         return DraftMeasure(characters, bytes, characters > ChatCrypto.MAX_MESSAGE_LENGTH || !MessagePayload.fits(plaintext))
     }

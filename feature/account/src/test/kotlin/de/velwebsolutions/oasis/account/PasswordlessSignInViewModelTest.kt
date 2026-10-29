@@ -56,6 +56,23 @@ class PasswordlessSignInViewModelTest {
     }
 
     @Test
+    fun theWaysWithoutAPasswordAreAskedForUntilTheServerAnswered() = runTest {
+        val transport = StubTransport().stub("GET", "auth/methods", "{}", status = 500)
+        val model = SignInViewModel(session(transport, backgroundScope), RemoteAuthApi(transport.client))
+        model.loadMethodsIfMissing()
+        assertNull("offline when the form first showed", model.ui.value.methods)
+        transport.add(
+            "GET",
+            "auth/methods",
+            json = """{"data":{"login_code_channels":["email","sms"],"sms_available":true,"passkeys":true}}"""
+        )
+        model.loadMethodsIfMissing()
+        assertTrue("shown again, the form offers passkeys and SMS", model.ui.value.offersSms && model.ui.value.offersPasskeys)
+        model.loadMethodsIfMissing()
+        assertEquals("asked no more once answered", 2, transport.requests.count { it.path == "auth/methods" })
+    }
+
+    @Test
     fun aRefusedPasswordOffersTheCodeAndAnotherErrorDoesNot() = runTest {
         val transport = StubTransport()
             .stub("GET", "auth/methods", "{}", status = 500)

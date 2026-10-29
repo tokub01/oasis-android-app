@@ -20,6 +20,7 @@ import de.velwebsolutions.oasis.membership.data.MembershipEvents
 import de.velwebsolutions.oasis.membership.data.MembershipRepository
 import javax.inject.Inject
 import kotlin.coroutines.cancellation.CancellationException
+import kotlinx.coroutines.async
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -118,34 +119,42 @@ class PlayCheckoutViewModel @Inject constructor(
     /** Shows the monthly or yearly prices. */
     fun selectRhythm(rhythm: String) = mutableState.update { it.copy(rhythm = rhythm) }
 
-    /** "Abonnieren". Returns true once the server unlocked the membership. */
+    /**
+     * "Abonnieren". Returns true once the server unlocked the membership. Play's sheet and the delivery run in the view
+     * model's scope: rotating the device or switching to dark mode while the sheet is open recreates the screen, and
+     * the purchase must still reach the server (the screen then only misses the answer).
+     */
     suspend fun purchase(activity: Activity?, product: PlayProduct): Boolean {
         if (!mutableState.value.canPurchase || mutableState.value.purchasing != null) return false
         mutableState.update { it.copy(error = null, purchasing = product.id) }
-        try {
-            return when (val outcome = gateway.purchase(activity, product, accountId)) {
-                is PurchaseOutcome.Purchased -> deliver(outcome.purchases)
+        return viewModelScope.async {
+            try {
+                when (val outcome = gateway.purchase(activity, product, accountId)) {
+                    is PurchaseOutcome.Purchased -> deliver(outcome.purchases)
 
-                PurchaseOutcome.Pending -> {
-                    mutableState.update { it.copy(message = PENDING) }
-                    false
+                    PurchaseOutcome.AlreadyOwned -> restoreOwned()
+
+                    PurchaseOutcome.Pending -> {
+                        mutableState.update { it.copy(message = PENDING) }
+                        false
+                    }
+
+                    PurchaseOutcome.Cancelled -> false
+
+                    PurchaseOutcome.Unavailable -> {
+                        mutableState.update { it.copy(error = UNAVAILABLE) }
+                        false
+                    }
+
+                    PurchaseOutcome.Failed -> {
+                        mutableState.update { it.copy(error = FAILED) }
+                        false
+                    }
                 }
-
-                PurchaseOutcome.Cancelled -> false
-
-                PurchaseOutcome.Unavailable -> {
-                    mutableState.update { it.copy(error = UNAVAILABLE) }
-                    false
-                }
-
-                PurchaseOutcome.Failed -> {
-                    mutableState.update { it.copy(error = FAILED) }
-                    false
-                }
+            } finally {
+                mutableState.update { it.copy(purchasing = null) }
             }
-        } finally {
-            mutableState.update { it.copy(purchasing = null) }
-        }
+        }.await()
     }
 
     /**
@@ -153,13 +162,18 @@ class PlayCheckoutViewModel @Inject constructor(
      * (for example after reinstalling the app or on a new phone).
      */
     suspend fun restore() {
+        restoreOwned()
+    }
+
+    /** [restore]; true when the server unlocked the membership for one of the account's subscriptions. */
+    private suspend fun restoreOwned(): Boolean {
         mutableState.update { it.copy(error = null) }
-        val purchases = gateway.ownedPurchases()
-        val restored = deliver(purchases)
+        val restored = deliver(gateway.ownedPurchases())
         // A refusal already says why; otherwise "nothing found".
         if (!restored && mutableState.value.error == null) {
             mutableState.update { it.copy(message = NOTHING_TO_RESTORE) }
         }
+        return restored
     }
 
     /** True when the server unlocked the membership for one of [purchases]. */

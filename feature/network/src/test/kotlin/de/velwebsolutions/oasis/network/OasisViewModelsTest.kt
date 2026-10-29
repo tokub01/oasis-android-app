@@ -1,7 +1,10 @@
 package de.velwebsolutions.oasis.network
 
 import de.velwebsolutions.oasis.core.model.Loadable
+import de.velwebsolutions.oasis.network.api.FeedPage
 import de.velwebsolutions.oasis.network.api.ImageUpload
+import de.velwebsolutions.oasis.network.api.NoContext
+import de.velwebsolutions.oasis.network.data.NetworkRepository
 import de.velwebsolutions.oasis.network.ui.oases.CloseOasisViewModel
 import de.velwebsolutions.oasis.network.ui.oases.OasesViewModel
 import de.velwebsolutions.oasis.network.ui.oases.OasisFormOutcome
@@ -9,6 +12,9 @@ import de.velwebsolutions.oasis.network.ui.oases.OasisFormViewModel
 import de.velwebsolutions.oasis.network.ui.oases.OasisStatisticsViewModel
 import de.velwebsolutions.oasis.network.ui.oases.OasisViewModel
 import de.velwebsolutions.oasis.testing.MainDispatcherRule
+import kotlinx.coroutines.CompletableDeferred
+import kotlinx.coroutines.cancelAndJoin
+import kotlinx.coroutines.launch
 import kotlinx.coroutines.test.runTest
 import org.junit.After
 import org.junit.Assert.assertEquals
@@ -214,6 +220,71 @@ class OasisViewModelsTest(private val answersAtOnce: Boolean) {
         model.removeBanner()
         assertEquals("Das Banner ist entfernt.", model.status.value)
         assertEquals(3, network.transport.requests.count { it.path == "network/oases/stadtgarten/edit" })
+    }
+
+    @Test
+    fun `a stored banner or a new host keeps what was typed, and a failed refresh keeps the form`() = runTest {
+        val network = StubbedNetwork(
+            stub("GET", "network/oases/stadtgarten/edit", editForm),
+            stub("POST", "network/oases/stadtgarten/banner", """{"message":"Das Banner ist gespeichert."}"""),
+            stub("DELETE", "network/oases/stadtgarten/banner", """{"message":"Das Banner ist entfernt."}"""),
+            stub(
+                "PUT",
+                "network/oases/stadtgarten/members/3/role",
+                """{"message":"Aylin ist jetzt Gastgeberin.","data":{"still_host":true}}"""
+            )
+        )
+        val model = models.keep(OasisFormViewModel("stadtgarten", network.repository))
+        model.load()
+        model.updateInput { it.copy(description = "Gärtnern im Hinterhof.") }
+        val withBanner = editForm.replace("\"banner_url\": null", "\"banner_url\": \"http://localhost/banner.webp\"")
+        network.add("GET", "network/oases/stadtgarten/edit", json = withBanner)
+        model.pickBanner(banner)
+        assertEquals("http://localhost/banner.webp", model.state.value.edit?.oasis?.bannerUrl)
+        assertEquals("Gärtnern im Hinterhof.", model.state.value.input.description)
+
+        model.setRole(3, "host")
+        assertEquals("Aylin ist jetzt Gastgeberin.", model.status.value)
+        assertEquals("Gärtnern im Hinterhof.", model.state.value.input.description)
+
+        network.add("GET", "network/oases/stadtgarten/edit", 500, """{"message":"Kaputt."}""")
+        model.removeBanner()
+        assertNull(model.state.value.loadError)
+        assertEquals("Kaputt.", model.error.value?.userMessage)
+        assertEquals("Gärtnern im Hinterhof.", model.state.value.input.description)
+        assertEquals("Freundlich bleiben.", model.state.value.input.houseRules)
+    }
+
+    @Test
+    fun `Tropfen and the member list whose load was cancelled with the oasis page load again with it`() = runTest {
+        val asked = CompletableDeferred<Unit>()
+        val gate = CompletableDeferred<Unit>()
+        val network = StubbedNetwork(
+            stub("GET", "network/oases/stadtgarten", detail(member = true)),
+            stub("GET", "network/oases/stadtgarten/posts", pageJson(postJson(4))),
+            stub("GET", "network/oases/stadtgarten/members", """{"data":{"members":[],"hidden_members":2,"own_list_audience":null}}""")
+        )
+        val slow = object : NetworkRepository by network.repository {
+            override suspend fun oasisPosts(slug: String, cursor: String?): FeedPage<NoContext> {
+                asked.complete(Unit)
+                gate.await()
+                return network.repository.oasisPosts(slug, cursor)
+            }
+        }
+        val model = models.keep(OasisViewModel("stadtgarten", slow))
+        // A rotation while the oasis' Tropfen load cancels the screen's coroutine, before the member list was asked for.
+        val screen = launch { model.loadIfNeeded() }
+        asked.await()
+        screen.cancelAndJoin()
+        assertEquals(Loadable.Idle, model.posts.state.value.state)
+        assertNull(model.members.value)
+
+        gate.complete(Unit)
+        model.loadIfNeeded()
+        assertEquals(listOf(4), model.posts.posts.map { it.id })
+        assertEquals(2, model.members.value?.hiddenMembers)
+        model.loadIfNeeded()
+        assertEquals(1, network.transport.requests.count { it.path == "network/oases/stadtgarten/members" })
     }
 
     @Test

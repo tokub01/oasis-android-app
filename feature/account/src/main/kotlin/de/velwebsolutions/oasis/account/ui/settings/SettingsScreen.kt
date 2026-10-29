@@ -1,8 +1,15 @@
 package de.velwebsolutions.oasis.account.ui.settings
 
 import android.content.ActivityNotFoundException
+import android.content.ClipData
+import android.content.ClipboardManager
 import android.content.Context
 import android.content.Intent
+import android.os.Handler
+import android.os.Looper
+import android.os.PersistableBundle
+import android.view.WindowManager
+import androidx.activity.compose.LocalActivity
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
@@ -15,10 +22,10 @@ import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.foundation.text.selection.SelectionContainer
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.outlined.KeyboardArrowRight
+import androidx.compose.material.icons.outlined.ContentCopy
 import androidx.compose.material.icons.outlined.Share
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
@@ -26,6 +33,7 @@ import androidx.compose.material3.ModalBottomSheet
 import androidx.compose.material3.Text
 import androidx.compose.material3.rememberModalBottomSheetState
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -33,6 +41,7 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.semantics.Role
@@ -68,6 +77,7 @@ import de.velwebsolutions.oasis.design.navigation.WebRoute
 import de.velwebsolutions.oasis.design.theme.OasisColors
 import de.velwebsolutions.oasis.design.theme.OasisRadius
 import de.velwebsolutions.oasis.design.theme.OasisType
+import java.util.UUID
 
 /**
  * Einstellungen (/app/einstellungen): Profil, Passwort, Zwei-Faktor-Anmeldung, Passkeys, Handynummer, Deine Daten,
@@ -233,12 +243,15 @@ private fun PasswordSection(ui: SettingsUiState, viewModel: SettingsViewModel) {
 
 /**
  * Zwei-Faktor-Anmeldung: off → „Einschalten“; pending → QR code, setup key and the code; active → recovery codes
- * (shown once), new codes, switch off.
+ * (shown once), new codes, switch off. While the shared secret or the codes are on screen, the window is kept out of
+ * screenshots, screen recordings and the recent apps, and they are copied only as sensitive and for a minute
+ * ([copySecret]).
  */
 @OptIn(ExperimentalLayoutApi::class)
 @Composable
 private fun TwoFactorSection(ui: SettingsUiState, settings: AccountSettings, viewModel: SettingsViewModel) {
     val context = LocalContext.current
+    if (settings.twoFactor.state == TwoFactorState.Phase.Pending || !ui.recoveryCodes.isNullOrEmpty()) SecureWindow()
     SectionCard("Zwei-Faktor-Anmeldung") {
         when (settings.twoFactor.state) {
             TwoFactorState.Phase.Active -> {
@@ -255,45 +268,40 @@ private fun TwoFactorSection(ui: SettingsUiState, settings: AccountSettings, vie
                             style = OasisType.SmallBold,
                             color = OasisColors.Night
                         )
-                        SelectionContainer {
-                            Column(
-                                Modifier
-                                    .fillMaxWidth()
-                                    .background(OasisColors.Dune, RoundedCornerShape(OasisRadius.XS.dp))
-                                    .padding(14.dp)
-                                    .testTag("settings.recoveryCodes"),
-                                verticalArrangement = Arrangement.spacedBy(8.dp)
-                            ) {
-                                codes.chunked(2).forEach { pair ->
-                                    Row {
-                                        pair.forEach {
-                                            Text(
-                                                it,
-                                                style = OasisType.Digits.copy(fontSize = OasisType.Small.fontSize),
-                                                modifier = Modifier.weight(1f)
-                                            )
-                                        }
-                                        if (pair.size == 1) Text("", modifier = Modifier.weight(1f))
+                        Column(
+                            Modifier
+                                .fillMaxWidth()
+                                .background(OasisColors.Dune, RoundedCornerShape(OasisRadius.XS.dp))
+                                .padding(14.dp)
+                                .testTag("settings.recoveryCodes"),
+                            verticalArrangement = Arrangement.spacedBy(8.dp)
+                        ) {
+                            codes.chunked(2).forEach { pair ->
+                                Row {
+                                    pair.forEach {
+                                        Text(
+                                            it,
+                                            style = OasisType.Digits.copy(fontSize = OasisType.Small.fontSize),
+                                            modifier = Modifier.weight(1f)
+                                        )
                                     }
+                                    if (pair.size == 1) Text("", modifier = Modifier.weight(1f))
                                 }
                             }
                         }
-                        Row(
-                            Modifier
-                                .heightIn(min = 44.dp)
-                                .clickable(role = Role.Button) {
-                                    val send = Intent(
-                                        Intent.ACTION_SEND
-                                    ).setType("text/plain").putExtra(Intent.EXTRA_TEXT, codes.joinToString("\n"))
-                                    runCatching {
-                                        context.startActivity(Intent.createChooser(send, null).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK))
-                                    }
-                                },
-                            horizontalArrangement = Arrangement.spacedBy(6.dp),
-                            verticalAlignment = Alignment.CenterVertically
-                        ) {
-                            Icon(Icons.Outlined.Share, contentDescription = null, tint = OasisColors.Night)
-                            Text("Codes sichern", style = OasisType.SmallBold, color = OasisColors.Night)
+                        FlowRow(horizontalArrangement = Arrangement.spacedBy(20.dp)) {
+                            SecretAction("Codes sichern", Icons.Outlined.Share) {
+                                val send = Intent(Intent.ACTION_SEND)
+                                    .setType("text/plain")
+                                    .putExtra(Intent.EXTRA_TEXT, codes.joinToString("\n"))
+                                runCatching {
+                                    context.startActivity(Intent.createChooser(send, null).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK))
+                                }
+                            }
+                            SecretAction("Codes kopieren", Icons.Outlined.ContentCopy, Modifier.testTag("settings.copyCodes")) {
+                                copySecret(context, codes.joinToString("\n"))
+                                viewModel.edit { it.copy(message = CODES_COPIED) }
+                            }
                         }
                     }
                 }
@@ -332,12 +340,14 @@ private fun TwoFactorSection(ui: SettingsUiState, settings: AccountSettings, vie
                 settings.twoFactor.setupKey?.let { key ->
                     Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
                         Text("Oder gib diesen Schlüssel ein:", style = OasisType.Caption, color = OasisColors.Muted)
-                        SelectionContainer {
-                            Text(
-                                key,
-                                style = OasisType.Digits.copy(fontSize = OasisType.Small.fontSize),
-                                modifier = Modifier.testTag("settings.setupKey")
-                            )
+                        Text(
+                            key,
+                            style = OasisType.Digits.copy(fontSize = OasisType.Small.fontSize),
+                            modifier = Modifier.testTag("settings.setupKey")
+                        )
+                        SecretAction("Schlüssel kopieren", Icons.Outlined.ContentCopy, Modifier.testTag("settings.copySetupKey")) {
+                            copySecret(context, key)
+                            viewModel.edit { it.copy(message = KEY_COPIED) }
                         }
                     }
                 }
@@ -386,6 +396,74 @@ private fun openAuthenticator(context: Context, url: String, failed: (String) ->
         context.startActivity(intent)
     } catch (_: ActivityNotFoundException) {
         failed("Auf diesem Gerät ist keine Authenticator-App installiert. Scanne den QR-Code oder gib den Schlüssel ein.")
+    }
+}
+
+/** ClipDescription.EXTRA_IS_SENSITIVE of Android 13, by its name: older versions ignore it. */
+internal const val SENSITIVE_CLIP = "android.content.extra.IS_SENSITIVE"
+
+/** The mark of one copied secret in its clip's description, so the app finds it again without reading the clipboard. */
+private const val SECRET_CLIP_ID = "de.velwebsolutions.oasis.extra.SECRET_CLIP_ID"
+
+/** How long a copied secret stays on the clipboard: enough to paste it into the authenticator or password manager. */
+internal const val SECRET_CLIP_MILLIS = 60_000L
+
+/** The confirmation of „Schlüssel kopieren“ ([SECRET_CLIP_MILLIS]). */
+internal const val KEY_COPIED = "Der Schlüssel ist kopiert – nach einer Minute löschen wir ihn aus der Zwischenablage."
+
+/** The confirmation of „Codes kopieren“ ([SECRET_CLIP_MILLIS]). */
+internal const val CODES_COPIED = "Die Codes sind kopiert – nach einer Minute löschen wir sie aus der Zwischenablage."
+
+/**
+ * Copies a secret (the setup key, the recovery codes) marked as sensitive, so Android shows it masked in the clipboard
+ * preview and keyboards keep it out of their clipboard history. After [SECRET_CLIP_MILLIS] it is taken off the clipboard
+ * again, unless something else was copied since. The app tells that by a mark in the clip's description, never by
+ * reading the clipboard's text: that would read what the member copied in another app meanwhile (Android 12 and later
+ * even say so in a notice). Android 9 lets every app read the clipboard; from Android 10 on an app in the background
+ * sees nothing of it, so the clipboard is emptied then. The text itself is not selectable, so nothing copies it without
+ * the sensitive flag.
+ */
+internal fun copySecret(context: Context, text: String) {
+    val clipboard = context.applicationContext.getSystemService(ClipboardManager::class.java)
+    val id = UUID.randomUUID().toString()
+    val clip = ClipData.newPlainText("Oasis", text)
+    clip.description.extras = PersistableBundle().apply {
+        putBoolean(SENSITIVE_CLIP, true)
+        putString(SECRET_CLIP_ID, id)
+    }
+    clipboard.setPrimaryClip(clip)
+    Handler(Looper.getMainLooper()).postDelayed({
+        runCatching {
+            val current = clipboard.primaryClipDescription
+            if (current == null || current.extras?.getString(SECRET_CLIP_ID) == id) clipboard.clearPrimaryClip()
+        }
+    }, SECRET_CLIP_MILLIS)
+}
+
+/** A small action with an icon below a secret: „Codes sichern“, „Codes kopieren“, „Schlüssel kopieren“. */
+@Composable
+private fun SecretAction(text: String, icon: ImageVector, modifier: Modifier = Modifier, onClick: () -> Unit) {
+    Row(
+        modifier.heightIn(min = 44.dp).clickable(role = Role.Button, onClick = onClick),
+        horizontalArrangement = Arrangement.spacedBy(6.dp),
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+        Icon(icon, contentDescription = null, tint = OasisColors.Night)
+        Text(text, style = OasisType.SmallBold, color = OasisColors.Night)
+    }
+}
+
+/**
+ * Keeps the window out of screenshots, screen recordings, screen sharing and the preview in the recent apps while it is
+ * shown (FLAG_SECURE), like the view-once files of the chat. A window that was secure already stays so.
+ */
+@Composable
+private fun SecureWindow() {
+    val window = checkNotNull(LocalActivity.current).window
+    DisposableEffect(window) {
+        val wasSecure = (window.attributes.flags and WindowManager.LayoutParams.FLAG_SECURE) != 0
+        window.addFlags(WindowManager.LayoutParams.FLAG_SECURE)
+        onDispose { if (!wasSecure) window.clearFlags(WindowManager.LayoutParams.FLAG_SECURE) }
     }
 }
 

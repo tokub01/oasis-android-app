@@ -104,4 +104,24 @@ class ApiClientTest {
         client.download("https://cdn.example.org/bild.png")
         assertEquals(null, stub.requests.last().request.header("X-Oasis-Gate"))
     }
+
+    /** Images and downloads may come from absolute URLs: a server elsewhere never sees the member's token. */
+    @Test
+    fun `the token goes to the Oasis server only, and only its 401 signs out`() = runTest {
+        val stub = StubTransport(StubTransport.Stub("GET", "/bild.png", json = ""), StubTransport.Stub("GET", "/weg.png", 401, ""))
+        stub.client.download("/bild.png")
+        assertEquals("Bearer token", stub.requests.last().request.header("Authorization"))
+        val elsewhere = listOf(
+            "https://cdn.example.org/bild.png",
+            "//cdn.example.org/bild.png",
+            "https://localhost/bild.png",
+            "http://localhost:8080/bild.png"
+        )
+        elsewhere.forEach { url ->
+            stub.client.download(url)
+            assertEquals(url, null, stub.requests.last().request.header("Authorization"))
+        }
+        assertTrue(runCatching { stub.client.download("https://cdn.example.org/weg.png") }.exceptionOrNull() is ApiError.Unauthenticated)
+        assertEquals("a 401 from elsewhere does not sign the app out", 0, stub.unauthenticatedCount)
+    }
 }

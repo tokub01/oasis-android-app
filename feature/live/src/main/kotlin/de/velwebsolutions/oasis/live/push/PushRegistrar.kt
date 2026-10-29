@@ -16,7 +16,8 @@ class PushFailure(override val message: String) : Exception(message)
  * After sign-in it asks the server whether app pushes are set up (`app-config`); if so, Firebase is configured in this
  * build and the member has not switched them off on this device, it registers the FCM token with `POST push/devices`,
  * bound to this sign-in's API token, so signing out or revoking the device removes it on the server too. "Auf diesem
- * Gerät ausschalten" in Hinweise einstellen removes it and remembers the choice; "einschalten" undoes that.
+ * Gerät ausschalten" in Hinweise einstellen removes it and remembers the choice, and so does "Entfernen" of this
+ * installation in the device list; "einschalten" undoes that.
  *
  * A build without google-services.json has no Firebase: [isSupported] is false, nothing is sent, and the settings say
  * that the app gets no push hints.
@@ -107,9 +108,13 @@ class PushRegistrar(private val system: PushSystem, private val store: PushStore
         return "Push-Hinweise sind auf diesem Gerät ausgeschaltet."
     }
 
-    /** The device was removed from the list (here or on the web). */
-    fun forgetDevice(id: Int) {
-        if (store.deviceId == id) store.deviceId = null
+    /**
+     * The device was removed from the list. When it is this installation ([current]), the choice is remembered like
+     * after "ausschalten": otherwise the next start would register it again.
+     */
+    fun forgetDevice(id: Int, current: Boolean = false) {
+        if (current) store.optedOut = true
+        if (current || store.deviceId == id) store.deviceId = null
     }
 
     fun openSystemSettings() = system.openSettings()

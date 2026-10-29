@@ -82,7 +82,8 @@ fun <C> LazyListScope.feedSection(
     state.posts.forEach { post ->
         block("$keyPrefix.post.${post.id}", contentType = "post") {
             PostCard(post, onAction = handlers.perform, modifier = Modifier.alpha(if (dimmed) 0.5f else 1f))
-            if (post.id == lastId) LaunchedEffect(post.id) { handlers.loadMore() }
+            // Asked again once a reload is over: older Tropfen wait for the new first page.
+            if (post.id == lastId) LaunchedEffect(post.id, state.isReloading) { handlers.loadMore() }
         }
     }
     when {

@@ -35,7 +35,6 @@ import androidx.compose.material3.TimePicker
 import androidx.compose.material3.TimePickerDefaults
 import androidx.compose.material3.rememberTimePickerState
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -80,7 +79,6 @@ import de.velwebsolutions.oasis.live.api.PushDevice
 import de.velwebsolutions.oasis.live.push.PushAuthorization
 import de.velwebsolutions.oasis.live.push.PushRegistrar
 import java.util.Locale
-import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 
 /** What the settings form can do; the screen connects it to the view model. */
@@ -112,14 +110,6 @@ internal fun HintSettingsScreen(viewModel: HintSettingsViewModel = hiltViewModel
         viewModel.permissionAnswered(granted)
         scope.launch { viewModel.togglePushOnThisDevice() }
     }
-    // The time fields save after a short pause, not on every change.
-    val settings = ui.settings
-    LaunchedEffect(settings?.quietFrom, settings?.quietUntil) {
-        if (settings != null && viewModel.quietHoursChanged) {
-            delay(800)
-            viewModel.save()
-        }
-    }
     OasisScreen(
         title = "Hinweise einstellen",
         message = ui.message,
@@ -132,7 +122,8 @@ internal fun HintSettingsScreen(viewModel: HintSettingsViewModel = hiltViewModel
                 ui,
                 HintSettingsActions(
                     toggle = viewModel::toggle,
-                    editQuietHours = viewModel::edit,
+                    // A picked time is saved at once, like a switch (the clock dialog has nothing to wait for).
+                    editQuietHours = viewModel::editQuietHours,
                     toggleChat = viewModel::toggleChat,
                     pause = viewModel::pause,
                     resume = viewModel::resume,

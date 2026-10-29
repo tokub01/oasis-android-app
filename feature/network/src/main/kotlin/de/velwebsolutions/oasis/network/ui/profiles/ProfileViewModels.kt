@@ -64,8 +64,9 @@ class ProfileViewModel @AssistedInject constructor(@Assisted handle: String, pri
         posts.reload()
     }
 
+    /** Loads the profile once; Tropfen whose load was cancelled with the screen (a rotation) load again with it. */
     suspend fun loadIfNeeded() {
-        if (profile.value.valueOrNull == null) load()
+        if (profile.value.valueOrNull == null) load() else posts.loadIfNeeded()
     }
 
     suspend fun perform(action: ProfileAction) {
@@ -155,8 +156,11 @@ class EditProfileViewModel @Inject constructor(private val repository: NetworkRe
 
     fun updateLocation(value: String) = mutableForm.update { it.copy(location = value) }
 
-    /** The status line, cut at 80 characters like the web field's `maxlength`. */
-    fun updateStatus(value: String) = mutableForm.update { it.copy(status = value.take(STATUS_LENGTH)) }
+    /**
+     * The status line, cut at 80 characters counted like the server's `mb_strlen` (code points): no character is cut in
+     * half, and an emoji of several code points counts several times.
+     */
+    fun updateStatus(value: String) = mutableForm.update { it.copy(status = ComposeViewModel.prefix(value, STATUS_LENGTH)) }
 
     fun updateColor(value: String) = mutableForm.update { it.copy(color = value) }
 
@@ -248,6 +252,11 @@ class EditProfileViewModel @Inject constructor(private val repository: NetworkRe
             )
         }
         mutableProfile.value = Loadable.Loaded(loaded)
+    }
+
+    companion object {
+        /** The fields with their own error line; anything else shows as a banner above the form. */
+        val FIELDS = listOf("bio", "location", "status", "avatar_color", "photo", "banner")
     }
 }
 

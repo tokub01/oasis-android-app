@@ -1,17 +1,12 @@
 package de.velwebsolutions.oasis.staff.ui.moderation
 
 import androidx.compose.foundation.layout.Arrangement
-import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.size
-import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -28,6 +23,7 @@ import de.velwebsolutions.oasis.design.components.OasisTextField
 import de.velwebsolutions.oasis.design.theme.OasisColors
 import de.velwebsolutions.oasis.design.theme.OasisType
 import de.velwebsolutions.oasis.staff.api.RoleUser
+import de.velwebsolutions.oasis.staff.ui.components.LoadMoreButton
 import de.velwebsolutions.oasis.staff.ui.components.OptionPicker
 import de.velwebsolutions.oasis.staff.ui.components.StaffLoadable
 import de.velwebsolutions.oasis.staff.ui.components.StaffPage
@@ -63,12 +59,7 @@ fun RolesScreen(viewModel: RolesViewModel = hiltViewModel()) {
                     )
                 }
                 users.forEach { user -> RoleRow(user, state, viewModel) }
-                if (state.hasMore) {
-                    LaunchedEffect(users.size) { viewModel.loadMore() }
-                    Box(Modifier.fillMaxWidth().padding(12.dp), contentAlignment = Alignment.Center) {
-                        CircularProgressIndicator(Modifier.size(24.dp), color = OasisColors.Night)
-                    }
-                }
+                if (state.hasMore) LoadMoreButton("Weitere Konten laden", viewModel::loadMore, Modifier.testTag("roles.more"))
             }
         }
     }

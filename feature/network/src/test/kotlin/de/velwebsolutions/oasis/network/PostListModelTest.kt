@@ -1,13 +1,16 @@
 package de.velwebsolutions.oasis.network
 
+import de.velwebsolutions.oasis.core.model.Loadable
 import de.velwebsolutions.oasis.core.network.ApiError
 import de.velwebsolutions.oasis.network.api.DiscoverContext
+import de.velwebsolutions.oasis.network.api.FeedPage
 import de.velwebsolutions.oasis.network.api.NoContext
 import de.velwebsolutions.oasis.network.api.SourceContext
 import de.velwebsolutions.oasis.network.data.NetworkRepository
 import de.velwebsolutions.oasis.network.ui.PostAction
 import de.velwebsolutions.oasis.network.ui.PostListModel
 import kotlinx.coroutines.CompletableDeferred
+import kotlinx.coroutines.cancelAndJoin
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.test.runCurrent
 import kotlinx.coroutines.test.runTest
@@ -247,6 +250,93 @@ class PostListModelTest(private val answersAtOnce: Boolean) {
         first.join()
         assertTrue(model.posts.isEmpty())
         assertFalse(model.state.value.isReloading)
+    }
+
+    @Test
+    fun `a first page cancelled with its screen loads again, a cancelled refresh no longer dims the list`() = runTest {
+        var gate = CompletableDeferred<Unit>()
+        val network = StubbedNetwork(stub("GET", "network/bookmarks", pageJson(postJson(3), next = "abc")))
+        val slow = object : NetworkRepository by network.repository {
+            override suspend fun bookmarks(cursor: String?) = network.repository.bookmarks(cursor).also { gate.await() }
+        }
+        val model = PostListModel<NoContext>(slow) { _, cursor -> bookmarks(cursor) }
+        // A rotation while the first page loads cancels the screen's coroutine.
+        val screen = launch { model.loadIfNeeded() }
+        runCurrent()
+        assertTrue(model.state.value.state.isLoading)
+        screen.cancelAndJoin()
+        assertEquals(Loadable.Idle, model.state.value.state)
+        assertFalse(model.state.value.isReloading)
+
+        gate.complete(Unit)
+        model.loadIfNeeded()
+        assertEquals(listOf(3), model.posts.map { it.id })
+
+        // Pull to refresh cancelled the same way keeps the list and ends the reload.
+        gate = CompletableDeferred()
+        val refresh = launch { model.reload() }
+        runCurrent()
+        assertTrue(model.state.value.isReloading)
+        refresh.cancelAndJoin()
+        assertFalse(model.state.value.isReloading)
+        assertEquals(Loadable.Loaded(Unit), model.state.value.state)
+        assertEquals(listOf(3), model.posts.map { it.id })
+    }
+
+    @Test
+    fun `older Tropfen wait while the first page loads again`() = runTest {
+        val gate = CompletableDeferred<Unit>()
+        var calls = 0
+        val network = StubbedNetwork(stub("GET", "network/bookmarks", pageJson(postJson(3), next = "abc")))
+        val slow = object : NetworkRepository by network.repository {
+            override suspend fun bookmarks(cursor: String?): FeedPage<NoContext> {
+                if (++calls == 2) gate.await()
+                return network.repository.bookmarks(cursor)
+            }
+        }
+        val model = PostListModel<NoContext>(slow) { _, cursor -> bookmarks(cursor) }
+        model.reload()
+        val reloading = launch { model.reload() }
+        runCurrent()
+        // The last card of the dimmed list appears: its older Tropfen would belong to the list that goes.
+        model.loadMore()
+        assertEquals(2, calls)
+        assertFalse(model.state.value.isLoadingMore)
+
+        gate.complete(Unit)
+        reloading.join()
+        model.loadMore()
+        assertEquals(3, calls)
+        assertEquals("abc", network.last("network/bookmarks").request.url.queryParameter("cursor"))
+    }
+
+    @Test
+    fun `older Tropfen that come after a reload are dropped with their error`() = runTest {
+        val gate = CompletableDeferred<Unit>()
+        val network = StubbedNetwork(stub("GET", "network/bookmarks", pageJson(postJson(5), postJson(4), next = "alt")))
+        val slow = object : NetworkRepository by network.repository {
+            override suspend fun bookmarks(cursor: String?): FeedPage<NoContext> {
+                if (cursor != null) gate.await()
+                return network.repository.bookmarks(cursor)
+            }
+        }
+        val model = PostListModel<NoContext>(slow) { _, cursor -> bookmarks(cursor) }
+        model.reload()
+        val older = launch { model.loadMore() }
+        runCurrent()
+        assertTrue(model.state.value.isLoadingMore)
+
+        // Pull to refresh while they load: the new first page is there first.
+        network.add("GET", "network/bookmarks", json = pageJson(postJson(6), postJson(5), next = "neu"))
+        model.reload()
+        assertFalse(model.state.value.isLoadingMore)
+        network.add("GET", "network/bookmarks", status = 500, json = """{"message":"Kaputt."}""")
+        gate.complete(Unit)
+        older.join()
+        assertEquals(listOf(6, 5), model.posts.map { it.id })
+        assertEquals("neu", model.state.value.nextCursor)
+        assertNull(model.state.value.loadMoreError)
+        assertFalse(model.state.value.isLoadingMore)
     }
 
     @Test

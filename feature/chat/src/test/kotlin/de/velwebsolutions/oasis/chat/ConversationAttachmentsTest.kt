@@ -31,6 +31,7 @@ import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
 import org.junit.Assert.assertNotNull
 import org.junit.Assert.assertNull
+import org.junit.Assert.assertSame
 import org.junit.Assert.assertTrue
 import org.junit.Rule
 import org.junit.Test
@@ -374,6 +375,101 @@ class ConversationAttachmentsTest {
         assertEquals(ConversationViewModel.NO_APP, reader.state.value.actionError)
         assertEquals(listOf(viewer.view), jonasMedia.discarded)
         assertEquals("not viewed: it can be opened again", "accepted", server.uploads.values.last().answers[2])
+        clear(reader)
+        clear(writer)
+    }
+
+    @Test
+    fun aMessageThatWentOutIsSentEvenWhenItsPreviewCannotBeWritten() = runTest {
+        val (mira, _, id) = chat()
+        val writer = model(mira, id)
+        writer.open()
+        miraMedia.prepared = { _, localId -> DraftAttachment(localId, AttachmentKind.Image, "image/jpeg", photo) }
+        writer.addPicked(picked)
+        writer.setDraft("Mit Foto")
+        miraMedia.presentFailure = java.io.IOException("Kein Speicherplatz mehr")
+        writer.send()
+        miraMedia.presentFailure = null
+        val sent = writer.state.value
+        assertNull("no failure for a message that went out", sent.composerError)
+        assertTrue(sent.drafts.isEmpty())
+        assertEquals("", sent.draft)
+        assertEquals("Mit Foto", message(writer).content.text)
+        assertEquals(1, server.messages.getValue(id.toInt()).size)
+        assertTrue("the photo comes down later like a recipient's", sent.attachmentViews.isEmpty())
+        clear(writer)
+    }
+
+    @Test
+    fun aShareWaitsWhenTheChatClosesWhileItOpens() = runTest {
+        val (mira, _, id) = chat()
+        val context = androidx.test.core.app.ApplicationProvider.getApplicationContext<android.content.Context>()
+        fun shared(name: String) =
+            SharedFile(java.io.File(context.cacheDir, name).apply { writeBytes(byteArrayOf(1, 2)) }, name, "application/pdf")
+        val writer = model(mira, id)
+
+        // Left while the chat is marked as read: the share is not taken yet.
+        val share = Share(listOf(shared("a.pdf")), "Aus einer anderen App")
+        PendingShare.offer(share)
+        PendingShare.target(id)
+        server.onRequest = { if (it == "POST conversations/$id/read") writer.close() }
+        writer.open()
+        server.onRequest = {}
+        assertSame(share, PendingShare.share.value)
+        assertTrue(writer.state.value.drafts.isEmpty())
+
+        // Left while its files are read: the share waits again, with its copies, and the closed chat keeps nothing.
+        miraMedia.beforeShared = { writer.close() }
+        writer.open()
+        miraMedia.beforeShared = {}
+        assertSame(share, PendingShare.share.value)
+        assertTrue(share.files.single().file.exists())
+        assertTrue(writer.state.value.drafts.isEmpty())
+        assertEquals("", writer.state.value.draft)
+
+        // The next opening takes it.
+        writer.open()
+        assertEquals(listOf("a.pdf"), writer.state.value.drafts.map { it.name })
+        assertEquals("Aus einer anderen App", writer.state.value.draft)
+        assertNull(PendingShare.share.value)
+        assertFalse(share.files.single().file.exists())
+
+        // A newer share that came in meanwhile wins over the one the closed chat was reading.
+        val older = Share(listOf(shared("b.pdf")), null)
+        val newer = Share(listOf(shared("c.pdf")), null)
+        PendingShare.offer(older)
+        PendingShare.target(id)
+        miraMedia.beforeShared = {
+            PendingShare.offer(newer)
+            writer.close()
+        }
+        writer.open()
+        miraMedia.beforeShared = {}
+        assertSame(newer, PendingShare.share.value)
+        assertFalse(older.files.single().file.exists())
+        PendingShare.discard()
+        clear(writer)
+    }
+
+    @Test
+    fun aLockDeletesTheDecryptedFilesAndEndsAnOpenViewOnceFile() = runTest {
+        val (mira, jonas, id) = chat()
+        val writer = model(mira, id)
+        writer.open()
+        sendThree(writer)
+        val reader = model(jonas, id)
+        reader.open()
+        val video = files(reader)[2]
+        reader.answer(message(reader), video, true)
+        reader.openViewOnce(message(reader), video)
+        assertNotNull(reader.state.value.viewOnce)
+        val cleared = jonasMedia.clears
+        // The app goes to the background with the viewer open.
+        jonas.vault.lockForBackground()
+        mainRule.dispatcher.scheduler.runCurrent()
+        waitFor { server.uploads.getValue(video.id.toInt()).answers[2] == "viewed" }
+        assertNull(reader.state.value.viewOnce)
+        assertTrue(jonasMedia.clears > cleared)
         clear(reader)
         clear(writer)
     }

@@ -20,6 +20,7 @@ import de.velwebsolutions.oasis.core.network.asApiError
 import java.time.LocalDate
 import javax.inject.Inject
 import kotlin.coroutines.cancellation.CancellationException
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -28,6 +29,16 @@ import kotlinx.coroutines.launch
 
 /** Runs [block] and returns its error as [ApiError] (cancellation passes through). */
 internal suspend fun attempt(block: suspend () -> Unit): ApiError? = catching(block).exceptionOrNull()?.asApiError()
+
+/**
+ * A bot-trap token for a form that goes out right away. The server refuses a form sent within three seconds of its
+ * token (BotProtection::MIN_SECONDS), so the token waits that long here. The forms fetch theirs when their screen opens;
+ * this is for a try without one.
+ */
+internal suspend fun AuthApi.registrationFormToSend(): RegistrationForm = registrationForm().also { delay(BOT_TRAP_MIN_AGE_MILLIS) }
+
+/** BotProtection::MIN_SECONDS of the server, in milliseconds. */
+private const val BOT_TRAP_MIN_AGE_MILLIS = 3_000L
 
 /** The sign-in form (/anmelden). */
 data class SignInUiState(
@@ -53,16 +64,13 @@ data class SignInUiState(
 /**
  * Sign-in with e-mail or username and password, like /anmelden. The app keeps the device token until the member signs
  * out (or ends the sign-in under Geräte), which is what „Angemeldet bleiben“ does on the web. Without a password: a code
- * by e-mail or SMS (its own step) or a passkey.
+ * by e-mail or SMS (its own step) or a passkey. The screen asks which of those the server offers each time it is shown
+ * until the server answered ([loadMethodsIfMissing]), so a first try while offline does not hide them for good.
  */
 @HiltViewModel
 class SignInViewModel @Inject constructor(private val session: Session, private val auth: AuthApi) : ViewModel() {
     private val mutableUi = MutableStateFlow(SignInUiState())
     val ui: StateFlow<SignInUiState> = mutableUi.asStateFlow()
-
-    init {
-        viewModelScope.launch { loadMethods() }
-    }
 
     fun setLogin(value: String) = mutableUi.update { it.copy(login = value) }
 
@@ -71,6 +79,11 @@ class SignInViewModel @Inject constructor(private val session: Session, private 
     /** Which ways without a password to offer; without an answer only the e-mail code (always on the server). */
     suspend fun loadMethods() {
         catching { auth.methods() }.onSuccess { methods -> mutableUi.update { it.copy(methods = methods) } }
+    }
+
+    /** [loadMethods] while the server has not answered yet: the form is shown (again), or the app came back. */
+    suspend fun loadMethodsIfMissing() {
+        if (ui.value.methods == null) loadMethods()
     }
 
     /** Signs in; returns the two-factor challenge when the code is needed next. */
@@ -150,6 +163,8 @@ class TwoFactorViewModel @Inject constructor(private val session: Session) : Vie
 data class TwoFactorRecoveryUiState(
     val email: String = "",
     val password: String = "",
+    /** The bot-trap token, fetched when the screen opens; null until it arrived. */
+    val form: RegistrationForm? = null,
     val status: String? = null,
     val error: ApiError? = null
 ) {
@@ -159,12 +174,18 @@ data class TwoFactorRecoveryUiState(
 /**
  * „Zwei-Faktor verloren“ (/zwei-faktor-hilfe), step 1 in the app: e-mail and password. The next steps prove access to
  * the mailbox and keep a waiting period with a cancel link, so they happen through the links in the e-mails, which
- * open the website.
+ * open the website. The bot-trap token is fetched when the screen opens, like the web form: the server refuses a form
+ * sent within three seconds of its token, so a token fetched only for the request would always be refused; one fetched
+ * for a try without it (offline when the screen opened) is kept for the next try.
  */
 @HiltViewModel
 class TwoFactorRecoveryViewModel @Inject constructor(private val auth: AuthApi, private val repository: AccountRepository) : ViewModel() {
     private val mutableUi = MutableStateFlow(TwoFactorRecoveryUiState())
     val ui: StateFlow<TwoFactorRecoveryUiState> = mutableUi.asStateFlow()
+
+    init {
+        viewModelScope.launch { loadForm() }
+    }
 
     fun setEmail(value: String) = mutableUi.update { it.copy(email = value) }
 
@@ -175,11 +196,20 @@ class TwoFactorRecoveryViewModel @Inject constructor(private val auth: AuthApi, 
         if (!current.canSubmit) return
         mutableUi.update { it.copy(error = null, status = null) }
         val error = attempt {
-            val form = auth.registrationForm()
+            // Without a token from the start (offline then), one is fetched now and waits until the server takes it.
+            val form = current.form ?: auth.registrationFormToSend().also { fresh -> mutableUi.update { it.copy(form = fresh) } }
             val status = repository.requestTwoFactorRecovery(current.email, current.password, form)
             mutableUi.update { it.copy(status = status, password = "") }
         }
         mutableUi.update { it.copy(error = error) }
+        // A refused token (too old, or sent too soon) is replaced, so the next try can succeed. Any other refusal keeps
+        // it: a token is good for 24 hours, and a fresh one would have to wait three seconds again.
+        if (error?.message("form") != null) loadForm()
+    }
+
+    /** A fresh token; without one the next try fetches its own. */
+    private suspend fun loadForm() {
+        catching { auth.registrationForm() }.onSuccess { form -> mutableUi.update { it.copy(form = form) } }
     }
 }
 
@@ -206,11 +236,12 @@ class ForgotPasswordViewModel @Inject constructor(private val auth: AuthApi) : V
     }
 }
 
-/** Registration step 1 of /testen. */
+/** Registration, the first step of /testen. */
 data class RegisterUiState(
     val registration: Registration = Registration(),
     /** Empty until the member picks a date, like the web's date field. */
     val birthDate: LocalDate? = null,
+    /** The bot-trap token, fetched when the screen opens; null until it arrived. */
     val form: RegistrationForm? = null,
     val error: ApiError? = null,
     /** The birth date is missing (checked here, because the request always carries one). */
@@ -218,9 +249,10 @@ data class RegisterUiState(
 )
 
 /**
- * Registration, step 1 of 3 of /testen (CreateNewUser): name, username, e-mail, password, birth date (16+), terms.
- * Steps 2 and 3 (oases, people) are the welcome tour after the e-mail is confirmed. The bot-trap token is fetched when
- * the screen opens, like the web form.
+ * Registration, the first step of /testen (CreateNewUser): name, username, e-mail, password, birth date (16+), terms.
+ * Confirming the e-mail address and the mobile number and choosing the contribution follow, then the welcome tour
+ * (oases, people). The bot-trap token is fetched when the screen opens, like the web form; when that failed (offline),
+ * „Konto erstellen“ fetches one itself and keeps it. Only a token the server refused is replaced.
  */
 @HiltViewModel
 class RegisterViewModel @Inject constructor(private val session: Session, private val auth: AuthApi) : ViewModel() {
@@ -243,19 +275,25 @@ class RegisterViewModel @Inject constructor(private val session: Session, privat
 
     suspend fun submit() {
         val current = ui.value
-        val form = current.form ?: return
         mutableUi.update { it.copy(error = null) }
         val birthDate = current.birthDate
         if (birthDate == null) {
             mutableUi.update { it.copy(birthDateMissing = true) }
             return
         }
-        val error = attempt { session.register(current.registration.copy(birthDate = birthDate), form) }
+        val error = attempt {
+            // Without a token from the start (offline then), one is fetched now and waits until the server takes it.
+            val form = current.form ?: auth.registrationFormToSend().also { fresh -> mutableUi.update { it.copy(form = fresh) } }
+            session.register(current.registration.copy(birthDate = birthDate), form)
+        }
         if (error != null) {
             mutableUi.update { it.copy(error = error) }
-            // A refused form token (too old) is replaced, so a second try can succeed.
-            // Without a fresh one the old form stays; the error is on screen already.
-            catching { auth.registrationForm() }.onSuccess { fresh -> mutableUi.update { it.copy(form = fresh) } }
+            // A refused token (too old, or sent too soon) is replaced, so a second try can succeed; without a fresh one
+            // the old one stays. Any other refusal (a field, the server) keeps it: a token is good for 24 hours, and a
+            // fresh one would refuse a second try within three seconds (ticking the terms and sending again).
+            if (error.message("form") != null) {
+                catching { auth.registrationForm() }.onSuccess { fresh -> mutableUi.update { it.copy(form = fresh) } }
+            }
         }
     }
 

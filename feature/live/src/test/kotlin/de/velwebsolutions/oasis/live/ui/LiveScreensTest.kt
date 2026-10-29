@@ -111,6 +111,8 @@ class LiveScreensTest {
         val model = HintsInboxViewModel(repository(transport), coordinator(transport, scope))
         show { HintsInboxScreen(model) }
         compose.waitUntil(5_000) { model.ui.value.state is Loadable.Loaded }
+        // The next page is the last one.
+        transport.add("GET", "hints", json = LiveJson.LAST_PAGE)
         compose.onNodeWithText("Heute").assertIsDisplayed()
         shot("inbox")
         compose.onNodeWithText("Neue Person in deiner Karawane · Emil Novak").performClick()
@@ -122,9 +124,13 @@ class LiveScreensTest {
         assertEquals(LiveRoute.Settings, opened().last())
         compose.waitUntil(5_000) { transport.requests.count { it.path == "hints" } >= 2 }
 
+        // Pulled to refresh: the first page again, now the only one.
+        compose.waitUntil(5_000) { !model.ui.value.isLoadingMore }
+        val before = transport.requests.count { it.path == "hints" }
+        transport.add("GET", "hints", json = LiveJson.HINTS.replace("\"last_page\":2", "\"last_page\":1"))
         compose.onNodeWithTag("hints.list").performScrollToIndex(0)
         compose.onNodeWithTag("hints.list").performTouchInput { swipeDown() }
-        compose.waitUntil(5_000) { transport.requests.count { it.path == "hints" } >= 3 }
+        compose.waitUntil(5_000) { transport.requests.count { it.path == "hints" } > before }
         compose.onNodeWithTag("hints.readAll").performClick()
         compose.waitUntil(5_000) { model.ui.value.message != null }
         compose.onNodeWithText("Alle Hinweise sind gelesen.").assertIsDisplayed()
@@ -202,9 +208,10 @@ class LiveScreensTest {
         compose.onNodeWithTag("quiet.from").performScrollTo().performClick()
         compose.onNodeWithText("Übernehmen").performClick()
 
-        // A changed time is saved after a short pause, not at once.
-        compose.runOnIdle { model.edit { it.copy(quietFrom = "21:00") } }
-        compose.mainClock.advanceTimeBy(1_000)
+        // Taking over the times shown sent nothing; a newly picked time is saved at once, with nothing to wait for that
+        // leaving the screen could cancel.
+        assertEquals(0, transport.requests.count { it.request.method == "PUT" })
+        compose.runOnIdle { model.editQuietHours { it.copy(quietFrom = "21:00") } }
         compose.waitUntil(5_000) { transport.requests.count { it.request.method == "PUT" && it.path == "hints/settings" } == 1 }
         compose.waitUntil(5_000) { !model.ui.value.isSaving }
         compose.onNodeWithContentDescription("Jeden Tag eine Ruhezeit einhalten").tap()

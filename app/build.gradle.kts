@@ -77,6 +77,15 @@ android {
             buildConfigField("String", "REVERB_HOST_OVERRIDE", "\"${secret("OASIS_DEBUG_REVERB_HOST").ifEmpty { "10.0.2.2" }}\"")
             manifestPlaceholders["appLinkHost"] = "staging.get-oasis.com"
         }
+        // Before staging and play: initWith copies release as it is at that moment, so both are only minified and shrunk
+        // with R8 (and use proguard-rules.pro) when release is configured first.
+        release {
+            buildConfigField("String", "OASIS_BASE_URL", "\"https://get-oasis.com\"")
+            manifestPlaceholders["appLinkHost"] = "get-oasis.com"
+            isMinifyEnabled = true
+            isShrinkResources = true
+            proguardFiles(getDefaultProguardFile("proguard-android-optimize.txt"), "proguard-rules.pro")
+        }
         create("staging") {
             // staging.get-oasis.com (deployed from Laravel's develop branch) behind the staging gate (`X-Oasis-Gate`).
             initWith(getByName("release"))
@@ -96,13 +105,6 @@ android {
             buildConfigField("String", "OASIS_GATE_KEY", "\"${secret("OASIS_GATE_KEY")}\"")
             manifestPlaceholders["appLinkHost"] = "staging.get-oasis.com"
             signingConfig = signingConfigs.getByName("upload").takeIf { upload("KEYSTORE_PASSWORD").isNotEmpty() }
-        }
-        release {
-            buildConfigField("String", "OASIS_BASE_URL", "\"https://get-oasis.com\"")
-            manifestPlaceholders["appLinkHost"] = "get-oasis.com"
-            isMinifyEnabled = true
-            isShrinkResources = true
-            proguardFiles(getDefaultProguardFile("proguard-android-optimize.txt"), "proguard-rules.pro")
         }
     }
 

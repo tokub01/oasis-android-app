@@ -5,16 +5,22 @@ import androidx.activity.compose.LocalOnBackPressedDispatcherOwner
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.setValue
+import androidx.compose.ui.semantics.SemanticsActions
 import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.assertIsNotEnabled
 import androidx.compose.ui.test.assertIsOff
 import androidx.compose.ui.test.assertIsSelected
+import androidx.compose.ui.test.hasAnyAncestor
+import androidx.compose.ui.test.hasSetTextAction
+import androidx.compose.ui.test.isDialog
 import androidx.compose.ui.test.junit4.createComposeRule
 import androidx.compose.ui.test.onNodeWithContentDescription
 import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
 import androidx.compose.ui.test.performScrollTo
+import androidx.compose.ui.test.performSemanticsAction
+import androidx.compose.ui.test.performTextClearance
 import androidx.compose.ui.test.performTextInput
 import de.velwebsolutions.oasis.account.Fixtures
 import de.velwebsolutions.oasis.account.api.PrivacyCentre
@@ -43,6 +49,7 @@ import de.velwebsolutions.oasis.core.network.OasisJson
 import de.velwebsolutions.oasis.design.navigation.AccountRoute
 import de.velwebsolutions.oasis.design.navigation.AppRoute
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertTrue
 import org.junit.Rule
 import org.junit.Test
 import org.junit.runner.RunWith
@@ -145,6 +152,21 @@ class AccountUiTest {
         assertEquals(listOf("agb"), legal)
         compose.onNodeWithTag("register.birthDate").performScrollTo().performClick()
         compose.onNodeWithTag("register.birthDate.take").assertIsDisplayed()
+    }
+
+    @Test
+    fun aBirthDateClearedInTheKeyboardInputIsNotTaken() {
+        val taken = mutableListOf<java.time.LocalDate>()
+        compose.setContent {
+            RegisterContent(RegisterUiState(form = RegistrationForm("website_url", "form_started", "abc")), {}, { taken += it }, {}, {}, {})
+        }
+        compose.onNodeWithTag("register.birthDate").performScrollTo().performClick()
+        // The pencil of Material's date picker switches to typing the date; an empty or incomplete one selects nothing.
+        compose.onNodeWithContentDescription("Switch to text input mode").performClick()
+        compose.onNode(hasSetTextAction() and hasAnyAncestor(isDialog())).performTextClearance()
+        compose.onNodeWithTag("register.birthDate.take").assertIsNotEnabled().performSemanticsAction(SemanticsActions.OnClick)
+        assertTrue("nothing taken, and no crash", taken.isEmpty())
+        compose.onNodeWithTag("register.birthDate.take").assertExists()
     }
 
     @Test

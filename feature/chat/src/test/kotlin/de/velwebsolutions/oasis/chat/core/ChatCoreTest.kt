@@ -202,6 +202,52 @@ class ChatCoreTest {
     }
 
     @Test
+    fun keysOpenOnlyInFrontAndAScreenOasisOpenedKeepsThemOpen() = kotlinx.coroutines.test.runTest {
+        val vault = vault(this)
+        vault.lockForBackground()
+        assertFalse(vault.inForeground)
+        val late = crypto.createIdentity()
+        assertFalse("an unlock that finished in the background is refused", vault.unlock(late, vault.generation))
+        assertTrue(late.isWiped)
+        vault.cameToForeground()
+        assertTrue(vault.unlock(crypto.createIdentity(), vault.generation))
+
+        // A screen that did not open changes nothing: the next trip to the background locks at once.
+        assertFalse(vault.openExternalScreen { false })
+        vault.lockForBackground()
+        assertFalse(vault.unlocked)
+
+        // A picker of Oasis in front: the vault waits for the return …
+        vault.cameToForeground()
+        vault.unlock(crypto.createIdentity(), vault.generation)
+        assertTrue(vault.openExternalScreen { true })
+        vault.lockForBackground()
+        advanceTimeBy(4.minutes)
+        assertTrue(vault.unlocked)
+        vault.cameToForeground()
+        advanceTimeBy(10.minutes)
+        runCurrent()
+        assertTrue("back in time: nothing locks", vault.unlocked)
+
+        // … at most five minutes.
+        vault.announcement.value = null
+        vault.openExternalScreen { true }
+        vault.lockForBackground()
+        advanceTimeBy(5.minutes)
+        runCurrent()
+        assertFalse(vault.unlocked)
+        assertEquals("Nachrichten gesperrt. Deine Schlüssel sind aus dem Speicher gelöscht.", vault.announcement.value)
+
+        // Touching Oasis again (a picker shown above it and closed) ends the wait.
+        vault.cameToForeground()
+        vault.unlock(crypto.createIdentity(), vault.generation)
+        vault.openExternalScreen { true }
+        vault.touch()
+        vault.lockForBackground()
+        assertFalse(vault.unlocked)
+    }
+
+    @Test
     fun theIdleTimerLocksOnlyTheSessionItWasStartedFor() = kotlinx.coroutines.test.runTest {
         val vault = vault(this, idle = 30.minutes)
         vault.touch()

@@ -362,10 +362,7 @@ internal fun VotesContent(ui: VotesUiState, onRetry: suspend () -> Unit, onChoos
     LoadableView(ui.state, onRetry = onRetry) { overview ->
         Column(verticalArrangement = Arrangement.spacedBy(20.dp)) {
             if (!overview.canVote) {
-                Banner(
-                    "Abstimmen können Mitglieder mit aktiver Mitgliedschaft. Während des Tests kannst du mitlesen.",
-                    kind = BannerKind.Info
-                )
+                Banner("Abstimmen können Mitglieder mit aktiver Mitgliedschaft.", kind = BannerKind.Info)
             }
             SubHeading("Laufend", 21)
             if (overview.open.isEmpty()) Text("Gerade läuft keine Abstimmung.", style = OasisType.Body, color = OasisColors.Ink2)

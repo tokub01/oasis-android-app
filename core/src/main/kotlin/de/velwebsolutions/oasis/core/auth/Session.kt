@@ -4,6 +4,7 @@ import de.velwebsolutions.oasis.core.model.Me
 import de.velwebsolutions.oasis.core.network.ApiError
 import de.velwebsolutions.oasis.core.network.TokenProvider
 import java.util.concurrent.CopyOnWriteArrayList
+import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -65,21 +66,32 @@ class Session(
         scope.launch { handleUnauthenticated() }
     }
 
-    /** Restore the stored token at start-up: signed in if the server still knows it, otherwise signed out. */
+    /**
+     * Restore the stored token at start-up: signed in if the server still knows it, signed out (and the token forgotten)
+     * if it answers 401. Without an answer (offline, server error) a fresh start stays signed out of the UI but keeps the
+     * token, so the next start retries; a session this process already has stays signed in with the member it knows – a
+     * new activity restores again (e.g. after Back on Android 9–11), and the member may sign out meanwhile. A cancelled
+     * restore decides nothing, and neither does an answer that arrives after a sign-out or another sign-in ([refreshMe]).
+     */
     suspend fun restore() {
-        if (tokenStore.read() == null) {
+        val token = tokenStore.read()
+        if (token == null) {
             mutableState.value = SessionState.SignedOut
             return
         }
-        mutableState.value = try {
+        // Null: the server answered 401, it no longer knows the token.
+        val restored = try {
             SessionState.SignedIn(auth.me())
+        } catch (cancelled: CancellationException) {
+            throw cancelled
         } catch (_: ApiError.Unauthenticated) {
-            tokenStore.write(null)
-            SessionState.SignedOut
+            null
         } catch (_: Exception) {
-            // Offline at start-up: stay signed out of the UI but keep the token; the next start retries.
-            SessionState.SignedOut
+            state.value as? SessionState.SignedIn ?: SessionState.SignedOut
         }
+        if (tokenStore.read() != token) return
+        if (restored == null) tokenStore.write(null)
+        mutableState.value = restored ?: SessionState.SignedOut
     }
 
     /** First sign-in step. Returns [SignInResult.TwoFactorRequired] when the code is needed next. */
@@ -103,10 +115,16 @@ class Session(
         apply(auth.register(registration, form, deviceName))
     }
 
-    /** Reload `me` (after changes to profile, membership, 2FA, verification …). */
+    /**
+     * Reload `me` (after changes to profile, membership, 2FA, verification …). An answer that arrives after a sign-out or
+     * another sign-in on this device is dropped: it belongs to the sign-in that asked, and would put a signed-out app back
+     * into the tabs without a token.
+     */
     suspend fun refreshMe() {
         if (me == null) return
-        runCatching { auth.me() }.getOrNull()?.let { mutableState.value = SessionState.SignedIn(it) }
+        val token = tokenStore.read()
+        val fresh = runCatching { auth.me() }.getOrNull() ?: return
+        if (tokenStore.read() == token) mutableState.value = SessionState.SignedIn(fresh)
     }
 
     /** Replace `me` locally when an endpoint already returned the new state. */

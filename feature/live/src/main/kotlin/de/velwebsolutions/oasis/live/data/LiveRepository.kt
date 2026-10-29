@@ -23,6 +23,10 @@ interface LiveRepository {
     /** "Alle als gelesen markieren"; returns the confirmation. */
     suspend fun markAllRead(): String
 
+    /**
+     * Hinweise einstellen. Asked for as Android (`platform=android`), like every answer with the settings: push is then
+     * available while the server sends FCM, and only then is the `chat_push` switch there.
+     */
     suspend fun settings(): HintSettings
 
     /** Saves the switches, the daily e-mail and the quiet hours at once (the screen sends them after every change). */
@@ -40,7 +44,7 @@ interface LiveRepository {
 
     suspend fun removeAppDevice(id: Int)
 
-    /** Registers this installation's FCM token (not accepted by the server yet, see PushRegistrar). */
+    /** Registers this installation's FCM token (`POST push/devices` with platform android, see PushRegistrar). */
     suspend fun registerDevice(token: String): PushDevice
 
     suspend fun counts(): LiveCountsData
@@ -56,9 +60,10 @@ class DefaultLiveRepository @Inject constructor(client: ApiClient) : LiveReposit
 
     override suspend fun markAllRead() = service.markAllRead().message
 
-    override suspend fun settings() = service.settings().data
+    override suspend fun settings() = service.settings(PLATFORM).data
 
     override suspend fun save(settings: HintSettings) = service.save(
+        PLATFORM,
         HintSettingsBody(
             kinds = settings.kinds.associate { it.key to it.enabled },
             digest = settings.digest,
@@ -68,9 +73,9 @@ class DefaultLiveRepository @Inject constructor(client: ApiClient) : LiveReposit
         )
     )
 
-    override suspend fun pause(days: Int) = service.pause(PauseBody(days))
+    override suspend fun pause(days: Int) = service.pause(PLATFORM, PauseBody(days))
 
-    override suspend fun resume() = service.resume()
+    override suspend fun resume() = service.resume(PLATFORM)
 
     override suspend fun setChatSwitch(key: String, on: Boolean) = service.setChatSwitch(key, SwitchBody(on)).message
 
@@ -81,9 +86,14 @@ class DefaultLiveRepository @Inject constructor(client: ApiClient) : LiveReposit
         service.removeAppDevice(id)
     }
 
-    override suspend fun registerDevice(token: String) = service.registerDevice(FcmRegistrationBody(token, platform = "android")).data
+    override suspend fun registerDevice(token: String) = service.registerDevice(FcmRegistrationBody(token, platform = PLATFORM)).data
 
     override suspend fun counts() = service.counts().data
 
-    override suspend fun appConfig() = service.appConfig(platform = "android").data
+    override suspend fun appConfig() = service.appConfig(platform = PLATFORM).data
+
+    private companion object {
+        /** The platform the server answers push for (FCM; without it, it answers for iOS and APNs). */
+        const val PLATFORM = "android"
+    }
 }

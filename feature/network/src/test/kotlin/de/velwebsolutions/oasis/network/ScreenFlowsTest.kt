@@ -25,7 +25,6 @@ import de.velwebsolutions.oasis.design.navigation.MainTab
 import de.velwebsolutions.oasis.design.navigation.Navigator
 import de.velwebsolutions.oasis.design.navigation.NetworkRoute
 import de.velwebsolutions.oasis.design.theme.OasisTheme
-import de.velwebsolutions.oasis.network.ui.compose.ComposeViewModel
 import de.velwebsolutions.oasis.network.ui.feeds.BookmarksScreen
 import de.velwebsolutions.oasis.network.ui.feeds.BookmarksViewModel
 import de.velwebsolutions.oasis.network.ui.feeds.DiscoverScreen
@@ -312,7 +311,7 @@ class ScreenFlowsTest {
                 """.trimMargin()
             )
         )
-        val reply = models.keep(ComposeViewModel(null, 12, null, network.repository, network.common, network.session))
+        val reply = models.keep(network.composer(replyTo = 12))
         val model13 = models.keep(PostDetailViewModel(12, network.repository))
         show { PostDetailScreen(12, model13, reply) }
         text("Geschrieben von").assertIsDisplayed()
@@ -328,7 +327,7 @@ class ScreenFlowsTest {
         capture("post-edit-discard")
         compose.onNodeWithTag("dialog.cancel").performClick()
 
-        val carry = models.keep(ComposeViewModel(null, null, 12, network.repository, network.common, network.session))
+        val carry = models.keep(network.composer(carried = 12))
         val model14 = models.keep(CarryViewModel(12, network.repository))
         switchTo { CarryScreen(12, model14, carry) }
         text("Samstag Werkstatt.").assertIsDisplayed()
@@ -338,7 +337,7 @@ class ScreenFlowsTest {
     @Test
     fun `the composer sheet asks before a draft is lost`() {
         val network = StubbedNetwork(stub("GET", "network/composer", Fixtures.composer))
-        val model = models.keep(ComposeViewModel("sheet-test", null, null, network.repository, network.common, network.session))
+        val model = models.keep(network.composer("sheet-test"))
         navigator.present(NetworkRoute.Compose(oasisSlug = "sheet-test"))
         show(ScreenChrome(onClose = { navigator.dismissSheet() })) { ComposeScreen("sheet-test", null, model) }
         text("Tropfen schreiben").assertIsDisplayed()

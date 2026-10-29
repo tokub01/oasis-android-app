@@ -29,11 +29,21 @@ class RootViewModel @Inject constructor(
     private var liveUserId: Int? = null
 
     init {
-        session.addOnSignedOut { live.stop() }
+        session.addOnSignedOut(::signedOut)
         viewModelScope.launch { session.restore() }
     }
 
-    /** The tabs appeared for this member: go live and listen for Play purchases (once per member). */
+    /**
+     * Every sign-out – the "Mehr" menu, Einstellungen, deleting the account, a revoked token: live stops and who went
+     * live is forgotten, so the next sign-in goes live again, also as the same member.
+     */
+    private fun signedOut() {
+        liveUserId = null
+        liveJob?.cancel()
+        live.stop()
+    }
+
+    /** The tabs appeared for this member: go live and listen for Play purchases (once per member and sign-in). */
     fun tabsAppeared(userId: Int) {
         if (liveUserId == userId) return
         liveUserId = userId
@@ -54,10 +64,8 @@ class RootViewModel @Inject constructor(
         viewModelScope.launch { session.refreshMe() }
     }
 
-    /** "Abmelden" in the "Mehr" menu. */
+    /** "Abmelden" in the "Mehr" menu; the session's sign-out listener stops live. */
     fun signOut() {
-        liveUserId = null
-        liveJob?.cancel()
         viewModelScope.launch { session.signOut() }
     }
 

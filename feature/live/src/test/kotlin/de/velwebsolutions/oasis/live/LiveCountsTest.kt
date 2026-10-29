@@ -4,6 +4,8 @@ import de.velwebsolutions.oasis.core.realtime.RealtimeEvent
 import de.velwebsolutions.oasis.live.api.LiveCountsData
 import kotlin.time.Duration.Companion.hours
 import kotlin.time.Duration.Companion.seconds
+import kotlinx.coroutines.CompletableDeferred
+import kotlinx.coroutines.launch
 import kotlinx.coroutines.test.TestScope
 import kotlinx.coroutines.test.advanceTimeBy
 import kotlinx.coroutines.test.runCurrent
@@ -142,6 +144,32 @@ class LiveCountsTest {
         stopWhileLoading = { counts.stop() }
         counts.refresh()
         assertEquals("an answer after sign-out is dropped", 0, counts.hints.value)
+    }
+
+    @Test
+    fun dropsALateAnswerOfTheMemberBeforeForTheNextOne() = runTest {
+        val counts = counts()
+        val late = CompletableDeferred<LiveCountsData>()
+        var loads = 0
+        counts.start(
+            load = { if (++loads == 1) LiveCountsData(chats = 1, hints = 1) else late.await() },
+            realtime = FakeRealtime(),
+            userId = 1
+        )
+        runCurrent()
+        // The app came to the front (or a push arrived) and asks again; the answer takes its time.
+        val pending = launch { counts.refresh() }
+        runCurrent()
+        counts.stop()
+        counts.start(load = { LiveCountsData(chats = 0, hints = 2) }, realtime = FakeRealtime(), userId = 2)
+        runCurrent()
+        assertEquals(2, counts.hints.value)
+
+        late.complete(LiveCountsData(chats = 7, hints = 7))
+        pending.join()
+        assertEquals("the numbers of the member before stay away", 2, counts.hints.value)
+        assertEquals(0, counts.chats.value)
+        counts.stop()
     }
 
     @Test

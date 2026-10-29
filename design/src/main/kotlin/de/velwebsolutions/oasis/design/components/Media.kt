@@ -1,5 +1,6 @@
 package de.velwebsolutions.oasis.design.components
 
+import android.content.Context
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.size
@@ -15,6 +16,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.semantics.clearAndSetSemantics
 import androidx.compose.ui.semantics.contentDescription
@@ -22,6 +24,8 @@ import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import coil3.compose.SubcomposeAsyncImage
+import coil3.request.CachePolicy
+import coil3.request.ImageRequest
 import de.velwebsolutions.oasis.core.format.GermanTime
 import de.velwebsolutions.oasis.core.format.RelativeTime
 import de.velwebsolutions.oasis.core.network.ApiClient
@@ -82,18 +86,21 @@ fun AvatarView(initials: String, color: String, modifier: Modifier = Modifier, p
 /**
  * Loads an image with the member's token (Tropfen images, banners, profile photos with restricted audience); accepts
  * absolute or root-relative URLs. The app's image loader shares the API client's OkHttp, so the headers are the same.
+ * Its disk cache keeps what it loads, whatever `Cache-Control` says: [cacheOnDisk] false keeps an image the server sends
+ * with `no-store` (the photos of a reported chat message) off the device's storage, only in memory.
  */
 @Composable
 fun AuthorizedImage(
     url: String,
     contentDescription: String?,
     modifier: Modifier = Modifier,
-    contentScale: ContentScale = ContentScale.Fit
+    contentScale: ContentScale = ContentScale.Fit,
+    cacheOnDisk: Boolean = true
 ) {
     val client = LocalApiClient.current
     val absolute = client?.absoluteUrl(url)?.toString() ?: url
     SubcomposeAsyncImage(
-        model = absolute,
+        model = imageModel(LocalContext.current, absolute, cacheOnDisk),
         contentDescription = contentDescription,
         modifier = modifier,
         contentScale = contentScale,
@@ -104,6 +111,10 @@ fun AuthorizedImage(
         }
     )
 }
+
+/** What [AuthorizedImage] asks the image loader for: the URL itself, or a request that never reads or writes the disk cache. */
+internal fun imageModel(context: Context, url: String, cacheOnDisk: Boolean): Any =
+    if (cacheOnDisk) url else ImageRequest.Builder(context).data(url).diskCachePolicy(CachePolicy.DISABLED).build()
 
 /** "vor 5 Min." / "gestern" / "12. Okt." – relative time in German like the web's timestamps. */
 @Composable

@@ -3,12 +3,14 @@ package de.velwebsolutions.oasis.live.ui
 import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.assertIsOff
+import androidx.compose.ui.test.hasTestTag
 import androidx.compose.ui.test.junit4.createComposeRule
 import androidx.compose.ui.test.onNodeWithContentDescription
 import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
 import androidx.compose.ui.test.performScrollTo
+import androidx.compose.ui.test.performScrollToNode
 import de.velwebsolutions.oasis.core.model.Loadable
 import de.velwebsolutions.oasis.core.network.DataEnvelope
 import de.velwebsolutions.oasis.core.network.OasisJson
@@ -57,6 +59,48 @@ class LiveUiTest {
         assertEquals("http://localhost/profil/emil", opened.single())
         compose.onNodeWithTag("hints.readAll").performClick()
         compose.waitUntil { readAll == 1 }
+    }
+
+    @Test
+    fun offersOlderHintsByHandWhenScrollingWouldNotGoOn() {
+        var loads = 0
+        compose.setContent {
+            HintsInboxContent(
+                ui = HintsInboxUiState(state = Loadable.Loaded(hints), hasMore = true, offersMore = true),
+                unreadAtTheBell = 0,
+                onRefresh = {},
+                onMarkAllRead = {},
+                onLoadMore = { loads += 1 },
+                onOpen = {},
+                onSettings = {}
+            )
+        }
+        compose.onNodeWithTag("hints.list").performScrollToNode(hasTestTag("hints.more"))
+        // The last row asks for the next page by itself when it appears; the button asks once more.
+        val before = loads
+        compose.onNodeWithText("Ältere Hinweise laden").performClick()
+        assertEquals(before + 1, loads)
+    }
+
+    @Test
+    fun offersOlderHintsUnderAnEmptyPage() {
+        var loads = 0
+        compose.setContent {
+            HintsInboxContent(
+                ui = HintsInboxUiState(state = Loadable.Loaded(emptyList()), hasMore = true, offersMore = true),
+                unreadAtTheBell = 0,
+                onRefresh = {},
+                onMarkAllRead = {},
+                onLoadMore = { loads += 1 },
+                onOpen = {},
+                onSettings = {}
+            )
+        }
+        // The newest page shows nothing any more, older ones may: like the web, the list says so and goes on.
+        compose.onNodeWithTag("hints.empty").assertIsDisplayed()
+        compose.onNodeWithTag("hints.list").performScrollToNode(hasTestTag("hints.more"))
+        compose.onNodeWithText("Ältere Hinweise laden").performClick()
+        assertEquals(1, loads)
     }
 
     @Test

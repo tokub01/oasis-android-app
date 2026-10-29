@@ -76,14 +76,73 @@ class SharingTest {
             arrayListOf(
                 sent("anonym.bin", byteArrayOf(9)),
                 Uri.parse("content://oasis.test.share/fehlt.pdf"),
+                Uri.parse("content:ohne-anbieter"),
                 sent("x/y/z/gross.zip", ByteArray(200_000))
             )
         )
         val files = checkNotNull(ShareInbox.read(context, several, maxBytes = 1_000)).files
-        assertEquals("a missing file is skipped", 2, files.size)
+        assertEquals("a missing file and one without a provider are skipped", 2, files.size)
         assertEquals(listOf("anonym.bin", "application/octet-stream"), listOf(files[0].name, files[0].mime))
         assertTrue("a large file is copied only a little beyond the limit", files[1].file.length() in 1_001L..70_000L)
-        assertFalse("a new share empties the folder", file.file.exists())
+        assertTrue("a newer share leaves the copies of an earlier one to that share", file.file.exists())
+    }
+
+    @Test
+    fun aNewerShareNeverDeletesOrOverwritesTheCopiesOfAnother() {
+        val photo = Intent(Intent.ACTION_SEND).putExtra(Intent.EXTRA_STREAM, sent("image/png/bild.png", byteArrayOf(1, 2, 3)))
+        val first = checkNotNull(ShareInbox.read(context, photo))
+        PendingShare.offer(first)
+        val again = checkNotNull(ShareInbox.read(context, photo))
+        PendingShare.offer(again)
+        assertArrayEquals("the same photo shared again keeps its copy", byteArrayOf(1, 2, 3), again.files.single().file.readBytes())
+        assertFalse("the replaced share's copies are gone", checkNotNull(first.folder).exists())
+
+        PendingShare.target("7")
+        val taken = checkNotNull(PendingShare.take("7"))
+        ShareInbox.read(context, photo)
+        assertTrue("a share that comes in while a chat takes one leaves its copies alone", taken.files.single().file.exists())
+        PendingShare.delete(taken)
+        assertFalse("the chat deletes them with their folder", checkNotNull(taken.folder).exists())
+    }
+
+    @Test
+    fun copiesAnEarlierProcessLeftBehindGoWithTheNextShare() {
+        val inbox = File(context.cacheDir, "shared-in").apply { deleteRecursively() }
+        val photo = Intent(Intent.ACTION_SEND).putExtra(Intent.EXTRA_STREAM, sent("image/png/bild.png", byteArrayOf(1)))
+        val waiting = checkNotNull(ShareInbox.read(context, photo))
+        File(inbox, "frueherer-prozess/teilen/0/alt.png").apply {
+            checkNotNull(parentFile).mkdirs()
+            writeBytes(byteArrayOf(9))
+        }
+        ShareInbox.read(context, photo)
+        assertFalse(File(inbox, "frueherer-prozess").exists())
+        assertTrue("the shares of this process stay", waiting.files.single().file.exists())
+    }
+
+    /** Opened with Oasis' own permissions, these would hand any app a copy of Oasis' private files. */
+    @Test
+    fun oasisOwnFilesAreNeverReadAsAShare() {
+        val own = context.packageName
+        // Also under the user-id form, so `content://0@…` and its encoded `0%40…` reach the provider as on a device.
+        Robolectric.setupContentProvider(SendingApp::class.java, "$own.chat.files;0@$own.chat.files")
+        Robolectric.setupContentProvider(SendingApp::class.java, own)
+        sent("image/png/geheim.png", byteArrayOf(7))
+        val export = File(context.cacheDir, "Export/oasis-daten.zip").apply {
+            checkNotNull(parentFile).mkdirs()
+            writeBytes(byteArrayOf(4, 2))
+        }
+        listOf(
+            Uri.fromFile(export),
+            Uri.parse("content://$own.chat.files/image/png/geheim.png"),
+            Uri.parse("content://0@$own.chat.files/image/png/geheim.png"),
+            Uri.parse("content://0%40$own.chat.files/image/png/geheim.png"),
+            Uri.parse("content://$own/image/png/geheim.png"),
+            Uri.parse("android.resource://$own/raw/geheim")
+        ).forEach { uri ->
+            assertNull(uri.toString(), ShareInbox.read(context, Intent(Intent.ACTION_SEND).putExtra(Intent.EXTRA_STREAM, uri)))
+        }
+        val shared = Intent(Intent.ACTION_SEND).putExtra(Intent.EXTRA_STREAM, sent("image/png/bild.png", byteArrayOf(1)))
+        assertEquals("another app's content still comes in", "Name von bild.png", ShareInbox.read(context, shared)?.files?.single()?.name)
     }
 
     @Test

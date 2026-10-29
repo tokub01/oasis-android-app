@@ -48,8 +48,16 @@ fun capsuleTime(instant: Instant, zone: ZoneId = ZoneId.systemDefault()): String
     GermanTime.format(instant, "d. MMMM yyyy 'um' HH:mm", zone)
 
 /**
+ * The day a Material date picker selected (its midnight in UTC), or null while none is: typed in by keyboard (the
+ * pencil), an empty or incomplete date selects nothing.
+ */
+internal fun pickedDay(selectedDateMillis: Long?): LocalDate? =
+    selectedDateMillis?.let { Instant.ofEpochMilli(it).atZone(ZoneOffset.UTC).toLocalDate() }
+
+/**
  * A day and a time in the device's time, chosen with the Material date picker and then the time picker (iOS
- * `DatePicker` with date and time). The server checks the bounds (Zeitkapseln: one hour to ten years ahead).
+ * `DatePicker` with date and time); "Weiter" waits for a whole day when it is typed in. The server checks the bounds
+ * (Zeitkapseln: one hour to ten years ahead).
  */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -90,11 +98,15 @@ fun DateTimeField(
         DatePickerDialog(
             onDismissRequest = { pickingDate = false },
             confirmButton = {
-                OasisTextButton("Weiter", {
-                    // Material's date picker cannot clear the day it started with.
-                    chosenDay = Instant.ofEpochMilli(dateState.selectedDateMillis!!).atZone(ZoneOffset.UTC).toLocalDate()
-                    pickingDate = false
-                }, Modifier.testTag("datetime.next"))
+                OasisTextButton(
+                    "Weiter",
+                    {
+                        chosenDay = pickedDay(dateState.selectedDateMillis)
+                        pickingDate = false
+                    },
+                    Modifier.testTag("datetime.next"),
+                    enabled = dateState.selectedDateMillis != null
+                )
             },
             dismissButton = { OasisTextButton("Abbrechen", { pickingDate = false }) }
         ) { DatePicker(dateState) }

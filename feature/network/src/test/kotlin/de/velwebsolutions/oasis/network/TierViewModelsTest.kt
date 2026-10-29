@@ -9,6 +9,7 @@ import de.velwebsolutions.oasis.network.api.TimeCapsule
 import de.velwebsolutions.oasis.network.api.TimeCapsuleInput
 import de.velwebsolutions.oasis.network.api.TimeCapsules
 import de.velwebsolutions.oasis.network.api.Yearbook
+import de.velwebsolutions.oasis.network.data.NetworkRepository
 import de.velwebsolutions.oasis.network.ui.profiles.CapsuleDraft
 import de.velwebsolutions.oasis.network.ui.profiles.TimeCapsulesViewModel
 import de.velwebsolutions.oasis.network.ui.profiles.YearbookViewModel
@@ -16,6 +17,9 @@ import de.velwebsolutions.oasis.network.ui.profiles.yearbookTotals
 import de.velwebsolutions.oasis.testing.MainDispatcherRule
 import java.time.Instant
 import java.time.ZoneId
+import kotlinx.coroutines.CompletableDeferred
+import kotlinx.coroutines.launch
+import kotlinx.coroutines.test.runCurrent
 import kotlinx.coroutines.test.runTest
 import kotlinx.serialization.json.Json
 import kotlinx.serialization.json.int
@@ -207,6 +211,35 @@ class TierViewModelsTest {
         val below = models.keep(YearbookViewModel(null, locked.repository))
         below.load()
         assertEquals(Loadable.Failed(ApiError.Forbidden("Das gibt es ab der Mitgliedschaft Oase.")), below.book.value)
+    }
+
+    @Test
+    fun `the Jahrbuch stays with the year tapped last, and a failed refresh keeps the book`() = runTest {
+        val late = CompletableDeferred<Unit>()
+        val network = StubbedNetwork(
+            stub("GET", "network/yearbook/2026", TierFixtures.yearbook),
+            stub("GET", "network/yearbook/2025", TierFixtures.emptyYearbook)
+        )
+        val slow = object : NetworkRepository by network.repository {
+            override suspend fun yearbook(year: Int?): Yearbook {
+                if (year == 2026) late.await()
+                return network.repository.yearbook(year)
+            }
+        }
+        val model = models.keep(YearbookViewModel(2025, slow))
+        model.load()
+        // 2026 is tapped, then 2025 again before the answer for 2026 came.
+        val first = launch { model.show(2026) }
+        runCurrent()
+        model.show(2025)
+        late.complete(Unit)
+        first.join()
+        assertEquals(2025, model.book.value.valueOrNull?.year)
+
+        network.add("GET", "network/yearbook/2025", status = 500, json = """{"message":"Kaputt."}""")
+        model.load()
+        assertEquals(2025, model.book.value.valueOrNull?.year)
+        assertEquals("Kaputt.", model.error.value?.userMessage)
     }
 
     @Test

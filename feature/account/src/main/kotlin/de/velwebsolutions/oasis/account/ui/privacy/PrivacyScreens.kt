@@ -40,6 +40,8 @@ import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
+import androidx.lifecycle.Lifecycle
+import androidx.lifecycle.compose.LifecycleEventEffect
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import de.velwebsolutions.oasis.account.api.PrivacyCounts
 import de.velwebsolutions.oasis.account.api.PrivacySection
@@ -121,13 +123,17 @@ internal fun PrivacySectionCard(section: PrivacySection, ui: PrivacyUiState, onC
     }
 }
 
-/** Privatsphäre-Center (/app/privatsphaere). */
+/**
+ * Privatsphäre-Center (/app/privatsphaere). Shown again (back from the check, Verborgene Wörter, the safety lists or
+ * another app), it loads again, so it never shows values changed there as they were before.
+ */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 internal fun PrivacyCenterScreen(viewModel: PrivacyViewModel = hiltViewModel()) {
     val navigator = LocalNavigator.current
     val ui by viewModel.ui.collectAsStateWithLifecycle()
     val scope = rememberCoroutineScope()
+    LifecycleEventEffect(Lifecycle.Event.ON_RESUME) { scope.launch { viewModel.appeared() } }
     var refreshing by remember { mutableStateOf(false) }
     // The number of public Tropfen while „Tropfen begrenzen“ asks for confirmation.
     var limitCount by remember { mutableStateOf<Int?>(null) }

@@ -3,6 +3,7 @@ package de.velwebsolutions.oasis.account.hilt
 import android.app.Activity
 import android.content.Intent
 import android.net.Uri
+import androidx.compose.ui.test.assertIsOn
 import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.onRoot
@@ -178,7 +179,7 @@ class AccountStatesHiltTest : HiltScreenTest() {
     }
 
     @Test
-    fun theSignedOutStepsSurviveARotation() {
+    fun theSignedOutStepsAndWhatWasTypedSurviveARotation() {
         stub("GET", "auth/register", """{"data":{"honeypot_field":"w","token_field":"t","form_token":"a","trial_days":30}}""")
         stub("POST", "auth/login", """{"two_factor":true,"challenge":"chal-1"}""")
         show { SignedOutScreen() }
@@ -189,17 +190,21 @@ class AccountStatesHiltTest : HiltScreenTest() {
         waitForTag("twofactor.lost")
         compose.onNodeWithTag("twofactor.lost").tap()
         waitForTag("recovery.submit")
+        type("E-Mail-Adresse", "mira@demo.oasis.tld")
         recreate()
         waitForTag("recovery.submit")
+        // The view models of the steps stay with the screen, not only the steps.
+        waitForText("mira@demo.oasis.tld")
         activity.onBackPressedDispatcher.onBackPressed()
         waitForTag("twofactor.submit")
         activity.onBackPressedDispatcher.onBackPressed()
+        waitForText("mira")
         compose.onNodeWithTag("register.button").tap()
         waitForTag("register.submit")
         compose.onNodeWithTag("register.terms").tap()
-        compose.onNodeWithTag("register.terms").tap()
         recreate()
         waitForTag("register.submit")
+        compose.onNodeWithTag("register.terms").assertIsOn()
         assertTrue(transport.requests.isNotEmpty())
     }
 }

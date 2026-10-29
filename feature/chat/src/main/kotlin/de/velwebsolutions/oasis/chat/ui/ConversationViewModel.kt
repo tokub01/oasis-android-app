@@ -36,11 +36,16 @@ import de.velwebsolutions.oasis.core.realtime.RealtimeService
 import de.velwebsolutions.oasis.core.share.PendingShare
 import kotlin.time.Duration
 import kotlin.time.Duration.Companion.seconds
+import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.drop
+import kotlinx.coroutines.flow.filter
+import kotlinx.coroutines.flow.launchIn
+import kotlinx.coroutines.flow.onEach
 import kotlinx.coroutines.launch
 import kotlinx.serialization.json.Json
 
@@ -107,7 +112,9 @@ data class ConversationState(
  * On open: load the conversation (syncs the server clock), verify the members' keys, open my grants; as owner of a
  * pending key create and distribute a new one; load the newest history; listen on `private-conversation.{id}` for
  * `MessageSent` / `KeyRotated` (polling while the socket is down). Every `KeyRotated` and every 409 repeats the key
- * steps. Plaintext lives only in the in-memory timeline; expired messages are removed every 15 s.
+ * steps. Plaintext lives only in the in-memory timeline; expired messages are removed every 15 s. A lock of the vault
+ * closes the chat at once – also while the screen is stopped in the background and does not redraw – and a message
+ * counts as read only while the chat is on screen ([setVisible]).
  */
 @HiltViewModel(assistedFactory = ConversationViewModel.Factory::class)
 class ConversationViewModel @AssistedInject constructor(
@@ -149,7 +156,18 @@ class ConversationViewModel @AssistedInject constructor(
     private var nextLocalId = 0L
     private var recordingJob: Job? = null
 
+    /** Whether the chat is on screen (its screen is started); a message only counts as read then. */
+    private var visible = true
+
+    /** A message from someone else arrived while the chat was not on screen: it is read once the chat shows again. */
+    private var unseen = false
+
     private val myId: String get() = context.userId
+
+    init {
+        // Sperren, idle, background, sign-out: no live messages, no "read", and plaintext and decrypted files are gone.
+        vault.unlockedFlow.drop(1).filter { unlocked -> !unlocked }.onEach { close() }.launchIn(viewModelScope)
+    }
 
     /** The display name of a sender, "Unbekannt" for someone not in the directory. */
     fun senderName(userId: String): String = users[userId]?.name ?: "Unbekannt"
@@ -164,7 +182,7 @@ class ConversationViewModel @AssistedInject constructor(
     private fun render(change: (ConversationState) -> ConversationState = { it }) {
         val current = conversation
         val changed = change(mutableState.value)
-        val measured = ChatMessages.measure(changed.draft, changed.drafts.size)
+        val measured = ChatMessages.measure(changed.draft, changed.drafts)
         mutableState.value = changed.copy(
             conversation = current,
             title = current?.displayTitle(myId).orEmpty(),
@@ -189,7 +207,10 @@ class ConversationViewModel @AssistedInject constructor(
 
     // region Lifecycle
 
-    /** Open the chat and start listening. */
+    /**
+     * Open the chat and start listening. Every step checks that the chat was not closed meanwhile (leaving, a lock):
+     * a share for it then waits for the next opening, and nothing listens for a closed chat.
+     */
     suspend fun open() = inScope {
         close()
         val token = openCount
@@ -199,7 +220,9 @@ class ConversationViewModel @AssistedInject constructor(
             loadHistory()
             if (!isCurrent(token)) return@inScope
             markRead()
-            takeShare()
+            if (!isCurrent(token)) return@inScope
+            takeShare(token)
+            if (!isCurrent(token)) return@inScope
             jobs += viewModelScope.launch {
                 realtime.subscribe("private-conversation.$conversationId").collect { handle(it) }
             }
@@ -209,7 +232,19 @@ class ConversationViewModel @AssistedInject constructor(
         }
     }
 
-    /** Leave the chat: stop listening and forget its plaintext, notices and the unsent draft. */
+    /**
+     * The chat's screen is shown or hidden (another app in front, the screen off): while hidden, new messages are not
+     * reported as read; once it shows again, they are.
+     */
+    fun setVisible(visible: Boolean) {
+        this.visible = visible
+        if (visible && unseen) {
+            unseen = false
+            viewModelScope.launch { markRead() }
+        }
+    }
+
+    /** Leave the chat: stop listening and forget its plaintext, notices, errors and the unsent draft. */
     fun close() {
         jobs.forEach { it.cancel() }
         jobs.clear()
@@ -227,10 +262,14 @@ class ConversationViewModel @AssistedInject constructor(
         flagged = null
         dismissed.clear()
         confirmedDraft = null
+        unseen = false
         render {
             it.copy(
                 draft = "",
                 hint = null,
+                // A failure of the last opening (or of work cut off by the close) is no news for the next one.
+                loadFailed = null,
+                composerError = null,
                 drafts = emptyList(),
                 preparing = false,
                 recordingSeconds = null,
@@ -350,7 +389,7 @@ class ConversationViewModel @AssistedInject constructor(
         }
     }
 
-    /** Polling fallback: key changes and the newest page. */
+    /** Polling fallback: key changes and the newest page. A poll cut off by closing the chat is no failure. */
     internal suspend fun poll() {
         val token = openCount
         try {
@@ -360,6 +399,8 @@ class ConversationViewModel @AssistedInject constructor(
             val page = context.repository.messages(conversationId)
             if (!isCurrent(token)) return
             page.data.reversed().forEach { receive(it.envelope, it.attachments) }
+        } catch (cancelled: CancellationException) {
+            throw cancelled
         } catch (error: Exception) {
             handleFailure(error)
         }
@@ -403,7 +444,12 @@ class ConversationViewModel @AssistedInject constructor(
         render()
         if (item.senderId != myId) {
             render { it.copy(spokenNotice = "Neue Nachricht von ${senderName(item.senderId)}.") }
-            viewModelScope.launch { markRead() }
+            // Read means seen: not while another app is in front or the screen is off.
+            if (visible) {
+                viewModelScope.launch { markRead() }
+            } else {
+                unseen = true
+            }
         }
     }
 
@@ -480,10 +526,12 @@ class ConversationViewModel @AssistedInject constructor(
             val envelope = ChatMessages.seal(plaintext, current, vault, context.crypto)
             val stored = context.repository.sendMessage(current.id, envelope, references.map { it.id })
             confirmedDraft = null
-            // What was picked stays on screen without a download; view-once files are not shown to the sender again.
-            val shown = drafts.zip(references).filter { !it.first.viewOnce }.associate { (draft, reference) ->
-                reference.id to media.present(draft.kind, draft.data, draft.mime, draft.name)
-            }
+            // Sent: nothing after this may report a failure, or the member sends it again. What was picked stays on screen
+            // without a download (a preview that cannot be written, on a full storage, comes down later like a
+            // recipient's); view-once files are not shown to the sender again.
+            val shown = drafts.zip(references).filter { !it.first.viewOnce }.mapNotNull { (draft, reference) ->
+                runCatching { media.present(draft.kind, draft.data, draft.mime, draft.name) }.getOrNull()?.let { reference.id to it }
+            }.toMap()
             render { it.copy(drafts = it.drafts - drafts.toSet(), uploadProgress = null, attachmentViews = it.attachmentViews + shown) }
             setDraft(remainder(state.value.draft, typed))
             receive(envelope, stored.attachments)
@@ -543,28 +591,39 @@ class ConversationViewModel @AssistedInject constructor(
 
     /**
      * What the member shared into this chat under "Teilen mit …": its files become drafts (photos by the photo rules),
-     * its text the draft text. Nothing is sent before "Senden"; the cache copies are deleted right after.
+     * its text the draft text. Nothing is sent before "Senden"; the cache copies are deleted right after – unless the
+     * chat closed while they were read (leaving, a lock): then the share waits for the next opening of this chat.
      */
-    private suspend fun takeShare() {
+    private suspend fun takeShare(token: Int) {
         val share = PendingShare.take(conversationId) ?: return
         val problems = mutableListOf<String>()
+        val taken = mutableListOf<DraftAttachment>()
+        var waits = false
         try {
             for (file in share.files) {
-                if (state.value.drafts.size >= ChatAttachments.MAX_PER_MESSAGE) {
+                if (state.value.drafts.size + taken.size >= ChatAttachments.MAX_PER_MESSAGE) {
                     problems +=
                         "Höchstens ${ChatAttachments.MAX_PER_MESSAGE} Anhänge pro Nachricht. Den Rest kannst du mit der nächsten Nachricht teilen."
                     break
                 }
                 try {
-                    val draft = media.prepareShared(file, ++nextLocalId)
-                    render { it.copy(drafts = it.drafts + draft) }
+                    taken += media.prepareShared(file, ++nextLocalId)
                 } catch (problem: AttachmentProblem) {
                     problems += "${file.name}: ${problem.message}"
                 }
             }
+            waits = !isCurrent(token)
         } finally {
-            PendingShare.delete(share)
+            // A newer share that came in meanwhile wins, as always.
+            if (waits && PendingShare.share.value == null) {
+                PendingShare.offer(share)
+                PendingShare.target(conversationId)
+            } else {
+                PendingShare.delete(share)
+            }
         }
+        if (waits) return
+        render { it.copy(drafts = it.drafts + taken) }
         share.text?.let(::setDraft)
         render { it.copy(composerError = problems.firstOrNull()) }
     }

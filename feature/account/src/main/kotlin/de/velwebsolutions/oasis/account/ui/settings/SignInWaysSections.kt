@@ -90,7 +90,8 @@ internal fun PasskeysSection(ui: PasskeysUiState, viewModel: PasskeysViewModel) 
             ui.fieldErrors["name"],
             "Ohne Namen",
             onSave = { name -> scope.launch { viewModel.saveNew(name) } },
-            onDismiss = { scope.launch { viewModel.saveNew("") } }
+            onDismiss = { scope.launch { viewModel.saveNew("") } },
+            busy = ui.savingNew
         )
     }
     ui.renaming?.let {
@@ -144,7 +145,8 @@ private fun PasskeyRow(passkey: Passkey, viewModel: PasskeysViewModel) {
 
 /**
  * A Material dialog with one name field: naming a new passkey (dismissing saves it without a name, so the passkey on the
- * device is never left without its server side), or renaming one.
+ * device gets its server side; when it cannot be sent right now, the dialog stays for another try), or renaming one.
+ * While [busy] (the new passkey is on its way) its buttons wait.
  */
 @Composable
 private fun NameDialog(
@@ -154,7 +156,8 @@ private fun NameDialog(
     error: String?,
     dismissLabel: String,
     onSave: (String) -> Unit,
-    onDismiss: () -> Unit
+    onDismiss: () -> Unit,
+    busy: Boolean = false
 ) {
     var name by remember { mutableStateOf(initial) }
     AlertDialog(
@@ -166,8 +169,8 @@ private fun NameDialog(
                 OasisTextField("Name", name, { name = it }, modifier = Modifier.testTag("passkey.name"), error = error)
             }
         },
-        confirmButton = { OasisTextButton("Name speichern", { onSave(name) }, Modifier.testTag("passkey.name.save")) },
-        dismissButton = { OasisTextButton(dismissLabel, onDismiss, Modifier.testTag("passkey.name.dismiss")) },
+        confirmButton = { OasisTextButton("Name speichern", { onSave(name) }, Modifier.testTag("passkey.name.save"), enabled = !busy) },
+        dismissButton = { OasisTextButton(dismissLabel, onDismiss, Modifier.testTag("passkey.name.dismiss"), enabled = !busy) },
         containerColor = OasisColors.Paper
     )
 }

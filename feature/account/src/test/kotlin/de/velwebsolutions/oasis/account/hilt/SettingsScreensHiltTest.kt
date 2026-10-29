@@ -1,17 +1,28 @@
 package de.velwebsolutions.oasis.account.hilt
 
 import android.app.Activity
+import android.content.ClipData
+import android.content.ClipboardManager
 import android.content.Intent
 import android.net.Uri
+import android.os.Looper
+import android.view.WindowManager
 import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.onNodeWithText
+import androidx.test.core.app.ApplicationProvider
 import dagger.hilt.android.testing.HiltAndroidTest
 import dagger.hilt.android.testing.HiltTestApplication
 import de.velwebsolutions.oasis.account.AccountScreen
 import de.velwebsolutions.oasis.account.Fixtures
+import de.velwebsolutions.oasis.account.ui.settings.KEY_COPIED
+import de.velwebsolutions.oasis.account.ui.settings.SECRET_CLIP_MILLIS
+import de.velwebsolutions.oasis.account.ui.settings.SENSITIVE_CLIP
+import de.velwebsolutions.oasis.account.ui.settings.copySecret
 import de.velwebsolutions.oasis.design.navigation.AccountRoute
 import de.velwebsolutions.oasis.design.navigation.MainTab
+import java.time.Duration
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertFalse
 import org.junit.Assert.assertTrue
 import org.junit.Test
 import org.junit.runner.RunWith
@@ -38,6 +49,92 @@ class SettingsScreensHiltTest : HiltScreenTest() {
 
     private fun change(message: String, state: String, codes: String = "null") =
         """{"message":"$message","data":${settings(state)},"recovery_codes":$codes}"""
+
+    /** Whether screenshots, recordings and the recent apps see the window. */
+    private fun secure() = (activity.window.attributes.flags and WindowManager.LayoutParams.FLAG_SECURE) != 0
+
+    private fun clip() = activity.getSystemService(ClipboardManager::class.java).primaryClip!!
+
+    @Test
+    fun theSecretAndTheCodesStayOutOfScreenshotsAndAreCopiedAsSensitive() {
+        signIn()
+        stub("GET", "account", """{"data":${settings("pending")}}""")
+        val active = change("Die Zwei-Faktor-Anmeldung ist aktiv.", "active", """["aaaa-bbbb","cccc-dddd"]""")
+        stub("POST", "account/two-factor/confirm", active)
+        stub("DELETE", "account/two-factor", change("Ausgeschaltet.", "off"))
+        show { AccountScreen(AccountRoute.Settings) }
+        waitForTag("settings.setupKey")
+        assertTrue("the shared secret keeps the window secure", secure())
+        compose.onNodeWithTag("settings.copySetupKey").tap()
+        assertEquals("ABCDEFGHIJKLMNOP", clip().getItemAt(0).text)
+        assertTrue("copied as sensitive", clip().description.extras?.getBoolean(SENSITIVE_CLIP) == true)
+        waitForText(KEY_COPIED)
+        type("Sechsstelliger Code", "123456")
+        compose.onNodeWithTag("settings.twoFactorConfirm").tap()
+        waitForTag("settings.recoveryCodes")
+        assertTrue("the recovery codes keep it secure", secure())
+        compose.onNodeWithTag("settings.copyCodes").tap()
+        assertEquals("aaaa-bbbb\ncccc-dddd", clip().getItemAt(0).text)
+        assertTrue(clip().description.extras?.getBoolean(SENSITIVE_CLIP) == true)
+        compose.onNodeWithTag("settings.twoFactorDisable").tap()
+        waitForTag("settings.twoFactorEnable")
+        assertFalse("without a secret on screen the window is as before", secure())
+    }
+
+    @Test
+    fun aCopiedSecretLeavesTheClipboardAfterAMinuteUnlessSomethingElseWasCopiedSince() {
+        val app = ApplicationProvider.getApplicationContext<HiltTestApplication>()
+        val clipboard = app.getSystemService(ClipboardManager::class.java)
+        copySecret(app, "ABCDEFGHIJKLMNOP")
+        shadowOf(Looper.getMainLooper()).idleFor(Duration.ofMillis(SECRET_CLIP_MILLIS - 1))
+        assertEquals("time to paste it", "ABCDEFGHIJKLMNOP", clipboard.primaryClip?.getItemAt(0)?.text)
+        shadowOf(Looper.getMainLooper()).idleFor(Duration.ofMillis(1))
+        assertFalse("a minute later the secret is off the clipboard", clipboard.hasPrimaryClip())
+        copySecret(app, "aaaa-bbbb")
+        clipboard.setPrimaryClip(ClipData.newPlainText("Notiz", "Einkaufsliste"))
+        shadowOf(Looper.getMainLooper()).idleFor(Duration.ofMillis(SECRET_CLIP_MILLIS))
+        assertEquals("what was copied since stays", "Einkaufsliste", clipboard.primaryClip?.getItemAt(0)?.text)
+        // Each copy is told apart by its mark, not by its text: the same key copied again gets its own minute, and the
+        // same text copied in another app (a password manager) is not the app's to remove.
+        copySecret(app, "ABCDEFGHIJKLMNOP")
+        shadowOf(Looper.getMainLooper()).idleFor(Duration.ofMillis(SECRET_CLIP_MILLIS / 2))
+        copySecret(app, "ABCDEFGHIJKLMNOP")
+        shadowOf(Looper.getMainLooper()).idleFor(Duration.ofMillis(SECRET_CLIP_MILLIS / 2))
+        assertEquals("copied again, the key stays a minute again", "ABCDEFGHIJKLMNOP", clipboard.primaryClip?.getItemAt(0)?.text)
+        shadowOf(Looper.getMainLooper()).idleFor(Duration.ofMillis(SECRET_CLIP_MILLIS / 2))
+        assertFalse(clipboard.hasPrimaryClip())
+        copySecret(app, "ABCDEFGHIJKLMNOP")
+        clipboard.setPrimaryClip(ClipData.newPlainText("Passwörter", "ABCDEFGHIJKLMNOP"))
+        shadowOf(Looper.getMainLooper()).idleFor(Duration.ofMillis(SECRET_CLIP_MILLIS))
+        assertTrue("the same text copied elsewhere stays", clipboard.hasPrimaryClip())
+        // Nothing to be seen on the clipboard after the minute (emptied meanwhile, or Oasis in the background from
+        // Android 10 on): it is emptied all the same.
+        copySecret(app, "ABCDEFGHIJKLMNOP")
+        clipboard.clearPrimaryClip()
+        shadowOf(Looper.getMainLooper()).idleFor(Duration.ofMillis(SECRET_CLIP_MILLIS))
+        assertFalse(clipboard.hasPrimaryClip())
+    }
+
+    @Test
+    fun aWindowThatWasSecureAlreadyStaysSecure() {
+        signIn()
+        stub("GET", "account", """{"data":${settings("off")}}""")
+        stub("POST", "account/two-factor", change("Scanne jetzt den QR-Code.", "pending"))
+        stub("POST", "account/two-factor/confirm", change("Die Zwei-Faktor-Anmeldung ist aktiv.", "active", """["aaaa-bbbb"]"""))
+        stub("DELETE", "account/two-factor", change("Ausgeschaltet.", "off"))
+        show { AccountScreen(AccountRoute.Settings) }
+        waitForTag("settings.twoFactorEnable")
+        assertFalse(secure())
+        activity.window.addFlags(WindowManager.LayoutParams.FLAG_SECURE)
+        compose.onNodeWithTag("settings.twoFactorEnable").tap()
+        waitForTag("settings.setupKey")
+        type("Sechsstelliger Code", "123456")
+        compose.onNodeWithTag("settings.twoFactorConfirm").tap()
+        waitForTag("settings.recoveryCodes")
+        compose.onNodeWithTag("settings.twoFactorDisable").tap()
+        waitForTag("settings.twoFactorEnable")
+        assertTrue("another reason to keep the window secure is not undone", secure())
+    }
 
     @Test
     fun twoFactorIsSwitchedOnAfterThePasswordAndConfirmedWithACode() {

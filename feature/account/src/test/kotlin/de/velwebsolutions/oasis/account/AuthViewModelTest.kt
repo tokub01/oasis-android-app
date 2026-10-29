@@ -3,10 +3,14 @@ package de.velwebsolutions.oasis.account
 import de.velwebsolutions.oasis.account.ui.auth.ForgotPasswordViewModel
 import de.velwebsolutions.oasis.account.ui.auth.RegisterViewModel
 import de.velwebsolutions.oasis.account.ui.auth.SignInViewModel
+import de.velwebsolutions.oasis.account.ui.auth.TwoFactorRecoveryViewModel
 import de.velwebsolutions.oasis.account.ui.auth.TwoFactorViewModel
 import de.velwebsolutions.oasis.account.ui.auth.VerifyEmailViewModel
+import de.velwebsolutions.oasis.core.auth.AuthApi
+import de.velwebsolutions.oasis.core.auth.RegistrationForm
 import de.velwebsolutions.oasis.core.auth.RemoteAuthApi
 import de.velwebsolutions.oasis.core.auth.SessionState
+import de.velwebsolutions.oasis.core.network.ApiError
 import de.velwebsolutions.oasis.testing.MainDispatcherRule
 import de.velwebsolutions.oasis.testing.StubTransport
 import java.time.LocalDate
@@ -125,7 +129,7 @@ class AuthViewModelTest {
     }
 
     @Test
-    fun keepsTheFieldErrorsAndFetchesANewFormToken() = runTest {
+    fun keepsTheFieldErrorsAndTheFormTokenUntilTheServerRefusesTheToken() = runTest {
         val transport = StubTransport()
             .stub("GET", "auth/register", form)
             .stub(
@@ -139,7 +143,108 @@ class AuthViewModelTest {
         model.setBirthDate(LocalDate.of(2000, 1, 1))
         model.submit()
         assertEquals("Dieser Benutzername ist schon vergeben.", model.ui.value.error?.message("username"))
-        assertEquals(2, transport.requests.count { it.request.method == "GET" && it.path == "auth/register" })
+        // A token is good for 24 hours; a fresh one would refuse a second try within three seconds (BotProtection).
+        assertEquals(1, transport.requests.count { it.request.method == "GET" && it.path == "auth/register" })
+
+        transport.add("POST", "auth/register", status = 422, json = """{"message":"x","errors":{"form":["Das hat nicht geklappt."]}}""")
+        transport.add("GET", "auth/register", json = form.replace("abc", "def"))
+        model.submit()
+        assertEquals("Das hat nicht geklappt.", model.ui.value.error?.message("form"))
+        assertEquals("a refused token is replaced", "def", model.ui.value.form?.formToken)
+
+        // Refused again, and no fresh token comes (offline now): the one there is stays for the next try.
+        transport.add("GET", "auth/register", status = 503, json = """{"message":"Gleich wieder da."}""")
+        model.submit()
+        assertEquals("Das hat nicht geklappt.", model.ui.value.error?.message("form"))
+        assertEquals("def", model.ui.value.form?.formToken)
+    }
+
+    @Test
+    fun aRegistrationFormThatDidNotLoadIsFetchedWhenItIsSent() = runTest {
+        val transport = StubTransport().stub("GET", "auth/register", """{"message":"Server Error"}""", status = 500)
+        val session = session(transport, backgroundScope)
+        val model = RegisterViewModel(session, RemoteAuthApi(transport.client))
+        model.ui.first { it.error != null }
+        transport.add("GET", "auth/register", json = form)
+        transport.add("POST", "auth/register", json = """{"token":"t","data":${Fixtures.ME}}""")
+        model.setBirthDate(LocalDate.of(2000, 1, 1))
+        val before = testScheduler.currentTime
+        model.submit()
+        assertTrue("the fresh token waits until the server takes it", testScheduler.currentTime - before >= 3_000)
+        assertEquals(JsonPrimitive("abc"), transport.lastBody("auth/register")!!.jsonObject["form_started"])
+        assertTrue(session.state.value is SessionState.SignedIn)
+    }
+
+    /** The lost second factor with the e-mail and password typed in. */
+    private fun recovery(transport: StubTransport, auth: AuthApi = RemoteAuthApi(transport.client)) =
+        TwoFactorRecoveryViewModel(auth, repository(transport)).apply {
+            setEmail("mira@demo.oasis.tld")
+            setPassword("geheim")
+        }
+
+    private fun StubTransport.sentToken() = lastBody("auth/two-factor-recovery")!!.jsonObject["form_started"]
+
+    private fun StubTransport.tokenFetches() = requests.count { it.request.method == "GET" && it.path == "auth/register" }
+
+    @Test
+    fun theLostSecondFactorSendsTheTokenFetchedWhenTheScreenOpened() = runTest {
+        val transport = StubTransport()
+            .stub("GET", "auth/register", form)
+            .stub("POST", "auth/two-factor-recovery", """{"message":"Wir haben dir einen Link geschickt."}""")
+        val model = recovery(transport)
+        model.ui.first { it.form != null }
+        model.submit()
+        assertEquals("Wir haben dir einen Link geschickt.", model.ui.value.status)
+        assertEquals("the server's time trap needs a token older than three seconds", JsonPrimitive("abc"), transport.sentToken())
+        assertEquals("no fresh token right before sending", 1, transport.tokenFetches())
+        assertEquals("", model.ui.value.password)
+    }
+
+    @Test
+    fun aRefusedTokenIsReplacedButAnotherRefusalKeepsIt() = runTest {
+        val transport = StubTransport()
+            .stub("GET", "auth/register", form)
+            .stub(
+                "POST",
+                "auth/two-factor-recovery",
+                """{"message":"x","errors":{"form":["Das hat nicht geklappt. Bitte schick das Formular noch einmal ab."]}}""",
+                status = 422
+            )
+        val model = recovery(transport)
+        model.ui.first { it.form != null }
+        transport.add("GET", "auth/register", json = form.replace("abc", "def"))
+        model.submit()
+        assertEquals("Das hat nicht geklappt. Bitte schick das Formular noch einmal ab.", model.ui.value.error?.message("form"))
+        assertEquals("def", model.ui.value.form?.formToken)
+        transport.add("POST", "auth/two-factor-recovery", status = 500, json = """{"message":"Server Error"}""")
+        model.submit()
+        assertEquals(JsonPrimitive("def"), transport.sentToken())
+        assertEquals("a token is good for 24 hours", 2, transport.tokenFetches())
+    }
+
+    @Test
+    fun withoutATokenFromTheStartTheLostSecondFactorFetchesOneAndLetsItAge() = runTest {
+        val transport = StubTransport()
+            .stub("POST", "auth/two-factor-recovery", """{"message":"Wir haben dir einen Link geschickt."}""")
+        var fetches = 0
+        val offlineAtFirst = object : AuthApi by RemoteAuthApi(transport.client) {
+            override suspend fun registrationForm(): RegistrationForm {
+                fetches++
+                if (fetches == 1) throw ApiError.Transport("offline")
+                return RegistrationForm("website_url", "form_started", "abc")
+            }
+        }
+        val model = recovery(transport, offlineAtFirst)
+        assertEquals("fetched when the screen opened, in vain", 1, fetches)
+        val before = testScheduler.currentTime
+        model.submit()
+        assertEquals(2, fetches)
+        assertTrue("the fresh token waits until the server takes it", testScheduler.currentTime - before >= 3_000)
+        assertEquals(JsonPrimitive("abc"), transport.sentToken())
+        assertEquals("Wir haben dir einen Link geschickt.", model.ui.value.status)
+        model.setPassword("geheim")
+        model.submit()
+        assertEquals("the token fetched for the first try is kept for the next", 2, fetches)
     }
 
     @Test

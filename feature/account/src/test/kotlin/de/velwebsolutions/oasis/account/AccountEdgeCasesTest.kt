@@ -198,8 +198,11 @@ class AccountEdgeCasesTest {
         assertEquals("Zu lang.", welcome.ui.value.fieldErrors["location"])
         assertFalse(welcome.ui.value.toneQuestion)
         welcome.skip()
+        // Picked in the step, so it is sent (an untouched step sends nothing).
+        welcome.edit { it.copy(profileAudience = "following", visibilityChanged = true) }
         welcome.next()
         assertEquals("Nicht erlaubt.", welcome.ui.value.fieldErrors["profile_audience"])
+        assertTrue("refused: the choice is still to be saved", welcome.ui.value.visibilityChanged)
         welcome.toggle(welcome.ui.value.state.valueOrNull!!.oases.first())
         assertEquals("Server Error", welcome.ui.value.error)
     }
@@ -221,8 +224,10 @@ class AccountEdgeCasesTest {
         TwoFactorRecoveryViewModel(auth, repository(transport)).submit()
         ForgotPasswordViewModel(auth).send()
         val register = RegisterViewModel(session, auth)
+        register.setBirthDate(java.time.LocalDate.of(2000, 1, 1))
         register.submit()
         assertTrue("without a form nothing is sent", transport.requests.none { it.path == "auth/register" && it.request.method == "POST" })
+        assertEquals(ApiError.Server(500, "Server Error"), register.ui.value.error)
         val verify = VerifyEmailViewModel(session, auth, repository(transport))
         assertEquals("mira@demo.oasis.tld", verify.email)
         verify.signOut()

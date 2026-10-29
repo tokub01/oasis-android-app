@@ -123,6 +123,17 @@ class Navigator {
     /** Takes [pendingLink] (the screen that handles it). */
     fun takeLink(): IncomingLink? = pendingLink.also { pendingLink = null }
 
+    /**
+     * Back to the start for the next member after a sign-out (the app calls it): the first tab, no pushed screens, no
+     * sheet and no waiting link – nothing of where the member who signed out went.
+     */
+    fun reset() {
+        dismissSheet()
+        stacks.values.forEach { it.clear() }
+        selectedTab = MainTab.Source
+        pendingLink = null
+    }
+
     companion object {
         /** The root screen of a tab; the profile tab shows the member's own profile. */
         fun rootRoute(tab: MainTab): AppRoute? = when (tab) {

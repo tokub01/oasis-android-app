@@ -20,6 +20,7 @@ import kotlinx.coroutines.runBlocking
 import kotlinx.serialization.json.Json
 import kotlinx.serialization.json.buildJsonObject
 import kotlinx.serialization.json.put
+import org.junit.Assert.assertArrayEquals
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
 import org.junit.Assert.assertNotNull
@@ -157,9 +158,88 @@ class KeyringAndDevicesTest {
         )
         val garbage = grant(9).copy(signature = grant(9).wrappedKey)
         grants = listOf(grant(1), grant(1), garbage, grant(2, conversationId = "999"), grant(3, recipient = "3"), grant(4, granter = "3"))
+        // The pending version stays closed: until its activation the owner may still replace the batch.
         run { jonas.keyring.openGrants(chat) }
+        assertNull(jonas.vault.conversationKey(chat.id, 1))
+        run { jonas.keyring.openGrants(chat.copy(rotationRequired = false)) }
         assertNotNull(jonas.vault.conversationKey(chat.id, 1))
         for (version in 2..9) assertNull(jonas.vault.conversationKey(chat.id, version))
+    }
+
+    @Test
+    fun theOwnerKeepsTheKeyOfTheBatchTheServerActivated() {
+        val browserKey = crypto.randomBytes(32)
+        var browserReplaces = false
+        var owner: ChatContext? = null
+        val mira = support.context(1, repository = { real ->
+            object : ChatRepository by real {
+                // Mira's browser stored its own batch for the pending version just before this activation.
+                override suspend fun activateKey(conversationId: String, keyVersion: Int): ChatConversation {
+                    if (browserReplaces) {
+                        val vault = checkNotNull(owner).vault
+                        val identity = checkNotNull(vault.identity)
+                        val batch = listOf("1", "2").map { recipient ->
+                            val keys = checkNotNull(vault.publicKeys(recipient))
+                            crypto.createKeyGrant(browserKey, conversationId, keyVersion, recipient, keys.encryption, "1", identity)
+                        }
+                        real.storeKeyGrants(conversationId, keyVersion, batch)
+                    }
+                    return real.activateKey(conversationId, keyVersion)
+                }
+            }
+        })
+        owner = mira
+        val identity = crypto.createIdentity()
+        val locked = crypto.lockIdentity(identity, passphrase, KdfLimits.Minimum)
+        val stored = run { mira.repository.saveIdentity(locked, crypto.exportPublicKeys(identity)) }
+        mira.vault.setStoredIdentity(stored)
+        assertTrue(mira.vault.unlock(identity, mira.vault.generation))
+        member(2)
+        member(3)
+        val chat = conversation(mira, 2, 3)
+        run { mira.keyring.loadDirectory(chat.id) }
+        run { mira.keyring.distributeKey(chat) }
+        val first = checkNotNull(mira.vault.conversationKey(chat.id, 1)).copyOf()
+
+        // Aylin leaves: version 2 is pending, and the browser's batch replaces Mira's before her activation.
+        val smaller = run { mira.repository.removeMember(chat.id, "3") }
+        browserReplaces = true
+        run { mira.keyring.distributeKey(smaller) }
+        assertArrayEquals("the key of the activated batch, which Jonas has", browserKey, mira.vault.conversationKey(chat.id, 2))
+        assertArrayEquals("older versions stay as they are", first, mira.vault.conversationKey(chat.id, 1))
+    }
+
+    @Test
+    fun publishedKeysAreNeverThrownAway() {
+        val secrets = MemoryDeviceSecretStore(available = true)
+        // Nothing published: the new secret goes again.
+        failing("PUT", "identity")
+        assertThrows(ApiError::class.java) { run { support.context(1, secrets = secrets).devices.setUpWithDevice() } }
+        assertNull(run { secrets.credentialId("1") })
+
+        // Published, but the device copy failed: the keys stay open, so a copy can still be kept.
+        val mira = support.context(1, secrets = secrets)
+        failing("POST", "device-unlocks")
+        assertThrows(ChatKeyringException.DeviceCopyNotStored::class.java) { run { mira.devices.setUpWithDevice() } }
+        assertTrue(mira.vault.unlocked)
+        assertEquals(crypto.exportPublicKeys(checkNotNull(mira.vault.identity)), mira.vault.storedIdentity?.publicKeys)
+        assertNotNull("the row may have been stored before its answer got lost", run { secrets.credentialId("1") })
+        run { mira.devices.register() }
+        assertEquals(1, server.deviceUnlocks.count { it.first == 1 })
+
+        // Published while Oasis went to the background: known as the stored identity, unlocked on return.
+        val jonas = support.context(2, secrets = secrets)
+        server.onRequest = { if (it == "PUT identity") jonas.vault.lockForBackground() }
+        assertNull(run { jonas.devices.setUpWithDevice() })
+        val aylin = support.context(3)
+        server.onRequest = { if (it == "PUT identity") aylin.vault.lockForBackground() }
+        assertNull(run { aylin.keyring.setUp(passphrase) })
+        server.onRequest = {}
+        assertFalse(jonas.vault.unlocked)
+        assertNotNull(jonas.vault.storedIdentity)
+        assertEquals("its device copy is stored", 1, server.deviceUnlocks.count { it.first == 2 })
+        assertFalse(aylin.vault.unlocked)
+        assertNotNull(aylin.vault.storedIdentity?.lockedIdentity)
     }
 
     @Test
@@ -185,10 +265,12 @@ class KeyringAndDevicesTest {
         assertNull("a lock during the upload keeps the vault closed", run { first.devices.setUpWithDevice() })
         server.onRequest = {}
 
+        // A failed device copy keeps the published keys open (and the secret, whose row may exist after all).
         val failing = support.context(2, secrets = secrets)
         failing("POST", "device-unlocks")
-        assertThrows(ApiError::class.java) { run { failing.devices.setUpWithDevice() } }
-        assertNull(run { secrets.credentialId("2") })
+        assertThrows(ChatKeyringException.DeviceCopyNotStored::class.java) { run { failing.devices.setUpWithDevice() } }
+        assertTrue(failing.vault.unlocked)
+        assertNotNull(run { secrets.credentialId("2") })
 
         val closed = support.context(3, secrets = secrets)
         assertThrows(ChatKeyringException.DeviceUnlockUnsupported::class.java) { run { closed.devices.register() } }

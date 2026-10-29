@@ -68,7 +68,9 @@ import de.velwebsolutions.oasis.design.theme.OasisRadius
 import de.velwebsolutions.oasis.design.theme.OasisType
 import java.io.IOException
 import java.time.Instant
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 
 /** The long German date formats of the account pages (the short ones are `GermanTime.day` and `.dayAndTime`). */
 object GermanDate {
@@ -265,7 +267,8 @@ internal fun writeFile(resolver: ContentResolver, uri: Uri, bytes: ByteArray): B
 
 /**
  * „Daten herunterladen“ (the web's direct download of `oasis-daten.zip`): fetches the ZIP, then lets the member save it
- * where they like (the system's file picker). Used in Einstellungen and on the lock screen.
+ * where they like (the system's file picker). Used in Einstellungen and on the lock screen. The ZIP can be large
+ * (Tropfen with their images), so it is written off the main thread.
  */
 @Composable
 fun DataExportButton(download: suspend () -> ByteArray, failed: (String) -> Unit) {
@@ -277,7 +280,8 @@ fun DataExportButton(download: suspend () -> ByteArray, failed: (String) -> Unit
         val bytes = file
         if (uri == null || bytes == null) return@rememberLauncherForActivityResult
         scope.launch {
-            if (!writeFile(context.contentResolver, uri, bytes)) failed("Die Datei konnte nicht gespeichert werden.")
+            val saved = withContext(Dispatchers.IO) { writeFile(context.contentResolver, uri, bytes) }
+            if (!saved) failed("Die Datei konnte nicht gespeichert werden.")
         }
     }
     if (file != null) {

@@ -1,7 +1,11 @@
 package de.velwebsolutions.oasis.staff
 
+import androidx.compose.ui.semantics.SemanticsActions
 import androidx.compose.ui.test.assertIsDisplayed
+import androidx.compose.ui.test.assertIsNotEnabled
+import androidx.compose.ui.test.hasAnyAncestor
 import androidx.compose.ui.test.hasSetTextAction
+import androidx.compose.ui.test.isDialog
 import androidx.compose.ui.test.junit4.createComposeRule
 import androidx.compose.ui.test.onAllNodesWithText
 import androidx.compose.ui.test.onNodeWithContentDescription
@@ -9,6 +13,8 @@ import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
 import androidx.compose.ui.test.performScrollTo
+import androidx.compose.ui.test.performSemanticsAction
+import androidx.compose.ui.test.performTextClearance
 import androidx.compose.ui.test.performTextInput
 import de.velwebsolutions.oasis.core.network.Page
 import de.velwebsolutions.oasis.design.navigation.StaffRoute
@@ -29,6 +35,7 @@ import de.velwebsolutions.oasis.staff.ui.admin.DataBreachesViewModel
 import de.velwebsolutions.oasis.staff.ui.admin.MollieFormat
 import de.velwebsolutions.oasis.staff.ui.admin.SystemScreen
 import de.velwebsolutions.oasis.staff.ui.admin.SystemViewModel
+import de.velwebsolutions.oasis.staff.ui.components.DateTimeField
 import java.time.Instant
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertNotNull
@@ -241,7 +248,24 @@ class AdminUiTest {
         repository.payments = Result.success(Decoded.payments)
         ui.show { AdminPaymentsScreen(viewModel) }
         compose.waitForIdle()
+        assertTrue("no further page by itself", repository.calls.none { it.endsWith(" 2") })
+        compose.onNodeWithTag("payments.more").performScrollTo().performClick()
+        compose.waitForIdle()
         assertTrue(repository.calls.any { it.endsWith(" 2") })
+    }
+
+    @Test
+    fun `a date cleared in the keyboard input is not taken`() {
+        val chosen = mutableListOf<Instant>()
+        ui.show { DateTimeField("Beginn", Instant.parse("2026-11-01T09:00:00Z"), { chosen += it }) }
+        compose.onNodeWithContentDescription("Beginn:", substring = true).performClick()
+        // The pencil of Material's date picker switches to typing the date; an empty or incomplete one selects nothing.
+        compose.onNodeWithContentDescription("Switch to text input mode").performClick()
+        compose.onNode(hasSetTextAction() and hasAnyAncestor(isDialog())).performTextClearance()
+        compose.onNodeWithText("Weiter").assertIsNotEnabled().performSemanticsAction(SemanticsActions.OnClick)
+        compose.onNodeWithText("Fertig").assertDoesNotExist()
+        assertTrue("nothing chosen, and no crash", chosen.isEmpty())
+        compose.onNodeWithText("Weiter").assertExists()
     }
 
     @Test

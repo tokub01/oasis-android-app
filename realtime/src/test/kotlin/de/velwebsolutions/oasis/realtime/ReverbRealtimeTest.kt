@@ -5,6 +5,7 @@ import de.velwebsolutions.oasis.core.realtime.RealtimeEvent
 import de.velwebsolutions.oasis.testing.StubTransport
 import java.io.IOException
 import java.util.concurrent.CopyOnWriteArrayList
+import java.util.concurrent.atomic.AtomicInteger
 import kotlin.time.Duration
 import kotlin.time.Duration.Companion.seconds
 import kotlinx.coroutines.CompletableDeferred
@@ -232,6 +233,67 @@ class ReverbRealtimeTest {
         Thread.sleep(50)
         assertTrue(factory.sockets[0].sentEvents("pusher:subscribe").isEmpty())
         job.cancel()
+        realtime.disconnect()
+    }
+
+    @Test
+    fun triesAFailedAuthorisationAgainButNoRefusal() {
+        val factory = SocketFactory()
+        val clock = ManualClock()
+        val inboxTries = AtomicInteger()
+        val realtime = client(factory, clock, authorize = { socket, channel ->
+            when (channel) {
+                // A deploy answers 503 once.
+                "private-inbox.5" -> if (inboxTries.incrementAndGet() == 1) throw ApiError.Server(503, null) else "key:$socket:$channel"
+
+                "private-conversation.404" -> throw ApiError.NotFound
+
+                else -> throw ApiError.Unauthenticated
+            }
+        })
+        val jobs = listOf("private-inbox.5", "private-conversation.404", "private-conversation.401").map { realtime.listen(it) }
+        Thread.sleep(20)
+        realtime.connect()
+        eventually { factory.sockets.size == 1 }
+        val socket = factory.sockets[0]
+        socket.established()
+        eventually { realtime.isConnected.value }
+        eventually("the failed channel waits for the backoff") { clock.requested.count { it == 1.seconds } == 1 }
+        assertTrue(socket.sentEvents("pusher:subscribe").isEmpty())
+        clock.advance(1.seconds)
+        eventually { socket.sentEvents("pusher:subscribe").size == 1 }
+        Thread.sleep(30)
+        assertEquals("refusals are not asked again", 1, socket.sentEvents("pusher:subscribe").size)
+        assertEquals(
+            JsonObject(mapOf("channel" to JsonPrimitive("private-inbox.5"), "auth" to JsonPrimitive("key:123.456:private-inbox.5"))),
+            socket.sentEvents("pusher:subscribe").single()["data"]
+        )
+        assertEquals(2, inboxTries.get())
+        jobs.forEach { it.cancel() }
+        realtime.disconnect()
+    }
+
+    @Test
+    fun stopsTryingWhenTheListenerLeftDuringTheBackoff() {
+        val factory = SocketFactory()
+        val clock = ManualClock()
+        val tries = AtomicInteger()
+        val realtime = client(factory, clock, authorize = { _, _ ->
+            tries.incrementAndGet()
+            throw IOException("Zeitüberschreitung")
+        })
+        val job = realtime.listen("private-inbox.5")
+        Thread.sleep(20)
+        realtime.connect()
+        eventually { factory.sockets.size == 1 }
+        factory.sockets[0].established()
+        eventually { clock.requested.count { it == 1.seconds } == 1 }
+        job.cancel()
+        Thread.sleep(20)
+        clock.advance(1.seconds)
+        Thread.sleep(30)
+        assertEquals("nobody listens any more: not asked again", 1, tries.get())
+        assertTrue(factory.sockets[0].sentEvents("pusher:subscribe").isEmpty())
         realtime.disconnect()
     }
 

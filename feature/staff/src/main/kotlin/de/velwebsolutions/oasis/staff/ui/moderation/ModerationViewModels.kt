@@ -42,18 +42,29 @@ data class ModerationOverviewUiState(
     val isLoadingQueue: Boolean = false,
     /** Changing it reloads the queue from page 1, like the web. */
     val filter: QueueFilter = QueueFilter(),
-    /** The filter of the loaded queue, so a filter change reloads only once. */
+    /** The filter of the shown queue (set when its first page arrives), so a filter change reloads only once. */
     val loadedFilter: QueueFilter = QueueFilter(),
     val error: String? = null
 )
 
-/** The moderation start page: figures, waiting locks, activity and the filterable queue (like /moderation). */
+/**
+ * The moderation start page: figures, waiting locks, activity and the filterable queue (like /moderation). Reloads of the
+ * queue are numbered: an older one never replaces the queue a newer one already showed, and a further page asked for
+ * before the queue was replaced is dropped. A request that was cancelled (another filter, the page left) ends its
+ * loading state and leaves the queue and its filter as they were.
+ */
 @HiltViewModel
 class ModerationOverviewViewModel @Inject constructor(private val repository: StaffRepository) : ViewModel() {
     private val mutableState = MutableStateFlow(ModerationOverviewUiState())
     val state: StateFlow<ModerationOverviewUiState> = mutableState.asStateFlow()
     private var page = 1
     private var pendingReload: Job? = null
+
+    /** The number of the latest reload of the queue. */
+    private var lastReload = 0
+
+    /** The number of the reload whose first page the queue shows. */
+    private var shownReload = 0
 
     init {
         viewModelScope.launch { load() }
@@ -83,29 +94,44 @@ class ModerationOverviewViewModel @Inject constructor(private val repository: St
         reloadQueue()
     }
 
-    /** The first page for the current filter. */
+    /** The first page for the current filter; its filter counts as loaded once the page is shown. */
     suspend fun reloadQueue() {
         val filter = mutableState.value.filter
-        mutableState.update { it.copy(loadedFilter = filter, isLoadingQueue = true) }
-        val result = attempt { repository.cases(filter, 1) }
-        result.onSuccess { cases ->
-            page = 1
-            mutableState.update { it.copy(cases = cases.data, hasMore = cases.nextCursor != null, isLoadingQueue = false) }
+        val reload = ++lastReload
+        mutableState.update { it.copy(isLoadingQueue = true) }
+        try {
+            val result = attempt { repository.cases(filter, 1) }
+            // A newer reload answered first: its queue stays.
+            if (reload < shownReload) return
+            result.onSuccess { cases ->
+                page = 1
+                shownReload = reload
+                mutableState.update { it.copy(cases = cases.data, hasMore = cases.nextCursor != null, loadedFilter = filter) }
+            }
+            result.apiError?.let { failure -> mutableState.update { it.copy(error = failure.userMessage) } }
+        } finally {
+            mutableState.update { it.copy(isLoadingQueue = false) }
         }
-        result.apiError?.let { failure -> mutableState.update { it.copy(error = failure.userMessage, isLoadingQueue = false) } }
     }
 
-    /** Loads the next page. */
+    /** Loads the next page of the shown queue (its filter, not one that is still being typed). */
     suspend fun loadMore() {
         val current = mutableState.value
         if (!current.hasMore || current.isLoadingQueue) return
+        val queue = shownReload
         mutableState.update { it.copy(isLoadingQueue = true) }
-        val result = attempt { repository.cases(current.filter, page + 1) }
-        result.onSuccess { cases ->
-            page += 1
-            mutableState.update { it.copy(cases = it.cases + cases.data, hasMore = cases.nextCursor != null, isLoadingQueue = false) }
+        try {
+            val result = attempt { repository.cases(current.loadedFilter, page + 1) }
+            // The queue was reloaded meanwhile (another filter or a refresh): this page belongs to the old one.
+            if (queue != shownReload) return
+            result.onSuccess { cases ->
+                page += 1
+                mutableState.update { it.copy(cases = it.cases + cases.data, hasMore = cases.nextCursor != null) }
+            }
+            result.apiError?.let { failure -> mutableState.update { it.copy(error = failure.userMessage) } }
+        } finally {
+            mutableState.update { it.copy(isLoadingQueue = false) }
         }
-        result.apiError?.let { failure -> mutableState.update { it.copy(error = failure.userMessage, isLoadingQueue = false) } }
     }
 
     /** A changed filter (or a figure card's filter): the queue reloads once typing pauses. */
@@ -131,7 +157,7 @@ data class CaseDetailUiState(
     val assignTo: Int? = null,
     val statement: StatementOfReasons = StatementOfReasons(),
     val reference: String = "",
-    /** The downloaded evidence archive, ready for the share sheet. */
+    /** The downloaded evidence archive, ready for the share sheet; deleted with the page or with the evidence. */
     val archiveFile: File? = null,
     /** Voice messages and videos of the reported chat message, loaded for the player, by their index. */
     val attachmentFiles: Map<Int, File> = emptyMap(),
@@ -211,9 +237,9 @@ class CaseDetailViewModel @AssistedInject constructor(
         run { repository.extendEvidence(caseId) }
     }
 
-    /** Deletes the evidence for good. */
+    /** Deletes the evidence for good, and with it the archive downloaded from it. */
     suspend fun deleteEvidence() {
-        run { repository.deleteEvidence(caseId) }
+        if (run { repository.deleteEvidence(caseId) }) discardArchive()
     }
 
     /** Lets the images be delivered again. */
@@ -221,7 +247,7 @@ class CaseDetailViewModel @AssistedInject constructor(
         run { repository.liftQuarantine(caseId) }
     }
 
-    /** Downloads the evidence ZIP for the police into a file the share sheet hands on. */
+    /** Downloads the evidence ZIP for the police into a file the share sheet hands on, kept only while the page is open. */
     suspend fun prepareArchive() {
         val result = attempt { files.evidenceArchive(caseId, repository.evidenceArchive(caseId)) }
         result.onSuccess { file ->
@@ -249,9 +275,10 @@ class CaseDetailViewModel @AssistedInject constructor(
         }
     }
 
-    /** The played files of the reported message do not outlive the page. */
+    /** The played files of the reported message and the evidence archive do not outlive the page. */
     override fun onCleared() {
         files.deleteReportedAttachments(caseId)
+        files.deleteEvidenceArchive(caseId)
     }
 
     private suspend fun run(request: suspend () -> Confirmed<ModerationCaseDetail>): Boolean {
@@ -266,8 +293,21 @@ class CaseDetailViewModel @AssistedInject constructor(
         return false
     }
 
-    private fun apply(detail: ModerationCaseDetail) = mutableState.update {
-        it.copy(detail = Loadable.Loaded(detail), assignTo = detail.assignee?.id ?: it.assignTo ?: detail.assignDefault)
+    /**
+     * Shows the case. Once it has no evidence left – deleted here or by another admin, or its retention ended – the
+     * archive downloaded from it goes too.
+     */
+    private fun apply(detail: ModerationCaseDetail) {
+        if (detail.escalation?.evidence.isNullOrEmpty() && mutableState.value.archiveFile != null) discardArchive()
+        mutableState.update {
+            it.copy(detail = Loadable.Loaded(detail), assignTo = detail.assignee?.id ?: it.assignTo ?: detail.assignDefault)
+        }
+    }
+
+    /** Deletes the downloaded evidence archive. */
+    private fun discardArchive() {
+        files.deleteEvidenceArchive(caseId)
+        mutableState.update { it.copy(archiveFile = null) }
     }
 
     /** Hides the confirmation once the snackbar showed it. */
@@ -380,12 +420,18 @@ data class RolesUiState(
     val passwords: Map<Int, String> = emptyMap()
 )
 
-/** Role management (like /moderation/roles). */
+/**
+ * Role management (like /moderation/roles). A further page that answers after the list was loaded again (a refresh) is
+ * dropped: it continues the old list, and appended to the new one it would skip or repeat accounts.
+ */
 @HiltViewModel
 class RolesViewModel @Inject constructor(private val repository: StaffRepository) : ViewModel() {
     private val mutableState = MutableStateFlow(RolesUiState())
     val state: StateFlow<RolesUiState> = mutableState.asStateFlow()
     private var page = 1
+
+    /** Counts the first pages shown, so a further page knows whether its list is still the one on screen. */
+    private var shownLoads = 0
 
     init {
         viewModelScope.launch { load() }
@@ -397,6 +443,7 @@ class RolesViewModel @Inject constructor(private val repository: StaffRepository
         val result = attempt { repository.roles(1) }
         result.onSuccess { roles ->
             page = 1
+            shownLoads += 1
             mutableState.update { it.copy(roleNames = roles.roles) }
             take(roles.data, roles.page.nextCursor != null, replacing = true)
         }
@@ -416,10 +463,13 @@ class RolesViewModel @Inject constructor(private val repository: StaffRepository
         }
     }
 
-    /** Loads the next page. */
+    /** Loads the next page of the shown list. */
     suspend fun loadMore() {
         if (!mutableState.value.hasMore) return
+        val list = shownLoads
         val result = attempt { repository.roles(page + 1) }
+        // The list was loaded again meanwhile (a refresh): this page belongs to the old one.
+        if (list != shownLoads) return
         result.onSuccess { roles ->
             page += 1
             take(roles.data, roles.page.nextCursor != null, replacing = false)

@@ -34,7 +34,7 @@ data class HintSettingsUiState(
     val fieldErrors: Map<String, String> = emptyMap(),
     /** Whether Android allows notifications for Oasis. */
     val authorization: PushAuthorization = PushAuthorization.NotDetermined,
-    /** Whether this build can get push hints from this server (Firebase set up, FCM accepted by the server). */
+    /** Whether this build can get push hints at all (Firebase set up); whether the server sends them is `push.available`. */
     val pushSupported: Boolean = false
 ) {
     val settings: HintSettings? get() = state.valueOrNull
@@ -42,7 +42,7 @@ data class HintSettingsUiState(
     /** Whether this installation is in the device list. */
     val isOnForThisDevice: Boolean get() = settings?.let { shown -> shown.push.devices.any { it.type == "app" && it.current } } == true
 
-    /** Push hints can be switched on here: the server sends app pushes and this build can receive them. */
+    /** Push hints can be switched on here: the server sends pushes to Android (FCM) and this build can receive them. */
     val pushAvailable: Boolean get() = settings?.let { it.push.available } == true && pushSupported
 }
 
@@ -94,10 +94,6 @@ class HintSettingsViewModel @Inject constructor(private val repository: LiveRepo
         }
     }
 
-    /** Whether the quiet hours on screen differ from the saved ones (the time fields save after a short pause). */
-    val quietHoursChanged: Boolean
-        get() = ui.value.settings?.let { it.quietHours != saved.quietHours } == true
-
     /** Saves the kinds, the daily e-mail and the quiet hours as shown. */
     suspend fun save() {
         val settings = ui.value.settings ?: return
@@ -136,6 +132,16 @@ class HintSettingsViewModel @Inject constructor(private val repository: LiveRepo
         viewModelScope.launch { save() }
     }
 
+    /**
+     * A time picked in the clock dialog: shown and saved at once like a switch, with no pause that leaving the screen
+     * could cut short (there is no typing to wait for). Taking over the time already shown sends nothing.
+     */
+    fun editQuietHours(change: (HintSettings) -> HintSettings) {
+        val shown = ui.value.settings
+        edit(change)
+        if (ui.value.settings != shown) viewModelScope.launch { save() }
+    }
+
     /** Saves a chat switch (`chat_push`, `chat_email`) as shown, through the privacy settings. */
     suspend fun saveChat(key: String) {
         if (ui.value.isSaving) return
@@ -166,11 +172,14 @@ class HintSettingsViewModel @Inject constructor(private val repository: LiveRepo
 
     suspend fun resume() = changePause { repository.resume() }
 
-    /** "Entfernen" in the device list. */
+    /**
+     * "Entfernen" in the device list. Removing this installation keeps push off here, like "Auf diesem Gerät
+     * ausschalten", so the next start does not register it again.
+     */
     suspend fun remove(device: PushDevice) {
         catching { repository.removeDevice(device) }
             .onSuccess { message ->
-                if (device.type == "app") push.forgetDevice(device.id)
+                if (device.type == "app") push.forgetDevice(device.id, current = device.current)
                 mutableUi.update { it.copy(message = message) }
                 refreshDevices()
             }
@@ -228,9 +237,6 @@ class HintSettingsViewModel @Inject constructor(private val repository: LiveRepo
         }
     }
 }
-
-/** The quiet hours as shown, to compare them with the saved ones. */
-private val HintSettings.quietHours: Pair<String, String> get() = quietFrom to quietUntil
 
 /** The settings with one chat switch (`chat_push`, `chat_email`) set. */
 private fun HintSettings.withChat(key: String, on: Boolean): HintSettings =

@@ -2,11 +2,13 @@ package de.velwebsolutions.oasis.chat
 
 import de.velwebsolutions.oasis.chat.api.ChatConversation
 import de.velwebsolutions.oasis.chat.api.ConversationMember
+import de.velwebsolutions.oasis.chat.api.ConversationPage
 import de.velwebsolutions.oasis.chat.api.DeviceLinkRequest
 import de.velwebsolutions.oasis.chat.api.PublicUser
 import de.velwebsolutions.oasis.chat.core.ChatContext
 import de.velwebsolutions.oasis.chat.core.ChatMessageItem
 import de.velwebsolutions.oasis.chat.core.MemoryDeviceSecretStore
+import de.velwebsolutions.oasis.chat.data.ChatRepository
 import de.velwebsolutions.oasis.chat.ui.ChatSettingsState
 import de.velwebsolutions.oasis.chat.ui.ChatSettingsViewModel
 import de.velwebsolutions.oasis.chat.ui.ConversationDetailsState
@@ -69,6 +71,9 @@ class ScreensViewModelsTest {
         failing("GET conversations")
         list.load()
         assertEquals(oops, list.state.value.error)
+        failing("GET conversations")
+        list.reloadFirstPage()
+        assertEquals("a live update that fails says so too", oops, list.state.value.error)
         list.load()
         val (group, one) = list.state.value.conversations
         assertEquals("Gruppe · 3 Menschen · löscht nach 7 Tagen · wartet auf neuen Schlüssel", list.meta(group))
@@ -104,6 +109,64 @@ class ScreensViewModelsTest {
         assertEquals("Zu zweit · löscht nach 7 Tagen", paged.meta(paged.state.value.conversations.first { it.id == direct }))
         paged.lock()
         assertFalse(mira.vault.unlocked)
+    }
+
+    @Test
+    fun newActivityKeepsTheOlderPagesShownAndAReloadDropsChatsThatAreGone() = runTest {
+        fun chat(id: Int, request: Boolean = false) =
+            ChatConversation(id.toString(), "direct", "Chat $id", "2", 7, 1, false, emptyList(), "2026-10-22T12:00:00Z", request = request)
+        var pages = mapOf(
+            1 to ConversationPage(listOf(chat(1), chat(2, request = true)), currentPage = 1, lastPage = 3),
+            2 to ConversationPage(listOf(chat(3), chat(4, request = true), chat(1)), currentPage = 2, lastPage = 3)
+        )
+        val asked = mutableListOf<Int>()
+        val context = support.context(1, repository = { real ->
+            object : ChatRepository by real {
+                override suspend fun conversations(page: Int) = pages.getValue(page).also { asked += page }
+            }
+        })
+        val list = ConversationListViewModel(context, FakeRealtime())
+        list.load()
+        list.loadMore()
+        assertEquals("a chat on two pages shows once", listOf("1", "3"), list.state.value.conversations.map { it.id })
+        assertEquals(listOf("2", "4"), list.state.value.requests.map { it.id })
+        assertEquals(3, list.state.value.nextPage)
+
+        // New messages in chat 3 and request 4 move them up, chat 5 is new: the live update loads the first page only,
+        // and the older pages stay below it, "Ältere laden" too.
+        pages = pages + (1 to ConversationPage(listOf(chat(3), chat(4, request = true), chat(5)), currentPage = 1, lastPage = 3))
+        asked.clear()
+        list.reloadFirstPage()
+        assertEquals(listOf(1), asked)
+        assertEquals(listOf("3", "5", "1"), list.state.value.conversations.map { it.id })
+        assertEquals(listOf("4", "2"), list.state.value.requests.map { it.id })
+        assertEquals(3, list.state.value.nextPage)
+
+        // Coming back to the list (or pulling it down) loads every page shown again: chat 1 and request 2, left
+        // meanwhile, go; the others keep their order.
+        pages = pages + (2 to ConversationPage(listOf(chat(6), chat(3)), currentPage = 2, lastPage = 3))
+        asked.clear()
+        list.load()
+        assertEquals(listOf(1, 2), asked)
+        assertEquals(listOf("3", "5", "6"), list.state.value.conversations.map { it.id })
+        assertEquals(listOf("4"), list.state.value.requests.map { it.id })
+        assertEquals(3, list.state.value.nextPage)
+
+        // With only the first page shown, new activity replaces it as a whole.
+        val fresh = ConversationListViewModel(context, FakeRealtime())
+        fresh.load()
+        pages = pages + (1 to ConversationPage(listOf(chat(7)), currentPage = 1, lastPage = 1))
+        fresh.reloadFirstPage()
+        assertEquals(listOf("7"), fresh.state.value.conversations.map { it.id })
+        assertTrue(fresh.state.value.requests.isEmpty())
+        assertNull(fresh.state.value.nextPage)
+
+        // Two pages were shown, but the server has one left: coming back loads only that one.
+        asked.clear()
+        list.load()
+        assertEquals(listOf(1), asked)
+        assertEquals(listOf("7"), list.state.value.conversations.map { it.id })
+        assertNull(list.state.value.nextPage)
     }
 
     @Test

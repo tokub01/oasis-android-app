@@ -5,10 +5,13 @@ import android.content.Intent
 import android.webkit.WebView
 import androidx.test.core.app.ApplicationProvider
 import de.velwebsolutions.oasis.membership.data.MembershipFiles
+import de.velwebsolutions.oasis.membership.di.MembershipModule
 import de.velwebsolutions.oasis.membership.ui.FileSharing
 import de.velwebsolutions.oasis.membership.ui.InvoicePdf
 import java.io.File
+import kotlinx.coroutines.test.runTest
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertFalse
 import org.junit.Assert.assertNull
 import org.junit.Assert.assertTrue
 import org.junit.Test
@@ -46,8 +49,24 @@ class FileSharingTest {
 
     @Test
     fun `the module keeps its files in the app's cache`() {
-        val invoice = de.velwebsolutions.oasis.membership.di.MembershipModule.files(context).invoice(ByteArray(0), "OAS-1")
+        val invoice = MembershipModule.files(context, Fixtures.session()).invoice(ByteArray(0), "OAS-1")
         assertEquals(File(context.cacheDir, "Rechnungen/Rechnung-OAS-1.html"), invoice)
+    }
+
+    @Test
+    fun `invoices and exports are gone after signing out, and leftovers of an earlier process at once`() = runTest {
+        val leftover = File(context.cacheDir, "Export/oasis-daten.zip").apply {
+            parentFile?.mkdirs()
+            writeText("PK")
+        }
+        val session = Fixtures.session()
+        val files = MembershipModule.files(context, session)
+        assertFalse("the export of a process that ended", leftover.exists())
+        val invoice = files.invoice("<html></html>".toByteArray(), "OAS-3")
+        val export = files.export("PK".toByteArray())
+        session.signOut()
+        assertFalse(invoice.exists())
+        assertFalse(export.exists())
     }
 
     @Test
@@ -65,7 +84,7 @@ class FileSharingTest {
     }
 
     @Test
-    fun `invoices and exports are shared with their MIME type`() {
+    fun `invoices and exports are shared with their MIME type`() = runTest {
         assertEquals("application/pdf", FileSharing.mimeType(File("Rechnung.PDF")))
         assertEquals("application/zip", FileSharing.mimeType(files.export("PK".toByteArray())))
         assertEquals("application/octet-stream", FileSharing.mimeType(File("Rechnung")))

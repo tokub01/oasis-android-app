@@ -32,7 +32,7 @@ data class PortalUiState(
 
 /**
  * /app/mitgliedschaft/portal: paid contributions of a web membership with their invoices (the payment method is
- * changed on the web).
+ * changed on the web). The invoice files it downloaded go when the page closes.
  */
 @HiltViewModel
 class PortalViewModel @Inject constructor(
@@ -41,6 +41,9 @@ class PortalViewModel @Inject constructor(
 ) : ViewModel() {
     private val mutableState = MutableStateFlow(PortalUiState())
     val state: StateFlow<PortalUiState> = mutableState.asStateFlow()
+
+    /** The invoice files this page wrote. */
+    private val written = mutableSetOf<File>()
 
     init {
         viewModelScope.launch { load() }
@@ -70,7 +73,7 @@ class PortalViewModel @Inject constructor(
         mutableState.update { it.copy(loadingInvoice = payment.id) }
         viewModelScope.launch {
             try {
-                val file = files.invoice(repository.invoice(payment.id), payment.invoiceNumber)
+                val file = files.invoice(repository.invoice(payment.id), payment.invoiceNumber).also { written += it }
                 mutableState.update { it.copy(invoiceFile = file, loadingInvoice = null) }
             } catch (error: CancellationException) {
                 throw error
@@ -88,4 +91,8 @@ class PortalViewModel @Inject constructor(
 
     /** Hides the error once the snackbar showed it. */
     fun dismissError() = mutableState.update { it.copy(error = null) }
+
+    override fun onCleared() {
+        written.forEach(files::delete)
+    }
 }

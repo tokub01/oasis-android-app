@@ -123,6 +123,24 @@ class DeepLinkTest {
         assertFalse(DeepLink.incoming("oasis://passwort-zuruecksetzen/tok") is IncomingLink.ResetPassword)
     }
 
+    /** Handed to the browser, they would come straight back to the app and go to the browser again, without end. */
+    @Test
+    fun `app links without a screen open the Quelle instead of the browser`() {
+        listOf(
+            "oasis://x",
+            "oasis://email/bestaetigen/5/a1b2",
+            "oasis://passwort-zuruecksetzen/tok",
+            "https://get-oasis.com/app/unbekannt",
+            "https://get-oasis.com/app/moderation/anderes"
+        ).forEach { url -> assertEquals(url, IncomingLink.Screen(NetworkRoute.Source), DeepLink.incoming(url)) }
+        val opened = mutableListOf<String>()
+        val navigator = Navigator().apply { openWeb = { opened += it } }
+        navigator.select(MainTab.Chats)
+        assertTrue(navigator.handle("oasis://x"))
+        assertEquals(MainTab.Source, navigator.selectedTab)
+        assertTrue("nothing went to the browser", opened.isEmpty())
+    }
+
     @Test
     fun `account links wait in the navigator and the rest goes to the browser`() {
         val opened = mutableListOf<String>()

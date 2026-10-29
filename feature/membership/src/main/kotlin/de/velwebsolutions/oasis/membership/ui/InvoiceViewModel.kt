@@ -21,7 +21,10 @@ import kotlinx.coroutines.launch
 /** The invoice page: the downloaded file and whether its sheet is open. */
 data class InvoiceUiState(val file: Loadable<File> = Loadable.Idle, val preview: File? = null)
 
-/** /app/mitgliedschaft/rechnungen/{id} opened from a link: downloads the invoice and shows it right away. */
+/**
+ * /app/mitgliedschaft/rechnungen/{id} opened from a link: downloads the invoice and shows it right away. The file goes
+ * when the page closes.
+ */
 @HiltViewModel(assistedFactory = InvoiceViewModel.Factory::class)
 class InvoiceViewModel @AssistedInject constructor(
     @Assisted val paymentId: Int,
@@ -37,6 +40,9 @@ class InvoiceViewModel @AssistedInject constructor(
     private val mutableState = MutableStateFlow(InvoiceUiState())
     val state: StateFlow<InvoiceUiState> = mutableState.asStateFlow()
 
+    /** The invoice file this page wrote (also when a later reload failed). */
+    private var written: File? = null
+
     init {
         viewModelScope.launch { load() }
     }
@@ -45,7 +51,7 @@ class InvoiceViewModel @AssistedInject constructor(
     suspend fun load() {
         mutableState.update { it.copy(file = Loadable.Loading) }
         try {
-            val file = files.invoice(repository.invoice(paymentId), "OAS-$paymentId")
+            val file = files.invoice(repository.invoice(paymentId), "OAS-$paymentId").also { written = it }
             mutableState.update { InvoiceUiState(Loadable.Loaded(file), preview = file) }
         } catch (error: CancellationException) {
             throw error
@@ -59,4 +65,8 @@ class InvoiceViewModel @AssistedInject constructor(
 
     /** Closes the invoice sheet. */
     fun closePreview() = mutableState.update { it.copy(preview = null) }
+
+    override fun onCleared() {
+        written?.let(files::delete)
+    }
 }

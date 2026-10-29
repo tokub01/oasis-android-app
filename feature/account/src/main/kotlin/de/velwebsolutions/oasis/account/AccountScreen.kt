@@ -3,7 +3,8 @@ package de.velwebsolutions.oasis.account
 import androidx.activity.compose.BackHandler
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
-import androidx.compose.runtime.remember
+import androidx.lifecycle.ViewModel
+import androidx.lifecycle.viewmodel.compose.viewModel
 import de.velwebsolutions.oasis.account.ui.auth.ConfirmPhoneContentScreen
 import de.velwebsolutions.oasis.account.ui.auth.SignedOutFlow
 import de.velwebsolutions.oasis.account.ui.auth.VerifyEmailContentScreen
@@ -66,15 +67,16 @@ fun SignedOutScreen() {
 /**
  * The e-mail confirmation screen after registration. Its link to the settings (to correct the address or delete the
  * account) opens on a stack of its own, since the tabs are not there yet; the account pages pushed from there show on
- * it too.
+ * it too. The stack is kept with the screen's view models, so a rotation does not close the open settings.
  */
 @Composable
 fun VerifyEmailScreen() {
     val app = LocalNavigator.current
-    val local = remember(app) { Navigator().also { it.openWeb = { url -> app.openWeb(url) } } }
-    val stack = local.stack(local.selectedTab)
-    BackHandler(enabled = stack.isNotEmpty()) { local.back() }
     ScopedViewModels {
+        val local = viewModel { LocalStack() }.navigator
+        local.openWeb = { url -> app.openWeb(url) }
+        val stack = local.stack(local.selectedTab)
+        BackHandler(enabled = stack.isNotEmpty()) { local.back() }
         CompositionLocalProvider(LocalNavigator provides local) {
             val top = stack.lastOrNull()
             if (top is AccountRoute) {
@@ -88,6 +90,11 @@ fun VerifyEmailScreen() {
             }
         }
     }
+}
+
+/** The own stack of [VerifyEmailScreen], kept like a view model. */
+internal class LocalStack : ViewModel() {
+    val navigator = Navigator()
 }
 
 /** The mobile-number confirmation after the e-mail address (web: /app/handynummer); signing out is its only way out. */

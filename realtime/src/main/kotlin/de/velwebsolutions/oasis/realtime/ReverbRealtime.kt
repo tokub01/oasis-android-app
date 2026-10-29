@@ -1,6 +1,7 @@
 package de.velwebsolutions.oasis.realtime
 
 import de.velwebsolutions.oasis.core.network.ApiClient
+import de.velwebsolutions.oasis.core.network.ApiError
 import de.velwebsolutions.oasis.core.network.DataEnvelope
 import de.velwebsolutions.oasis.core.realtime.RealtimeEvent
 import de.velwebsolutions.oasis.core.realtime.RealtimeService
@@ -55,7 +56,8 @@ data class ReverbSettings(val key: String, val host: String, val port: Int, val 
  * - With [connectsWithSubscribers] (the app) the socket opens with the first collector of [subscribe] and closes after
  *   the last one stopped; otherwise [connect] and [disconnect] control it (the tests, like iOS).
  * - Private channels (`private-inbox.{userId}`, `private-conversation.{id}`) are authorised through the API
- *   (`POST /api/v1/broadcasting/auth`, the web's channel rules) with the socket id of the current connection.
+ *   (`POST /api/v1/broadcasting/auth`, the web's channel rules) with the socket id of the current connection; an
+ *   authorisation that fails for another reason than a refusal is tried again with the backoff.
  * - Keeps the connection alive with `pusher:ping` after the server's activity timeout and reconnects when no pong
  *   arrives, when the socket fails or the server closes it – with backoff (1, 2, 4, 8, 16, 30 s) – and subscribes
  *   every channel again. Pusher error codes 4000–4099 mean "do not reconnect" (e.g. an unknown app key), 4100–4199
@@ -294,21 +296,38 @@ class ReverbRealtime(
     private suspend fun subscribeOnServer(channel: String, socket: WebSocketConnection, socketId: String) {
         val data = mutableMapOf<String, JsonElement>("channel" to JsonPrimitive(channel))
         if (channel.startsWith("private-") || channel.startsWith("presence-")) {
-            val auth = try {
-                authorize(socketId, channel)
-            } catch (cancelled: CancellationException) {
-                throw cancelled
-            } catch (_: Exception) {
-                return
-            }
-            data["auth"] = JsonPrimitive(auth)
+            data["auth"] = JsonPrimitive(authorized(channel, socket, socketId) ?: return)
         }
         // The connection may have changed while the auth request ran.
-        val current = synchronized(lock) {
-            this.socket === socket && this.socketId == socketId && channel in handlers
-        }
-        if (!current) return
+        if (!isCurrent(channel, socket, socketId)) return
         runCatching { socket.send(frame("pusher:subscribe", JsonObject(data))) }
+    }
+
+    /**
+     * The `auth` of a private channel, or null when there is none to send. A refusal (403 not a member, 404 gone, 401
+     * signed out) is final; any other failure (a timeout, a 5xx during a deploy) is tried again after the backoff for as
+     * long as this connection and a listener of the channel last – otherwise the channel would stay silent until the
+     * socket happens to reconnect, while [isConnected] keeps the screens from polling.
+     */
+    private suspend fun authorized(channel: String, socket: WebSocketConnection, socketId: String): String? {
+        var attempt = 0
+        while (true) {
+            try {
+                return authorize(socketId, channel)
+            } catch (cancelled: CancellationException) {
+                throw cancelled
+            } catch (error: Exception) {
+                if (error is ApiError.Forbidden || error is ApiError.NotFound || error is ApiError.Unauthenticated) return null
+            }
+            sleep(BACKOFF[minOf(attempt, BACKOFF.lastIndex)])
+            attempt += 1
+            if (!isCurrent(channel, socket, socketId)) return null
+        }
+    }
+
+    /** Whether [socket] with [socketId] is still the connection and [channel] still has listeners. */
+    private fun isCurrent(channel: String, socket: WebSocketConnection, socketId: String): Boolean = synchronized(lock) {
+        this.socket === socket && this.socketId == socketId && channel in handlers
     }
 
     companion object {

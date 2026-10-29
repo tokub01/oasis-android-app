@@ -4,7 +4,9 @@ import java.lang.reflect.ParameterizedType
 import java.lang.reflect.Type
 import kotlin.coroutines.resume
 import kotlin.coroutines.resumeWithException
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.suspendCancellableCoroutine
+import kotlinx.coroutines.withContext
 import kotlinx.serialization.SerializationException
 import kotlinx.serialization.json.Json
 import kotlinx.serialization.json.JsonObject
@@ -53,9 +55,9 @@ interface TokenProvider {
 }
 
 /**
- * The Oasis API client: adds the bearer token, JSON headers and the app's user agent, decodes answers and maps HTTP
- * errors to [ApiError] (also from Retrofit service calls). Feature modules create their Retrofit services with
- * [create]; images and invoices that need the token go through [okHttp] or [download].
+ * The Oasis API client: adds the bearer token (to requests to the Oasis server only), JSON headers and the app's user
+ * agent, decodes answers and maps HTTP errors to [ApiError] (also from Retrofit service calls). Feature modules create
+ * their Retrofit services with [create]; images and invoices that need the token go through [okHttp] or [download].
  */
 class ApiClient(
     val config: ApiConfig,
@@ -92,32 +94,44 @@ class ApiClient(
     /** Resolves a URL the API returned (absolute, or relative to the server root like `/tropfen/1/bild/2`). */
     fun absoluteUrl(raw: String): HttpUrl? = raw.toHttpUrlOrNullSafe() ?: baseUrl.resolve(raw)
 
-    /** Fetches binary content (images that need the token, invoices) from an absolute or root-relative URL. */
+    /**
+     * Fetches binary content (images that need the token, invoices, the data export) from an absolute or root-relative
+     * URL. The body is still arriving from the socket when the call answers, so it is read on [Dispatchers.IO]: on the
+     * main thread Android refuses the read (NetworkOnMainThreadException) or the UI waits until a large ZIP is in.
+     */
     suspend fun download(raw: String): ByteArray {
         val url = absoluteUrl(raw) ?: throw ApiError.Transport("Ungültige Adresse")
         val request = Request.Builder().url(url).header("Accept", "*/*").build()
-        val response = okHttp.newCall(request).await()
-        response.use {
-            if (!it.isSuccessful) throw errorFor(it.code, it.body.string(), it.header("Retry-After"))
-            return it.body.bytes()
+        return withContext(Dispatchers.IO) {
+            okHttp.newCall(request).await().use {
+                if (!it.isSuccessful) throw errorFor(it.code, it.body.string(), it.header("Retry-After"))
+                it.body.bytes()
+            }
         }
     }
 
-    /** Adds the headers to every request (the gate key only for the Oasis host) and reports 401s. */
+    /**
+     * Adds the headers to every request and reports 401s. The token and the gate key go to the Oasis server only (the
+     * scheme, host and port of [baseUrl]): the image loader and [download] also fetch absolute URLs, and a server elsewhere
+     * must neither get the member's token nor sign the app out with a 401 of its own.
+     */
     private inner class HeaderInterceptor : Interceptor {
         override fun intercept(chain: Interceptor.Chain): Response {
             val original = chain.request()
+            val toServer = isServer(original.url)
             val builder = original.newBuilder()
             if (original.header("Accept") == null) builder.header("Accept", "application/json")
             builder.header("Accept-Language", "de")
             builder.header("User-Agent", config.userAgent)
-            tokens.currentToken()?.let { builder.header("Authorization", "Bearer $it") }
+            if (toServer) tokens.currentToken()?.let { builder.header("Authorization", "Bearer $it") }
             val gateKey = config.gateKey
-            if (!gateKey.isNullOrEmpty() && original.url.host == baseUrl.host) builder.header("X-Oasis-Gate", gateKey)
+            if (!gateKey.isNullOrEmpty() && toServer) builder.header("X-Oasis-Gate", gateKey)
             val response = chain.proceed(builder.build())
-            if (response.code == 401) tokens.onUnauthenticated()
+            if (response.code == 401 && toServer) tokens.onUnauthenticated()
             return response
         }
+
+        private fun isServer(url: HttpUrl): Boolean = url.scheme == baseUrl.scheme && url.host == baseUrl.host && url.port == baseUrl.port
     }
 
     companion object {

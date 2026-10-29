@@ -62,58 +62,82 @@ class PostListModel<C>(
         get() = current.filter
         set(value) = mutableState.update { it.copy(filter = value) }
 
-    /** Load the first page; keeps the shown list until the new one arrives (pull to refresh, a new filter). */
+    /**
+     * Load the first page; keeps the shown list until the new one arrives (pull to refresh, a new filter). Older Tropfen
+     * still on their way belong to the list that goes and are dropped. When the caller goes away meanwhile (a rotation
+     * cancels the screen's coroutine), the list stops showing that it reloads, and a first page that never came loads
+     * again with [loadIfNeeded].
+     */
     suspend fun reload() {
         val started = ++generation
-        mutableState.update { it.copy(state = it.state.refreshing(), isReloading = true) }
-        val result = attempt { repository.fetch(current.filter, null) }
-        // A list forgotten or reloaded meanwhile ignores the late answer.
-        if (started != generation) return
-        result.onSuccess { page ->
-            mutableState.update {
-                it.copy(
-                    posts = page.data,
-                    context = page.context,
-                    nextCursor = page.nextCursor,
-                    loadMoreError = null,
-                    state = Loadable.Loaded(Unit)
-                )
-            }
-        }
-        result.apiError?.let { error ->
-            mutableState.update {
-                if (it.state.valueOrNull ==
-                    null
-                ) {
-                    it.copy(state = Loadable.Failed(error))
-                } else {
-                    it.copy(actionError = error)
+        mutableState.update { it.copy(state = it.state.refreshing(), isReloading = true, isLoadingMore = false) }
+        try {
+            val result = attempt { repository.fetch(current.filter, null) }
+            // A list forgotten or reloaded meanwhile ignores the late answer.
+            if (started != generation) return
+            result.onSuccess { page ->
+                mutableState.update {
+                    it.copy(
+                        posts = page.data,
+                        context = page.context,
+                        nextCursor = page.nextCursor,
+                        loadMoreError = null,
+                        state = Loadable.Loaded(Unit)
+                    )
                 }
             }
+            result.apiError?.let { error ->
+                mutableState.update {
+                    if (it.state.valueOrNull ==
+                        null
+                    ) {
+                        it.copy(state = Loadable.Failed(error))
+                    } else {
+                        it.copy(actionError = error)
+                    }
+                }
+            }
+        } finally {
+            if (started == generation) {
+                mutableState.update { it.copy(state = if (it.state == Loadable.Loading) Loadable.Idle else it.state, isReloading = false) }
+            }
         }
-        mutableState.update { it.copy(isReloading = false) }
     }
 
     /** Forget the list (a search term that became too short), so nothing stale shows up when it is long enough again. */
     fun reset() {
         generation++
-        mutableState.update { it.copy(posts = emptyList(), context = null, nextCursor = null, state = Loadable.Idle, isReloading = false) }
+        mutableState.update {
+            it.copy(
+                posts = emptyList(),
+                context = null,
+                nextCursor = null,
+                state = Loadable.Idle,
+                isReloading = false,
+                isLoadingMore = false,
+                loadMoreError = null
+            )
+        }
     }
 
-    /** Load the first page once. */
+    /** Load the first page once (again, when the load before was cancelled before its answer came). */
     suspend fun loadIfNeeded() {
         if (current.state == Loadable.Idle) reload()
     }
 
-    /** The next page, when the last card appears. */
+    /**
+     * The next page, when the last card appears. Not while the first page loads again: the page would belong to the list
+     * that goes (the other view of the Quelle, an older state). A reload or [reset] meanwhile ends this load, and its late
+     * page or error is dropped.
+     */
     suspend fun loadMore() {
         val cursor = current.nextCursor ?: return
-        if (current.isLoadingMore) return
+        if (current.isLoadingMore || current.isReloading) return
         mutableState.update { it.copy(isLoadingMore = true) }
         val started = generation
         val result = attempt { repository.fetch(current.filter, cursor) }
-        mutableState.update { it.copy(isLoadingMore = false, loadMoreError = result.apiError) }
         if (started != generation) return
+        mutableState.update { it.copy(isLoadingMore = false, loadMoreError = result.apiError) }
         result.onSuccess { page ->
             mutableState.update { state ->
                 val known = state.posts.map { it.id }.toSet()

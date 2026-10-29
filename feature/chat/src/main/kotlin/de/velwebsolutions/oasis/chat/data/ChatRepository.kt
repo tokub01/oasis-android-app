@@ -21,6 +21,8 @@ import de.velwebsolutions.oasis.chatcrypto.MessageEnvelope
 import de.velwebsolutions.oasis.chatcrypto.PublicKeyBundle
 import de.velwebsolutions.oasis.core.network.ApiClient
 import de.velwebsolutions.oasis.core.network.KeyCoding
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.withContext
 import kotlinx.serialization.json.Json
 import kotlinx.serialization.json.JsonArray
 import kotlinx.serialization.json.JsonElement
@@ -308,8 +310,13 @@ class DefaultChatRepository(client: ApiClient) : ChatRepository {
         service.completeAttachment(conversationId, attachmentId)
     }
 
-    override suspend fun downloadAttachment(conversationId: String, attachmentId: String) =
+    /**
+     * The streamed body is still arriving from the socket when the call answers, so it is read on [Dispatchers.IO]: on
+     * the main thread Android refuses the read (NetworkOnMainThreadException) or the screen waits for up to 50 MB.
+     */
+    override suspend fun downloadAttachment(conversationId: String, attachmentId: String) = withContext(Dispatchers.IO) {
         service.attachment(conversationId, attachmentId).use { it.bytes() }
+    }
 
     override suspend fun markRead(conversationId: String) = service.markRead(conversationId).count
 

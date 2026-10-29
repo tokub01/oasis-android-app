@@ -29,8 +29,10 @@ data class NewPasskey(val challenge: String, val credential: JsonObject)
 /** The „Passkeys“ block of /app/einstellungen. */
 data class PasskeysUiState(
     val state: Loadable<List<Passkey>> = Loadable.Idle,
-    /** The name dialog after creating a passkey. */
+    /** The name dialog after creating a passkey; it stays until the server took the passkey or refused it for good. */
     val naming: NewPasskey? = null,
+    /** The new passkey is on its way to the server; the name dialog's buttons wait. */
+    val savingNew: Boolean = false,
     /** The rename dialog. */
     val renaming: Passkey? = null,
     /** The confirmation before removing. */
@@ -44,7 +46,8 @@ data class PasskeysUiState(
 /**
  * Passkeys of the account: list, add through Credential Manager (then a name, suggested: this device), rename and
  * remove. Adding and removing need a recent password confirmation ([PasswordGate]); afterwards the action continues by
- * itself. The screen attaches the [PasskeyAuthenticator] of its activity while it is shown.
+ * itself. A new passkey that could not reach the server yet stays in its name dialog for another try. The screen
+ * attaches the [PasskeyAuthenticator] of its activity while it is shown.
  */
 @HiltViewModel
 class PasskeysViewModel @Inject constructor(private val repository: AccountRepository, deviceName: DeviceName) : ViewModel() {
@@ -104,14 +107,25 @@ class PasskeysViewModel @Inject constructor(private val repository: AccountRepos
         }
     }
 
-    /** Sends the new passkey with [name] (blank: the server names it after the password manager). */
+    /**
+     * Sends the new passkey with [name] (blank: the server names it after the password manager). A second tap while it
+     * is on its way does nothing, also while it goes again after „Kurz bestätigen“: its challenge counts once, so a
+     * second answer would only report an error.
+     */
     suspend fun saveNew(name: String) {
         val pending = ui.value.naming ?: return
+        if (ui.value.savingNew) return
         gate.run({
-            repository.addPasskey(pending.challenge, pending.credential, name.trim().ifEmpty { null })
+            // Inside the action, so the run that resumes after the password sheet waits the same way.
+            mutableUi.update { it.copy(savingNew = true) }
+            try {
+                repository.addPasskey(pending.challenge, pending.credential, name.trim().ifEmpty { null })
+            } finally {
+                mutableUi.update { it.copy(savingNew = false) }
+            }
             mutableUi.update { it.copy(naming = null, message = ADDED) }
             load()
-        }, ::handle)
+        }, ::handleNew)
     }
 
     fun startRename(passkey: Passkey) = mutableUi.update { it.copy(renaming = passkey, fieldErrors = emptyMap()) }
@@ -150,6 +164,19 @@ class PasskeysViewModel @Inject constructor(private val repository: AccountRepos
     fun dismissError() = mutableUi.update { it.copy(error = null) }
 
     /**
+     * Like [handle], except for failures that may pass (no connection, a server error, too many tries): the name dialog
+     * stays with the passkey the device just created, so it can be sent again instead of being left without its server
+     * side. Only a refusal of the passkey itself (an expired or used challenge, a refused attestation) closes it.
+     */
+    private fun handleNew(failure: ApiError) {
+        if (failure.mayPass) {
+            mutableUi.update { it.copy(error = failure.userMessage) }
+        } else {
+            handle(failure)
+        }
+    }
+
+    /**
      * A refused name stays at the field of the open dialog. Everything else (an expired ceremony, a passkey that is
      * gone) closes the dialogs and goes to the snackbar.
      */
@@ -174,3 +201,10 @@ class PasskeysViewModel @Inject constructor(private val repository: AccountRepos
         const val REGISTRATION_FAILED = "Dein Gerät konnte keinen Passkey anlegen. Bitte versuche es noch einmal."
     }
 }
+
+/**
+ * No connection, a server error (5xx; another unexpected status would answer the same again) or too many tries: the
+ * same request may go through a little later.
+ */
+private val ApiError.mayPass: Boolean
+    get() = this is ApiError.Transport || (this is ApiError.Server && status >= 500) || this is ApiError.TooManyRequests

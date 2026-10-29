@@ -1,5 +1,11 @@
 package de.velwebsolutions.oasis.account.hilt
 
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.setValue
+import androidx.compose.ui.test.assertIsSelected
+import androidx.compose.ui.test.hasTestTag
+import androidx.compose.ui.test.isSelected
 import androidx.compose.ui.test.onNodeWithContentDescription
 import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.onNodeWithText
@@ -83,6 +89,24 @@ class PrivacyScreensHiltTest : HiltScreenTest() {
         compose.onNodeWithText("1 Wort verborgen.", substring = true).assertExists()
         compose.onNodeWithText("Unter 18 gilt hier eine strengere Grenze", substring = true).assertExists()
         shot("privacy-limited")
+    }
+
+    @Test
+    fun theCentreShowsWhatWasSavedElsewhereWhenItIsShownAgain() {
+        signIn()
+        stub("GET", "privacy", Fixtures.privacy)
+        var shown by mutableStateOf(true)
+        show { if (shown) AccountScreen(AccountRoute.Privacy) }
+        waitForTag("privacy.checkup")
+        compose.onNodeWithTag("privacy.profile_audience.everyone").assertIsSelected()
+        // The Privatsphäre-Check, a screen of its own, showed the profile to members only meanwhile.
+        stub("GET", "privacy", Fixtures.privacy.replaceFirst("\"value\": \"everyone\"", "\"value\": \"members\""))
+        shown = false
+        compose.waitForIdle()
+        shown = true
+        compose.waitUntil(15_000) {
+            compose.onAllNodes(hasTestTag("privacy.profile_audience.members") and isSelected()).fetchSemanticsNodes().isNotEmpty()
+        }
     }
 
     @Test

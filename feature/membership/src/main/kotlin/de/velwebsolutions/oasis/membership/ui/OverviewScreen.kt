@@ -232,7 +232,7 @@ private fun SubscriptionStatus(overview: MembershipOverview, onSubscriptionManag
                 "**Kündigung vorgemerkt:** Dein Vertrag endet am ${MembershipFormat.day(
                     subscription.endsAt
                 )}. Bis dahin kannst du Oasis ohne " +
-                    "Einschränkungen weiternutzen. Danach wechselt dein Konto in den Lesemodus."
+                    "Einschränkungen weiternutzen. Danach endet dein Zugang, und du hast 30 Tage, um deine Daten herunterzuladen."
             ),
             style = OasisType.Small,
             color = OasisColors.Ink,

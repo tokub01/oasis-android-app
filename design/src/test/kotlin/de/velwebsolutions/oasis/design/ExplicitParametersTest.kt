@@ -97,7 +97,7 @@ class ExplicitParametersTest {
                     DashedNote("N", tagged, highlighted = false)
                     Bullets(listOf("O"), tagged)
                     AvatarView("P", "night", tagged, photoUrl = null, size = 20.dp)
-                    AuthorizedImage("/q.png", "Q", tagged, ContentScale.Crop)
+                    AuthorizedImage("/q.png", "Q", tagged, ContentScale.Crop, cacheOnDisk = false)
                     RelativeTimeText(Instant.now(), tagged, OasisType.Small, OasisColors.Ink)
                     LoadableView(Loadable.Loaded("R"), onRetry = {}, modifier = tagged, skeleton = SkeletonLayout.Cards) { Text(it) }
                     LoadingView(tagged)

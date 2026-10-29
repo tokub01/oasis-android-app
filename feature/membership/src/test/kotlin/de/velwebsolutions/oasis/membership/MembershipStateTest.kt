@@ -1,5 +1,9 @@
 package de.velwebsolutions.oasis.membership
 
+import androidx.lifecycle.ViewModel
+import androidx.lifecycle.ViewModelProvider
+import androidx.lifecycle.ViewModelStore
+import androidx.lifecycle.viewmodel.CreationExtras
 import de.velwebsolutions.oasis.core.model.Loadable
 import de.velwebsolutions.oasis.membership.data.MembershipEvents
 import de.velwebsolutions.oasis.membership.data.MembershipFiles
@@ -10,13 +14,28 @@ import de.velwebsolutions.oasis.membership.ui.PortalViewModel
 import de.velwebsolutions.oasis.membership.ui.WithdrawViewModel
 import de.velwebsolutions.oasis.testing.MainDispatcherRule
 import java.nio.file.Files
+import kotlin.reflect.KClass
 import kotlinx.coroutines.CompletableDeferred
 import kotlinx.coroutines.test.runTest
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertFalse
 import org.junit.Assert.assertNull
 import org.junit.Assert.assertTrue
 import org.junit.Rule
 import org.junit.Test
+
+/** Clears a view model the way leaving its screen does (`onCleared`). */
+private fun clear(model: ViewModel) {
+    val store = ViewModelStore()
+    ViewModelProvider.create(
+        store,
+        object : ViewModelProvider.Factory {
+            @Suppress("UNCHECKED_CAST")
+            override fun <T : ViewModel> create(modelClass: KClass<T>, extras: CreationExtras): T = model as T
+        }
+    )[model::class]
+    store.clear()
+}
 
 /** The membership view models' states with a [FakeMembershipRepository]: loading, failures, dialogs and toasts. */
 class MembershipStateTest {
@@ -25,6 +44,33 @@ class MembershipStateTest {
 
     private val repository = FakeMembershipRepository()
     private val files = MembershipFiles(Files.createTempDirectory("membership").toFile())
+
+    @Test
+    fun `the pages delete the invoices and the export they wrote when they close`() = runTest {
+        val invoice = InvoiceViewModel(7, repository, files)
+        val linked = invoice.state.value.file.valueOrNull!!
+        clear(invoice)
+        assertFalse("the invoice of a link goes with its page", linked.exists())
+
+        val portal = PortalViewModel(repository, files)
+        portal.openInvoice(portal.state.value.payments.valueOrNull!!.single())
+        val shown = portal.state.value.invoiceFile!!
+        portal.closeInvoice()
+        clear(portal)
+        assertFalse("also an invoice whose sheet was closed before", shown.exists())
+
+        val cancel = CancelViewModel(repository, files, MembershipEvents(), Fixtures.session())
+        cancel.prepareExport()
+        val export = cancel.state.value.exportFile!!
+        assertTrue(export.exists())
+        clear(cancel)
+        assertFalse("the export goes with the contract page", export.exists())
+
+        // Pages that never wrote a file close just as well.
+        repository.invoice = FakeMembershipRepository.failure()
+        clear(InvoiceViewModel(8, repository, files))
+        clear(WithdrawViewModel(repository, files, MembershipEvents(), Fixtures.session()))
+    }
 
     @Test
     fun `the overview loads on start and a first failure shows the error page, not a toast`() = runTest {

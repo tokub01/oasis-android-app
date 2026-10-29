@@ -11,6 +11,7 @@ import androidx.activity.result.contract.ActivityResultContract
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
+import androidx.compose.ui.test.assertCountEquals
 import androidx.compose.ui.test.hasText
 import androidx.compose.ui.test.junit4.createComposeRule
 import androidx.compose.ui.test.onNodeWithTag
@@ -199,6 +200,23 @@ class PickersTest {
         settle { !model.form.value.uploading }
         compose.onNodeWithTag("profileEdit.banner").performClick()
         settle { network.transport.requests.any { it.path == "network/profile/banner" } }
+    }
+
+    @Test
+    fun `a refused profile banner shows its reason once, at the banner`() {
+        val refused = """{"message":"Das Bild ist zu groß.","errors":{"banner":["Das Bild ist zu groß."]}}"""
+        val network = StubbedNetwork(
+            stub("GET", "network/profile", Fixtures.ownProfile),
+            stub("POST", "network/tone", """{"data":{"hint":null,"nudge":false}}"""),
+            stub("POST", "network/profile/banner", refused, 422)
+        )
+        val model = models.keep(EditProfileViewModel(network.repository, network.common))
+        show { EditProfileScreen(model) }
+        settle { compose.onAllNodes(hasText("Farbe deiner Initialen")).fetchSemanticsNodes().isNotEmpty() }
+        answer = imageFile("g.png")
+        compose.onNodeWithTag("profileEdit.banner").performClick()
+        settle { compose.onAllNodes(hasText("Das Bild ist zu groß.")).fetchSemanticsNodes().isNotEmpty() }
+        compose.onAllNodes(hasText("Das Bild ist zu groß.")).assertCountEquals(1)
     }
 
     @Test

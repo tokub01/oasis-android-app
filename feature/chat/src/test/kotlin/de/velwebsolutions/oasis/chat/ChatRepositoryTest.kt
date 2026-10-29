@@ -21,9 +21,17 @@ import de.velwebsolutions.oasis.chatcrypto.KeyGrant
 import de.velwebsolutions.oasis.chatcrypto.LockedIdentity
 import de.velwebsolutions.oasis.chatcrypto.MessageEnvelope
 import de.velwebsolutions.oasis.chatcrypto.PublicKeyBundle
+import de.velwebsolutions.oasis.core.network.ApiClient
+import de.velwebsolutions.oasis.core.network.ApiConfig
 import de.velwebsolutions.oasis.core.network.ApiError
+import de.velwebsolutions.oasis.core.network.TokenProvider
 import de.velwebsolutions.oasis.testing.StubTransport
+import java.util.concurrent.CopyOnWriteArrayList
+import java.util.concurrent.Executors
+import kotlinx.coroutines.asCoroutineDispatcher
+import kotlinx.coroutines.runBlocking
 import kotlinx.coroutines.test.runTest
+import kotlinx.coroutines.withContext
 import kotlinx.serialization.json.Json
 import kotlinx.serialization.json.JsonNull
 import kotlinx.serialization.json.int
@@ -31,6 +39,16 @@ import kotlinx.serialization.json.jsonArray
 import kotlinx.serialization.json.jsonObject
 import kotlinx.serialization.json.jsonPrimitive
 import kotlinx.serialization.json.long
+import okhttp3.MediaType.Companion.toMediaType
+import okhttp3.OkHttpClient
+import okhttp3.Protocol
+import okhttp3.Response
+import okhttp3.ResponseBody
+import okio.Buffer
+import okio.BufferedSource
+import okio.ForwardingSource
+import okio.buffer
+import org.junit.Assert.assertArrayEquals
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertNotNull
 import org.junit.Assert.assertNull
@@ -292,6 +310,39 @@ class ChatRepositoryTest {
                 it.jsonPrimitive.content
             }
         )
+    }
+
+    @Test
+    fun attachmentsAreReadOffTheThreadThatAsked() = runBlocking {
+        // A body that is still arriving from the socket when the call answers, as Retrofit hands out a @Streaming one.
+        val readers = CopyOnWriteArrayList<String>()
+        val body = object : ResponseBody() {
+            override fun contentType() = "application/octet-stream".toMediaType()
+
+            override fun contentLength() = 3L
+
+            override fun source(): BufferedSource = object : ForwardingSource(Buffer().write(byteArrayOf(1, 2, 3))) {
+                override fun read(sink: Buffer, byteCount: Long): Long {
+                    readers += Thread.currentThread().name
+                    return super.read(sink, byteCount)
+                }
+            }.buffer()
+        }
+        val tokens = object : TokenProvider {
+            override fun currentToken() = "token"
+
+            override fun onUnauthenticated() = Unit
+        }
+        val http = OkHttpClient.Builder().addInterceptor { chain ->
+            Response.Builder().request(chain.request()).protocol(Protocol.HTTP_1_1).code(200).message("ok").body(body).build()
+        }.build()
+        val api = DefaultChatRepository(ApiClient(ApiConfig("http://localhost", "OasisApp/1.0 (Android; Android 16)"), tokens, http))
+        // The screen's thread, where the view models ask (Android forbids reading a socket there).
+        val screen = Executors.newSingleThreadExecutor { Thread(it, "bildschirm") }.asCoroutineDispatcher()
+        val bytes = withContext(screen) { api.downloadAttachment("2", "7") }
+        screen.close()
+        assertArrayEquals(byteArrayOf(1, 2, 3), bytes)
+        assertTrue("read on $readers", readers.isNotEmpty() && "bildschirm" !in readers)
     }
 
     @Test

@@ -72,7 +72,9 @@ class ComposerCallbacks(
     val onRemoveImage: (Int) -> Unit,
     val onAlt: (Int, String) -> Unit,
     val checkTone: suspend () -> Unit,
-    val publish: suspend () -> PublishResult?
+    val publish: suspend () -> PublishResult?,
+    /** The answer of a publish whose form went away while it was sent (a rotation during the upload), for the next form. */
+    val unclaimedPublish: suspend () -> PublishResult? = { null }
 )
 
 /** The form's callbacks wired to this view model. */
@@ -86,7 +88,8 @@ fun ComposeViewModel.callbacks() = ComposerCallbacks(
     onRemoveImage = ::removeImage,
     onAlt = ::updateAlt,
     checkTone = ::checkTone,
-    publish = ::publish
+    publish = ::publish,
+    unclaimedPublish = ::unclaimedPublish
 )
 
 /**
@@ -102,7 +105,7 @@ fun ComposerForm(
     /** Focuses the text field once ("Antworten" on a card opens the reply field ready to type). */
     focusRequest: Boolean = false,
     onFocusHandled: () -> Unit = {},
-    /** Called after a successful publish. */
+    /** Called after a successful publish, also one started by the form before this one (a rotation during the upload). */
     onPublished: (PublishResult) -> Unit = {}
 ) {
     val scope = rememberCoroutineScope()
@@ -120,6 +123,8 @@ fun ComposerForm(
             onFocusHandled()
         }
     }
+    // A Tropfen sent from the form before this one (it went away during the upload, e.g. with a rotation) ends here.
+    LaunchedEffect(Unit) { callbacks.unclaimedPublish()?.let(onPublished) }
 
     Column(modifier.fillMaxWidth(), verticalArrangement = Arrangement.spacedBy(16.dp)) {
         state.generalError?.let { Banner(it) }

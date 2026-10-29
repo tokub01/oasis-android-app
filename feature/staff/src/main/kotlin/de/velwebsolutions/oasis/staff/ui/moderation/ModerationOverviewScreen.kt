@@ -9,12 +9,9 @@ import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.defaultMinSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -50,6 +47,7 @@ import de.velwebsolutions.oasis.staff.api.CaseSummary
 import de.velwebsolutions.oasis.staff.api.ModerationOverview
 import de.velwebsolutions.oasis.staff.api.QueueFilter
 import de.velwebsolutions.oasis.staff.ui.components.DeadlineLook
+import de.velwebsolutions.oasis.staff.ui.components.LoadMoreButton
 import de.velwebsolutions.oasis.staff.ui.components.OptionPicker
 import de.velwebsolutions.oasis.staff.ui.components.StaffArea
 import de.velwebsolutions.oasis.staff.ui.components.StaffAreaLinks
@@ -228,12 +226,7 @@ private fun QueueSection(state: ModerationOverviewUiState, onFilter: (QueueFilte
         state.cases.forEach { item ->
             CaseRow(item, Modifier.pressable({ navigator.open(StaffRoute.ModerationCase(item.id)) }).testTag("queue.case.${item.id}"))
         }
-        if (state.hasMore) {
-            LaunchedEffect(state.cases.size) { onLoadMore() }
-            Box(Modifier.fillMaxWidth().padding(12.dp), contentAlignment = Alignment.Center) {
-                CircularProgressIndicator(Modifier.size(24.dp), color = OasisColors.Night)
-            }
-        }
+        if (state.hasMore) LoadMoreButton("Weitere Fälle laden", onLoadMore, Modifier.testTag("queue.more"))
     }
 }
 

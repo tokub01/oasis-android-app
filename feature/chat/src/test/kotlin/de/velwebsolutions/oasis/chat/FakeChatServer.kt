@@ -480,7 +480,10 @@ class FakeChatServer : Interceptor {
                 if (user != conversation.createdBy || body["key_version"]?.jsonPrimitive?.intOrNull != conversation.keyVersion) {
                     409 to buildJsonObject { put("message", "stale") }
                 } else {
-                    grants.getOrPut(id) { mutableListOf() } += body.getValue("grants").jsonArray.map { it.jsonObject }
+                    // A pending batch is replaced as a whole (ConversationKeys::distribute).
+                    val stored = grants.getOrPut(id) { mutableListOf() }
+                    stored.removeAll { it["key_version"]?.jsonPrimitive?.intOrNull == conversation.keyVersion }
+                    stored += body.getValue("grants").jsonArray.map { it.jsonObject }
                     200 to data(conversationData(conversation, user))
                 }
             }

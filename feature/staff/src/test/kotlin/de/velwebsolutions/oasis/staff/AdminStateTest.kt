@@ -9,9 +9,11 @@ import de.velwebsolutions.oasis.staff.ui.admin.AdminVotesViewModel
 import de.velwebsolutions.oasis.staff.ui.admin.DataBreachesViewModel
 import de.velwebsolutions.oasis.staff.ui.admin.SystemViewModel
 import de.velwebsolutions.oasis.testing.MainDispatcherRule
+import kotlinx.coroutines.async
 import kotlinx.coroutines.test.advanceTimeBy
 import kotlinx.coroutines.test.runTest
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertFalse
 import org.junit.Assert.assertNull
 import org.junit.Assert.assertTrue
 import org.junit.Rule
@@ -97,6 +99,62 @@ class AdminStateTest {
         assertEquals("the last page loads nothing more", calls, repository.calls.size)
         repository.payments = FakeStaffRepository.failure()
         assertTrue(AdminPaymentsViewModel(repository).state.value.page is Loadable.Failed)
+    }
+
+    @Test
+    fun `a further page asked for before a new search is dropped`() = runTest {
+        repository.payments = Result.success(Decoded.payments.copy(meta = Page.Meta(nextCursor = "2", total = 40)))
+        val viewModel = AdminPaymentsViewModel(repository)
+        val gate = kotlinx.coroutines.CompletableDeferred<Unit>()
+        repository.paymentsGate = gate
+        val more = async { viewModel.loadMore() }
+        testScheduler.runCurrent()
+
+        val found = Decoded.payments.data.take(1)
+        repository.paymentsGate = null
+        repository.payments = Result.success(Decoded.payments.copy(data = found, meta = Page.Meta(total = 1)))
+        viewModel.updateSearch("#1")
+        advanceTimeBy(401)
+        repository.payments = Result.success(Decoded.payments.copy(meta = Page.Meta(nextCursor = "3", total = 40)))
+        gate.complete(Unit)
+        more.await()
+        assertTrue("page 2 of all payments was asked for", repository.calls.contains("payments '' '' 2"))
+        assertEquals("but is not appended to the search", found.map { it.id }, viewModel.state.value.records.map { it.id })
+        assertFalse(viewModel.state.value.hasMore)
+        assertEquals(1, viewModel.state.value.total)
+    }
+
+    @Test
+    fun `a further page continues the shown list, not a search still being typed`() = runTest {
+        repository.payments = Result.success(Decoded.payments.copy(meta = Page.Meta(nextCursor = "2", total = 40)))
+        val viewModel = AdminPaymentsViewModel(repository)
+        viewModel.updateSearch("#9")
+        viewModel.loadMore()
+        assertTrue(repository.calls.contains("payments '' '' 2"))
+        assertEquals(Decoded.payments.data.size * 2, viewModel.state.value.records.size)
+        advanceTimeBy(401)
+        assertTrue(repository.calls.contains("payments '#9' '' 1"))
+        assertEquals(Decoded.payments.data.size, viewModel.state.value.records.size)
+    }
+
+    @Test
+    fun `an older status that answers last leaves the newer list`() = runTest {
+        val viewModel = AdminPaymentsViewModel(repository)
+        val gate = kotlinx.coroutines.CompletableDeferred<Unit>()
+        repository.paymentsGate = gate
+        viewModel.selectStatus("paid")
+
+        val open = Decoded.payments.data.take(1)
+        repository.paymentsGate = null
+        repository.payments = Result.success(Decoded.payments.copy(data = open))
+        viewModel.selectStatus("open")
+        repository.payments = FakeStaffRepository.failure("Zu spät")
+        gate.complete(Unit)
+        testScheduler.runCurrent()
+        assertTrue(repository.calls.contains("payments '' 'paid' 1"))
+        assertEquals("open", viewModel.state.value.statusFilter)
+        assertEquals(open.map { it.id }, viewModel.state.value.records.map { it.id })
+        assertNull("the late answer of the older status is not shown either", viewModel.state.value.error)
     }
 
     @Test

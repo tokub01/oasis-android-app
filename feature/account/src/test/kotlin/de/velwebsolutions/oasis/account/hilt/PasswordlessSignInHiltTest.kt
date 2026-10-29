@@ -174,4 +174,19 @@ class PasswordlessSignInHiltTest : DeviceScreenTest() {
         waitForTag("signin.codeSms")
         compose.onNodeWithTag("signin.passkey").assertDoesNotExist()
     }
+
+    @Test
+    fun theWaysWithoutAPasswordAreAskedForAgainWhenTheFormShowsAgain() {
+        stub("GET", "auth/methods", """{"message":"Server Error"}""", status = 500)
+        showWithDevice { SignedOutScreen() }
+        waitForRequest("GET", "auth/methods")
+        waitForTag("signin.button")
+        compose.onNodeWithTag("forgot.button").tap()
+        waitForTag("forgot.submit")
+        // No answer when the form first showed: back on it, the form asks again and offers what the server has.
+        stub("GET", "auth/methods", allWays)
+        back()
+        waitForTag("signin.passkey")
+        compose.onNodeWithTag("signin.codeSms").assertExists()
+    }
 }

@@ -214,7 +214,8 @@ internal fun VerifyEmailContent(email: String?, ui: VerifyEmailUiState, actions:
             buildAnnotatedString {
                 append("Wir haben dir einen Code und einen Link an ")
                 withStyle(SpanStyle(fontWeight = FontWeight.Bold)) { append(email ?: "deine Adresse") }
-                append(" geschickt. Gib den Code hier ein oder öffne den Link – dann startet dein Test.")
+                append(" geschickt. Gib den Code hier ein oder öffne den Link – danach bestätigst du deine Handynummer ")
+                append("und wählst deinen Beitrag.")
             },
             style = OasisType.Body,
             color = OasisColors.Ink2

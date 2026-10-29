@@ -97,7 +97,10 @@ fun OptionPicker(
     }
 }
 
-/** A date and time in German time, chosen with the Material date and time pickers (iOS `DatePicker`). */
+/**
+ * A date and time in German time, chosen with the Material date and time pickers (iOS `DatePicker`). Typed in by keyboard
+ * (the pencil of the date picker), an empty or incomplete date selects nothing, so "Weiter" waits for a valid one.
+ */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun DateTimeField(
@@ -135,11 +138,16 @@ fun DateTimeField(
         DatePickerDialog(
             onDismissRequest = { pickingDate = false },
             confirmButton = {
-                OasisTextButton("Weiter", {
-                    // Material's date picker cannot clear the day it started with.
-                    chosenDay = Instant.ofEpochMilli(dateState.selectedDateMillis!!).atZone(ZoneOffset.UTC).toLocalDate()
-                    pickingDate = false
-                })
+                OasisTextButton(
+                    "Weiter",
+                    {
+                        dateState.selectedDateMillis?.let { selected ->
+                            chosenDay = Instant.ofEpochMilli(selected).atZone(ZoneOffset.UTC).toLocalDate()
+                            pickingDate = false
+                        }
+                    },
+                    enabled = dateState.selectedDateMillis != null
+                )
             },
             dismissButton = { OasisTextButton("Abbrechen", { pickingDate = false }) }
         ) { DatePicker(dateState) }

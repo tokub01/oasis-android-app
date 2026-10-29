@@ -143,6 +143,11 @@ class EditPostViewModel @AssistedInject constructor(@Assisted val id: Int, priva
         mutableForm.value = result.loadable()
     }
 
+    /** Loads the form once: the screen shown again (a rotation, back from another tab) keeps the changed text. */
+    suspend fun loadIfNeeded() {
+        if (form.value.valueOrNull == null) load()
+    }
+
     suspend fun save() {
         val result = attempt { repository.updatePost(id, text.value) }
         mutableError.value = result.apiError

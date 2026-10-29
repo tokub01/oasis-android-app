@@ -33,7 +33,10 @@ internal data class SwitchBody(val value: Boolean)
 @Serializable
 internal data class FcmRegistrationBody(val token: String, val platform: String)
 
-/** The Live endpoints of the Laravel API (routes/api/v1/members/live.php). */
+/**
+ * The Live endpoints of the Laravel API (routes/api/v1/members/live.php). Like `app-config`, the hint settings in every
+ * answer (`push.available`, whether the `chat_push` switch is there) are answered for the asking `platform`.
+ */
 internal interface LiveService {
     @GET("hints")
     suspend fun hints(@Query("page") page: Int): Page<Hint>
@@ -42,16 +45,16 @@ internal interface LiveService {
     suspend fun markAllRead(): MessageResponse
 
     @GET("hints/settings")
-    suspend fun settings(): DataEnvelope<HintSettings>
+    suspend fun settings(@Query("platform") platform: String): DataEnvelope<HintSettings>
 
     @PUT("hints/settings")
-    suspend fun save(@Body body: HintSettingsBody): Confirmed<HintSettings>
+    suspend fun save(@Query("platform") platform: String, @Body body: HintSettingsBody): Confirmed<HintSettings>
 
     @POST("hints/pause")
-    suspend fun pause(@Body body: PauseBody): Confirmed<HintSettings>
+    suspend fun pause(@Query("platform") platform: String, @Body body: PauseBody): Confirmed<HintSettings>
 
     @DELETE("hints/pause")
-    suspend fun resume(): Confirmed<HintSettings>
+    suspend fun resume(@Query("platform") platform: String): Confirmed<HintSettings>
 
     @PUT("privacy/settings/{key}")
     suspend fun setChatSwitch(@Path("key") key: String, @Body body: SwitchBody): MessageResponse

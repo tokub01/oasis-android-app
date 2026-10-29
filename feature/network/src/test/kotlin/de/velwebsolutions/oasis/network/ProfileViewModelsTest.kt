@@ -1,7 +1,10 @@
 package de.velwebsolutions.oasis.network
 
 import de.velwebsolutions.oasis.core.model.Loadable
+import de.velwebsolutions.oasis.network.api.FeedPage
 import de.velwebsolutions.oasis.network.api.ImageUpload
+import de.velwebsolutions.oasis.network.api.NoContext
+import de.velwebsolutions.oasis.network.data.NetworkRepository
 import de.velwebsolutions.oasis.network.ui.profiles.EditProfileViewModel
 import de.velwebsolutions.oasis.network.ui.profiles.FriendsViewModel
 import de.velwebsolutions.oasis.network.ui.profiles.InvitationViewModel
@@ -11,6 +14,9 @@ import de.velwebsolutions.oasis.network.ui.profiles.ProfileConfirmation
 import de.velwebsolutions.oasis.network.ui.profiles.ProfileViewModel
 import de.velwebsolutions.oasis.network.ui.profiles.StatisticsViewModel
 import de.velwebsolutions.oasis.testing.MainDispatcherRule
+import kotlinx.coroutines.CompletableDeferred
+import kotlinx.coroutines.cancelAndJoin
+import kotlinx.coroutines.launch
 import kotlinx.coroutines.test.runTest
 import org.junit.After
 import org.junit.Assert.assertEquals
@@ -130,6 +136,40 @@ class ProfileViewModelsTest(private val answersAtOnce: Boolean) {
         eventually { model.posts.posts.size == 1 }
         NetworkSignals.didPublish(null, "Gespeichert.")
         eventually { network.transport.requests.count { it.path == "network/profiles/jonas/posts" } == 2 }
+    }
+
+    @Test
+    fun `Tropfen whose load was cancelled with the profile load again with it`() = runTest {
+        val asked = CompletableDeferred<Unit>()
+        val gate = CompletableDeferred<Unit>()
+        val network = profileNetwork(stub("GET", "network/profiles/jonas/posts", pageJson(postJson(5))))
+        val slow = object : NetworkRepository by network.repository {
+            override suspend fun profilePosts(handle: String, cursor: String?): FeedPage<NoContext> {
+                asked.complete(Unit)
+                gate.await()
+                return network.repository.profilePosts(handle, cursor)
+            }
+        }
+        val model = models.keep(ProfileViewModel("jonas", slow))
+        // A rotation while the profile's Tropfen load cancels the screen's coroutine.
+        val screen = launch { model.loadIfNeeded() }
+        asked.await()
+        screen.cancelAndJoin()
+        assertEquals(Loadable.Idle, model.posts.state.value.state)
+
+        gate.complete(Unit)
+        model.loadIfNeeded()
+        assertEquals(listOf(5), model.posts.posts.map { it.id })
+    }
+
+    @Test
+    fun `the status line is cut at 80 characters counted like the server, never inside an emoji`() {
+        val network = StubbedNetwork()
+        val model = models.keep(EditProfileViewModel(network.repository, network.common))
+        model.updateStatus("x".repeat(79) + "🌱🌱")
+        assertEquals("x".repeat(79) + "🌱", model.form.value.status)
+        model.updateStatus("🌱".repeat(90))
+        assertEquals("🌱".repeat(80), model.form.value.status)
     }
 
     private val savedProfile get() = Fixtures.ownProfile.replaceFirst("{\"data\"", "{\"message\":\"Dein Profil ist gespeichert.\",\"data\"")

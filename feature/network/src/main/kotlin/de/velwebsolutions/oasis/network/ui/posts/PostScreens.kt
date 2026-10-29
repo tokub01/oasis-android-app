@@ -200,7 +200,7 @@ fun CarryScreen(
 
 /**
  * "Tropfen bearbeiten" (/tropfen/{id}/bearbeiten): the text within the edit window; images and audience stay. A changed
- * text is only left through "Änderung speichern" or "Abbrechen", which asks first.
+ * text is only left through "Änderung speichern" or "Abbrechen", which asks first; a rotation keeps it.
  */
 @Composable
 fun EditPostScreen(
@@ -215,7 +215,7 @@ fun EditPostScreen(
     var confirmDiscard by remember { mutableStateOf(false) }
     val changed = form.valueOrNull?.let { it.body != text } ?: false
 
-    LaunchedEffect(Unit) { viewModel.load() }
+    LaunchedEffect(Unit) { viewModel.loadIfNeeded() }
     LaunchedEffect(saved) { if (saved) navigator.back() }
 
     LeaveGuard(enabled = changed, onAttempt = { confirmDiscard = true }) {

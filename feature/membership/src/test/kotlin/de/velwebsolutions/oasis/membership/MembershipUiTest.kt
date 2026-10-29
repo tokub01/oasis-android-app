@@ -373,7 +373,7 @@ class MembershipUiTest {
 
     @Test
     fun `the withdraw page with the export ready to share`() {
-        val export = files.export("PK".toByteArray())
+        val export = kotlinx.coroutines.runBlocking { files.export("PK".toByteArray()) }
         var confirmed = 0
         show {
             WithdrawContent(

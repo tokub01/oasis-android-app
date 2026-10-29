@@ -6,12 +6,16 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.test.SemanticsNodeInteraction
+import androidx.compose.ui.test.assertIsEnabled
+import androidx.compose.ui.test.assertIsNotEnabled
 import androidx.compose.ui.test.hasSetTextAction
 import androidx.compose.ui.test.hasText
 import androidx.compose.ui.test.junit4.createComposeRule
+import androidx.compose.ui.test.onNodeWithContentDescription
 import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
+import androidx.compose.ui.test.performTextClearance
 import androidx.compose.ui.test.performTextInput
 import de.velwebsolutions.oasis.design.components.LocalApiClient
 import de.velwebsolutions.oasis.design.components.LocalScreenChrome
@@ -22,6 +26,8 @@ import de.velwebsolutions.oasis.design.navigation.MembershipRoute
 import de.velwebsolutions.oasis.design.navigation.Navigator
 import de.velwebsolutions.oasis.design.navigation.NetworkRoute
 import de.velwebsolutions.oasis.design.theme.OasisTheme
+import de.velwebsolutions.oasis.network.ui.components.DateTimeField
+import de.velwebsolutions.oasis.network.ui.components.pickedDay
 import de.velwebsolutions.oasis.network.ui.oases.OasisStatisticsScreen
 import de.velwebsolutions.oasis.network.ui.oases.OasisStatisticsViewModel
 import de.velwebsolutions.oasis.network.ui.profiles.ProfileScreen
@@ -32,8 +38,12 @@ import de.velwebsolutions.oasis.network.ui.profiles.TimeCapsulesScreen
 import de.velwebsolutions.oasis.network.ui.profiles.TimeCapsulesViewModel
 import de.velwebsolutions.oasis.network.ui.profiles.YearbookScreen
 import de.velwebsolutions.oasis.network.ui.profiles.YearbookViewModel
+import java.time.Instant
+import java.time.LocalDate
+import java.time.ZoneId
 import org.junit.After
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertNull
 import org.junit.Assert.assertTrue
 import org.junit.Rule
 import org.junit.Test
@@ -148,6 +158,25 @@ class TierScreensTest {
         compose.onNode(hasSetTextAction()).performTextInput(" x")
         compose.onNodeWithTag("capsule.seal").performClick()
         text("Schreib etwas.")
+    }
+
+    @Test
+    fun `a day typed in by keyboard needs a whole date before Weiter`() {
+        assertNull(pickedDay(null))
+        assertEquals(LocalDate.of(2026, 12, 31), pickedDay(Instant.parse("2026-12-31T00:00:00Z").toEpochMilli()))
+        var chosen: Instant? = null
+        show { DateTimeField("Geht auf am", Instant.parse("2026-12-24T17:00:00Z"), { chosen = it }, zone = ZoneId.of("Europe/Berlin")) }
+        compose.onNodeWithTag("datetime.field").performClick()
+        // The pencil of Material's date picker: the day as text, which can be empty or half typed.
+        compose.onNodeWithContentDescription("Switch to text input mode").performClick()
+        compose.onNode(hasSetTextAction()).performTextClearance()
+        compose.onNodeWithTag("datetime.next").assertIsNotEnabled().performClick()
+        compose.onNodeWithTag("datetime.next").assertExists()
+
+        compose.onNode(hasSetTextAction()).performTextInput("12312026")
+        compose.onNodeWithTag("datetime.next").assertIsEnabled().performClick()
+        compose.onNodeWithTag("datetime.done").performClick()
+        assertEquals(Instant.parse("2026-12-31T17:00:00Z"), chosen)
     }
 
     @Test

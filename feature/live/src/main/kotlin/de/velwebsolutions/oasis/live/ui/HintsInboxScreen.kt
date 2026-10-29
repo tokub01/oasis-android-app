@@ -40,6 +40,7 @@ import de.velwebsolutions.oasis.core.model.Loadable
 import de.velwebsolutions.oasis.design.components.AsyncOasisButton
 import de.velwebsolutions.oasis.design.components.DashedNote
 import de.velwebsolutions.oasis.design.components.ErrorStateView
+import de.velwebsolutions.oasis.design.components.OasisButton
 import de.velwebsolutions.oasis.design.components.OasisButtonKind
 import de.velwebsolutions.oasis.design.components.OasisScreen
 import de.velwebsolutions.oasis.design.components.OasisTextButton
@@ -141,27 +142,44 @@ internal fun HintsInboxContent(
 
                 is Loadable.Failed -> item(key = "error") { ErrorStateView(state.error, onRefresh, Modifier.heightIn(max = 400.dp)) }
 
-                is Loadable.Loaded -> if (state.value.isEmpty()) {
-                    item(key = "empty") {
-                        DashedNote("Hier gibt es gerade keine Hinweise für dich.", Modifier.widthIn(max = 720.dp).testTag("hints.empty"))
-                    }
-                } else {
-                    ui.groups.forEach { group ->
-                        item(key = "group.${group.title}") {
-                            Text(
-                                group.title,
-                                style = OasisType.heading(),
-                                color = OasisColors.Night,
-                                modifier = Modifier.widthIn(max = 720.dp).fillMaxWidth().semantics { heading() }
+                is Loadable.Loaded -> {
+                    if (state.value.isEmpty()) {
+                        item(key = "empty") {
+                            DashedNote(
+                                "Hier gibt es gerade keine Hinweise für dich.",
+                                Modifier.widthIn(max = 720.dp).testTag("hints.empty")
                             )
                         }
-                        items(group.hints, key = { it.id }) { hint ->
-                            HintRow(hint, onOpen)
-                            if (hint.id == lastId) LaunchedEffect(hint.id) { onLoadMore() }
+                    } else {
+                        ui.groups.forEach { group ->
+                            item(key = "group.${group.title}") {
+                                Text(
+                                    group.title,
+                                    style = OasisType.heading(),
+                                    color = OasisColors.Night,
+                                    modifier = Modifier.widthIn(max = 720.dp).fillMaxWidth().semantics { heading() }
+                                )
+                            }
+                            items(group.hints, key = { it.id }) { hint ->
+                                HintRow(hint, onOpen)
+                                if (hint.id == lastId) LaunchedEffect(hint.id) { onLoadMore() }
+                            }
                         }
                     }
+                    // Also under an empty first page: older pages may still hold hints (like the web's page links).
                     if (ui.isLoadingMore) {
                         item(key = "more") { CircularProgressIndicator(color = OasisColors.Night) }
+                    } else if (ui.offersMore) {
+                        // A page failed, or several held nothing to show: scrolling alone would not go on.
+                        item(key = "more.button") {
+                            OasisButton(
+                                "Ältere Hinweise laden",
+                                onLoadMore,
+                                kind = OasisButtonKind.Secondary,
+                                fullWidth = false,
+                                modifier = Modifier.testTag("hints.more")
+                            )
+                        }
                     }
                 }
             }

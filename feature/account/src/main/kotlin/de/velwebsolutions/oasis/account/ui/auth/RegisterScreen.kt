@@ -78,12 +78,13 @@ import kotlinx.coroutines.launch
 private val Steps = listOf(
     "Konto anlegen",
     "E-Mail-Adresse mit dem Code bestätigen",
+    "Handynummer per SMS bestätigen",
     "Beitrag wählen – bezahlt wird über Google Play"
 )
 
 private val GermanDay = DateTimeFormatter.ofPattern("dd.MM.yyyy")
 
-/** Registration, step 1 of 3 of /testen. */
+/** Registration, the first of the four steps (account, e-mail address, mobile number, contribution) of /testen. */
 @Composable
 internal fun RegisterScreen(onSignIn: () -> Unit, onLegal: (String) -> Unit) {
     val viewModel: RegisterViewModel = hiltViewModel()
@@ -120,9 +121,10 @@ internal fun RegisterContent(
                 verticalArrangement = Arrangement.spacedBy(18.dp)
             ) {
                 Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                    Text("Schritt 1 von 3 · Konto", style = OasisType.SmallBold, color = OasisColors.Ink2)
+                    Text("Schritt 1 von ${Steps.size} · Konto", style = OasisType.SmallBold, color = OasisColors.Ink2)
                     Row(Modifier.widthIn(max = 280.dp).fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(6.dp)) {
-                        listOf(OasisColors.Night, OasisColors.DuneLine, OasisColors.DuneLine).forEach { color ->
+                        Steps.indices.forEach { index ->
+                            val color = if (index == 0) OasisColors.Night else OasisColors.DuneLine
                             Box(Modifier.weight(1f).height(6.dp).background(color, CircleShape))
                         }
                     }
@@ -217,18 +219,13 @@ internal fun RegisterContent(
                     }
                     error?.message("terms")?.let { FieldError(it) }
                 }
-                AsyncOasisButton(
-                    "Konto erstellen",
-                    onSubmit,
-                    modifier = Modifier.testTag("register.submit"),
-                    kind = OasisButtonKind.Accent,
-                    enabled = ui.form != null
-                )
+                // Also without the bot-trap token (offline when the screen opened): the view model fetches one then.
+                AsyncOasisButton("Konto erstellen", onSubmit, modifier = Modifier.testTag("register.submit"), kind = OasisButtonKind.Accent)
                 Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                     Icon(Icons.Outlined.FavoriteBorder, contentDescription = null, tint = OasisColors.Ink2, modifier = Modifier.size(18.dp))
                     Text(
-                        "Oasis gibt es nur mit Mitgliedschaft – ohne Werbung, ohne Verkauf deiner Daten. Den Beitrag wählst du nach der " +
-                            "Bestätigung deiner Adresse.",
+                        "Oasis gibt es nur mit Mitgliedschaft – ohne Werbung, ohne Verkauf deiner Daten. Den Beitrag wählst du, nachdem " +
+                            "du deine Adresse und deine Handynummer bestätigt hast.",
                         style = OasisType.Small,
                         color = OasisColors.Ink2
                     )
@@ -304,7 +301,10 @@ internal class PastDates(private val today: Long) : SelectableDates {
     override fun isSelectableDate(utcTimeMillis: Long) = utcTimeMillis <= today
 }
 
-/** The calendar for the birth date; "Übernehmen" sets it. It starts at a plausible age, never after today. */
+/**
+ * The calendar for the birth date; "Übernehmen" sets it. It starts at a plausible age, never after today. Typed in by
+ * keyboard (the pencil), an empty, incomplete or future date selects nothing, so "Übernehmen" waits for a valid one.
+ */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 private fun BirthDateDialog(current: LocalDate?, onDismiss: () -> Unit, onTake: (LocalDate) -> Unit) {
@@ -317,10 +317,12 @@ private fun BirthDateDialog(current: LocalDate?, onDismiss: () -> Unit, onTake: 
     DatePickerDialog(
         onDismissRequest = onDismiss,
         confirmButton = {
-            OasisTextButton("Übernehmen", {
-                // The picker starts with a date selected and cannot deselect it.
-                onTake(Instant.ofEpochMilli(state.selectedDateMillis!!).atZone(ZoneOffset.UTC).toLocalDate())
-            }, Modifier.testTag("register.birthDate.take"))
+            OasisTextButton(
+                "Übernehmen",
+                { state.selectedDateMillis?.let { onTake(Instant.ofEpochMilli(it).atZone(ZoneOffset.UTC).toLocalDate()) } },
+                Modifier.testTag("register.birthDate.take"),
+                enabled = state.selectedDateMillis != null
+            )
         },
         dismissButton = { OasisTextButton("Abbrechen", onDismiss) },
         colors = DatePickerDefaults.colors(containerColor = OasisColors.Paper)
@@ -367,7 +369,7 @@ private fun NightCard() {
         HorizontalDivider(color = OasisColors.NightLine)
         Text("DANACH", style = OasisType.Eyebrow, color = OasisColors.OnNightMuted)
         Text(
-            "Schritt 2: Interessen und Oasen wählen\nSchritt 3: Leute finden oder deine Gruppe einladen",
+            "Interessen und Oasen wählen\nLeute finden oder deine Gruppe einladen",
             style = OasisType.Body,
             color = OasisColors.OnNight2
         )

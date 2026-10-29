@@ -181,7 +181,11 @@ data class AdminPaymentsUiState(
     val total: Int get() = page.valueOrNull?.meta?.total ?: records.size
 }
 
-/** Payment search (like /admin/zahlungen): local records, live Mollie lookups, sync and refunds. */
+/**
+ * Payment search (like /admin/zahlungen): local records, live Mollie lookups, sync and refunds. Loads of the first page
+ * (search, status, refresh) are numbered: an older one never replaces the list a newer one already showed, and a further
+ * page asked for before the list was replaced is dropped.
+ */
 @HiltViewModel
 class AdminPaymentsViewModel @Inject constructor(private val repository: StaffRepository) : ViewModel() {
     private val mutableState = MutableStateFlow(AdminPaymentsUiState())
@@ -189,17 +193,32 @@ class AdminPaymentsViewModel @Inject constructor(private val repository: StaffRe
     private var pageNumber = 1
     private var pendingSearch: Job? = null
 
+    /** The number of the latest load of the first page. */
+    private var lastLoad = 0
+
+    /** The number of the load whose first page the list shows. */
+    private var shownLoad = 0
+
+    /** Search and status of the shown list; further pages continue it, not a search that is still being typed. */
+    private var shownQuery = "" to ""
+
     init {
         viewModelScope.launch { load() }
     }
 
     /** Loads the page again; a failed first load shows the error page, a failed refresh a snackbar. */
     suspend fun load() {
+        val number = ++lastLoad
         mutableState.update { it.copy(page = it.page.refreshing()) }
         val current = mutableState.value
-        val result = attempt { repository.payments(current.search.trim(), current.statusFilter, 1) }
+        val query = current.search.trim() to current.statusFilter
+        val result = attempt { repository.payments(query.first, query.second, 1) }
+        // A newer search, status or refresh answered first: its list stays.
+        if (number < shownLoad) return
         result.onSuccess { page ->
             pageNumber = 1
+            shownLoad = number
+            shownQuery = query
             mutableState.update { it.copy(page = Loadable.Loaded(page), records = page.data) }
         }
         result.apiError?.let { failure ->
@@ -218,11 +237,14 @@ class AdminPaymentsViewModel @Inject constructor(private val repository: StaffRe
         }
     }
 
-    /** Loads the next page of records. */
+    /** Loads the next page of the shown list. */
     suspend fun loadMore() {
-        val current = mutableState.value
-        if (!current.hasMore) return
-        val result = attempt { repository.payments(current.search.trim(), current.statusFilter, pageNumber + 1) }
+        if (!mutableState.value.hasMore) return
+        val list = shownLoad
+        val (search, status) = shownQuery
+        val result = attempt { repository.payments(search, status, pageNumber + 1) }
+        // The list was replaced meanwhile (another search or status, or a refresh): this page belongs to the old one.
+        if (list != shownLoad) return
         result.onSuccess { page ->
             pageNumber += 1
             mutableState.update { it.copy(page = Loadable.Loaded(page), records = it.records + page.data) }

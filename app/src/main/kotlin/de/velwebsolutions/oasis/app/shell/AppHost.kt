@@ -3,12 +3,14 @@ package de.velwebsolutions.oasis.app.shell
 import android.app.Activity
 import android.content.Context
 import android.content.Intent
+import android.os.Bundle
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
 import coil3.ImageLoader
 import coil3.network.okhttp.OkHttpNetworkFetcherFactory
 import de.velwebsolutions.oasis.app.MainActivity
 import de.velwebsolutions.oasis.app.ui.RootScreen
+import de.velwebsolutions.oasis.core.auth.SessionState
 import de.velwebsolutions.oasis.core.network.ApiClient
 import de.velwebsolutions.oasis.core.share.PendingShare
 import de.velwebsolutions.oasis.core.share.ShareInbox
@@ -17,7 +19,10 @@ import de.velwebsolutions.oasis.design.navigation.ChatRoute
 import de.velwebsolutions.oasis.design.navigation.LocalNavigator
 import de.velwebsolutions.oasis.design.navigation.Navigator
 import de.velwebsolutions.oasis.design.theme.OasisTheme
+import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 
 /**
@@ -41,6 +46,41 @@ object AppHost {
             return
         }
         url(intent)?.let(navigator::handle)
+    }
+
+    /**
+     * What a new main activity opens: its intent on a fresh start ([open]). An activity Android creates again – after a
+     * rotation, a change of dark mode, font or window size, or from saved state – leaves the navigator as it is: its
+     * intent was handled already, and handling it again would close the sheet, reset the tab and reopen "Teilen mit …".
+     * The same goes for one reopened from the recent apps: Android hands it the intent that once started the task (an
+     * old link, a push tap or a share long taken).
+     */
+    fun created(intent: Intent?, savedState: Bundle?, navigator: Navigator) {
+        val fromRecents = intent != null && (intent.flags and Intent.FLAG_ACTIVITY_LAUNCHED_FROM_HISTORY) != 0
+        if (savedState == null && !fromRecents) open(intent, navigator)
+    }
+
+    /**
+     * After a sign-out the next member starts on the roots of the tabs, not on the screens of the one who left (a
+     * search, profiles, a conversation, an open sheet, a waiting link). The navigator is reset once the session is signed
+     * out – not while the server still signs the device out, which would change the screens under the member – and links
+     * opened while nobody is signed in (a Tropfen from a mail) still wait for the sign-in. Runs as long as the app.
+     */
+    suspend fun resetAfterSignOut(states: StateFlow<SessionState>, navigator: Navigator) {
+        var signedIn = false
+        states.collect { state ->
+            if (signedIn && state == SessionState.SignedOut) navigator.reset()
+            signedIn = state is SessionState.SignedIn
+        }
+    }
+
+    /**
+     * While the chat's keys are open, Android's recent apps keep no picture of the app ([setEnabled] is the activity's
+     * `setRecentsScreenshotEnabled`, Android 13 and later): the picture taken on the way to the background would still
+     * show the decrypted conversation after the chat locked there. Runs in [scope], the activity's, as long as it lives.
+     */
+    fun recentsScreenshots(scope: CoroutineScope, chatUnlocked: StateFlow<Boolean>, setEnabled: (Boolean) -> Unit) {
+        scope.launch { chatUnlocked.collect { unlocked -> setEnabled(!unlocked) } }
     }
 
     /**

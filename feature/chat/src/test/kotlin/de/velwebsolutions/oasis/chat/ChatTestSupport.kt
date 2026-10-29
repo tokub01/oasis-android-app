@@ -132,8 +132,12 @@ class FakeChatMedia : ChatMedia {
 
     override suspend fun prepareFile(uri: Uri, localId: Long): DraftAttachment = preparedFile(uri, localId)
 
+    /** Runs before each shared file is read, e.g. to leave the chat meanwhile. */
+    var beforeShared: () -> Unit = {}
+
     /** Shared files become files of their name, or throw an AttachmentProblem for names starting with "kaputt". */
     override suspend fun prepareShared(shared: de.velwebsolutions.oasis.core.share.SharedFile, localId: Long): DraftAttachment {
+        beforeShared()
         if (shared.name.startsWith("kaputt")) throw de.velwebsolutions.oasis.chat.core.AttachmentProblem("Die Datei ließ sich nicht lesen.")
         return DraftAttachment(localId, AttachmentKind.File, shared.mime, shared.file.readBytes(), name = shared.name)
     }
@@ -150,7 +154,11 @@ class FakeChatMedia : ChatMedia {
         cancels++
     }
 
+    /** Thrown by [present] while set, like a full storage. */
+    var presentFailure: Exception? = null
+
     override suspend fun present(kind: AttachmentKind, data: ByteArray, mime: String, name: String?): AttachmentView {
+        presentFailure?.let { throw it }
         presented += kind to data
         return AttachmentView.Playable(File("entschluesselt-${presented.size}"), null)
     }
@@ -169,12 +177,15 @@ fun attachmentActions(calls: MutableList<String>) = de.velwebsolutions.oasis.cha
     onPicked = { uri, asFile -> calls += "${if (asFile) "file" else "picked"} $uri" },
     onRemove = { calls += "remove $it" },
     onViewOnce = { id, on -> calls += "viewOnce $id $on" },
-    onStartRecording = { calls += "record" },
-    onFinishRecording = { calls += "finish" },
-    onCancelRecording = { calls += "cancel" },
+    recording = de.velwebsolutions.oasis.chat.ui.RecordingActions(
+        onStart = { calls += "record" },
+        onFinish = { calls += "finish" },
+        onCancel = { calls += "cancel" }
+    ),
     onLoad = { attachment, retry -> calls += "load ${attachment.id}${if (retry) " retry" else ""}" },
     onAnswer = { _, attachment, accept -> calls += "${if (accept) "accept" else "decline"} ${attachment.id}" },
     onOpenViewOnce = { _, attachment -> calls += "open ${attachment.id}" },
     onCloseViewOnce = { calls += "close" },
-    onCancelViewOnce = { calls += "cancelViewOnce" }
+    onCancelViewOnce = { calls += "cancelViewOnce" },
+    onExternalScreen = { start -> start() }
 )

@@ -33,7 +33,8 @@ data class ContractUiState<D>(
 /**
  * The confirmation pages that end a contract: /app/mitgliedschaft/kuendigen (§ 312k BGB, [CancellationDetails]) and
  * /app/mitgliedschaft/widerrufen (§§ 355 ff. BGB, [WithdrawalDetails]). Both show the contract, end it with one button
- * and hand the outcome to the overview like the web's flash messages; both offer the data export.
+ * and hand the outcome to the overview like the web's flash messages; both offer the data export, whose file is deleted
+ * when the page closes.
  */
 abstract class ContractViewModel<D>(
     protected val repository: MembershipRepository,
@@ -93,6 +94,11 @@ abstract class ContractViewModel<D>(
 
     /** Hides the error once the snackbar showed it. */
     fun dismissError() = mutableState.update { it.copy(error = null) }
+
+    /** The page closed: its copy of the export goes with it (the share sheet had it by then). */
+    override fun onCleared() {
+        state.value.exportFile?.let(files::delete)
+    }
 }
 
 /** /app/mitgliedschaft/kuendigen: the § 312k BGB confirmation. */

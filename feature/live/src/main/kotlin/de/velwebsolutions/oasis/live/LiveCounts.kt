@@ -76,11 +76,14 @@ class LiveCounts(
         mutableToast.value = null
     }
 
-    /** Ask the server again (foreground, after reading hints, after an InboxActivity). */
+    /**
+     * Ask the server again (foreground, after reading hints, after an InboxActivity). The answer counts only while the
+     * start it was asked for is still on: after a sign-out, and after the next member's start, a late answer is dropped.
+     */
     suspend fun refresh() {
         val current = load ?: return
         val counts = catching { current() }.getOrNull() ?: return
-        if (load != null) apply(counts)
+        if (load === current) apply(counts)
     }
 
     internal fun apply(counts: LiveCountsData) {

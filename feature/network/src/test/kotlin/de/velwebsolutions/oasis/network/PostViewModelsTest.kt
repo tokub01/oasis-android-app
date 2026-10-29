@@ -166,6 +166,21 @@ class PostViewModelsTest(private val answersAtOnce: Boolean) {
     }
 
     @Test
+    fun `a changed text stays when the editing screen shows again`() = runTest {
+        val network = StubbedNetwork(
+            stub("GET", "network/posts/12/edit", """{"data":{"body":"Hallo","until":"2026-10-24T12:00:00.000000Z"}}""")
+        )
+        val model = models.keep(EditPostViewModel(12, network.repository))
+        model.loadIfNeeded()
+        model.updateText("Hallo Welt")
+        // A rotation composes the screen again, which asks for the form once more.
+        model.loadIfNeeded()
+        assertEquals("Hallo Welt", model.text.value)
+        assertTrue(model.isChanged)
+        assertEquals(1, network.transport.requests.size)
+    }
+
+    @Test
     fun `editing shows why it cannot load or save`() = runTest {
         val network = StubbedNetwork(
             stub("GET", "network/posts/12/edit", """{"message":"Die Zeit ist um."}""", 403),

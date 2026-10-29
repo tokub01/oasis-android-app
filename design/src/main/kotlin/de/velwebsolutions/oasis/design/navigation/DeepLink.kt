@@ -17,19 +17,25 @@ sealed interface IncomingLink {
     /** `/anmelden/code…`: the sign-in with a code. */
     data object LoginCode : IncomingLink
 
-    /** Not an app screen, or one of the paths that stay on the website (AppLinks::EXCLUDED): the browser opens it. */
+    /** A page outside the app area, or one of the paths that stay on the website (AppLinks::EXCLUDED): the browser opens it. */
     data class Browser(val url: String) : IncomingLink
 }
 
 /**
  * Maps Oasis web URLs (the same links used in mails, push payloads and shared posts) to app routes, so a link to
- * get-oasis.com opens the matching screen. Unknown paths return null and are opened in the browser instead.
+ * get-oasis.com opens the matching screen. Unknown paths return null ([route]); [incoming] opens them in the browser,
+ * or on the Quelle when they belong to the app.
  */
 object DeepLink {
     /** Paths inside the app's App Links that stay in the browser (app/Support/Security/AppLinks.php, EXCLUDED). */
     private val BrowserOnly = listOf("/app/chat/api/", "/app/mitgliedschaft/rechnungen/", "/app/konto/export")
 
-    /** What the app does with an incoming [url]: a screen, an account link, or the browser. */
+    /**
+     * What the app does with an incoming [url]: a screen, an account link, or the browser. An `oasis://` link or a page
+     * of the app area (`/app/…`) without a screen of its own opens the Quelle, like iOS: handed to the browser it would
+     * come straight back and open the browser again, without end – the app is the only handler of its scheme, and its
+     * verified App Links take every page of the app area.
+     */
     fun incoming(url: String): IncomingLink {
         val uri = runCatching { URI(url) }.getOrNull() ?: return IncomingLink.Browser(url)
         val path = uri.rawPath ?: ""
@@ -56,7 +62,8 @@ object DeepLink {
             parts.firstOrNull() == "anmelden" && parts.getOrNull(1)?.startsWith("code") == true -> IncomingLink.LoginCode
 
             else -> null
-        } ?: route(url)?.let(IncomingLink::Screen) ?: IncomingLink.Browser(url)
+        } ?: route(url)?.let(IncomingLink::Screen)
+            ?: if (appScheme || parts.firstOrNull() == "app") IncomingLink.Screen(NetworkRoute.Source) else IncomingLink.Browser(url)
     }
 
     private val Username = Regex("[a-z0-9_]{3,30}")

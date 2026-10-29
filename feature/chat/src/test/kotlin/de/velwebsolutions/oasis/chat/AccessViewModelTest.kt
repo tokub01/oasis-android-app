@@ -4,6 +4,7 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.ViewModelStore
 import de.velwebsolutions.oasis.chat.api.SafetyLists
+import de.velwebsolutions.oasis.chat.core.Biometrics
 import de.velwebsolutions.oasis.chat.core.ChatContext
 import de.velwebsolutions.oasis.chat.core.MemoryDeviceSecretStore
 import de.velwebsolutions.oasis.chat.ui.ChatAccessViewModel
@@ -129,6 +130,18 @@ class AccessViewModelTest {
         refused.setUp()
         assertEquals("Der Chat bekommt gerade einen neuen Schlüssel. Versuch es gleich noch einmal.", refused.state.value.formError)
         assertFalse(refused.state.value.busy)
+
+        // Published while Oasis went to the background: the new keys wait to be unlocked on return.
+        val awayContext = support.context(3)
+        val away = loaded(awayContext)
+        away.setPassphrase(TEST_PASSPHRASE)
+        away.setConfirmation(TEST_PASSPHRASE)
+        server.onRequest = { if (it == "PUT identity") awayContext.vault.lockForBackground() }
+        away.setUp()
+        server.onRequest = {}
+        assertEquals(ChatPhase.Unlock, away.state.value.phase)
+        assertTrue(away.state.value.hasPassphrase)
+        assertFalse(awayContext.vault.unlocked)
     }
 
     @Test
@@ -148,6 +161,26 @@ class AccessViewModelTest {
         racing.setUpWithDevice()
         server.onRequest = {}
         assertEquals(ChatPhase.Setup, racing.state.value.phase)
+        assertNull(racing.state.value.deviceSetupStatus)
+
+        // The keys are published, but this device's copy is not: they stay open, and the member is told to keep one.
+        val withoutCopy = support.context(1, secrets = MemoryDeviceSecretStore(available = true))
+        val opened = loaded(withoutCopy)
+        failing("POST device-unlocks")
+        opened.setUpWithDevice()
+        assertEquals(ChatPhase.Open, opened.state.value.phase)
+        assertEquals(Biometrics.COPY_NOT_STORED, withoutCopy.vault.announcement.value)
+        assertNull(opened.state.value.deviceSetupStatus)
+
+        // Published while Oasis went to the background: unlocked with the biometric prompt on return.
+        val awayContext = support.context(2, secrets = MemoryDeviceSecretStore(available = true))
+        val away = loaded(awayContext)
+        server.onRequest = { if (it == "PUT identity") awayContext.vault.lockForBackground() }
+        away.setUpWithDevice()
+        server.onRequest = {}
+        assertEquals(ChatPhase.Unlock, away.state.value.phase)
+        assertTrue(away.state.value.canUnlockWithDevice)
+        assertFalse(awayContext.vault.unlocked)
     }
 
     @Test
@@ -223,8 +256,27 @@ class AccessViewModelTest {
         server.deviceUnlocks.clear()
         context.vault.lock()
         assertFalse("the server forgot this device", loaded(context).state.value.canUnlockWithDevice)
+        // Rows that could not be loaded keep the button (no hidden way in); unlocking loads them again.
         failing("GET device-unlocks")
-        assertFalse(loaded(context).state.value.canUnlockWithDevice)
+        val offline = loaded(context)
+        assertTrue(offline.state.value.canUnlockWithDevice)
+        offline.unlockWithDevice()
+        assertFalse("the copy is gone: the other ways in show", offline.state.value.canUnlockWithDevice)
+        assertNull(offline.state.value.deviceUnlockError)
+    }
+
+    @Test
+    fun aMemberWithoutPassphraseKeepsBiometricsWhenTheDeviceRowsDoNotLoad() = runTest {
+        val secrets = MemoryDeviceSecretStore(available = true)
+        val context = support.context(1, secrets = secrets)
+        assertNotNull(context.devices.setUpWithDevice())
+        context.vault.lock()
+        failing("GET device-unlocks")
+        val model = loaded(context)
+        assertFalse(model.state.value.hasPassphrase)
+        assertTrue("not only „Neue Schlüssel erstellen“ is left", model.state.value.canUnlockWithDevice)
+        model.unlockWithDevice()
+        assertEquals(ChatPhase.Open, model.state.value.phase)
     }
 
     @Test
@@ -349,6 +401,25 @@ class AccessViewModelTest {
         assertTrue(model.pollOnce())
         assertEquals(ChatPhase.Open, model.state.value.phase)
         assertEquals("Freigegeben – dein Chat ist offen.", laptop.vault.announcement.value)
+        laptop.vault.lock()
+
+        // Approved while Oasis is in the background (the browser on this phone): picked up on the return, in front.
+        model.requestLink()
+        val meanwhile = server.deviceLinks.keys.max()
+        val meanwhileKey = server.deviceLinks.getValue(meanwhile).getValue("public_key").jsonPrimitive.content
+        val later = testCrypto.approveLink(checkNotNull(phone.vault.identity), meanwhileKey)
+        server.deviceLinks.getValue(meanwhile)["approval"] = Json.parseToJsonElement(
+            """{"locked_identity":${Json.encodeToString(
+                de.velwebsolutions.oasis.chatcrypto.LockedIdentity.serializer(),
+                later.lockedIdentity
+            )},"sealed_key":"${later.sealedKey}"}"""
+        )
+        laptop.vault.lockForBackground()
+        assertFalse("not picked up in the background", model.pollOnce())
+        assertTrue("the approval waits on the server", server.deviceLinks.containsKey(meanwhile))
+        laptop.vault.cameToForeground()
+        assertTrue(model.pollOnce())
+        assertEquals(ChatPhase.Open, model.state.value.phase)
         laptop.vault.lock()
 
         // The asking screen goes away: polling stops, the one-time key is wiped.

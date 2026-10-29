@@ -5,6 +5,8 @@ import de.velwebsolutions.oasis.chat.api.AttachmentState
 import de.velwebsolutions.oasis.chat.member
 import de.velwebsolutions.oasis.chatcrypto.ChatCryptoException
 import de.velwebsolutions.oasis.chatcrypto.MessageAttachment
+import de.velwebsolutions.oasis.chatcrypto.MessageContent
+import de.velwebsolutions.oasis.chatcrypto.MessagePayload
 import kotlinx.coroutines.test.runTest
 import org.junit.Assert.assertArrayEquals
 import org.junit.Assert.assertEquals
@@ -69,9 +71,28 @@ class ChatAttachmentsTest {
 
     @Test
     fun filesShortenTheTextAndHaveAStateBeforeTheServerNamesIt() {
-        assertFalse(ChatMessages.measure("a".repeat(2_400), attachments = 4).tooLong)
-        assertTrue(ChatMessages.measure("a".repeat(2_600), attachments = 4).tooLong)
-        assertEquals(10, ChatMessages.measure("Mit Anhang", attachments = 1).characters)
+        // Every file counts with its own type, name and size, and the longest id, key and nonce an upload can get.
+        fun video(id: Long) = DraftAttachment(id, AttachmentKind.Video, "video/mp4", ByteArray(10), durationMs = 12_000)
+        fun file(id: Long, mime: String, name: String) = DraftAttachment(id, AttachmentKind.File, mime, ByteArray(10), name = name)
+        val videos = List(4) { video(it.toLong()) }
+        assertFalse(ChatMessages.measure("a".repeat(2_400), videos).tooLong)
+        assertTrue(ChatMessages.measure("a".repeat(3_200), videos).tooLong)
+        assertEquals(10, ChatMessages.measure("Mit Anhang", videos.take(1)).characters)
+        // Long types and names leave less room for the text than a fixed allowance would: by characters …
+        val longTypes = List(4) { file(it.toLong(), "a".repeat(64) + "/" + "b".repeat(64), "x".repeat(116) + ".pdf") }
+        assertTrue(ChatMessages.measure("a".repeat(2_400), longTypes).tooLong)
+        // … and by bytes.
+        val palms = List(4) { file(it.toLong(), "application/pdf", "🌴".repeat(120)) }
+        assertTrue(ChatMessages.measure("€".repeat(1_400), palms).tooLong)
+        assertFalse(ChatMessages.measure("€".repeat(1_400), List(4) { file(it.toLong(), "application/pdf", "Bericht.pdf") }).tooLong)
+        // The measure fits what an upload really adds.
+        val uploaded = palms.map {
+            MessageAttachment("1234567", "file", it.mime, it.data.size.toLong(), "k".repeat(43), "n".repeat(32), name = it.name)
+        }
+        assertTrue(
+            MessagePayload.plaintext(MessageContent("Hallo", uploaded)).toByteArray(Charsets.UTF_8).size <=
+                ChatMessages.measure("Hallo", palms).bytes
+        )
         val item =
             ChatMessageItem(
                 "s",

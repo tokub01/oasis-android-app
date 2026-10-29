@@ -88,15 +88,21 @@ class AttachmentActions(
     val onPicked: suspend (uri: Uri, asFile: Boolean) -> Unit,
     val onRemove: (Long) -> Unit,
     val onViewOnce: (Long, Boolean) -> Unit,
-    val onStartRecording: () -> Unit,
-    val onFinishRecording: suspend () -> Unit,
-    val onCancelRecording: () -> Unit,
+    val recording: RecordingActions,
     val onLoad: suspend (MessageAttachment, Boolean) -> Unit,
     val onAnswer: suspend (ChatMessageItem, MessageAttachment, Boolean) -> Unit,
     val onOpenViewOnce: suspend (ChatMessageItem, MessageAttachment) -> Unit,
     val onCloseViewOnce: suspend () -> Unit,
-    val onCancelViewOnce: () -> Unit
+    val onCancelViewOnce: () -> Unit,
+    /**
+     * Opens a screen of another app with the start step (a picker, a file in another app) and says whether it opened;
+     * the chat stays unlocked while it is in front ([de.velwebsolutions.oasis.chat.core.ChatVault.openExternalScreen]).
+     */
+    val onExternalScreen: (start: () -> Boolean) -> Boolean
 )
+
+/** The voice message in the composer: start recording, "Fertig" (it becomes a draft) and "Abbrechen". */
+class RecordingActions(val onStart: () -> Unit, val onFinish: suspend () -> Unit, val onCancel: () -> Unit)
 
 /** The warning before sending a view-once file (the same words on every platform). */
 internal const val VIEW_ONCE_SENDER_NOTE =
@@ -195,10 +201,10 @@ internal fun RecordingBar(seconds: Int, actions: AttachmentActions) {
             color = OasisColors.Ink,
             modifier = Modifier.weight(1f).testTag("chat.composer.recording")
         )
-        OasisTextButton("Abbrechen", actions.onCancelRecording, modifier = Modifier.testTag("chat.composer.cancelRecording"))
+        OasisTextButton("Abbrechen", actions.recording.onCancel, modifier = Modifier.testTag("chat.composer.cancelRecording"))
         AsyncOasisButton(
             "Fertig",
-            actions.onFinishRecording,
+            actions.recording.onFinish,
             fullWidth = false,
             modifier = Modifier.testTag("chat.composer.finishRecording")
         )
@@ -334,7 +340,7 @@ private fun Shown(
             if (fullScreen) MediaDialog(secure = false, onClose = { fullScreen = false }) { FullMedia(view, kind) }
         }
 
-        is AttachmentView.Document -> DocumentCard(view, label, color)
+        is AttachmentView.Document -> DocumentCard(view, label, color, actions)
 
         is AttachmentView.Playable -> if (kind == AttachmentKind.Audio) {
             VoiceMessage(view.file, label, color)
@@ -425,8 +431,9 @@ internal fun FullMedia(view: AttachmentView, kind: AttachmentKind) {
 }
 
 /**
- * The open view-once file: full screen with FLAG_SECURE (no screenshots or recordings on Android), no saving or
- * sharing, and "Melden" while it is still open. Closing deletes it.
+ * The open view-once file: a photo, video or voice message full screen with FLAG_SECURE (no screenshots or recordings
+ * on Android), no saving or sharing, and "Melden" while it is still open; closing deletes it. Any other file opens once
+ * in another app ([ViewOnceDocument]), which Oasis cannot stop from keeping a copy.
  */
 @Composable
 internal fun ViewOnceViewer(viewer: ViewOnceViewer, actions: AttachmentActions, onReport: (ChatMessageItem) -> Unit) {
@@ -464,9 +471,12 @@ private fun kindIcon(kind: AttachmentKind): ImageVector = when (kind) {
     else -> Icons.Outlined.Videocam
 }
 
-/** A decrypted file: name, size and type, "Öffnen" and "Teilen" in other apps – never shown inside Oasis. */
+/**
+ * A decrypted file: name, size and type, "Öffnen" and "Teilen" in other apps – never shown inside Oasis. The chat stays
+ * unlocked while the other app reads it, so its copy is still there.
+ */
 @Composable
-private fun DocumentCard(document: AttachmentView.Document, label: String, color: Color) {
+private fun DocumentCard(document: AttachmentView.Document, label: String, color: Color, actions: AttachmentActions) {
     val context = LocalContext.current
     var noApp by remember { mutableStateOf(false) }
     Row(
@@ -482,10 +492,10 @@ private fun DocumentCard(document: AttachmentView.Document, label: String, color
     }
     FlowRow(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
         SmallAction("Öffnen", {
-            noApp = !context.startOrFalse(fileIntent(context, document, share = false))
+            noApp = !actions.onExternalScreen { context.startOrFalse(fileIntent(context, document, share = false)) }
         }, color = color, underline = true)
         SmallAction("Teilen", {
-            noApp = !context.startOrFalse(fileIntent(context, document, share = true))
+            noApp = !actions.onExternalScreen { context.startOrFalse(fileIntent(context, document, share = true)) }
         }, color = color, underline = true)
     }
     if (noApp) Note(ConversationViewModel.NO_APP, color)
@@ -501,7 +511,11 @@ private fun ViewOnceDocument(viewer: ViewOnceViewer, document: AttachmentView.Do
     val scope = rememberCoroutineScope()
     var opened by remember(viewer) { mutableStateOf(false) }
     LaunchedEffect(viewer) {
-        if (context.startOrFalse(fileIntent(context, document, share = false))) opened = true else actions.onCancelViewOnce()
+        if (actions.onExternalScreen { context.startOrFalse(fileIntent(context, document, share = false)) }) {
+            opened = true
+        } else {
+            actions.onCancelViewOnce()
+        }
     }
     // Oasis goes to the background while the other app shows the file; coming back closes it (once).
     var left by remember(viewer) { mutableStateOf(false) }

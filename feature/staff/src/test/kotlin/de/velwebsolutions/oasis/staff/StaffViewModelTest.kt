@@ -6,6 +6,7 @@ import androidx.lifecycle.ViewModelStore
 import androidx.lifecycle.viewmodel.CreationExtras
 import de.velwebsolutions.oasis.core.model.Loadable
 import de.velwebsolutions.oasis.core.network.ApiError
+import de.velwebsolutions.oasis.core.network.Confirmed
 import de.velwebsolutions.oasis.staff.Fixtures.lastObject
 import de.velwebsolutions.oasis.staff.Fixtures.lastQuery
 import de.velwebsolutions.oasis.staff.api.QueueFilter
@@ -28,6 +29,7 @@ import kotlin.reflect.KClass
 import kotlinx.coroutines.test.runTest
 import kotlinx.serialization.json.JsonPrimitive
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertFalse
 import org.junit.Assert.assertNotNull
 import org.junit.Assert.assertNull
 import org.junit.Assert.assertTrue
@@ -130,6 +132,66 @@ class StaffViewModelTest {
         assertEquals("oasis-fall-4-beweise.zip", file?.name)
         assertEquals("PK", file?.readText())
         assertTrue(transport.requests.any { it.path == "staff/moderation/cases/4/evidence" })
+    }
+
+    @Test
+    fun `the evidence archive is gone once the evidence is deleted and when the page closes`() = runTest {
+        val repository = FakeStaffRepository().apply { case = Result.success(Decoded.caseEscalated) }
+        val viewModel = CaseDetailViewModel(4, repository, StaffFiles(Files.createTempDirectory("staff").toFile()))
+        viewModel.prepareArchive()
+        val archive = viewModel.state.value.archiveFile!!
+
+        repository.caseAction = FakeStaffRepository.failure("Konflikt")
+        viewModel.deleteEvidence()
+        assertTrue("a refused deletion keeps the archive", archive.exists())
+        assertEquals(archive, viewModel.state.value.archiveFile)
+        repository.caseAction = Result.success(Confirmed(Decoded.caseEscalated, "Die Beweise sind gelöscht."))
+        viewModel.deleteEvidence()
+        assertFalse(archive.exists())
+        assertNull(viewModel.state.value.archiveFile)
+
+        viewModel.prepareArchive()
+        assertTrue(archive.exists())
+        clear(viewModel)
+        assertFalse("leaving the page deletes the archive", archive.exists())
+    }
+
+    @Test
+    fun `the evidence archive goes once the case shows no evidence left`() = runTest {
+        val repository = FakeStaffRepository().apply { case = Result.success(Decoded.caseEscalated) }
+        val viewModel = CaseDetailViewModel(4, repository, StaffFiles(Files.createTempDirectory("staff").toFile()))
+        viewModel.prepareArchive()
+        val archive = viewModel.state.value.archiveFile!!
+        viewModel.load()
+        assertTrue("while the evidence is kept, so is the archive", archive.exists())
+
+        // Deleted by another admin, or its retention ended: the next answer lists no evidence.
+        val gone = Decoded.caseEscalated.escalation!!.copy(evidence = emptyList())
+        repository.case = Result.success(Decoded.caseEscalated.copy(escalation = gone))
+        viewModel.load()
+        assertFalse(archive.exists())
+        assertNull(viewModel.state.value.archiveFile)
+    }
+
+    @Test
+    fun `a reported file with a long name in Cyrillic, CJK or emoji still fits the file system`() {
+        val files = StaffFiles(Files.createTempDirectory("staff").toFile())
+        val cjk = files.reportedAttachment(2, 3, "%PDF".toByteArray(), "中".repeat(116) + ".pdf")
+        assertTrue("the name is cut before the extension", cjk.name.startsWith("fall-2-anhang-4-中") && cjk.name.endsWith("中.pdf"))
+        assertEquals("%PDF", cjk.readText())
+        val emoji = files.reportedAttachment(2, 4, byteArrayOf(1), "😀".repeat(120))
+        assertTrue("whole characters only", emoji.name.removePrefix("fall-2-anhang-5-").all { it.isSurrogate() })
+        assertEquals(0, emoji.name.removePrefix("fall-2-anhang-5-").length % 2)
+        val dated = files.reportedAttachment(2, 5, byteArrayOf(1), "Bericht vom 1." + "中".repeat(106))
+        assertTrue("no extension after the last dot, just text", dated.name.startsWith("fall-2-anhang-6-Bericht vom 1.中"))
+        assertTrue(dated.name.endsWith("中"))
+        val cyrillic = files.reportedAttachment(2, 6, byteArrayOf(1), "Ж".repeat(120))
+        listOf(cjk, emoji, dated, cyrillic).forEach { file ->
+            assertTrue(file.name, file.name.toByteArray().size <= 255)
+            assertTrue(file.exists())
+        }
+        val short = files.reportedAttachment(2, 7, byteArrayOf(1), "Rechnung.pdf")
+        assertEquals("a short name stays whole", "fall-2-anhang-8-Rechnung.pdf", short.name)
     }
 
     @Test

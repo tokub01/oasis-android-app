@@ -52,13 +52,21 @@ class ConversationListViewModel @Inject constructor(context: ChatContext, privat
     val myId: String get() = context.userId
     val canParticipate: Boolean get() = context.canParticipate
 
-    /** First page (and the link requests). */
+    /** The highest page shown ("Ältere laden" adds pages below the first). */
+    private var shownPages = 0
+
+    /**
+     * First page (and the link requests). Older pages already shown are loaded again below it (coming back to the list,
+     * pulling it down), so chats that are gone – left, declined, removed – go and the others keep their places.
+     */
     suspend fun load() = inScope {
         mutableState.update { it.copy(error = null) }
         try {
-            val page = context.repository.conversations(1)
-            mutableState.update { it.copy(conversations = emptyList(), requests = emptyList()) }
-            apply(page)
+            val pages = mutableListOf(context.repository.conversations(1))
+            while (pages.size < shownPages && pages.last().currentPage < pages.last().lastPage) {
+                pages += context.repository.conversations(pages.last().currentPage + 1)
+            }
+            pages.forEachIndexed { index, page -> apply(page, first = index == 0) }
             mutableState.update { it.copy(loaded = true) }
         } catch (error: Exception) {
             mutableState.update { it.copy(error = describeChatError(error)) }
@@ -66,29 +74,61 @@ class ConversationListViewModel @Inject constructor(context: ChatContext, privat
         refreshLinkRequests()
     }
 
-    /** "Ältere laden". */
-    suspend fun loadMore() = inScope {
-        val next = state.value.nextPage ?: return@inScope
+    /**
+     * New activity, or a poll while offline: only the first page again – every page shown each time would cost a request
+     * per page and message. It goes on top; the older pages shown keep the chats it does not hold, in their places, and
+     * "Ältere laden" stays.
+     */
+    internal suspend fun reloadFirstPage() = inScope {
         try {
-            apply(context.repository.conversations(next))
+            val page = context.repository.conversations(1)
+            if (shownPages > 1) merge(page) else apply(page, first = true)
+            mutableState.update { it.copy(loaded = true, error = null) }
         } catch (error: Exception) {
             mutableState.update { it.copy(error = describeChatError(error)) }
         }
     }
 
-    private fun apply(page: ConversationPage) = mutableState.update { current ->
-        val known = (current.conversations + current.requests).map { it.id }.toMutableSet()
-        val conversations = current.conversations.toMutableList()
-        val requests = current.requests.toMutableList()
-        for (conversation in page.data) {
-            if (!known.add(conversation.id)) continue
-            if (conversation.request == true) requests += conversation else conversations += conversation
+    /** "Ältere laden". */
+    suspend fun loadMore() = inScope {
+        val next = state.value.nextPage ?: return@inScope
+        try {
+            apply(context.repository.conversations(next), first = false)
+        } catch (error: Exception) {
+            mutableState.update { it.copy(error = describeChatError(error)) }
         }
-        current.copy(
-            conversations = conversations,
-            requests = requests,
-            nextPage = if (page.currentPage < page.lastPage) page.currentPage + 1 else null
-        )
+    }
+
+    /** A page in its place: the first one replaces the list, a later one goes below the chats shown so far. */
+    private fun apply(page: ConversationPage, first: Boolean) {
+        shownPages = if (first) 1 else maxOf(shownPages, page.currentPage)
+        mutableState.update { current ->
+            val known = if (first) mutableSetOf<String>() else (current.conversations + current.requests).map { it.id }.toMutableSet()
+            val conversations = if (first) mutableListOf<ChatConversation>() else current.conversations.toMutableList()
+            val requests = if (first) mutableListOf<ChatConversation>() else current.requests.toMutableList()
+            for (conversation in page.data) {
+                if (!known.add(conversation.id)) continue
+                if (conversation.request == true) requests += conversation else conversations += conversation
+            }
+            current.copy(
+                conversations = conversations,
+                requests = requests,
+                nextPage = if (page.currentPage < page.lastPage) page.currentPage + 1 else null
+            )
+        }
+    }
+
+    /** The first page on top of the older pages shown: they keep the chats it does not hold, and the next page stays. */
+    private fun merge(page: ConversationPage) {
+        val fresh = page.data.distinctBy { it.id }
+        val ids = fresh.map { it.id }.toSet()
+        val (requests, conversations) = fresh.partition { it.request == true }
+        mutableState.update { current ->
+            current.copy(
+                conversations = conversations + current.conversations.filter { it.id !in ids },
+                requests = requests + current.requests.filter { it.id !in ids }
+            )
+        }
     }
 
     /** Meta line: "Gruppe · 3 Menschen · löscht nach 7 Tagen · wartet auf neuen Schlüssel". */
@@ -150,22 +190,25 @@ class ConversationListViewModel @Inject constructor(context: ChatContext, privat
     // endregion
 
     /**
-     * While the list is shown: reload on new chat activity (`private-inbox.{id}`, `InboxActivity` kind "chat"), poll while
-     * offline, and refresh the link requests every few seconds (like the web).
+     * While the list is shown: the first page again on new chat activity (`private-inbox.{id}`, `InboxActivity` kind
+     * "chat"), polling while offline, and the link requests every few seconds (like the web).
      */
     suspend fun liveUpdates(): Nothing = coroutineScope {
-        realtime.subscribe("private-inbox.${context.userId}").filter { it.string("kind") == "chat" }.onEach { load() }.launchIn(this)
+        realtime.subscribe("private-inbox.${context.userId}")
+            .filter { it.string("kind") == "chat" }
+            .onEach { reloadFirstPage() }
+            .launchIn(this)
         tick()
     }
 
-    /** Every few seconds: the link requests, and the list itself every fifth time while offline. */
+    /** Every few seconds: the link requests, and the first page every fifth time while offline. */
     private suspend fun tick(): Nothing {
         var ticks = 0
         while (true) {
             delay(4.seconds)
             ticks += 1
             refreshLinkRequests()
-            if (!realtime.isConnected.value && ticks % 5 == 0) load()
+            if (!realtime.isConnected.value && ticks % 5 == 0) reloadFirstPage()
         }
     }
 }

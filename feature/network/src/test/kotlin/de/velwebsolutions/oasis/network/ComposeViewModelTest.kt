@@ -1,8 +1,20 @@
 package de.velwebsolutions.oasis.network
 
+import de.velwebsolutions.oasis.core.model.Loadable
+import de.velwebsolutions.oasis.core.model.Me
+import de.velwebsolutions.oasis.network.api.ComposerContext
 import de.velwebsolutions.oasis.network.api.ImageUpload
+import de.velwebsolutions.oasis.network.api.PostDraft
+import de.velwebsolutions.oasis.network.api.PublishResult
+import de.velwebsolutions.oasis.network.data.NetworkRepository
 import de.velwebsolutions.oasis.network.ui.compose.ComposeViewModel
 import de.velwebsolutions.oasis.testing.MainDispatcherRule
+import kotlinx.coroutines.CompletableDeferred
+import kotlinx.coroutines.CoroutineStart
+import kotlinx.coroutines.async
+import kotlinx.coroutines.cancelAndJoin
+import kotlinx.coroutines.launch
+import kotlinx.coroutines.test.runCurrent
 import kotlinx.coroutines.test.runTest
 import org.junit.After
 import org.junit.Assert.assertEquals
@@ -44,7 +56,7 @@ class ComposeViewModelTest(private val answersAtOnce: Boolean) {
     private val models = ViewModelKeeper()
 
     private fun composer(network: StubbedNetwork, oasisSlug: String? = null, replyTo: Int? = null, carried: Int? = null) =
-        models.keep(ComposeViewModel(oasisSlug, replyTo, carried, network.repository, network.common, network.session))
+        models.keep(network.composer(oasisSlug, replyTo, carried))
 
     @After
     fun clear() {
@@ -103,6 +115,8 @@ class ComposeViewModelTest(private val answersAtOnce: Boolean) {
         val model = composer(network, oasisSlug = "neu-gelesen")
         model.updateBody("Erster Satz")
         model.setToneConfirmed(true)
+        model.updateBody("Erster Satz")
+        assertTrue("the same text keeps it", model.state.value.toneConfirmed)
         model.updateBody("Erster Satz, anders")
         assertFalse(model.state.value.toneConfirmed)
         model.discard()
@@ -161,6 +175,122 @@ class ComposeViewModelTest(private val answersAtOnce: Boolean) {
 
         reopened.discard()
         assertTrue(composer(network, oasisSlug = "entwurf").state.value.body.isEmpty())
+    }
+
+    @Test
+    fun `an unsent draft belongs to its member and is gone after signing out`() = runTest {
+        val network = StubbedNetwork()
+        val mira = Me(7, "mira", "Mira Sol", "MS", "mira@example.org")
+        network.session.update(mira)
+        val written = composer(network)
+        written.updateBody("Nur für mich")
+        written.add(jpeg)
+        assertEquals("Nur für mich", composer(network).state.value.body)
+
+        // Someone else on the same device never sees it …
+        network.session.update(Me(8, "jonas", "Jonas Weber", "JW", "jonas@example.org"))
+        assertFalse(composer(network).state.value.hasDraft)
+        network.session.update(mira)
+        assertEquals(1, composer(network).state.value.images.size)
+
+        // … and signing out forgets it, also for the member who wrote it.
+        network.session.signOut()
+        network.session.update(mira)
+        assertFalse(composer(network).state.value.hasDraft)
+    }
+
+    @Test
+    fun `a Tropfen whose form went away is sent once and its answer waits for the next form`() = runTest {
+        val gate = CompletableDeferred<Unit>()
+        val network = StubbedNetwork(
+            stub("GET", "network/composer", Fixtures.composer),
+            stub("POST", "network/posts", """{"message":"Dein Tropfen ist da.","suspended":false,"data":${postJson(44)}}""", 201)
+        )
+        val slow = object : NetworkRepository by network.repository {
+            override suspend fun publish(draft: PostDraft): PublishResult {
+                gate.await()
+                return network.repository.publish(draft)
+            }
+        }
+        val model = models.keep(network.composer("gedreht", repository = slow))
+        model.load()
+        model.updateBody("Hallo")
+        assertNull(model.unclaimedPublish())
+
+        // A rotation cancels the form's coroutine while the Tropfen is on its way; a second tap sends nothing.
+        val form = launch { model.publish() }
+        runCurrent()
+        form.cancelAndJoin()
+        assertTrue(model.state.value.isPublishing)
+        assertNull(model.publish())
+
+        gate.complete(Unit)
+        assertEquals("Dein Tropfen ist da.", model.unclaimedPublish()?.message)
+        assertFalse(model.state.value.isPublishing)
+        assertFalse(model.state.value.hasDraft)
+        assertNull(model.unclaimedPublish())
+        assertEquals(1, network.transport.requests.count { it.path == "network/posts" })
+    }
+
+    @Test
+    fun `an answer taken late leaves the Tropfen sent after it to its own form`() = runTest {
+        val gates = List(3) { CompletableDeferred<Unit>() }
+        var sent = 0
+        val network = StubbedNetwork()
+        val slow = object : NetworkRepository by network.repository {
+            override suspend fun publish(draft: PostDraft): PublishResult {
+                val number = ++sent
+                gates[number - 1].await()
+                return PublishResult("Tropfen $number ist da.", data = decodePost(postJson(number)))
+            }
+        }
+        val model = models.keep(network.composer("nacheinander", repository = slow))
+
+        // The first form gets its answer only after the next Tropfen went out.
+        model.updateBody("Erster")
+        val first = async { model.publish() }
+        runCurrent()
+        gates[0].complete(Unit)
+        model.updateBody("Zweiter")
+        val second = async(start = CoroutineStart.UNDISPATCHED) { model.publish() }
+        assertEquals("Tropfen 1 ist da.", first.await()?.message)
+
+        // The second form goes away (a rotation); the next form takes its answer only after a third Tropfen went out.
+        second.cancelAndJoin()
+        val next = async { model.unclaimedPublish() }
+        runCurrent()
+        gates[1].complete(Unit)
+        model.updateBody("Dritter")
+        val third = async(start = CoroutineStart.UNDISPATCHED) { model.publish() }
+        assertEquals("Tropfen 2 ist da.", next.await()?.message)
+
+        gates[2].complete(Unit)
+        assertEquals("the third answer still reaches its form", "Tropfen 3 ist da.", third.await()?.message)
+        assertNull(model.unclaimedPublish())
+        assertEquals(3, sent)
+    }
+
+    @Test
+    fun `a context whose load was cancelled with its screen loads again`() = runTest {
+        val gate = CompletableDeferred<Unit>()
+        val network = StubbedNetwork(stub("GET", "network/composer", Fixtures.composer))
+        val slow = object : NetworkRepository by network.repository {
+            override suspend fun composer(oasisSlug: String?, replyTo: Int?, carried: Int?): ComposerContext {
+                gate.await()
+                return network.repository.composer(oasisSlug, replyTo, carried)
+            }
+        }
+        val model = models.keep(network.composer(replyTo = 7, repository = slow))
+        // The reply form scrolled out of view (or the screen rotated) while its context loaded.
+        val form = launch { model.loadIfNeeded() }
+        runCurrent()
+        assertEquals(Loadable.Loading, model.state.value.context)
+        form.cancelAndJoin()
+        assertEquals(Loadable.Idle, model.state.value.context)
+
+        gate.complete(Unit)
+        model.loadIfNeeded()
+        assertEquals(4096, model.state.value.imageEdge)
     }
 
     @Test

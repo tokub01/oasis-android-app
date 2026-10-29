@@ -6,11 +6,15 @@ import androidx.lifecycle.ViewModelStore
 import de.velwebsolutions.oasis.core.auth.Session
 import de.velwebsolutions.oasis.core.network.ApiClient
 import de.velwebsolutions.oasis.core.network.ApiConfig
+import de.velwebsolutions.oasis.core.network.CommonApi
 import de.velwebsolutions.oasis.core.network.OasisJson
 import de.velwebsolutions.oasis.core.network.RemoteCommonApi
 import de.velwebsolutions.oasis.core.network.TokenProvider
 import de.velwebsolutions.oasis.network.api.Post
 import de.velwebsolutions.oasis.network.data.DefaultNetworkRepository
+import de.velwebsolutions.oasis.network.data.NetworkRepository
+import de.velwebsolutions.oasis.network.ui.compose.ComposeDrafts
+import de.velwebsolutions.oasis.network.ui.compose.ComposeViewModel
 import de.velwebsolutions.oasis.testing.StubTransport
 import de.velwebsolutions.oasis.testing.testTokenStore
 import kotlinx.coroutines.CoroutineScope
@@ -47,6 +51,18 @@ class StubbedNetwork(vararg stubs: StubTransport.Stub) {
 
     /** A signed-out session: enough for the composer, which refreshes `me` only after a held Tropfen. */
     val session = Session(testTokenStore(null), "Pixel Test", CoroutineScope(Dispatchers.Unconfined))
+
+    /** The composers' unsent drafts, shared by the composers of one test like the app's one store. */
+    val drafts = ComposeDrafts(session)
+
+    /** A composer over this network, its session and drafts; a test that slows the server down passes its own calls. */
+    fun composer(
+        oasisSlug: String? = null,
+        replyTo: Int? = null,
+        carried: Int? = null,
+        repository: NetworkRepository = this.repository,
+        common: CommonApi = this.common
+    ) = ComposeViewModel(oasisSlug, replyTo, carried, repository, common, session, drafts)
 
     fun add(method: String, path: String, status: Int = 200, json: String = "{}") = transport.add(method, path, status, json)
 

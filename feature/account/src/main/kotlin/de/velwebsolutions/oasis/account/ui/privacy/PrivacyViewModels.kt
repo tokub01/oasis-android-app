@@ -45,15 +45,28 @@ data class PrivacyUiState(
  * Privatsphäre-Center and Privatsphäre-Check: every setting is saved the moment it changes. The screen shows the new
  * value at once ([show]), the controls wait while it is saved, and a refused value goes back with the web's message at
  * that setting. The settings come from the API as sections of [PrivacySettingItem]s and are drawn from their `kind`
- * and `choices` alone.
+ * and `choices` alone. The centre loads again when it is shown again ([appeared]): the check, Verborgene Wörter and the
+ * safety lists change its values on screens of their own.
  */
 @HiltViewModel
 class PrivacyViewModel @Inject constructor(private val repository: AccountRepository) : ViewModel() {
     private val mutableUi = MutableStateFlow(PrivacyUiState())
     val ui: StateFlow<PrivacyUiState> = mutableUi.asStateFlow()
 
+    /** The screen was shown before; until then the first load is the one started in `init`. */
+    private var shown = false
+
     init {
         viewModelScope.launch { load() }
+    }
+
+    /** The screen is shown (back from another screen or another app): after the first time it loads again. */
+    suspend fun appeared() {
+        if (shown) {
+            load()
+        } else {
+            shown = true
+        }
     }
 
     suspend fun load() {

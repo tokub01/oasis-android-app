@@ -64,6 +64,8 @@ import androidx.compose.ui.text.style.TextDecoration
 import androidx.compose.ui.unit.dp
 import androidx.core.content.ContextCompat
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
+import androidx.lifecycle.Lifecycle
+import androidx.lifecycle.compose.LifecycleEventEffect
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import de.velwebsolutions.oasis.chat.api.ChatAvatar
 import de.velwebsolutions.oasis.chat.core.ChatMessageItem
@@ -106,6 +108,12 @@ internal fun ConversationScreen(conversationId: Int) {
     LaunchedEffect(Unit) { model.open() }
     DisposableEffect(Unit) { onDispose { model.close() } }
     LaunchedEffect(state.closed) { if (state.closed) navigator.back() }
+    // Messages count as read only while the chat is on screen (not behind a picker or another app, not with the screen off).
+    LifecycleEventEffect(Lifecycle.Event.ON_START) { model.setVisible(true) }
+    LifecycleEventEffect(Lifecycle.Event.ON_STOP) { model.setVisible(false) }
+    // The chat in front again ends a screen it opened. The photo picker and "Teilen" only cover it (no ON_START on the way
+    // back): without this, the next trip to the background would wait for them instead of locking at once.
+    LifecycleEventEffect(Lifecycle.Event.ON_RESUME) { model.context.vault.cameToForeground() }
 
     OasisScreen(
         title = state.title,
@@ -147,14 +155,13 @@ internal fun ConversationViewModel.attachmentActions() = AttachmentActions(
     onPicked = ::addPicked,
     onRemove = ::removeDraft,
     onViewOnce = ::setViewOnce,
-    onStartRecording = ::startRecording,
-    onFinishRecording = ::finishRecording,
-    onCancelRecording = ::cancelRecording,
+    recording = RecordingActions(onStart = ::startRecording, onFinish = ::finishRecording, onCancel = ::cancelRecording),
     onLoad = ::loadAttachment,
     onAnswer = ::answer,
     onOpenViewOnce = ::openViewOnce,
     onCloseViewOnce = ::closeViewOnce,
-    onCancelViewOnce = ::cancelViewOnce
+    onCancelViewOnce = ::cancelViewOnce,
+    onExternalScreen = context.vault::openExternalScreen
 )
 
 @Composable
@@ -349,6 +356,8 @@ private fun ConversationComposer(
     val scope = rememberCoroutineScope()
     var explainMicrophone by remember { mutableStateOf(false) }
     var microphoneDenied by remember { mutableStateOf(false) }
+    // The pickers are screens of the system: opened through onExternalScreen, the chat stays open (and with it the draft)
+    // while they are in front.
     val picker = rememberLauncherForActivityResult(ActivityResultContracts.PickVisualMedia()) { uri ->
         if (uri != null) scope.launch { attachments.onPicked(uri, false) }
     }
@@ -357,7 +366,7 @@ private fun ConversationComposer(
     }
     val permission = rememberLauncherForActivityResult(ActivityResultContracts.RequestPermission()) { granted ->
         microphoneDenied = !granted
-        if (granted) attachments.onStartRecording()
+        if (granted) attachments.recording.onStart()
     }
     Column(
         modifier = Modifier
@@ -395,14 +404,24 @@ private fun ConversationComposer(
         } else {
             Row(verticalAlignment = Alignment.Bottom, horizontalArrangement = Arrangement.spacedBy(4.dp)) {
                 IconButton(
-                    onClick = { picker.launch(PickVisualMediaRequest(ActivityResultContracts.PickVisualMedia.ImageAndVideo)) },
+                    onClick = {
+                        attachments.onExternalScreen {
+                            picker.launch(PickVisualMediaRequest(ActivityResultContracts.PickVisualMedia.ImageAndVideo))
+                            true
+                        }
+                    },
                     enabled = state.canAttach,
                     modifier = Modifier.testTag("chat.composer.attach")
                 ) {
                     Icon(Icons.Outlined.AddPhotoAlternate, contentDescription = "Foto oder Video anhängen", tint = OasisColors.Night)
                 }
                 IconButton(
-                    onClick = { documents.launch(arrayOf("*/*")) },
+                    onClick = {
+                        attachments.onExternalScreen {
+                            documents.launch(arrayOf("*/*"))
+                            true
+                        }
+                    },
                     enabled = state.canAttach,
                     modifier = Modifier.testTag("chat.composer.file")
                 ) {
@@ -413,7 +432,7 @@ private fun ConversationComposer(
                         val granted =
                             ContextCompat.checkSelfPermission(context, Manifest.permission.RECORD_AUDIO) ==
                                 PackageManager.PERMISSION_GRANTED
-                        if (granted) attachments.onStartRecording() else explainMicrophone = true
+                        if (granted) attachments.recording.onStart() else explainMicrophone = true
                     },
                     enabled = state.canAttach,
                     modifier = Modifier.testTag("chat.composer.record")

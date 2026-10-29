@@ -1,5 +1,8 @@
 package de.velwebsolutions.oasis.design
 
+import android.content.ComponentName
+import android.content.Intent
+import android.content.IntentFilter
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
@@ -81,6 +84,7 @@ import de.velwebsolutions.oasis.design.theme.OasisTheme
 import de.velwebsolutions.oasis.design.theme.OasisType
 import java.time.Instant
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertNull
 import org.junit.Rule
 import org.junit.Test
 import org.junit.runner.RunWith
@@ -289,7 +293,37 @@ class ComponentsTest {
         compose.mainClock.advanceTimeBy(9_000)
         compose.waitForIdle()
         assertEquals(null, error)
+        assertEquals("the confirmation that waited behind the error gets its own seconds", "Gespeichert.", message)
+        compose.onNodeWithTag("status.message").assertExists()
+        compose.mainClock.advanceTimeBy(5_000)
+        compose.waitForIdle()
         assertEquals(null, message)
+    }
+
+    /** Without a browser named, Android would hand a page of the app's own App Links straight back to the app. */
+    @Test
+    fun `web pages open in a browser with Custom Tabs, and oasis links never leave the app`() {
+        val app = RuntimeEnvironment.getApplication()
+        val browser = ComponentName("org.beispiel.browser", "org.beispiel.browser.Browser")
+        val tabs = ComponentName("org.beispiel.browser", "org.beispiel.browser.Tabs")
+        shadowOf(app.packageManager).apply {
+            addActivityIfNotPresent(browser)
+            addIntentFilterForActivity(
+                browser,
+                IntentFilter(Intent.ACTION_VIEW).apply {
+                    addCategory(Intent.CATEGORY_DEFAULT)
+                    addCategory(Intent.CATEGORY_BROWSABLE)
+                    addDataScheme("http")
+                    addDataScheme("https")
+                }
+            )
+            addServiceIfNotPresent(tabs)
+            addIntentFilterForService(tabs, IntentFilter("android.support.customtabs.action.CustomTabsService"))
+        }
+        openWebPage(app, "https://get-oasis.com/app/mitgliedschaft/rechnungen/9")
+        assertEquals("org.beispiel.browser", shadowOf(app).nextStartedActivity.`package`)
+        openWebPage(app, "oasis://unbekannt")
+        assertNull("the app is the only handler of its scheme", shadowOf(app).nextStartedActivity)
     }
 
     @Test

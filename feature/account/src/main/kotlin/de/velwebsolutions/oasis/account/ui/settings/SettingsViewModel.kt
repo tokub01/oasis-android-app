@@ -41,7 +41,7 @@ data class SettingsUiState(
     val fieldErrors: Map<String, String> = emptyMap(),
     /** Shown once after confirming two-factor or creating new codes. */
     val recoveryCodes: List<String>? = null,
-    /** Waiting for the password confirmation sheet. */
+    /** Waiting for the password confirmation sheet, which stays open until the action ran again after it. */
     val pendingAction: ProtectedAction? = null,
     /** True once the account is gone; the screen then signs the device out (also after a resumed deletion). */
     val accountDeleted: Boolean = false
@@ -53,7 +53,7 @@ data class SettingsUiState(
  * /app/einstellungen: profile, password, two-factor sign-in and account deletion. Two-factor changes and the deletion
  * need a recent password confirmation of this device; when the server answers 423 the action waits in
  * [SettingsUiState.pendingAction], the screen asks for the password and runs it again afterwards (like the web's
- * resume).
+ * resume), with the sheet still open until it is done.
  */
 @HiltViewModel
 class SettingsViewModel @Inject constructor(private val repository: AccountRepository, private val session: Session) : ViewModel() {
@@ -112,7 +112,11 @@ class SettingsViewModel @Inject constructor(private val repository: AccountRepos
             }
     }
 
-    /** The „Kurz bestätigen“ sheet; afterwards the waiting action runs again. Returns false on a wrong password. */
+    /**
+     * The „Kurz bestätigen“ sheet; afterwards the waiting action runs again. Returns false on a wrong password. The
+     * sheet stays open (its button spinning) while the action runs, as in [PasswordGate]: closing it first would cancel
+     * the action with the sheet's coroutine scope, after the server may already have done it. A second 423 keeps it open.
+     */
     suspend fun confirmPassword(password: String): Boolean {
         mutableUi.update { it.copy(fieldErrors = it.fieldErrors - "password") }
         catching { apply(repository.confirmPassword(password), fillFields = false) }
@@ -123,11 +127,8 @@ class SettingsViewModel @Inject constructor(private val repository: AccountRepos
                 }
                 return false
             }
-        val action = ui.value.pendingAction
-        if (action != null) {
-            mutableUi.update { it.copy(pendingAction = null) }
-            run(action)
-        }
+        val action = ui.value.pendingAction ?: return true
+        if (!perform(action)) mutableUi.update { it.copy(pendingAction = null) }
         return true
     }
 
@@ -135,6 +136,12 @@ class SettingsViewModel @Inject constructor(private val repository: AccountRepos
 
     /** Runs a protected action; true when the account was deleted (the session ends then). */
     suspend fun run(action: ProtectedAction): Boolean {
+        perform(action)
+        return ui.value.accountDeleted
+    }
+
+    /** Runs [action]; true when it waits for the password (423), which opens the sheet. */
+    private suspend fun perform(action: ProtectedAction): Boolean {
         mutableUi.update { it.copy(fieldErrors = emptyMap()) }
         catching {
             when (action) {
@@ -158,11 +165,11 @@ class SettingsViewModel @Inject constructor(private val repository: AccountRepos
             val failure = error.asApiError()
             if (failure.needsPasswordConfirmation) {
                 mutableUi.update { it.copy(pendingAction = action) }
-            } else {
-                handle(failure)
+                return true
             }
+            handle(failure)
         }
-        return ui.value.accountDeleted
+        return false
     }
 
     suspend fun signOut() = session.signOut()

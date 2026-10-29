@@ -25,6 +25,8 @@ import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.unit.dp
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
+import androidx.lifecycle.Lifecycle
+import androidx.lifecycle.compose.LifecycleEventEffect
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import de.velwebsolutions.oasis.account.platform.rememberPasskeyAuthenticator
 import de.velwebsolutions.oasis.account.ui.components.AuthCard
@@ -43,7 +45,10 @@ import de.velwebsolutions.oasis.design.theme.OasisRadius
 import de.velwebsolutions.oasis.design.theme.OasisType
 import kotlinx.coroutines.launch
 
-/** Sign-in with e-mail or username and password, like /anmelden; without a password by code or passkey. */
+/**
+ * Sign-in with e-mail or username and password, like /anmelden; without a password by code or passkey. Which of those
+ * the server offers is asked each time the form shows (also back from another step or another app) until it answered.
+ */
 @Composable
 internal fun SignInScreen(
     onTwoFactor: (String) -> Unit,
@@ -54,6 +59,8 @@ internal fun SignInScreen(
     val viewModel: SignInViewModel = hiltViewModel()
     val ui by viewModel.ui.collectAsStateWithLifecycle()
     val passkeys = rememberPasskeyAuthenticator()
+    val scope = rememberCoroutineScope()
+    LifecycleEventEffect(Lifecycle.Event.ON_RESUME) { scope.launch { viewModel.loadMethodsIfMissing() } }
     OasisScreen(title = null, error = ui.notice, onDismissError = viewModel::dismissNotice) {
         SignInContent(
             ui = ui,

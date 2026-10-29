@@ -38,21 +38,24 @@ import de.velwebsolutions.oasis.design.theme.OasisTheme
 import de.velwebsolutions.oasis.network.api.FeedPage
 import de.velwebsolutions.oasis.network.api.NoContext
 import de.velwebsolutions.oasis.network.api.Post
+import de.velwebsolutions.oasis.network.api.PostDraft
 import de.velwebsolutions.oasis.network.api.Profile
+import de.velwebsolutions.oasis.network.api.PublishResult
 import de.velwebsolutions.oasis.network.api.SourceContext
+import de.velwebsolutions.oasis.network.data.NetworkRepository
 import de.velwebsolutions.oasis.network.ui.PostAction
 import de.velwebsolutions.oasis.network.ui.PostListState
 import de.velwebsolutions.oasis.network.ui.components.ComposeFab
 import de.velwebsolutions.oasis.network.ui.components.FeedHandlers
 import de.velwebsolutions.oasis.network.ui.components.LeaveGuard
 import de.velwebsolutions.oasis.network.ui.components.NetworkPage
-import de.velwebsolutions.oasis.network.ui.compose.ComposeViewModel
 import de.velwebsolutions.oasis.network.ui.compose.callbacks
 import de.velwebsolutions.oasis.network.ui.feeds.sourceContent
 import de.velwebsolutions.oasis.network.ui.posts.ComposeContent
 import de.velwebsolutions.oasis.network.ui.profiles.ProfileCallbacks
 import de.velwebsolutions.oasis.network.ui.profiles.ProfileConfirmation
 import de.velwebsolutions.oasis.network.ui.profiles.profileContent
+import kotlinx.coroutines.CompletableDeferred
 import kotlinx.coroutines.runBlocking
 import org.junit.After
 import org.junit.Assert.assertEquals
@@ -123,7 +126,7 @@ class NetworkUiTest {
             stub("POST", "network/tone", """{"data":{"hint":null,"nudge":false}}"""),
             stub("POST", "network/posts", """{"message":"Dein Tropfen ist da.","suspended":false,"data":${postJson(77)}}""", 201)
         )
-        val model = models.keep(ComposeViewModel("ui-test", null, null, network.repository, network.common, network.session))
+        val model = models.keep(network.composer("ui-test"))
         runBlocking { model.load() }
         var published = false
         show {
@@ -136,11 +139,52 @@ class NetworkUiTest {
         compose.onNodeWithTag("network.page").performScrollToNode(hasTestTag("compose.submit"))
         compose.onNodeWithText("Öffentlich heißt: auch ohne Konto lesbar.").assertIsDisplayed()
         compose.onNodeWithTag("compose.submit").performClick()
-        compose.waitUntil(5_000) { published }
+        // The upload runs in the view model's scope: its answer comes back through the main looper.
+        compose.settle { published }
 
         assertTrue(network.last("network/posts").body!!.contains("UI-Test Tropfen"))
         assertEquals("Dein Tropfen ist da.", NetworkSignals.confirmation.value)
         assertEquals("", model.state.value.body)
+    }
+
+    @Test
+    fun `a Tropfen still on its way after a rotation closes the form shown next, once`() {
+        val gate = CompletableDeferred<Unit>()
+        val network = StubbedNetwork(
+            stub("GET", "network/composer", Fixtures.composer),
+            stub("POST", "network/tone", """{"data":{"hint":null,"nudge":false}}"""),
+            stub("POST", "network/posts", """{"message":"Dein Tropfen ist da.","suspended":false,"data":${postJson(78)}}""", 201)
+        )
+        val slow = object : NetworkRepository by network.repository {
+            override suspend fun publish(draft: PostDraft): PublishResult {
+                gate.await()
+                return network.repository.publish(draft)
+            }
+        }
+        val model = models.keep(network.composer("gedreht", repository = slow))
+        runBlocking { model.load() }
+        var shown by mutableStateOf(true)
+        var published = 0
+        show {
+            val state by model.state.collectAsState()
+            if (shown) ComposeContent(state, model.callbacks(), onPublished = { published++ })
+        }
+
+        compose.onNode(hasSetTextAction() and hasAnyAncestor(hasTestTag("compose.body"))).performTextInput("Gedreht")
+        compose.onNodeWithTag("network.page").performScrollToNode(hasTestTag("compose.submit"))
+        compose.onNodeWithTag("compose.submit").performClick()
+        compose.settle { model.state.value.isPublishing }
+        // The rotation: the form goes away with its coroutine, a new one shows while the Tropfen is still sent.
+        shown = false
+        compose.waitForIdle()
+        shown = true
+        compose.waitForIdle()
+        gate.complete(Unit)
+        compose.settle { published == 1 }
+
+        assertFalse(model.state.value.isPublishing)
+        assertEquals("", model.state.value.body)
+        assertEquals(1, network.transport.requests.count { it.path == "network/posts" })
     }
 
     @Test

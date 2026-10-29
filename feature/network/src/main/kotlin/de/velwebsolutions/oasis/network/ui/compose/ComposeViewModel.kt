@@ -1,6 +1,7 @@
 package de.velwebsolutions.oasis.network.ui.compose
 
 import androidx.lifecycle.ViewModel
+import androidx.lifecycle.viewModelScope
 import dagger.assisted.Assisted
 import dagger.assisted.AssistedFactory
 import dagger.assisted.AssistedInject
@@ -20,7 +21,11 @@ import de.velwebsolutions.oasis.network.ui.apiError
 import de.velwebsolutions.oasis.network.ui.attempt
 import java.util.concurrent.ConcurrentHashMap
 import java.util.concurrent.atomic.AtomicLong
+import javax.inject.Inject
+import javax.inject.Singleton
 import kotlinx.coroutines.CancellationException
+import kotlinx.coroutines.Deferred
+import kotlinx.coroutines.async
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -44,6 +49,7 @@ data class ComposeUiState(
     val toneHint: String? = null,
     val images: List<PickedImage> = emptyList(),
     val error: ApiError? = null,
+    /** While the Tropfen is sent, also after the form that sent it went away (a rotation during the upload). */
     val isPublishing: Boolean = false
 ) {
     val maxLength: Int get() = context.valueOrNull?.maxLength ?: 500
@@ -89,9 +95,34 @@ data class ComposeUiState(
 }
 
 /**
- * The composer for a new Tropfen (Quelle or oasis), a reply or a carry: context from the server, the draft, local tone
- * hints while typing, images with descriptions and publishing with the web's rules (SubmitPost). Under 18 the server
- * offers no "Öffentlich", and the preselected audience is always one it offers.
+ * Unsent composer drafts (text and images) in memory, so a composer closed by a link or a notification opens again with
+ * them. A draft belongs to the member who wrote it: its key names the member, and signing out (also a revoked token)
+ * forgets all drafts, so whoever signs in next on the device never finds them.
+ */
+@Singleton
+class ComposeDrafts @Inject constructor(session: Session) {
+    /** What a composer had written and picked. */
+    data class Draft(val body: String, val images: List<PickedImage>)
+
+    private val drafts = ConcurrentHashMap<String, Draft>()
+
+    init {
+        session.addOnSignedOut(drafts::clear)
+    }
+
+    operator fun get(key: String): Draft? = drafts[key]
+
+    /** Keeps the draft under [key]; null (nothing written or picked) forgets it. */
+    operator fun set(key: String, draft: Draft?) {
+        if (draft == null) drafts.remove(key) else drafts[key] = draft
+    }
+}
+
+/**
+ * The composer for a new Tropfen (Quelle or oasis), a reply or a carry: context from the server, the draft (kept in
+ * [ComposeDrafts] for the signed-in member), local tone hints while typing, images with descriptions and publishing with
+ * the web's rules (SubmitPost). Under 18 the server offers no "Öffentlich", and the preselected audience is always one it
+ * offers.
  */
 @HiltViewModel(assistedFactory = ComposeViewModel.Factory::class)
 class ComposeViewModel @AssistedInject constructor(
@@ -100,7 +131,8 @@ class ComposeViewModel @AssistedInject constructor(
     @Assisted("carried") carried: Int?,
     private val repository: NetworkRepository,
     private val common: CommonApi,
-    private val session: Session
+    private val session: Session,
+    private val drafts: ComposeDrafts
 ) : ViewModel() {
     @AssistedFactory
     interface Factory {
@@ -110,7 +142,12 @@ class ComposeViewModel @AssistedInject constructor(
     private val mutableState = MutableStateFlow(ComposeUiState(oasisSlug = oasisSlug, replyTo = replyTo, carried = carried))
     val state: StateFlow<ComposeUiState> = mutableState.asStateFlow()
     private val current: ComposeUiState get() = mutableState.value
-    private val draftKey = listOf(oasisSlug.orEmpty(), replyTo?.toString().orEmpty(), carried?.toString().orEmpty()).joinToString("|")
+
+    /** The member and the composer context the draft belongs to ("7|stadtgarten||"). */
+    private val draftKey = listOf(session.me?.id, oasisSlug, replyTo, carried).joinToString("|") { it?.toString().orEmpty() }
+
+    /** The running publish, until the form that started it takes its answer (or the next form, [unclaimedPublish]). */
+    private var sending: Deferred<PublishResult?>? = null
 
     init {
         drafts[draftKey]?.let { draft -> mutableState.update { it.copy(body = draft.body, images = draft.images) } }
@@ -137,18 +174,26 @@ class ComposeViewModel @AssistedInject constructor(
         saveDraft()
     }
 
+    /**
+     * Loads the context. A load cancelled with its screen (a rotation, the reply form scrolled out of view) leaves it
+     * unloaded again, so [loadIfNeeded] starts it anew when the screen is back.
+     */
     suspend fun load() {
         mutableState.update { it.copy(context = Loadable.Loading) }
-        val result = attempt { repository.composer(current.oasisSlug, current.replyTo, current.carried) }
-        result.onSuccess { loaded ->
-            val offered = loaded.visibilities.map { it.value }
-            val visibility = loaded.defaultVisibility.takeIf { offered.isEmpty() || it in offered } ?: offered.first()
-            mutableState.update { it.copy(visibility = visibility, context = Loadable.Loaded(loaded)) }
+        try {
+            val result = attempt { repository.composer(current.oasisSlug, current.replyTo, current.carried) }
+            result.onSuccess { loaded ->
+                val offered = loaded.visibilities.map { it.value }
+                val visibility = loaded.defaultVisibility.takeIf { offered.isEmpty() || it in offered } ?: offered.first()
+                mutableState.update { it.copy(visibility = visibility, context = Loadable.Loaded(loaded)) }
+            }
+            result.apiError?.let { error -> mutableState.update { it.copy(context = Loadable.Failed(error)) } }
+        } finally {
+            mutableState.update { if (it.context == Loadable.Loading) it.copy(context = Loadable.Idle) else it }
         }
-        result.apiError?.let { error -> mutableState.update { it.copy(context = Loadable.Failed(error)) } }
     }
 
-    /** Loads the context unless it is there already (the reply form on a Tropfen page). */
+    /** Loads the context unless it is there or failed (the reply form on a Tropfen page, a screen shown again). */
     suspend fun loadIfNeeded() {
         if (current.context == Loadable.Idle) load()
     }
@@ -192,7 +237,11 @@ class ComposeViewModel @AssistedInject constructor(
         saveDraft()
     }
 
-    /** Publish; returns the new Tropfen on success. A tone question shows "So senden". */
+    /**
+     * Publish; returns the new Tropfen on success. A tone question shows "So senden". The upload runs in the view model's
+     * scope: when the form goes away meanwhile (a rotation cancels its coroutine), the Tropfen is still sent once, the
+     * publishing state ends, the sent draft is gone, and the form shown next takes the answer with [unclaimedPublish].
+     */
     suspend fun publish(): PublishResult? {
         if (current.isPublishing) return null
         mutableState.update { it.copy(isPublishing = true, error = null) }
@@ -209,8 +258,27 @@ class ComposeViewModel @AssistedInject constructor(
             images = state.images.map { it.upload },
             alts = state.images.map { it.alt }
         )
-        val outcome = attempt { repository.publish(draft) }
-        mutableState.update { it.copy(isPublishing = false) }
+        val running = viewModelScope.async { send(draft) }
+        sending = running
+        return running.await().also { if (sending === running) sending = null }
+    }
+
+    /**
+     * The answer of a publish whose form went away while it was sent (a rotation during the upload), once: the form shown
+     * next closes with it as after its own tap. Waits while the Tropfen is still on its way; null when no answer waits.
+     */
+    suspend fun unclaimedPublish(): PublishResult? {
+        val running = sending ?: return null
+        // A later publish (started once this one ended) keeps its own answer for its form.
+        return running.await().also { if (sending === running) sending = null }
+    }
+
+    private suspend fun send(draft: PostDraft): PublishResult? {
+        val outcome = try {
+            attempt { repository.publish(draft) }
+        } finally {
+            mutableState.update { it.copy(isPublishing = false) }
+        }
         outcome.apiError?.let { failure ->
             val asked = failure.message("body").orEmpty().startsWith(TONE_QUESTION)
             mutableState.update { it.copy(error = failure, toneNudge = it.toneNudge || asked) }
@@ -228,10 +296,8 @@ class ComposeViewModel @AssistedInject constructor(
 
     private fun saveDraft() {
         val state = current
-        if (state.hasDraft) drafts[draftKey] = Draft(state.body, state.images) else drafts.remove(draftKey)
+        drafts[draftKey] = if (state.hasDraft) ComposeDrafts.Draft(state.body, state.images) else null
     }
-
-    private data class Draft(val body: String, val images: List<PickedImage>)
 
     companion object {
         /** The server's limit for image descriptions (PostInput `alts.*`). */
@@ -240,8 +306,6 @@ class ComposeViewModel @AssistedInject constructor(
         /** The start of the server's tone question on `body` (and `bio` for profiles). */
         const val TONE_QUESTION = "Nochmal lesen?"
 
-        /** Unsent drafts per composer context: a composer closed by a link or a notification opens again with its text. */
-        private val drafts = ConcurrentHashMap<String, Draft>()
         private val nextImageId = AtomicLong()
 
         /** The first [length] characters (code points) of [text]. */

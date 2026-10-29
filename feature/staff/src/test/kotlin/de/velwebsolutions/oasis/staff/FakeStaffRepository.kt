@@ -52,7 +52,8 @@ object Decoded {
 
 /**
  * The staff API without a network, for view-model tests: every call answers synchronously with what the test set (the
- * recorded fixtures by default), or throws the [ApiError] it set; [calls] lists what was asked.
+ * recorded fixtures by default), or throws the [ApiError] it set; [calls] lists what was asked. Pages of the queue, the
+ * roles and the payments wait for their gate while a test holds one, so a test can let requests overtake each other.
  */
 class FakeStaffRepository : StaffRepository {
     val calls = mutableListOf<String>()
@@ -118,7 +119,13 @@ class FakeStaffRepository : StaffRepository {
     override suspend fun review(complaintId: Int, result: String, explanation: String, replacement: StatementOfReasons) =
         answer("review $result", review)
 
-    override suspend fun roles(page: Int) = answer("roles $page", roles)
+    /** Holds the next roles page until the test completes it. */
+    var rolesGate: kotlinx.coroutines.CompletableDeferred<Unit>? = null
+
+    override suspend fun roles(page: Int): RolePage {
+        rolesGate?.await()
+        return answer("roles $page", roles)
+    }
 
     override suspend fun changeRole(userId: Int, role: String): Confirmed<RoleUser> {
         val user = Decoded.roles.data.first { it.id == userId }
@@ -157,7 +164,13 @@ class FakeStaffRepository : StaffRepository {
 
     override suspend fun createVote(vote: NewVote) = answer("vote ${vote.title}", createVote)
 
-    override suspend fun payments(search: String, status: String, page: Int) = answer("payments '$search' '$status' $page", payments)
+    /** Holds the next payments page until the test completes it. */
+    var paymentsGate: kotlinx.coroutines.CompletableDeferred<Unit>? = null
+
+    override suspend fun payments(search: String, status: String, page: Int): PaymentPage {
+        paymentsGate?.await()
+        return answer("payments '$search' '$status' $page", payments)
+    }
 
     override suspend fun checkPayment(recordId: Int) = answer("check payment $recordId", mollie)
 

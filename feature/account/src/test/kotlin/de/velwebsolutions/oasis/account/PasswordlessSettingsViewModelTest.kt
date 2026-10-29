@@ -1,6 +1,7 @@
 package de.velwebsolutions.oasis.account
 
 import de.velwebsolutions.oasis.account.api.Passkey
+import de.velwebsolutions.oasis.account.data.AccountRepository
 import de.velwebsolutions.oasis.account.hilt.HiltScreenTest
 import de.velwebsolutions.oasis.account.platform.PasskeyAuthenticator
 import de.velwebsolutions.oasis.account.platform.PasskeyFailure
@@ -19,8 +20,11 @@ import de.velwebsolutions.oasis.core.model.Loadable
 import de.velwebsolutions.oasis.core.network.ApiError
 import de.velwebsolutions.oasis.testing.MainDispatcherRule
 import de.velwebsolutions.oasis.testing.StubTransport
+import kotlinx.coroutines.CompletableDeferred
 import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.launch
 import kotlinx.coroutines.test.runTest
+import kotlinx.serialization.json.JsonObject
 import kotlinx.serialization.json.jsonObject
 import kotlinx.serialization.json.jsonPrimitive
 import org.junit.Assert.assertEquals
@@ -154,6 +158,93 @@ class PasswordlessSettingsViewModelTest {
         assertNull("an expired ceremony closes the dialog", model.ui.value.naming)
         model.dismissError()
         assertNull(model.ui.value.error)
+    }
+
+    @Test
+    fun aNewPasskeyRefusedWithAnotherStatusIsNotKeptForAnotherTry() = runTest {
+        val transport = StubTransport()
+            .stub("GET", "account/passkeys", """{"data":[]}""")
+            .stub("POST", "account/passkeys/options", PasswordlessFixtures.CREATION)
+            .stub("POST", "account/passkeys", """{"message":"Der Passkey passt nicht zu dieser Anfrage."}""", status = 400)
+        val model = passkeys(transport)
+        model.attach(FakePasskeys(answer = PasswordlessFixtures.ATTESTATION))
+        model.add()
+        model.saveNew("Handy")
+        assertEquals("Der Passkey passt nicht zu dieser Anfrage.", model.ui.value.error)
+        assertNull("the same answer would come again: the dialog closes", model.ui.value.naming)
+    }
+
+    @Test
+    fun aNewPasskeyThatCouldNotBeSentStaysForAnotherTryAndGoesOnlyOnce() = runTest {
+        val transport = StubTransport()
+            .stub("GET", "account/passkeys", """{"data":[]}""")
+            .stub("POST", "account/passkeys/options", PasswordlessFixtures.CREATION)
+        val base = repository(transport)
+        // Offline, a server error, too many tries – then the server takes it.
+        val answers = ArrayDeque(listOf(ApiError.Transport("offline"), ApiError.Server(503, null), ApiError.TooManyRequests(null), null))
+        val held = CompletableDeferred<Unit>()
+        var sent = 0
+        val flaky = object : AccountRepository by base {
+            override suspend fun addPasskey(challenge: String, credential: JsonObject, name: String?) {
+                sent++
+                answers.removeFirst()?.let { throw it }
+                held.await()
+            }
+        }
+        val model = PasskeysViewModel(flaky, DeviceName("Pixel 9"))
+        model.ui.first { it.state is Loadable.Loaded }
+        model.attach(FakePasskeys(answer = PasswordlessFixtures.ATTESTATION))
+        model.add()
+        repeat(3) {
+            model.saveNew("Handy")
+            assertEquals("the device's passkey waits for another try", "reg-1", model.ui.value.naming?.challenge)
+        }
+        assertEquals("Zu viele Versuche. Bitte warte einen Moment.", model.ui.value.error)
+        val first = launch { model.saveNew("Handy") }
+        testScheduler.runCurrent()
+        assertTrue(model.ui.value.savingNew)
+        // A second tap, or a tap beside the dialog, while it is on its way: its challenge counts only once.
+        model.saveNew("")
+        held.complete(Unit)
+        first.join()
+        assertEquals(4, sent)
+        assertNull(model.ui.value.naming)
+        assertFalse(model.ui.value.savingNew)
+        assertEquals(PasskeysViewModel.ADDED, model.ui.value.message)
+    }
+
+    @Test
+    fun aNewPasskeySentAgainAfterThePasswordAlsoGoesOnlyOnce() = runTest {
+        val transport = StubTransport()
+            .stub("GET", "account/passkeys", """{"data":[]}""")
+            .stub("POST", "account/passkeys/options", PasswordlessFixtures.CREATION)
+            .stub("POST", "account/confirm-password", Fixtures.account)
+        val base = repository(transport)
+        val held = CompletableDeferred<Unit>()
+        var sent = 0
+        val locked = object : AccountRepository by base {
+            override suspend fun addPasskey(challenge: String, credential: JsonObject, name: String?) {
+                sent++
+                // Not confirmed on this device for a while: the server asks for the password first.
+                if (sent == 1) throw ApiError.Server(423, "Bitte bestätige zuerst dein Passwort.")
+                held.await()
+            }
+        }
+        val model = PasskeysViewModel(locked, DeviceName("Pixel 9"))
+        model.ui.first { it.state is Loadable.Loaded }
+        model.attach(FakePasskeys(answer = PasswordlessFixtures.ATTESTATION))
+        model.add()
+        model.saveNew("Handy")
+        assertEquals(PasswordPrompt(), model.prompt.value)
+        val confirming = launch { model.confirmPassword("geheim") }
+        model.ui.first { it.savingNew }
+        // A tap on the name dialog while the passkey goes again after „Kurz bestätigen“: its challenge counts only once.
+        model.saveNew("")
+        held.complete(Unit)
+        confirming.join()
+        assertEquals(2, sent)
+        assertNull(model.ui.value.naming)
+        assertEquals(PasskeysViewModel.ADDED, model.ui.value.message)
     }
 
     @Test

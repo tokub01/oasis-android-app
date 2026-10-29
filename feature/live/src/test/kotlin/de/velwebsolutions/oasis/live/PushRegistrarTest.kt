@@ -14,7 +14,7 @@ import org.junit.Assert.assertTrue
 import org.junit.Assert.fail
 import org.junit.Test
 
-/** Push on this device: prepared for FCM, but silent while the server takes APNs tokens only. */
+/** Push on this device: the FCM token goes to the server (platform android) while it sends app pushes and push is on here. */
 class PushRegistrarTest {
     private fun transport() = StubTransport(
         StubTransport.Stub("GET", "app-config", json = LiveJson.CONFIG),
@@ -201,11 +201,18 @@ class PushRegistrarTest {
         val registrar = registrar(system, store)
         registrar.forgetDevice(9)
         assertEquals(5, store.deviceId)
+        assertFalse("another device leaves the choice here alone", registrar.isOptedOut)
         registrar.forgetDevice(5)
         assertNull(store.deviceId)
         registrar.forgetDevice(5)
         registrar.openSystemSettings()
         assertEquals(1, system.openedSettings)
+
+        // "Entfernen" of this installation: whatever id was kept, it stays off until "einschalten".
+        store.deviceId = 7
+        registrar.forgetDevice(4, current = true)
+        assertNull(store.deviceId)
+        assertTrue(registrar.isOptedOut)
     }
 
     @Test

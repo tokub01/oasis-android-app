@@ -1,7 +1,9 @@
 package de.velwebsolutions.oasis.account
 
 import de.velwebsolutions.oasis.account.api.PrivacyValue
+import de.velwebsolutions.oasis.account.api.SettingsChange
 import de.velwebsolutions.oasis.account.api.TwoFactorState
+import de.velwebsolutions.oasis.account.data.AccountRepository
 import de.velwebsolutions.oasis.account.ui.components.QrCode
 import de.velwebsolutions.oasis.account.ui.member.VotesViewModel
 import de.velwebsolutions.oasis.account.ui.privacy.HiddenWordsViewModel
@@ -67,6 +69,98 @@ class AccountViewModelTest {
         assertEquals("ABCDEFGHIJKLMNOP", ui.settings?.twoFactor?.setupKey)
         assertEquals("Scanne jetzt den QR-Code und bestätige mit einem Code.", ui.message)
         assertNotNull(QrCode.encode(ui.settings?.twoFactor?.otpauthUrl.orEmpty()))
+    }
+
+    @Test
+    fun theSheetStaysOpenWhileTheResumedActionRunsAndAfterASecond423() = runTest {
+        val codes =
+            """{"message":"Neue Codes.","data":{"display_name":"Mira Sol","username":"mira","email":"mira@demo.oasis.tld","email_verified":true,"two_factor":{"state":"active","setup_key":null,"otpauth_url":null},"password_confirmed":true},"recovery_codes":["1111-2222"]}"""
+        val transport = StubTransport()
+            .stub("GET", "account", Fixtures.account)
+            .stub("POST", "account/two-factor/recovery-codes", """{"message":"Bitte bestätige zuerst dein Passwort."}""", status = 423)
+            .stub("POST", "account/confirm-password", Fixtures.account)
+        val base = repository(transport)
+        lateinit var model: SettingsViewModel
+        var waitingWhileSent: ProtectedAction? = null
+        val watching = object : AccountRepository by base {
+            override suspend fun regenerateRecoveryCodes(): SettingsChange {
+                // What the sheet sees while the request is on its way: closing it would cancel the request.
+                waitingWhileSent = model.ui.value.pendingAction
+                return base.regenerateRecoveryCodes()
+            }
+        }
+        model = SettingsViewModel(watching, session(transport, backgroundScope))
+        model.ui.first { loaded(it.state) }
+        model.run(ProtectedAction.RegenerateCodes)
+        assertEquals(ProtectedAction.RegenerateCodes, model.ui.value.pendingAction)
+
+        assertTrue("still locked: the sheet stays", model.confirmPassword("geheim"))
+        assertEquals(ProtectedAction.RegenerateCodes, model.ui.value.pendingAction)
+
+        transport.add("POST", "account/two-factor/recovery-codes", json = codes)
+        waitingWhileSent = null
+        assertTrue(model.confirmPassword("geheim"))
+        assertEquals("the sheet stays open while the codes are made", ProtectedAction.RegenerateCodes, waitingWhileSent)
+        assertNull(model.ui.value.pendingAction)
+        assertEquals(listOf("1111-2222"), model.ui.value.recoveryCodes)
+    }
+
+    @Test
+    fun thePrivacyCentreLoadsAgainWhenItIsShownAgain() = runTest {
+        val transport = StubTransport().stub("GET", "privacy", Fixtures.privacy)
+        val model = PrivacyViewModel(repository(transport))
+        model.ui.first { loaded(it.state) }
+        model.appeared()
+        assertEquals("shown the first time, the first load is enough", 1, transport.requests.count { it.path == "privacy" })
+        // Meanwhile the Privatsphäre-Check made the profile visible to members only.
+        transport.add("GET", "privacy", json = Fixtures.privacy.replaceFirst("\"value\": \"everyone\"", "\"value\": \"members\""))
+        model.appeared()
+        val setting = model.ui.value.state.valueOrNull!!.sections.first().settings.first()
+        assertEquals("profile_audience", setting.key)
+        assertEquals(PrivacyValue.Choice("members"), setting.value)
+    }
+
+    @Test
+    fun theWelcomeTourKeepsAStricterChoiceMadeInThePrivacyCheck() = runTest {
+        val transport = StubTransport()
+            .stub("GET", "onboarding", Fixtures.onboarding)
+            .stub("PUT", "onboarding/visibility", "{}")
+        val model = WelcomeViewModel(repository(transport), session(transport, backgroundScope))
+        model.ui.first { loaded(it.state) }
+        model.appeared()
+        assertEquals("shown the first time, the first load is enough", 1, transport.requests.count { it.path == "onboarding" })
+        model.skip()
+        // „Alle Einstellungen im Privatsphäre-Check“: there the profile becomes visible to members only.
+        val stricter = Fixtures.onboarding.replace("\"profile_audience\": \"everyone\"", "\"profile_audience\": \"members\"")
+        transport.add("GET", "onboarding", json = stricter)
+        model.appeared()
+        assertEquals("back on the step, it shows what is stored", "members", model.ui.value.profileAudience)
+        model.next()
+        assertEquals("nothing picked in the step: nothing is sent", 0, transport.requests.count { it.path == "onboarding/visibility" })
+        assertEquals(3, model.ui.value.step)
+
+        model.back()
+        model.edit { it.copy(profileAudience = "everyone", visibilityChanged = true) }
+        model.appeared()
+        assertEquals("a choice made in the step stays while nothing was saved elsewhere", "everyone", model.ui.value.profileAudience)
+        // Then the check makes the profile stricter still: that later choice wins over the pick made before it.
+        val following = Fixtures.onboarding.replace("\"profile_audience\": \"everyone\"", "\"profile_audience\": \"following\"")
+        transport.add("GET", "onboarding", json = following)
+        model.appeared()
+        assertEquals("the later choice of the check wins", "following", model.ui.value.profileAudience)
+        model.next()
+        assertEquals("and the step sends nothing", 0, transport.requests.count { it.path == "onboarding/visibility" })
+
+        model.back()
+        model.edit { it.copy(profileAudience = "members", visibilityChanged = true) }
+        model.next()
+        assertEquals(JsonPrimitive("members"), transport.lastBody("onboarding/visibility")?.jsonObject?.get("profile_audience"))
+        assertFalse("saved: the step follows what is stored again", model.ui.value.visibilityChanged)
+
+        // Shown again without a connection: the step keeps what it shows.
+        transport.add("GET", "onboarding", status = 503, json = """{"message":"Gleich wieder da."}""")
+        model.appeared()
+        assertEquals("members", model.ui.value.profileAudience)
     }
 
     @Test

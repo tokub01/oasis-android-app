@@ -9,6 +9,7 @@ import de.velwebsolutions.oasis.chatcrypto.MessageEnvelope
 import de.velwebsolutions.oasis.core.realtime.RealtimeEvent
 import de.velwebsolutions.oasis.core.realtime.RealtimeService
 import de.velwebsolutions.oasis.testing.MainDispatcherRule
+import java.util.concurrent.CopyOnWriteArrayList
 import kotlin.time.Duration
 import kotlin.time.Duration.Companion.milliseconds
 import kotlinx.coroutines.Dispatchers
@@ -16,6 +17,7 @@ import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.launch
 import kotlinx.coroutines.runBlocking
 import kotlinx.coroutines.test.runTest
 import kotlinx.coroutines.withContext
@@ -348,6 +350,94 @@ class ConversationViewModelTest {
         owner.open()
         server.onRequest = {}
         assertTrue(owner.state.value.timeline.items.isEmpty())
+    }
+
+    @Test
+    fun messagesCountAsReadOnlyWhileTheChatIsOnScreen() = runTest {
+        val (mira, jonas, id) = pair()
+        val live = FakeRealtime(connected = true)
+        val reader = model(jonas, id, live)
+        reader.open()
+        val writer = model(mira, id)
+        writer.open()
+        val reads = CopyOnWriteArrayList<String>()
+        server.onRequest = { if (it == "POST conversations/$id/read") reads += it }
+        // Another app is in front (a picker of Oasis keeps the chat open meanwhile).
+        reader.setVisible(false)
+        writer.setDraft("Bist du da?")
+        writer.send()
+        val sent = Json.decodeFromString(MessageEnvelope.serializer(), server.messages.getValue(id.toInt()).last().second.toString())
+        live.events.emit(RealtimeEvent(".MessageSent", envelopeJson(sent)))
+        assertEquals("Bist du da?", reader.state.value.timeline.items.last().plaintext)
+        settle(mainRule.dispatcher.scheduler, server) { true }
+        assertTrue("not seen yet: not read", reads.isEmpty())
+        reader.setVisible(true)
+        settle(mainRule.dispatcher.scheduler, server) { reads.size == 1 }
+        reader.setVisible(true)
+        settle(mainRule.dispatcher.scheduler, server) { true }
+        server.onRequest = {}
+        assertEquals("read once it shows again", 1, reads.size)
+    }
+
+    @Test
+    fun aLockClosesTheChatAtOnceAlsoWhileItsScreenDoesNotRedraw() = runTest {
+        val (mira, jonas, id) = pair()
+        val live = FakeRealtime(connected = true)
+        val reader = model(jonas, id, live)
+        reader.open()
+        val media = jonas.media as FakeChatMedia
+        val cleared = media.clears
+        // The app goes to the background: the stopped screen does not redraw, the chat ends anyway.
+        jonas.vault.lockForBackground()
+        mainRule.dispatcher.scheduler.runCurrent()
+        assertNull(reader.state.value.conversation)
+        assertTrue(reader.state.value.timeline.items.isEmpty())
+        assertTrue("the decrypted files are deleted", media.clears > cleared)
+
+        // A message now is neither shown nor reported as read.
+        val writer = model(mira, id)
+        writer.open()
+        val asked = CopyOnWriteArrayList<String>()
+        server.onRequest = { asked += it }
+        writer.setDraft("Noch da?")
+        writer.send()
+        val sent = Json.decodeFromString(MessageEnvelope.serializer(), server.messages.getValue(id.toInt()).last().second.toString())
+        live.events.emit(RealtimeEvent(".MessageSent", envelopeJson(sent)))
+        reader.receive(sent)
+        settle(mainRule.dispatcher.scheduler, server) { true }
+        server.onRequest = {}
+        assertTrue(reader.state.value.timeline.items.isEmpty())
+        assertFalse(asked.toString(), "POST conversations/$id/read" in asked)
+
+        // Unlocked again on the return: the screen opens the chat anew.
+        jonas.vault.cameToForeground()
+        assertTrue(jonas.keyring.unlock(checkNotNull(jonas.vault.storedIdentity), TEST_PASSPHRASE))
+        reader.open()
+        assertEquals("Noch da?", reader.state.value.timeline.items.single().plaintext)
+    }
+
+    @Test
+    fun aPollCutOffByLeavingIsNoFailureAndAnOldFailureDoesNotStay() = runTest {
+        val (_, jonas, id) = pair()
+        val reader = model(jonas, id)
+        failing("GET conversations/$id")
+        reader.open()
+        assertEquals("Da ist etwas schiefgegangen. Versuch es gleich noch einmal.", reader.state.value.loadFailed)
+        reader.open()
+        assertNull("the next opening starts without the old failure", reader.state.value.loadFailed)
+
+        // The chat closes while a poll waits for its answer: the cancelled poll is no failure.
+        val poll = launch { reader.poll() }
+        server.onRequest = {
+            if (it == "GET conversations/$id") {
+                reader.close()
+                poll.cancel()
+            }
+        }
+        poll.join()
+        server.onRequest = {}
+        assertNull(reader.state.value.loadFailed)
+        assertNull(reader.state.value.composerError)
     }
 
     @Test

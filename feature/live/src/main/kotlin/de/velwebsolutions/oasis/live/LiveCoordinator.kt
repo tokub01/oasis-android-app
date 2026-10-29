@@ -31,6 +31,12 @@ class LiveCoordinator internal constructor(
 
     @Volatile private var userId: Int? = null
 
+    /** Whether push is set up for [userId]; not while the setup waits for the server, nor after it was cancelled. */
+    @Volatile private var pushSetUp = false
+
+    /** Counts the stops, so a push setup that began before one does not count for the member after it. */
+    @Volatile private var stops = 0
+
     /** Unread Hinweise (the bell and the dot at "Mehr"). */
     val hints: StateFlow<Int> = counts.hints
 
@@ -43,13 +49,23 @@ class LiveCoordinator internal constructor(
     /** Conversations with unread messages (the badge at "Chats"). */
     val chats: StateFlow<Int> = counts.chats
 
-    /** Starts once per member (the tab view calls it whenever it appears). */
+    /**
+     * Starts once per member (the tab view calls it whenever it appears). The counters run in the app's scope; push is
+     * set up in the caller's coroutine, so a start cancelled before push was set up (the activity finished while
+     * `app-config` was on its way) leaves push to the next start for the same member instead of skipping it until the app
+     * is restarted.
+     */
     suspend fun start(userId: Int) {
-        if (this.userId == userId) return
-        if (this.userId != null) stop()
-        this.userId = userId
-        counts.start(load = repository::counts, realtime = realtime, userId = userId)
+        if (this.userId != userId) {
+            if (this.userId != null) stop()
+            this.userId = userId
+            counts.start(load = repository::counts, realtime = realtime, userId = userId)
+        }
+        if (pushSetUp) return
+        val started = stops
         push.signedIn(repository)
+        // Not after a sign-out (or another member) meanwhile: then the next start sets push up.
+        if (stops == started) pushSetUp = true
     }
 
     /** Back in the foreground: fetch the numbers (the realtime service reconnects by itself). */
@@ -72,5 +88,7 @@ class LiveCoordinator internal constructor(
         push.signedOut()
         counts.stop()
         userId = null
+        pushSetUp = false
+        stops += 1
     }
 }

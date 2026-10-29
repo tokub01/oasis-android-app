@@ -13,6 +13,12 @@ sealed class ChatKeyringException(message: String) : Exception(message) {
 
     /** This device cannot keep a biometric copy (no fingerprint or face unlock enrolled, cancelled …). */
     data object DeviceUnlockUnsupported : ChatKeyringException("Device unlock unavailable.")
+
+    /**
+     * New keys are published without a passphrase and open in memory, but their copy for this device could not be
+     * stored: until the member keeps a copy (this device again, a reserve passphrase) the next lock loses them.
+     */
+    data object DeviceCopyNotStored : ChatKeyringException("Device copy not stored.")
 }
 
 /** Short German texts for API and crypto errors (resources/js/chat/ui/errors.js). */
@@ -55,4 +61,8 @@ internal object Biometrics {
     /** The browser's "Face ID unsupported" text, adapted: the app keeps the secret in the device's keystore. */
     const val UNSUPPORTED =
         "Das hat nicht geklappt. Auf diesem Gerät ist kein Fingerabdruck und keine Gesichtserkennung eingerichtet, oder es wurde abgebrochen. Dann nimm eine Passphrase."
+
+    /** The new keys are open, but this device's copy is missing ([ChatKeyringException.DeviceCopyNotStored]). */
+    const val COPY_NOT_STORED =
+        "Dein Chat ist eingerichtet, aber dieses Gerät ist noch nicht gespeichert. Tippe in den Chat-Einstellungen auf „Dieses Gerät einrichten“ – sonst kommst du nach dem Sperren nicht mehr an deine Nachrichten."
 }

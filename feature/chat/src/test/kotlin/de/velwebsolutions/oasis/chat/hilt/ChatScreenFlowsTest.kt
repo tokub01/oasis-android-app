@@ -37,6 +37,7 @@ import de.velwebsolutions.oasis.design.navigation.Navigator
 import de.velwebsolutions.oasis.design.theme.OasisTheme
 import kotlinx.coroutines.runBlocking
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertFalse
 import org.junit.Assert.assertTrue
 import org.junit.Before
 import org.junit.Rule
@@ -226,6 +227,20 @@ class ChatScreenFlowsTest {
         }
         runBlocking { realtime.events.emit(RealtimeEvent("MessageSent", sent.toJsonObject())) }
         waitFor("Noch da?")
+    }
+
+    @Test
+    fun aPickerThatOnlyCoveredTheChatIsDoneOnceTheChatIsBack() {
+        val (mira, _, id) = chatWithMessages("Hallo")
+        signIn(mira)
+        show(ChatRoute.Conversation(id))
+        waitFor("Hallo")
+        // The photo picker and "Teilen" only cover the chat: its activity pauses and resumes, the app never stops.
+        assertTrue(mira.vault.openExternalScreen { true })
+        checkNotNull(shown).pause().resume()
+        compose.waitForIdle()
+        mira.vault.lockForBackground()
+        assertFalse("the next trip to the background locks at once", mira.vault.unlocked)
     }
 
     @Test

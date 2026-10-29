@@ -17,6 +17,7 @@ import de.velwebsolutions.oasis.core.share.SharedFile
 import de.velwebsolutions.oasis.design.media.ImageCodec
 import java.io.ByteArrayOutputStream
 import java.io.File
+import java.util.concurrent.atomic.AtomicInteger
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 
@@ -31,7 +32,7 @@ sealed interface AttachmentView {
     /** A photo, decoded in memory. */
     class Photo(val image: ImageBitmap) : AttachmentView
 
-    /** A voice message or video in the app cache (deleted when the chat closes), with a poster frame for videos. */
+    /** A voice message or video in the app cache (deleted when the chat closes or locks), with a poster frame for videos. */
     class Playable(val file: File, val poster: ImageBitmap?) : AttachmentView
 
     /** Any other file in the app cache under its name, for other apps to open or share (never shown inside Oasis). */
@@ -99,14 +100,16 @@ class AndroidChatMedia(
 ) : ChatMedia {
     private class Recording(val recorder: MediaRecorder, val file: File, val startedAt: Long)
 
-    /** Leftovers of an earlier process are removed when the chat starts. */
-    val folder: File = File(context.cacheDir, "chat-attachments").apply {
+    /** Leftovers of an earlier process are removed when the chat starts (and by [ChatFileProvider] at process start). */
+    val folder: File = File(context.cacheDir, FOLDER).apply {
         deleteRecursively()
         mkdirs()
     }
 
     private var recording: Recording? = null
-    private var counter = 0
+
+    /** Numbers the cache files; several bubbles decrypt at once on the IO threads, so every number is handed out once. */
+    private val counter = AtomicInteger()
 
     override suspend fun prepare(uri: Uri, localId: Long): DraftAttachment = withContext(Dispatchers.IO) {
         byKind(uri, context.contentResolver.getType(uri).orEmpty(), null, localId)
@@ -191,7 +194,7 @@ class AndroidChatMedia(
 
     override fun startRecording(onLimit: () -> Unit): Boolean {
         cancelRecording()
-        val file = File(folder, "sprachnachricht-${++counter}.m4a")
+        val file = File(folder, "sprachnachricht-${counter.incrementAndGet()}.m4a")
         val recorder = newRecorder()
         return try {
             recorder.setAudioSource(MediaRecorder.AudioSource.MIC)
@@ -251,15 +254,20 @@ class AndroidChatMedia(
             }
         }
 
-    /** Its own folder keeps the original name for the app that opens it; "." and ".." are no names. */
+    /**
+     * Its own folder keeps the original name for the app that opens it, within the bytes a file name may have
+     * ([storableName]); "." and ".." are no names.
+     */
     private fun document(data: ByteArray, mime: String, name: String?): AttachmentView {
         val safe = AttachmentTexts.fileName(name).takeUnless { it == "." || it == ".." } ?: "Datei"
-        val file = File(File(folder, "datei-${++counter}").apply { mkdirs() }, safe).apply { writeBytes(data) }
+        val own = File(folder, "datei-${counter.incrementAndGet()}").apply { mkdirs() }
+        val file = File(own, storableName(safe)).apply { writeBytes(data) }
         return AttachmentView.Document(file, mime)
     }
 
     private fun playable(kind: AttachmentKind, data: ByteArray): AttachmentView {
-        val file = File(folder, "anhang-${++counter}.${if (kind == AttachmentKind.Video) "mp4" else "m4a"}").apply { writeBytes(data) }
+        val extension = if (kind == AttachmentKind.Video) "mp4" else "m4a"
+        val file = File(folder, "anhang-${counter.incrementAndGet()}.$extension").apply { writeBytes(data) }
         return AttachmentView.Playable(file, if (kind == AttachmentKind.Video) poster(file) else null)
     }
 
@@ -308,11 +316,48 @@ class AndroidChatMedia(
 
         /** What a bubble says when an attachment cannot be decrypted or read. */
         const val UNVERIFIABLE = "Anhang ließ sich nicht prüfen."
+
+        /** The cache folder of the decrypted files (chat_file_paths.xml). */
+        const val FOLDER = "chat-attachments"
+
+        /** A file name may have at most this many UTF-8 bytes on Android's file systems (NAME_MAX of ext4 and f2fs). */
+        const val MAX_NAME_BYTES = 255
+
+        /** Up to this many characters after the last dot count as the extension, which a shortened name keeps. */
+        private const val MAX_EXTENSION_LENGTH = 16
+
+        /**
+         * [name] within [MAX_NAME_BYTES]: a message may name a file with 120 characters of up to 4 bytes each. Characters
+         * come off the end of the name before its extension, so the app that opens it still knows the type; the bubble
+         * shows the whole name.
+         */
+        internal fun storableName(name: String): String {
+            fun bytes(text: String) = text.toByteArray(Charsets.UTF_8).size
+            if (bytes(name) <= MAX_NAME_BYTES) return name
+            val dot = name.lastIndexOf('.')
+            val extension = if (dot > 0 && name.length - dot - 1 <= MAX_EXTENSION_LENGTH) name.substring(dot) else ""
+            var base = name.substring(0, name.length - extension.length)
+            while (bytes(base + extension) > MAX_NAME_BYTES) {
+                base = base.substring(0, base.offsetByCodePoints(base.length, -1))
+            }
+            return base + extension
+        }
     }
 }
 
-/** Hands decrypted files to other apps (a class of its own, so it never clashes with other modules' providers). */
-class ChatFileProvider : FileProvider(R.xml.chat_file_paths)
+/**
+ * Hands decrypted files to other apps (a class of its own, so it never clashes with other modules' providers). Android
+ * creates it when the process starts: decrypted files that a killed process left in the cache are deleted then, before
+ * anything could hand them out again – also when Android starts the process only because another app reads a file it
+ * was given earlier, which then finds nothing: no decrypted file outlives the process that opened it.
+ */
+class ChatFileProvider : FileProvider(R.xml.chat_file_paths) {
+    override fun onCreate(): Boolean {
+        // Android attaches the context before it calls onCreate.
+        File(context!!.cacheDir, AndroidChatMedia.FOLDER).deleteRecursively()
+        return super.onCreate()
+    }
+}
 
 /**
  * ACTION_VIEW ("Öffnen") or, wrapped in the system chooser, ACTION_SEND ("Teilen") of a decrypted file through

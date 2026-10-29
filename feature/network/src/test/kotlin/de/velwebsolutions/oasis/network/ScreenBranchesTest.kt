@@ -74,7 +74,6 @@ import de.velwebsolutions.oasis.network.ui.components.block
 import de.velwebsolutions.oasis.network.ui.components.copyToClipboard
 import de.velwebsolutions.oasis.network.ui.components.feedSection
 import de.velwebsolutions.oasis.network.ui.compose.ComposeUiState
-import de.velwebsolutions.oasis.network.ui.compose.ComposeViewModel
 import de.velwebsolutions.oasis.network.ui.compose.ComposerCallbacks
 import de.velwebsolutions.oasis.network.ui.compose.ComposerForm
 import de.velwebsolutions.oasis.network.ui.compose.ToneHintNote
@@ -541,6 +540,8 @@ class ScreenBranchesTest {
         compose.onNodeWithTag("closeOasis.confirm").performClick()
         compose.onNodeWithTag("closeOasis.submit").performClick()
         waitFor { navigator.selectedTab == MainTab.Oases }
+        // The oasis was reached on the Quelle: its screens leave that tab, too.
+        assertTrue(navigator.stack(MainTab.Source).isEmpty())
     }
 
     @Test
@@ -554,14 +555,14 @@ class ScreenBranchesTest {
         )
         navigator.open(NetworkRoute.Discover)
         navigator.open(NetworkRoute.Compose())
-        val composer = models.keep(ComposeViewModel("ohne-sheet", null, null, network.repository, network.common, network.session))
+        val composer = models.keep(network.composer("ohne-sheet"))
         show { ComposeScreen("ohne-sheet", null, composer) }
         text("Tropfen teilen")
         compose.onNode(hasSetTextAction()).performTextInput("Hallo")
         compose.onNodeWithTag("compose.submit").performClick()
         waitFor { navigator.stack(MainTab.Source).last() == NetworkRoute.Discover }
 
-        val carrying = models.keep(ComposeViewModel(null, null, 12, network.repository, network.common, network.session))
+        val carrying = models.keep(network.composer(carried = 12))
         val source = models.keep(CarryViewModel(12, network.repository))
         switchTo { CarryScreen(12, source, carrying) }
         text("Noch einmal versuchen")
@@ -610,7 +611,7 @@ class ScreenBranchesTest {
     fun `the composer sheet closes without a draft`() {
         val network = StubbedNetwork(stub("GET", "network/composer", Fixtures.composer))
         navigator.present(NetworkRoute.Compose())
-        val composer = models.keep(ComposeViewModel("leer-sheet", null, null, network.repository, network.common, network.session))
+        val composer = models.keep(network.composer("leer-sheet"))
         show(ScreenChrome(onClose = { navigator.dismissSheet() })) { ComposeScreen("leer-sheet", null, composer) }
         text("Tropfen teilen")
         compose.onNodeWithTag("compose.close").performClick()
@@ -632,7 +633,7 @@ class ScreenBranchesTest {
         navigator.open(NetworkRoute.Post(12))
         NetworkSignals.replyFocus.value = 99
         val model = models.keep(PostDetailViewModel(12, network.repository))
-        val reply = models.keep(ComposeViewModel(null, 12, null, network.repository, network.common, network.session))
+        val reply = models.keep(network.composer(replyTo = 12))
         show { PostDetailScreen(12, model, reply) }
         text("Frühere Fassungen (1)").performClick()
         text("Frühere Fassungen (1)").performClick()
@@ -926,7 +927,7 @@ class ScreenBranchesTest {
         val network = StubbedNetwork(stub("GET", "network/posts/12", Fixtures.post), stub("GET", "network/composer", Fixtures.composer))
         NetworkSignals.replyFocus.value = 12
         val model = models.keep(PostDetailViewModel(12, network.repository))
-        val reply = models.keep(ComposeViewModel(null, 12, null, network.repository, network.common, network.session))
+        val reply = models.keep(network.composer(replyTo = 12))
         show { PostDetailScreen(12, model, reply) }
         waitFor { NetworkSignals.replyFocus.value == null }
     }

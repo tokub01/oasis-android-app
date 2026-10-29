@@ -146,15 +146,18 @@ class ChatAccessViewModel @Inject constructor(context: ChatContext) : ChatViewMo
         }
     }
 
-    /** Unlock screen: biometrics only where this device has a copy on the server. */
+    /**
+     * Unlock screen: biometrics only where this device has a copy on the server. When the rows cannot be loaded (offline,
+     * a server error) the button stays: unlocking loads them again and says what went wrong, instead of leaving a
+     * member without a passphrase only "Neue Schlüssel erstellen".
+     */
     private suspend fun prepareUnlock() {
         mutableState.update { it.copy(deviceUnlockError = null) }
         if (!context.devices.isAvailable || context.secrets.credentialId(vault.userId) == null) {
             mutableState.update { it.copy(canUnlockWithDevice = false) }
             return
         }
-        val rows = runCatching { context.repository.deviceUnlocks() }.getOrDefault(emptyList())
-        val own = context.devices.ownRow(rows) != null
+        val own = runCatching { context.devices.ownRow(context.repository.deviceUnlocks()) != null }.getOrDefault(true)
         mutableState.update { it.copy(canUnlockWithDevice = own) }
     }
 
@@ -183,6 +186,9 @@ class ChatAccessViewModel @Inject constructor(context: ChatContext) : ChatViewMo
                 vault.announcement.value = "Deine Chat-Schlüssel sind eingerichtet."
                 refreshIdentityFlags()
                 mutableState.update { it.copy(phase = ChatPhase.Open) }
+            } else {
+                // Locked meanwhile, or published while Oasis was in the background: then they wait to be unlocked.
+                routeLocked()
             }
         } catch (error: Exception) {
             mutableState.update { it.copy(formError = describeChatError(error)) }
@@ -199,9 +205,18 @@ class ChatAccessViewModel @Inject constructor(context: ChatContext) : ChatViewMo
                 vault.announcement.value = "Dein Chat ist eingerichtet – ohne extra Passwort."
                 refreshIdentityFlags()
                 mutableState.update { it.copy(deviceSetupStatus = null, phase = ChatPhase.Open) }
+            } else {
+                // Locked meanwhile, or published while Oasis was in the background: then they wait to be unlocked.
+                mutableState.update { it.copy(deviceSetupStatus = null) }
+                routeLocked()
             }
         } catch (_: ChatKeyringException.DeviceUnlockUnsupported) {
             mutableState.update { it.copy(deviceSetupStatus = Biometrics.UNSUPPORTED) }
+        } catch (_: ChatKeyringException.DeviceCopyNotStored) {
+            // The keys are open, but only memory holds them: the member has to keep a copy before the next lock.
+            vault.announcement.value = Biometrics.COPY_NOT_STORED
+            refreshIdentityFlags()
+            mutableState.update { it.copy(deviceSetupStatus = null, phase = ChatPhase.Open) }
         } catch (error: Exception) {
             mutableState.update { it.copy(deviceSetupStatus = describeChatError(error)) }
         } finally {
@@ -241,13 +256,18 @@ class ChatAccessViewModel @Inject constructor(context: ChatContext) : ChatViewMo
         unlockWithDevice(quietOnCancel = true)
     }
 
-    /** "Mit Fingerabdruck oder Gesichtserkennung entsperren". */
+    /**
+     * "Mit Fingerabdruck oder Gesichtserkennung entsperren". When the rows show that this device's copy is gone (removed
+     * elsewhere while the screen could not load them), the button goes and the other ways in show.
+     */
     suspend fun unlockWithDevice(quietOnCancel: Boolean = false) = inScope {
         val stored = vault.storedIdentity ?: return@inScope
         mutableState.update { it.copy(deviceUnlockError = null, busy = true) }
         try {
             val rows = context.repository.deviceUnlocks()
-            if (context.devices.unlock(stored, rows)) {
+            if (context.devices.ownRow(rows) == null) {
+                mutableState.update { it.copy(canUnlockWithDevice = false) }
+            } else if (context.devices.unlock(stored, rows)) {
                 vault.announcement.value = "Nachrichten entsperrt."
                 mutableState.update { it.copy(phase = ChatPhase.Open) }
             }
@@ -333,10 +353,15 @@ class ChatAccessViewModel @Inject constructor(context: ChatContext) : ChatViewMo
         }
     }
 
-    /** One round of picking up the approval; true when finished (opened, or failed). */
+    /**
+     * One round of picking up the approval; true when finished (opened, or failed). While Oasis is in the background
+     * (the member approves in the browser on this phone) the approval waits on the server: picked up there, the vault
+     * would refuse to open and the one-time approval would be gone.
+     */
     suspend fun pollOnce(): Boolean {
         val link = pendingLink ?: return true
         val stored = vault.storedIdentity ?: return true
+        if (!vault.inForeground) return false
         return try {
             val unlocked = context.devices.pickUp(link, stored) ?: return false
             pendingLink = null

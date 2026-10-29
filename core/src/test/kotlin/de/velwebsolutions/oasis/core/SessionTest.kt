@@ -12,11 +12,16 @@ import de.velwebsolutions.oasis.core.auth.SignInMethods
 import de.velwebsolutions.oasis.core.auth.SignInResult
 import de.velwebsolutions.oasis.core.model.Me
 import de.velwebsolutions.oasis.core.network.ApiError
+import kotlinx.coroutines.CancellationException
+import kotlinx.coroutines.CompletableDeferred
+import kotlinx.coroutines.launch
 import kotlinx.coroutines.test.TestScope
+import kotlinx.coroutines.test.runCurrent
 import kotlinx.coroutines.test.runTest
 import kotlinx.serialization.json.JsonObject
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertNull
+import org.junit.Assert.assertTrue
 import org.junit.Test
 
 class SessionTest {
@@ -80,6 +85,68 @@ class SessionTest {
         session.restore()
         assertEquals(SessionState.SignedOut, session.state.value)
         assertEquals("t", tokens.read())
+    }
+
+    /** A new activity restores again (after Back on Android 9–11): offline, the member it already knows stays signed in. */
+    @Test
+    fun `a session this process has stays signed in when a new restore cannot reach the server`() = runTest {
+        val tokens = InMemoryTokenStore("t")
+        val auth = FakeAuth(Result.success(mira))
+        val session = Session(tokens, "Pixel", TestScope()).apply { this.auth = auth }
+        session.restore()
+        auth.meResult = Result.failure(ApiError.Transport("offline"))
+        session.restore()
+        assertEquals(SessionState.SignedIn(mira), session.state.value)
+        assertEquals("t", tokens.read())
+    }
+
+    @Test
+    fun `a cancelled restore decides nothing`() = runTest {
+        val session = Session(InMemoryTokenStore("t"), "Pixel", TestScope()).apply {
+            auth = FakeAuth(Result.failure(CancellationException("Bildschirm geschlossen")))
+        }
+        val failure = runCatching { session.restore() }.exceptionOrNull()
+        assertTrue(failure is CancellationException)
+        assertEquals(SessionState.Loading, session.state.value)
+    }
+
+    @Test
+    fun `an answer to refreshMe that arrives after signing out changes nothing`() = runTest {
+        val tokens = InMemoryTokenStore("t")
+        val answer = CompletableDeferred<Me>()
+        val session = Session(tokens, "Pixel", TestScope()).apply {
+            auth = object : AuthApi by FakeAuth(Result.success(mira)) {
+                override suspend fun me() = answer.await()
+            }
+            update(mira)
+        }
+        val refresh = launch { session.refreshMe() }
+        runCurrent()
+        session.signOut()
+        answer.complete(mira.copy(displayName = "Mira S."))
+        refresh.join()
+        assertEquals(SessionState.SignedOut, session.state.value)
+        assertNull(tokens.read())
+    }
+
+    /** A new activity restores while the tabs stay in view; the member may sign out before the answer is in. */
+    @Test
+    fun `an answer to a restore that arrives after signing out changes nothing`() = runTest {
+        val tokens = InMemoryTokenStore("t")
+        val answer = CompletableDeferred<Me>()
+        val session = Session(tokens, "Pixel", TestScope()).apply {
+            auth = object : AuthApi by FakeAuth(Result.success(mira)) {
+                override suspend fun me() = answer.await()
+            }
+            update(mira)
+        }
+        val restore = launch { session.restore() }
+        runCurrent()
+        session.signOut()
+        answer.complete(mira)
+        restore.join()
+        assertEquals(SessionState.SignedOut, session.state.value)
+        assertNull(tokens.read())
     }
 
     @Test

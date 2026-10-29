@@ -5,11 +5,14 @@ import dagger.assisted.AssistedFactory
 import dagger.assisted.AssistedInject
 import dagger.hilt.android.lifecycle.HiltViewModel
 import de.velwebsolutions.oasis.core.model.Loadable
+import de.velwebsolutions.oasis.core.model.refreshing
 import de.velwebsolutions.oasis.network.api.TimeCapsuleInput
 import de.velwebsolutions.oasis.network.api.TimeCapsules
 import de.velwebsolutions.oasis.network.api.Yearbook
 import de.velwebsolutions.oasis.network.data.NetworkRepository
 import de.velwebsolutions.oasis.network.ui.NetworkViewModel
+import de.velwebsolutions.oasis.network.ui.apiError
+import de.velwebsolutions.oasis.network.ui.attempt
 import java.time.Instant
 import java.time.ZoneId
 import java.time.format.DateTimeFormatter
@@ -94,8 +97,19 @@ class YearbookViewModel @AssistedInject constructor(@Assisted year: Int?, privat
     private val mutableBook = MutableStateFlow<Loadable<Yearbook>>(Loadable.Idle)
     val book: StateFlow<Loadable<Yearbook>> = mutableBook.asStateFlow()
 
+    /**
+     * The book of the year chosen last; pull to refresh loads it again. The answer for a year tapped before comes too
+     * late and is dropped, so the shown book always is the last tapped one.
+     */
     suspend fun load() {
-        mutableBook.load { repository.yearbook(year) }
+        val requested = year
+        mutableBook.value = mutableBook.value.refreshing()
+        val result = attempt { repository.yearbook(requested) }
+        if (requested != year) return
+        result.onSuccess { mutableBook.value = Loadable.Loaded(it) }
+        result.apiError?.let { error ->
+            if (mutableBook.value.valueOrNull == null) mutableBook.value = Loadable.Failed(error) else mutableError.value = error
+        }
     }
 
     suspend fun loadIfNeeded() {

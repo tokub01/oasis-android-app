@@ -5,6 +5,7 @@ import de.velwebsolutions.oasis.membership.billing.BillingGateway
 import de.velwebsolutions.oasis.membership.billing.BillingPeriod
 import de.velwebsolutions.oasis.membership.billing.PlayDelivery
 import de.velwebsolutions.oasis.membership.billing.PlayProducts
+import de.velwebsolutions.oasis.membership.billing.PlayPurchase
 import de.velwebsolutions.oasis.membership.billing.PurchaseOutcome
 import de.velwebsolutions.oasis.membership.data.MembershipEvents
 import de.velwebsolutions.oasis.membership.ui.AlreadyMember
@@ -15,10 +16,16 @@ import de.velwebsolutions.oasis.testing.StubTransport
 import de.velwebsolutions.oasis.testing.StubTransport.Stub
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.CompletableDeferred
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.async
+import kotlinx.coroutines.cancelAndJoin
+import kotlinx.coroutines.delay
+import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.test.runTest
+import kotlinx.coroutines.withContext
+import kotlinx.coroutines.withTimeout
 import kotlinx.serialization.json.JsonObject
 import kotlinx.serialization.json.JsonPrimitive
 import org.junit.Assert.assertEquals
@@ -154,6 +161,33 @@ class PlayCheckoutTest {
     }
 
     @Test
+    fun `a purchase reaches the server although its screen went away meanwhile`() = runTest {
+        val gateway = FakeBillingGateway(outcome = PurchaseOutcome.Purchased(listOf(Fixtures.purchase())))
+        val viewModel = checkout(gateway)
+        val gate = CompletableDeferred<Unit>()
+        gateway.gate = gate
+        val screen = launch { viewModel.purchase(null, Fixtures.product(Catalogue.OASE_MONTHLY, "5,00 €")) }
+        testScheduler.runCurrent()
+        // Rotating the device while Play's sheet is open recreates the screen and cancels its coroutine.
+        screen.cancelAndJoin()
+        gate.complete(Unit)
+        // The purchase goes to the server on OkHttp's thread; wait for it in real time.
+        withContext(Dispatchers.Default) { withTimeout(5_000) { while (viewModel.state.value.purchasing != null) delay(10) } }
+        assertEquals("token-${Catalogue.OASE_MONTHLY} ${Catalogue.OASE_MONTHLY}", sent())
+        assertEquals(Fixtures.WELCOME, events.take().message)
+    }
+
+    @Test
+    fun `a subscription Play already has goes to the server like a restored one`() = runTest {
+        val gateway = FakeBillingGateway(outcome = PurchaseOutcome.AlreadyOwned, owned = listOf(Fixtures.purchase()))
+        val viewModel = checkout(gateway)
+        assertTrue(viewModel.purchase(null, Fixtures.product(Catalogue.OASE_MONTHLY, "5,00 €")))
+        assertEquals("token-${Catalogue.OASE_MONTHLY} ${Catalogue.OASE_MONTHLY}", sent())
+        assertEquals(Fixtures.WELCOME, viewModel.state.value.message)
+        assertNull(viewModel.state.value.error)
+    }
+
+    @Test
     fun `while the server takes no Play purchases the prices show but nothing can be bought`() = runTest {
         val gateway = FakeBillingGateway(outcome = PurchaseOutcome.Purchased(listOf(Fixtures.purchase())))
         val viewModel = checkout(gateway, overview = Fixtures.noMembershipOverview.replace("\"available\":true", "\"available\":false"))
@@ -248,5 +282,24 @@ class PlayCheckoutTest {
         PlayTransactions(gateway, PlayDelivery(repository), events, Fixtures.session()).observe()
         assertEquals("a refused purchase changes nothing", 0, events.version.value)
         assertEquals(2, repository.receipts.size)
+    }
+
+    @Test
+    fun `an update Play reports while the open purchases are asked for is not lost`() = runTest {
+        val updates = MutableSharedFlow<PlayPurchase>(extraBufferCapacity = 8)
+        val gateway = object : BillingGateway by FakeBillingGateway() {
+            override val purchaseUpdates = updates
+
+            override suspend fun ownedPurchases(): List<PlayPurchase> {
+                // A pending payment goes through while Play is still connecting; Play keeps no update for later.
+                updates.tryEmit(Fixtures.purchase(Catalogue.SOLIDAR_YEARLY))
+                return emptyList()
+            }
+        }
+        val repository = FakeMembershipRepository()
+        val job = launch { PlayTransactions(gateway, PlayDelivery(repository), events, Fixtures.session()).observe() }
+        testScheduler.runCurrent()
+        assertEquals(listOf(Catalogue.SOLIDAR_YEARLY), repository.receipts.map { it.productId })
+        job.cancel()
     }
 }

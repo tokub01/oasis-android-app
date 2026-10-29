@@ -1,8 +1,11 @@
 package de.velwebsolutions.oasis.live
 
 import de.velwebsolutions.oasis.core.model.Loadable
+import de.velwebsolutions.oasis.core.network.Page
 import de.velwebsolutions.oasis.live.api.ChatSwitch
+import de.velwebsolutions.oasis.live.api.Hint
 import de.velwebsolutions.oasis.live.api.HintSettings
+import de.velwebsolutions.oasis.live.api.LiveCountsData
 import de.velwebsolutions.oasis.live.api.PushSettings
 import de.velwebsolutions.oasis.live.data.LiveRepository
 import de.velwebsolutions.oasis.live.push.PushAuthorization
@@ -15,9 +18,12 @@ import de.velwebsolutions.oasis.live.ui.hourAndMinute
 import de.velwebsolutions.oasis.live.ui.timeText
 import de.velwebsolutions.oasis.testing.MainDispatcherRule
 import de.velwebsolutions.oasis.testing.StubTransport
+import java.time.Instant
 import java.util.Locale
 import kotlinx.coroutines.CancellationException
+import kotlinx.coroutines.CompletableDeferred
 import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.test.TestScope
 import kotlinx.coroutines.test.runCurrent
 import kotlinx.coroutines.test.runTest
 import kotlinx.serialization.json.JsonObject
@@ -103,7 +109,6 @@ class HintsViewModelTest {
                 quietUntil = "06:15"
             )
         }
-        assertTrue(model.quietHoursChanged)
         model.save()
 
         assertEquals(
@@ -126,7 +131,7 @@ class HintsViewModelTest {
             transport.lastBody("hints/settings")
         )
         assertEquals("Deine Hinweis-Einstellungen sind gespeichert.", model.ui.value.message)
-        assertFalse(model.quietHoursChanged)
+        assertEquals("the saved answer is shown", "21:30", model.ui.value.settings?.quietFrom)
         assertFalse(model.ui.value.isSaving)
     }
 
@@ -255,11 +260,12 @@ class HintsViewModelTest {
         val model = settingsModel(transport)
         assertTrue(model.loaded().state is Loadable.Failed)
         assertNull("the failure is the screen, not a toast", model.ui.value.error)
-        assertFalse(model.quietHoursChanged)
+        model.editQuietHours { it.copy(quietFrom = "21:00") }
         model.edit { it.copy(digest = true) }
         model.save()
         model.saveChat("chat_push")
         assertTrue("nothing to change or save without settings", model.ui.value.settings == null)
+        assertTrue(transport.requests.none { it.request.method == "PUT" })
 
         transport.add("GET", "hints/settings", json = LiveJson.SETTINGS)
         model.load()
@@ -291,6 +297,23 @@ class HintsViewModelTest {
         assertFalse(model.ui.value.isSaving)
         model.dismissMessage()
         assertNull(model.ui.value.message)
+    }
+
+    @Test
+    fun savesAPickedTimeAtOnceAndNothingForTheTimeShown() = runTest {
+        val transport = StubTransport(
+            StubTransport.Stub("GET", "hints/settings", json = LiveJson.SETTINGS),
+            StubTransport.Stub("PUT", "hints/settings", json = LiveJson.saved("Gespeichert."))
+        )
+        val model = settingsModel(transport)
+        model.loaded()
+        model.editQuietHours { it.copy(quietFrom = "22:00") }
+        assertTrue("taking over the time shown sends nothing", transport.requests.none { it.request.method == "PUT" })
+
+        model.editQuietHours { it.copy(quietFrom = "21:00") }
+        model.ui.first { it.message == "Gespeichert." }
+        assertEquals("21:00", (transport.lastBody("hints/settings") as JsonObject)["quiet_from"]?.let { (it as JsonPrimitive).content })
+        assertEquals("nothing waits before the request, so leaving the screen cannot lose the time", 0L, testScheduler.currentTime)
     }
 
     @Test
@@ -364,10 +387,12 @@ class HintsViewModelTest {
     fun forgetsThisInstallationWhenItsAppDeviceIsRemoved() = runTest {
         val transport = StubTransport(
             StubTransport.Stub("GET", "hints/settings", json = LiveJson.SETTINGS),
-            StubTransport.Stub("DELETE", "push/devices/4", json = """{"message":"Entfernt."}""")
+            StubTransport.Stub("DELETE", "push/devices/4", json = """{"message":"Entfernt."}"""),
+            StubTransport.Stub("GET", "app-config", json = LiveJson.CONFIG)
         )
         val store = MemoryPushStore(deviceId = 4)
-        val model = HintSettingsViewModel(repository(transport), registrar(store = store))
+        val push = registrar(store = store)
+        val model = HintSettingsViewModel(repository(transport), push)
         model.loaded()
         // The list cannot be read again afterwards: it keeps what it had.
         transport.add("GET", "hints/settings", status = 500, json = """{"message":"Server Error"}""")
@@ -375,6 +400,11 @@ class HintsViewModelTest {
         assertNull(store.deviceId)
         assertEquals("Entfernt.", model.ui.value.message)
         assertEquals(2, model.ui.value.settings?.push?.devices?.size)
+
+        // Removed here, it stays off like after "ausschalten": the next start does not register it again.
+        assertTrue(store.optedOut)
+        push.signedIn(repository(transport))
+        assertTrue(transport.requests.none { it.request.method == "POST" && it.path == "push/devices" })
     }
 
     @Test
@@ -432,6 +462,161 @@ class HintsViewModelTest {
         assertTrue(merged.hasMore)
     }
 
+    /** Answers each page with [answer] (which may wait) and records the pages asked for; the bell's numbers are [bell]. */
+    private class PagesRepository(
+        val bell: suspend () -> LiveCountsData = { LiveCountsData() },
+        val answer: suspend (page: Int) -> Page<Hint>
+    ) : LiveRepository by ImmediateLiveRepository() {
+        val asked = mutableListOf<Int>()
+
+        override suspend fun hints(page: Int): Page<Hint> {
+            asked += page
+            return answer(page)
+        }
+
+        override suspend fun counts(): LiveCountsData = bell()
+    }
+
+    private fun hint(id: String, unread: Boolean = false) =
+        Hint(id, "Hinweis $id", unread = unread, createdAt = Instant.parse("2026-10-20T08:00:00Z"), group = "Diese Woche")
+
+    /** Page [number] of [last] with these hints, as the server answers it. */
+    private fun page(number: Int, last: Int, vararg hints: Hint) = Page(hints.toList(), Page.Meta(currentPage = number, lastPage = last))
+
+    private fun TestScope.inbox(repository: LiveRepository) = HintsInboxViewModel(repository, coordinator(StubTransport(), backgroundScope))
+
+    @Test
+    fun aPageWithoutVisibleHintsIsFollowedAtOnce() = runTest {
+        // Page 2 only had hints about content removed since: the server leaves them out.
+        val repository = PagesRepository { number ->
+            when (number) {
+                1 -> page(1, 3, hint("a"), hint("b"))
+                2 -> page(2, 3)
+                else -> page(3, 3, hint("c"))
+            }
+        }
+        val model = inbox(repository)
+        model.loaded()
+        model.loadMore()
+        val more = model.ui.first { !it.isLoadingMore }
+        assertEquals("the end of the list stayed in view, so the next page follows", listOf(1, 2, 3), repository.asked)
+        assertEquals(listOf("a", "b", "c"), more.state.valueOrNull?.map { it.id })
+        assertFalse(more.hasMore)
+        assertFalse(more.offersMore)
+    }
+
+    @Test
+    fun aLastPageWithoutVisibleHintsEndsTheList() = runTest {
+        // The oldest page only had hints about content removed since.
+        val repository = PagesRepository { number -> if (number == 1) page(1, 2, hint("a")) else page(2, 2) }
+        val model = inbox(repository)
+        model.loaded()
+        model.loadMore()
+        val end = model.ui.first { !it.isLoadingMore }
+        assertEquals(listOf(1, 2), repository.asked)
+        assertEquals(listOf("a"), end.state.valueOrNull?.map { it.id })
+        assertFalse(end.hasMore)
+        assertFalse("nothing is left to offer", end.offersMore)
+    }
+
+    @Test
+    fun anEmptyFirstPageIsFollowedAtOnce() = runTest {
+        // The newest hints were all about content removed since: there is no row whose end could come into view.
+        val repository = PagesRepository { number -> if (number == 1) page(1, 2) else page(2, 2, hint("a")) }
+        val model = inbox(repository)
+        val shown = model.ui.first { it.state is Loadable.Loaded && !it.isLoadingMore }
+        assertEquals("the older page follows by itself", listOf(1, 2), repository.asked)
+        assertEquals(listOf("a"), shown.state.valueOrNull?.map { it.id })
+        assertFalse(shown.hasMore)
+    }
+
+    @Test
+    fun offersToGoOnAfterSeveralPagesWithoutVisibleHints() = runTest {
+        val repository = PagesRepository { number -> if (number == 1) page(1, 20, hint("a")) else page(number, 20) }
+        val model = inbox(repository)
+        model.loaded()
+        model.loadMore()
+        val stopped = model.ui.first { !it.isLoadingMore }
+        assertEquals("five pages at once, then the member decides", listOf(1, 2, 3, 4, 5, 6), repository.asked)
+        assertTrue(stopped.hasMore)
+        assertTrue(stopped.offersMore)
+
+        // "Ältere Hinweise laden" goes on where it stopped.
+        model.loadMore()
+        model.ui.first { !it.isLoadingMore }
+        assertEquals(listOf(7, 8, 9, 10, 11), repository.asked.drop(6))
+    }
+
+    @Test
+    fun endsLoadingBeforeTheBellIsAskedAgain() = runTest {
+        // The bell's numbers take their time; every page holds one hint.
+        val numbers = CompletableDeferred<LiveCountsData>()
+        val repository = PagesRepository(bell = { numbers.await() }) { number -> page(number, 3, hint("$number")) }
+        val live = LiveCoordinator(repository, FakeRealtime(), registrar(), backgroundScope)
+        live.start(5)
+        val model = HintsInboxViewModel(repository, live)
+        model.loaded()
+        model.loadMore()
+        assertFalse("the loading ended with the new row", model.ui.value.isLoadingMore)
+        // That row is the end of the list, in view at once: it asks for the page after while the bell still waits.
+        model.loadMore()
+        assertEquals(listOf(1, 2, 3), repository.asked)
+        assertEquals(listOf("1", "2", "3"), model.ui.value.state.valueOrNull?.map { it.id })
+        numbers.complete(LiveCountsData())
+        live.stop()
+    }
+
+    @Test
+    fun aPageAskedForBeforeARefreshDoesNotOverwriteIt() = runTest {
+        val late = CompletableDeferred<Page<Hint>>()
+        var firstPage = page(1, 3, hint("a"), hint("b"))
+        val repository = PagesRepository { number -> if (number == 1) firstPage else late.await() }
+        val model = inbox(repository)
+        model.loaded()
+        model.loadMore()
+        // Pulled to refresh while page 2 is on its way; a new hint has arrived meanwhile.
+        firstPage = page(1, 3, hint("new"), hint("a"))
+        model.load()
+        late.complete(page(2, 3, hint("b"), hint("c")))
+        val refreshed = model.ui.first { !it.isLoadingMore }
+        assertEquals("the late page belonged to the old list", listOf("new", "a"), refreshed.state.valueOrNull?.map { it.id })
+
+        model.loadMore()
+        val more = model.ui.first { !it.isLoadingMore }
+        assertEquals("the next page follows the refreshed list", listOf(1, 2, 1, 2), repository.asked)
+        assertEquals(listOf("new", "a", "b", "c"), more.state.valueOrNull?.map { it.id })
+    }
+
+    @Test
+    fun aPageArrivingAfterAllWereMarkedReadKeepsThemRead() = runTest {
+        val late = CompletableDeferred<Page<Hint>>()
+        val repository = PagesRepository { number -> if (number == 1) page(1, 2, hint("a", unread = true)) else late.await() }
+        val model = inbox(repository)
+        assertTrue(model.loaded().showsUnread)
+        model.loadMore()
+        model.markAllRead()
+        // The server opened the page before it marked all read, so its hint came back unread.
+        late.complete(page(2, 2, hint("b", unread = true)))
+        val more = model.ui.first { !it.isLoadingMore }
+        assertEquals(listOf("a", "b"), more.state.valueOrNull?.map { it.id })
+        assertFalse("\"Neu\" does not come back with the late page", more.showsUnread)
+    }
+
+    @Test
+    fun aListArrivingAfterAllWereMarkedReadShowsThemRead() = runTest {
+        val late = CompletableDeferred<Page<Hint>>()
+        var firstPage: suspend () -> Page<Hint> = { late.await() }
+        val model = inbox(PagesRepository { firstPage() })
+        // The bell counted unread hints, so "Alle als gelesen markieren" was there before the list.
+        model.markAllRead()
+        late.complete(page(1, 1, hint("a", unread = true)))
+        assertFalse("the list asked for before comes read", model.loaded().showsUnread)
+
+        firstPage = { page(1, 1, hint("new", unread = true), hint("a")) }
+        model.load()
+        assertTrue("a list asked for afterwards keeps its \"Neu\" marks", model.ui.value.showsUnread)
+    }
+
     @Test
     fun reportsFailedPagesAndMarksWithoutAList() = runTest {
         val transport = StubTransport(
@@ -443,6 +628,7 @@ class HintsViewModelTest {
         transport.add("GET", "hints", status = 500, json = """{"message":"Server Error"}""")
         model.loadMore()
         model.ui.first { !it.isLoadingMore && it.error != null }
+        assertTrue("the end of the list offers to try again", model.ui.value.offersMore)
         model.dismissError()
         model.load()
         assertNotNull("a failed reload keeps the list and says so", model.ui.value.state.valueOrNull)

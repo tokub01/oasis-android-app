@@ -52,7 +52,6 @@ import de.velwebsolutions.oasis.design.theme.OasisColors
 import de.velwebsolutions.oasis.design.theme.OasisRadius
 import de.velwebsolutions.oasis.design.theme.OasisType
 import kotlinx.coroutines.delay
-import kotlinx.coroutines.withTimeoutOrNull
 
 /** The colour of a [Pill]. */
 enum class PillTone {
@@ -101,7 +100,9 @@ fun Pill(text: String, modifier: Modifier = Modifier, tone: PillTone = PillTone.
 /**
  * The confirmation of the last action and the last error as a Material snackbar at the bottom of the screen (the web's
  * `x-oasis.status`, a toast on iOS): always in view whatever was tapped, announced by TalkBack, with a haptic, gone after
- * a few seconds or when closed; an error and a confirmation queue one after the other. Setting a text shows it; the snackbar calls the dismiss callback to set it back to null.
+ * a few seconds (an error after 8, a confirmation after 5) or when closed. An error and a confirmation queue one after
+ * the other; each gets its seconds from the moment it is in view, so one that waited behind the other is shown in full.
+ * Setting a text shows it; the snackbar calls the dismiss callback to set it back to null.
  */
 @Composable
 fun BoxScope.StatusToast(
@@ -117,16 +118,24 @@ fun BoxScope.StatusToast(
     val currentDismissError by rememberUpdatedState(onDismissError)
     LaunchedEffect(error) {
         if (error != null) {
-            haptics.performHapticFeedback(HapticFeedbackType.Reject)
-            withTimeoutOrNull(8_000) { host.showSnackbar(StatusVisuals(error, isError = true)) }
+            host.showSnackbar(StatusVisuals(error, isError = true))
             currentDismissError()
         }
     }
     LaunchedEffect(message) {
         if (message != null) {
-            haptics.performHapticFeedback(HapticFeedbackType.Confirm)
-            withTimeoutOrNull(5_000) { host.showSnackbar(StatusVisuals(message, isError = false)) }
+            host.showSnackbar(StatusVisuals(message, isError = false))
             currentDismissMessage()
+        }
+    }
+    // The snackbar in view: its haptic, and its seconds counted from now – not from when its text was set.
+    val shown = host.currentSnackbarData
+    LaunchedEffect(shown) {
+        if (shown != null) {
+            val visuals = shown.visuals as StatusVisuals
+            haptics.performHapticFeedback(visuals.haptic)
+            delay(visuals.shownMillis)
+            shown.dismiss()
         }
     }
     SnackbarHost(
@@ -156,4 +165,9 @@ private class StatusVisuals(override val message: String, val isError: Boolean) 
     override val actionLabel: String? = null
     override val withDismissAction: Boolean = true
     override val duration: SnackbarDuration = SnackbarDuration.Indefinite
+
+    /** How long it stays in view once it is shown: an error longer, so it can be read. */
+    val shownMillis: Long = if (isError) 8_000 else 5_000
+
+    val haptic: HapticFeedbackType = if (isError) HapticFeedbackType.Reject else HapticFeedbackType.Confirm
 }

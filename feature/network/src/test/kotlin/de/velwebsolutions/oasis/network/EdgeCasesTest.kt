@@ -12,7 +12,6 @@ import de.velwebsolutions.oasis.network.data.NetworkRepository
 import de.velwebsolutions.oasis.network.ui.PostAction
 import de.velwebsolutions.oasis.network.ui.PostListModel
 import de.velwebsolutions.oasis.network.ui.compose.ComposeUiState
-import de.velwebsolutions.oasis.network.ui.compose.ComposeViewModel
 import de.velwebsolutions.oasis.network.ui.feeds.SearchViewModel
 import de.velwebsolutions.oasis.network.ui.feeds.SourceViewModel
 import de.velwebsolutions.oasis.network.ui.posts.PostDetailViewModel
@@ -120,7 +119,7 @@ class EdgeCasesTest(private val answersAtOnce: Boolean) {
                 return ToneHint("alt", nudge = true)
             }
         }
-        val model = models.keep(ComposeViewModel("grenzen", 12, null, network.repository, slowTone, network.session))
+        val model = models.keep(network.composer("grenzen", 12, common = slowTone))
         model.load()
         assertEquals("friends", model.state.value.visibility)
         // A server before the tiers sends no image_edge: Tropfen photos stay at 2048.
@@ -160,7 +159,7 @@ class EdgeCasesTest(private val answersAtOnce: Boolean) {
                 return network.repository.publish(draft)
             }
         }
-        val model = models.keep(ComposeViewModel(null, 12, null, slow, network.common, network.session))
+        val model = models.keep(network.composer(replyTo = 12, repository = slow))
         model.load()
         model.setKind("question")
         model.updateBody("Du Idiot")
@@ -258,7 +257,7 @@ class EdgeCasesTest(private val answersAtOnce: Boolean) {
         assertFalse(profile.form.value.toneNudge)
 
         network.add("POST", "network/tone", json = """{"data":{"hint":"Idiot","nudge":true}}""")
-        val composer = models.keep(ComposeViewModel("gelesen", null, null, network.repository, network.common, network.session))
+        val composer = models.keep(network.composer("gelesen"))
         composer.load()
         composer.updateBody("Du Idiot, lies das")
         composer.checkTone()

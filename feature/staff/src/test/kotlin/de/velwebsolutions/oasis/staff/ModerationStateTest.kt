@@ -109,6 +109,72 @@ class ModerationStateTest {
     }
 
     @Test
+    fun `a reload cut short by the next filter change counts as not loaded and ends its loading`() = runTest {
+        val viewModel = ModerationOverviewViewModel(repository)
+        val mine = QueueFilter(mine = true)
+        repository.casesGate = kotlinx.coroutines.CompletableDeferred()
+        viewModel.apply(mine)
+        advanceTimeBy(301)
+        assertTrue("the queue of my cases is on its way", viewModel.state.value.isLoadingQueue)
+
+        viewModel.apply(QueueFilter())
+        testScheduler.runCurrent()
+        assertFalse("the cancelled reload no longer loads", viewModel.state.value.isLoadingQueue)
+        assertEquals("the shown queue is still the unfiltered one", QueueFilter(), viewModel.state.value.loadedFilter)
+
+        repository.casesGate = null
+        viewModel.apply(mine)
+        advanceTimeBy(301)
+        assertEquals("switching back within 300 ms still loads my cases", mine, viewModel.state.value.loadedFilter)
+        assertFalse(viewModel.state.value.isLoadingQueue)
+    }
+
+    @Test
+    fun `a further page asked for before a filter change is dropped`() = runTest {
+        repository.cases = Result.success(morePages)
+        val viewModel = ModerationOverviewViewModel(repository)
+        val gate = kotlinx.coroutines.CompletableDeferred<Unit>()
+        repository.casesGate = gate
+        val more = async { viewModel.loadMore() }
+        testScheduler.runCurrent()
+
+        val open = Decoded.cases.data.take(1)
+        repository.casesGate = null
+        repository.cases = Result.success(Page(open))
+        viewModel.apply(QueueFilter(status = "open"))
+        advanceTimeBy(301)
+        assertEquals(QueueFilter(status = "open"), viewModel.state.value.loadedFilter)
+
+        repository.cases = Result.success(morePages)
+        gate.complete(Unit)
+        more.await()
+        assertEquals("the old queue's second page is not appended", open.map { it.id }, viewModel.state.value.cases.map { it.id })
+        assertFalse(viewModel.state.value.hasMore)
+        assertFalse(viewModel.state.value.isLoadingQueue)
+    }
+
+    @Test
+    fun `an older reload that answers last leaves the newer queue`() = runTest {
+        val viewModel = ModerationOverviewViewModel(repository)
+        val gate = kotlinx.coroutines.CompletableDeferred<Unit>()
+        repository.casesGate = gate
+        val older = async { viewModel.reloadQueue() }
+        testScheduler.runCurrent()
+
+        val urgent = Decoded.cases.data.take(1)
+        repository.casesGate = null
+        repository.cases = Result.success(Page(urgent))
+        viewModel.apply(QueueFilter(priority = "urgent"))
+        advanceTimeBy(301)
+        repository.cases = FakeStaffRepository.failure("Zu spät")
+        gate.complete(Unit)
+        older.await()
+        assertEquals(urgent.map { it.id }, viewModel.state.value.cases.map { it.id })
+        assertEquals(QueueFilter(priority = "urgent"), viewModel.state.value.loadedFilter)
+        assertNull("the late answer of the older reload is not shown either", viewModel.state.value.error)
+    }
+
+    @Test
     fun `case actions confirm, fail at their fields or as toast`() = runTest {
         val viewModel = CaseDetailViewModel(2, repository, StaffFiles(Files.createTempDirectory("staff").toFile()))
         assertEquals(2, viewModel.caseId)
@@ -245,6 +311,38 @@ class ModerationStateTest {
         viewModel.load()
         viewModel.dismissError()
         assertNull(viewModel.state.value.error)
+    }
+
+    @Test
+    fun `a further page of accounts asked for before a refresh is dropped`() = runTest {
+        val accounts = Decoded.roles.data
+        fun page(from: Int, more: Boolean) = Result.success(
+            Decoded.roles.copy(data = accounts.drop(from).take(4), meta = Page.Meta(nextCursor = if (more) "next" else null))
+        )
+        repository.roles = page(0, more = true)
+        val viewModel = RolesViewModel(repository)
+        repository.roles = page(4, more = true)
+        viewModel.loadMore()
+        val gate = kotlinx.coroutines.CompletableDeferred<Unit>()
+        repository.rolesGate = gate
+        val third = async { viewModel.loadMore() }
+        testScheduler.runCurrent()
+
+        repository.rolesGate = null
+        repository.roles = page(0, more = true)
+        viewModel.load()
+        repository.roles = page(8, more = false)
+        gate.complete(Unit)
+        third.await()
+        assertTrue("page 3 of the old list was asked for", repository.calls.contains("roles 3"))
+        assertEquals(
+            "but is not added to the refreshed first page",
+            accounts.take(4).map { it.id },
+            viewModel.state.value.users.valueOrNull?.map { it.id }
+        )
+        repository.roles = page(4, more = true)
+        viewModel.loadMore()
+        assertEquals("the next page is the second again", 2, repository.calls.count { it == "roles 2" })
     }
 
     @Test

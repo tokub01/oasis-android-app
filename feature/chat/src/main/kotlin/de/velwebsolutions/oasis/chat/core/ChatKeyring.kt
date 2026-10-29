@@ -4,6 +4,7 @@ import de.velwebsolutions.oasis.chat.api.ChatConversation
 import de.velwebsolutions.oasis.chat.api.PublicUser
 import de.velwebsolutions.oasis.chat.api.StoredIdentity
 import de.velwebsolutions.oasis.chatcrypto.ChatCryptoException
+import de.velwebsolutions.oasis.chatcrypto.ChatEncoding
 import de.velwebsolutions.oasis.chatcrypto.ChatIdentity
 import de.velwebsolutions.oasis.chatcrypto.createConversationKey
 import de.velwebsolutions.oasis.chatcrypto.createKeyGrant
@@ -22,8 +23,9 @@ class ChatKeyring(private val context: ChatContext) {
 
     /**
      * New keys locked with the passphrase (production Argon2id costs) and published. Replaces an existing identity
-     * (forgotten passphrase): old messages become unreadable and every chat needs a new key.
-     * @return the stored identity, or null if the vault was locked meanwhile.
+     * (forgotten passphrase): old messages become unreadable and every chat needs a new key. Published while Oasis went
+     * to the background, they become the stored identity, to be unlocked with the passphrase on return.
+     * @return the stored identity, or null if the vault was locked meanwhile or Oasis is in the background.
      */
     suspend fun setUp(passphrase: String): StoredIdentity? {
         val generation = vault.generation
@@ -40,7 +42,11 @@ class ChatKeyring(private val context: ChatContext) {
         }
         try {
             val stored = api.saveIdentity(locked, bundle)
-            if (!vault.unlock(identity, generation)) return null
+            if (!vault.unlock(identity, generation)) {
+                // Only the background stood in the way (a lock or another member counts up the generation).
+                if (generation == vault.generation) vault.setStoredIdentity(stored)
+                return null
+            }
             vault.setStoredIdentity(stored)
             return stored
         } catch (error: Exception) {
@@ -101,13 +107,20 @@ class ChatKeyring(private val context: ChatContext) {
         return Directory(users, changed, invalid)
     }
 
-    /** Open every grant addressed to the caller that is not open yet; only grants signed by the owner (`created_by`) count. */
-    suspend fun openGrants(conversation: ChatConversation) {
+    /**
+     * Open every grant addressed to the caller that is not open yet; only grants signed by the owner (`created_by`)
+     * count. The pending version stays closed: until its activation the owner may still replace that batch (an
+     * overlapping distribution, the owner's other device), and nobody can write with it before. With [replaceCurrent]
+     * the current version is opened again even when a key of it is known – the owner right after activating it.
+     */
+    suspend fun openGrants(conversation: ChatConversation, replaceCurrent: Boolean = false) {
         val owner = vault.publicKeys(conversation.createdBy) ?: return
         val identity = vault.identity ?: return
         val generation = vault.generation
         for (grant in api.keyGrants(conversation.id)) {
-            if (vault.conversationKey(conversation.id, grant.keyVersion) != null) continue
+            val current = grant.keyVersion == conversation.keyVersion
+            if (current && conversation.rotationRequired) continue
+            if (!(current && replaceCurrent) && vault.conversationKey(conversation.id, grant.keyVersion) != null) continue
             val opened = try {
                 crypto.openKeyGrant(grant, identity, owner.signing)
             } catch (_: ChatCryptoException) {
@@ -120,28 +133,36 @@ class ChatKeyring(private val context: ChatContext) {
         }
     }
 
-    /** Owner: a fresh random key for the current version, granted to every active member, then activated. */
+    /**
+     * Owner: a fresh random key for the current version, granted to every active member, then activated. The key the
+     * owner keeps is the one of its own grant as the server activated it: another distribution of the same pending
+     * version (an overlapping refresh, the owner's browser) may have replaced this batch before the activation, and only
+     * the activated batch is the one the others have.
+     */
     suspend fun distributeKey(conversation: ChatConversation): ChatConversation {
         val recipients = conversation.members.mapNotNull { member -> vault.publicKeys(member.userId)?.let { member to it } }
         val missing = conversation.members.filter { member -> recipients.none { it.first == member } }
         if (missing.isNotEmpty()) throw ChatKeyringException.MissingMemberKeys(missing.map { it.username })
         val identity = vault.identity ?: throw ChatCryptoException.InvalidInput("identity must be an identity object.")
-        val generation = vault.generation
         val key = crypto.createConversationKey()
-        val grants = recipients.map { (member, keys) ->
-            crypto.createKeyGrant(
-                conversationKey = key,
-                conversationId = conversation.id,
-                keyVersion = conversation.keyVersion,
-                recipientId = member.userId,
-                recipientEncryptionPublicKey = keys.encryption,
-                granterId = vault.userId,
-                identity = identity
-            )
+        val grants = try {
+            recipients.map { (member, keys) ->
+                crypto.createKeyGrant(
+                    conversationKey = key,
+                    conversationId = conversation.id,
+                    keyVersion = conversation.keyVersion,
+                    recipientId = member.userId,
+                    recipientEncryptionPublicKey = keys.encryption,
+                    granterId = vault.userId,
+                    identity = identity
+                )
+            }
+        } finally {
+            ChatEncoding.wipe(key)
         }
         api.storeKeyGrants(conversation.id, conversation.keyVersion, grants)
         val activated = api.activateKey(conversation.id, conversation.keyVersion)
-        vault.rememberConversationKey(conversation.id, conversation.keyVersion, key, generation)
+        openGrants(activated, replaceCurrent = true)
         return activated
     }
 

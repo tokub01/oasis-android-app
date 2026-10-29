@@ -185,6 +185,24 @@ class NavigationTest {
     }
 
     @Test
+    fun `reset leaves nothing of where the member who signed out went`() {
+        val navigator = Navigator()
+        navigator.handle(NetworkRoute.Search("tee"))
+        navigator.open(NetworkRoute.Profile("jonas"))
+        navigator.select(MainTab.Chats)
+        navigator.open(ChatRoute.Conversation(5))
+        navigator.present(NetworkRoute.Compose())
+        navigator.sheetDismissible = false
+        navigator.handle("https://get-oasis.com/anmelden/code")
+        navigator.reset()
+        assertEquals(MainTab.Source, navigator.selectedTab)
+        assertTrue(MainTab.entries.all { navigator.stack(it).isEmpty() })
+        assertNull(navigator.sheet)
+        assertTrue(navigator.sheetDismissible)
+        assertNull(navigator.pendingLink)
+    }
+
+    @Test
     fun `back, sheets and unknown links`() {
         val navigator = Navigator()
         assertFalse(navigator.back())

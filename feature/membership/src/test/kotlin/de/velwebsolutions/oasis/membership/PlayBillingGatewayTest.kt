@@ -9,7 +9,9 @@ import de.velwebsolutions.oasis.membership.billing.PlayProducts
 import de.velwebsolutions.oasis.membership.billing.PlayPurchase
 import de.velwebsolutions.oasis.membership.billing.PurchaseOutcome
 import kotlinx.coroutines.async
+import kotlinx.coroutines.cancelAndJoin
 import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.launch
 import kotlinx.coroutines.test.advanceTimeBy
 import kotlinx.coroutines.test.runTest
 import org.junit.Assert.assertEquals
@@ -162,6 +164,19 @@ class PlayBillingGatewayTest {
     }
 
     @Test
+    fun `Play's answer for a checkout that went away goes to the updates`() = runTest {
+        gateway.products(Catalogue.ids)
+        val checkout = launch { gateway.purchase(activity, oase, null) }
+        testScheduler.runCurrent()
+        val update = async { gateway.purchaseUpdates.first() }
+        testScheduler.runCurrent()
+        // The activity is recreated while Play's sheet is open, which cancels the checkout's coroutine.
+        checkout.cancelAndJoin()
+        connection.report(BillingResponseCode.OK, Fixtures.purchase())
+        assertEquals(Fixtures.purchase(), update.await())
+    }
+
+    @Test
     fun `purchases outside a purchase flow go to the updates, refusals do not`() = runTest {
         gateway.products(Catalogue.ids)
         val update = async { gateway.purchaseUpdates.first() }
@@ -179,6 +194,7 @@ class PlayBillingGatewayTest {
         assertEquals(PurchaseOutcome.Pending, PlayBillingGateway.outcome(BillingResponseCode.OK, listOf(pending)))
         assertEquals(PurchaseOutcome.Failed, PlayBillingGateway.outcome(BillingResponseCode.OK, emptyList()))
         assertEquals(PurchaseOutcome.Cancelled, PlayBillingGateway.outcome(BillingResponseCode.USER_CANCELED, emptyList()))
+        assertEquals(PurchaseOutcome.AlreadyOwned, PlayBillingGateway.outcome(BillingResponseCode.ITEM_ALREADY_OWNED, emptyList()))
         listOf(BillingResponseCode.BILLING_UNAVAILABLE, BillingResponseCode.SERVICE_UNAVAILABLE, BillingResponseCode.FEATURE_NOT_SUPPORTED)
             .forEach { assertEquals(PurchaseOutcome.Unavailable, PlayBillingGateway.outcome(it, emptyList())) }
         assertEquals(PurchaseOutcome.Failed, PlayBillingGateway.outcome(BillingResponseCode.ERROR, emptyList()))

@@ -65,6 +65,12 @@ sealed interface PurchaseOutcome {
     /** The member closed Play's sheet. */
     data object Cancelled : PurchaseOutcome
 
+    /**
+     * The Google account has this subscription already (bought before, its answer lost on the way to the server): it
+     * goes to the server like "Käufe wiederherstellen".
+     */
+    data object AlreadyOwned : PurchaseOutcome
+
     /** Google Play is not available on this device (no Play Store, not signed in, unsupported country). */
     data object Unavailable : PurchaseOutcome
 
@@ -83,13 +89,17 @@ interface BillingGateway {
 
     /**
      * Starts Play's purchase sheet over [activity] and waits for its result. [accountId] (the member's account token)
-     * ties the purchase to the Oasis account, like StoreKit's `appAccountToken`.
+     * ties the purchase to the Oasis account, like StoreKit's `appAccountToken`. When the caller stops waiting (its
+     * coroutine is cancelled), Play's answer comes through [purchaseUpdates] instead.
      */
     suspend fun purchase(activity: Activity?, product: PlayProduct, accountId: String?): PurchaseOutcome
 
     /** The subscriptions Play knows for the signed-in Google account ("Käufe wiederherstellen"). */
     suspend fun ownedPurchases(): List<PlayPurchase>
 
-    /** Purchases that arrive outside a running purchase flow (pending payments that went through, renewals). */
+    /**
+     * Purchases that arrive outside a running purchase flow (pending payments that went through, renewals, the answer
+     * to a purchase nobody waits for any more). Nothing is kept for later: only a collector at that moment hears them.
+     */
     val purchaseUpdates: Flow<PlayPurchase>
 }
