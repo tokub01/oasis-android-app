@@ -18,6 +18,8 @@ Die native Android-App von [Oasis](https://get-oasis.com) – werbefrei, chronol
 Schichten: Compose-UI → ViewModel (Hilt, `StateFlow`) → Repository-Interface → Retrofit-Service → API.
 Feature-Module kennen sich nicht; sie treffen sich nur über die Routen in `:design`.
 
+Begriffe und Abkürzungen: [docs/glossary.md](docs/glossary.md).
+
 ## Bauen und starten
 
 Voraussetzungen: JDK 21, Android SDK (Platform 37, Build-Tools), ein Emulator (API 35/36).
