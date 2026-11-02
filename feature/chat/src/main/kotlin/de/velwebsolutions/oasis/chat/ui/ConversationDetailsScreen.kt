@@ -1,14 +1,22 @@
 package de.velwebsolutions.oasis.chat.ui
 
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.PickVisualMediaRequest
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.ExperimentalLayoutApi
 import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.defaultMinSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.selection.selectable
+import androidx.compose.foundation.selection.toggleable
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.selection.SelectionContainer
 import androidx.compose.material.icons.Icons
@@ -27,19 +35,24 @@ import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.platform.testTag
+import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import de.velwebsolutions.oasis.chat.core.ChatBackground
 import de.velwebsolutions.oasis.chat.core.lifetimeChoices
 import de.velwebsolutions.oasis.design.components.AsyncOasisButton
 import de.velwebsolutions.oasis.design.components.Banner
 import de.velwebsolutions.oasis.design.components.LoadingView
 import de.velwebsolutions.oasis.design.components.OasisButton
 import de.velwebsolutions.oasis.design.components.OasisButtonKind
+import de.velwebsolutions.oasis.design.components.OasisCheckbox
 import de.velwebsolutions.oasis.design.components.OasisKeyboard
 import de.velwebsolutions.oasis.design.components.OasisScreen
 import de.velwebsolutions.oasis.design.components.OasisTextField
@@ -65,7 +78,14 @@ internal fun ConversationDetailsScreen(conversationId: Int) {
     val state by model.state.collectAsStateWithLifecycle()
     val navigator = LocalNavigator.current
     val scope = rememberCoroutineScope()
-    LaunchedEffect(Unit) { model.load() }
+    LaunchedEffect(Unit) {
+        model.load()
+        model.loadLook()
+    }
+    // „Foto wählen“: the system's photo picker; the chat stays open while it is in front.
+    val photoPicker = rememberLauncherForActivityResult(ActivityResultContracts.PickVisualMedia()) { uri ->
+        if (uri != null) scope.launch { model.choosePhoto(uri) }
+    }
     OasisScreen(
         title = "Details",
         message = state.status,
@@ -91,7 +111,19 @@ internal fun ConversationDetailsScreen(conversationId: Int) {
                     // Back to the list: the details and the chat itself are gone.
                     if (model.leave()) navigator.popToRoot()
                 }
-            }
+            },
+            look = LookActions(
+                onBackground = model::chooseBackground,
+                onForAll = model::setForAll,
+                onPickPhoto = {
+                    model.context.vault.openExternalScreen {
+                        photoPicker.launch(PickVisualMediaRequest(ActivityResultContracts.PickVisualMedia.ImageOnly))
+                        true
+                    }
+                },
+                onRemovePhoto = model::removePhoto,
+                onEffects = model::setEffects
+            )
         )
     }
 }
@@ -110,7 +142,8 @@ internal fun ConversationDetailsContent(
     onUsername: (String) -> Unit,
     onAddMember: suspend () -> Unit,
     onRemove: (MemberRow) -> Unit,
-    onLeave: () -> Unit
+    onLeave: () -> Unit,
+    look: LookActions = LookActions.None
 ) {
     var confirmLeave by remember { mutableStateOf(false) }
     var pendingRemoval by remember { mutableStateOf<MemberRow?>(null) }
@@ -123,6 +156,7 @@ internal fun ConversationDetailsContent(
 
             else -> {
                 MuteSection(state, onMuteDuration, onMute, onUnmute)
+                LookSection(state, look)
                 Panel {
                     Text("Neue Nachrichten löschen sich nach", style = OasisType.SmallBold, color = OasisColors.Ink)
                     Segmented(lifetimeChoices, state.lifetimeDays, onLifetime, enabled = state.isOwner)
@@ -200,6 +234,97 @@ internal fun ConversationDetailsContent(
         ConfirmDialog("@${row.username} aus dem Chat entfernen? Der Chat bekommt einen neuen Schlüssel.", "Entfernen", { onRemove(row) }) {
             pendingRemoval = null
         }
+    }
+}
+
+/** „Hintergrund“ and „Effekte abspielen“: choosing, the own photo, the switches. */
+class LookActions(
+    val onBackground: suspend (ChatBackground) -> Unit,
+    val onForAll: (Boolean) -> Unit,
+    val onPickPhoto: () -> Unit,
+    val onRemovePhoto: suspend () -> Unit,
+    val onEffects: suspend (Boolean) -> Unit
+) {
+    companion object {
+        /** Screens without the section's actions (previews). */
+        val None = LookActions({}, {}, {}, {}, {})
+    }
+}
+
+/**
+ * „Hintergrund“ (docs/oasis-chat-client.md, "Backgrounds and effects"): seven swatches with their names, „Foto wählen“ /
+ * „Foto entfernen“, „Für alle Chats verwenden“ and „Effekte abspielen“ – only on this device, only for oneself.
+ */
+@OptIn(ExperimentalLayoutApi::class)
+@Composable
+private fun LookSection(state: ConversationDetailsState, look: LookActions) {
+    val scope = rememberCoroutineScope()
+    Panel(modifier = Modifier.testTag("chat.look")) {
+        Text("Hintergrund", style = OasisType.SmallBold, color = OasisColors.Ink)
+        FlowRow(horizontalArrangement = Arrangement.spacedBy(10.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
+            ChatBackground.entries.forEach { background ->
+                val selected = state.look.background == background
+                Column(
+                    modifier = Modifier
+                        .width(72.dp)
+                        .selectable(selected, role = Role.RadioButton) {
+                            if (background == ChatBackground.Photo) look.onPickPhoto() else scope.launch { look.onBackground(background) }
+                        }
+                        .testTag("chat.look.${background.key}"),
+                    horizontalAlignment = Alignment.CenterHorizontally,
+                    verticalArrangement = Arrangement.spacedBy(4.dp)
+                ) {
+                    BackgroundSwatch(
+                        background,
+                        Modifier
+                            .size(56.dp)
+                            .clip(RoundedCornerShape(OasisRadius.CHIP.dp))
+                            .border(
+                                if (selected) 3.dp else 1.dp,
+                                if (selected) OasisColors.Night else OasisColors.PaperLine,
+                                RoundedCornerShape(OasisRadius.CHIP.dp)
+                            )
+                    )
+                    Text(background.label, style = OasisType.Caption, color = OasisColors.Ink, textAlign = TextAlign.Center)
+                }
+            }
+        }
+        Row(horizontalArrangement = Arrangement.spacedBy(12.dp), verticalAlignment = Alignment.CenterVertically) {
+            OasisButton(
+                "Foto wählen",
+                look.onPickPhoto,
+                kind = OasisButtonKind.Secondary,
+                fullWidth = false,
+                modifier = Modifier.testTag("chat.look.pick")
+            )
+            if (state.look.background == ChatBackground.Photo) {
+                SmallAction("Foto entfernen", { scope.launch { look.onRemovePhoto() } }, Modifier.testTag("chat.look.remove"))
+            }
+        }
+        state.lookError?.let { Banner(it) }
+        LookSwitch("Für alle Chats verwenden", state.forAll, "chat.look.forAll") { look.onForAll(it) }
+        LookSwitch("Effekte abspielen", state.effectsOn, "chat.look.effects") { scope.launch { look.onEffects(it) } }
+        Text(
+            "Nur auf diesem Gerät und nur für dich. Andere sehen deinen Hintergrund nicht; ist „Bewegung reduzieren“ eingeschaltet, spielen keine Effekte.",
+            style = OasisType.Small,
+            color = OasisColors.Muted
+        )
+    }
+}
+
+@Composable
+private fun LookSwitch(label: String, checked: Boolean, tag: String, onChange: (Boolean) -> Unit) {
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .defaultMinSize(minHeight = 44.dp)
+            .toggleable(checked, role = Role.Checkbox, onValueChange = onChange)
+            .testTag(tag),
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.spacedBy(8.dp)
+    ) {
+        OasisCheckbox(checked, onCheckedChange = null)
+        Text(label, style = OasisType.Body, color = OasisColors.Ink)
     }
 }
 

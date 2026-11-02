@@ -1,0 +1,82 @@
+{
+  "comment": "Plaintexts of chat messages with the optional send effect (docs/oasis-chat-client.md, \"Backgrounds and effects\"). Every client must build exactly `build[].plaintext` and read `parse[]` as given: `effect` is one of `effects` or null; anything else is ignored and the message still shows. Checked by tests/js/chat/attachments.test.mjs.",
+  "effects": [
+    "konfetti",
+    "herzen",
+    "ballons",
+    "feuerwerk"
+  ],
+  "build": [
+    {
+      "text": "Hallo",
+      "attachments": [],
+      "effect": null,
+      "plaintext": "Hallo"
+    },
+    {
+      "text": "Alles Gute! 🎉",
+      "attachments": [],
+      "effect": "konfetti",
+      "plaintext": "{\"t\":\"oasis-message\",\"v\":2,\"text\":\"Alles Gute! 🎉\",\"attachments\":[],\"effect\":\"konfetti\"}"
+    },
+    {
+      "text": "",
+      "attachments": [
+        {
+          "id": "17",
+          "kind": "image",
+          "mime": "image/jpeg",
+          "size": 1200,
+          "key": "AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA",
+          "nonce": "BBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBB"
+        }
+      ],
+      "effect": "herzen",
+      "plaintext": "{\"t\":\"oasis-message\",\"v\":2,\"text\":\"\",\"attachments\":[{\"id\":\"17\",\"kind\":\"image\",\"mime\":\"image/jpeg\",\"size\":1200,\"key\":\"AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA\",\"nonce\":\"BBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBB\"}],\"effect\":\"herzen\"}"
+    }
+  ],
+  "parse": [
+    {
+      "plaintext": "{\"t\":\"oasis-message\",\"v\":2,\"text\":\"Hoch die Tassen\",\"attachments\":[],\"effect\":\"feuerwerk\"}",
+      "text": "Hoch die Tassen",
+      "attachments": 0,
+      "effect": "feuerwerk"
+    },
+    {
+      "plaintext": "{\"t\":\"oasis-message\",\"v\":2,\"text\":\"Steig auf\",\"attachments\":[],\"effect\":\"ballons\"}",
+      "text": "Steig auf",
+      "attachments": 0,
+      "effect": "ballons"
+    },
+    {
+      "plaintext": "{\"t\":\"oasis-message\",\"v\":2,\"text\":\"Unbekannt\",\"attachments\":[],\"effect\":\"regen\"}",
+      "text": "Unbekannt",
+      "attachments": 0,
+      "effect": null
+    },
+    {
+      "plaintext": "{\"t\":\"oasis-message\",\"v\":2,\"text\":\"Groß\",\"attachments\":[],\"effect\":\"KONFETTI\"}",
+      "text": "Groß",
+      "attachments": 0,
+      "effect": null
+    },
+    {
+      "plaintext": "{\"t\":\"oasis-message\",\"v\":2,\"text\":\"Kein Text\",\"attachments\":[],\"effect\":[\"konfetti\"]}",
+      "text": "Kein Text",
+      "attachments": 0,
+      "effect": null
+    },
+    {
+      "plaintext": "{\"effect\":\"konfetti\",\"text\":\"Nur so\"}",
+      "text": "{\"effect\":\"konfetti\",\"text\":\"Nur so\"}",
+      "attachments": 0,
+      "effect": null
+    },
+    {
+      "plaintext": "Konfetti!",
+      "text": "Konfetti!",
+      "attachments": 0,
+      "effect": null
+    }
+  ]
+}

@@ -90,7 +90,7 @@ class AppHostTest {
 
     @OptIn(coil3.annotation.DelicateCoilApi::class)
     @Test
-    fun `a sign-out clears the image cache and the notifications with previews`() {
+    fun `a sign-out clears the image cache, the notifications with previews and the chat look`() = runTest {
         val context = androidx.test.core.app.ApplicationProvider.getApplicationContext<Application>()
         val loader = coil3.ImageLoader.Builder(context)
             .diskCache {
@@ -119,7 +119,14 @@ class AppHostTest {
         )
         assertEquals(1, org.robolectric.Shadows.shadowOf(manager).allNotifications.size)
 
-        AppHost.clearAfterSignOut(context)
+        // The chat backgrounds and own photos of the member who left go as well.
+        val look = de.velwebsolutions.oasis.chat.core.MemoryLook()
+        look.set("1:bg:default", "oase")
+        look.write("1:photo:default", byteArrayOf(1))
+        AppHost.clearAfterSignOut(context, look, look, this)
+        runCurrent()
+        assertNull(look.get("1:bg:default"))
+        assertNull(look.read("1:photo:default"))
         assertEquals(0L, disk.size)
         assertEquals(0L, loader.memoryCache?.size ?: 0L)
         assertTrue(org.robolectric.Shadows.shadowOf(manager).allNotifications.isEmpty())

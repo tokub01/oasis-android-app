@@ -15,6 +15,7 @@ import de.velwebsolutions.oasis.chat.core.AttachmentProblem
 import de.velwebsolutions.oasis.chat.core.AttachmentTexts
 import de.velwebsolutions.oasis.chat.core.AttachmentView
 import de.velwebsolutions.oasis.chat.core.ChatAttachments
+import de.velwebsolutions.oasis.chat.core.ChatBackground
 import de.velwebsolutions.oasis.chat.core.ChatContext
 import de.velwebsolutions.oasis.chat.core.ChatKeyring
 import de.velwebsolutions.oasis.chat.core.ChatKeyringException
@@ -23,6 +24,7 @@ import de.velwebsolutions.oasis.chat.core.ChatMessages
 import de.velwebsolutions.oasis.chat.core.ChatSafety
 import de.velwebsolutions.oasis.chat.core.ChatTimeline
 import de.velwebsolutions.oasis.chat.core.DraftAttachment
+import de.velwebsolutions.oasis.chat.core.LookChoice
 import de.velwebsolutions.oasis.chat.core.TranscriptionProblem
 import de.velwebsolutions.oasis.chat.core.describeChatError
 import de.velwebsolutions.oasis.chat.core.formatDate
@@ -69,6 +71,21 @@ sealed interface Transcript {
     data class Hidden(val text: String) : Transcript
 
     data class Failed(val message: String) : Transcript
+}
+
+/** One playing of an effect; [id] tells two playings of the same effect apart. */
+data class EffectPlay(val key: String, val id: Int)
+
+/** The German names of the send effects, in the order of the menu (ui/effects.js `EFFECT_NAMES`). */
+object EffectNames {
+    val all: List<Pair<String, String>> = listOf(
+        "konfetti" to "Konfetti",
+        "herzen" to "Herzen",
+        "ballons" to "Ballons",
+        "feuerwerk" to "Feuerwerk"
+    )
+
+    fun of(key: String): String = all.first { it.first == key }.second
 }
 
 /** What the conversation screen shows. */
@@ -120,8 +137,19 @@ data class ConversationState(
     /** German speech can be turned into text on this device itself ([de.velwebsolutions.oasis.chat.core.VoiceTranscriber]). */
     val canTranscribe: Boolean = false,
     /** Voice messages as text by attachment id; in memory only, gone when the chat closes or locks. */
-    val transcripts: Map<String, Transcript> = emptyMap()
+    val transcripts: Map<String, Transcript> = emptyMap(),
+    /** The personal background of this chat on this device. */
+    val look: LookChoice = LookChoice(ChatBackground.Standard, "default"),
+    /** „Effekte abspielen“ on this device. */
+    val effectsOn: Boolean = true,
+    /** An effect chosen with nothing to send yet: the chip „Effekt: …“ above the field, for the next message. */
+    val pendingEffect: String? = null,
+    /** The effect playing over the chat right now. */
+    val playing: EffectPlay? = null
 ) {
+    /** The chip text of [pendingEffect]. */
+    val effectChip: String? get() = pendingEffect?.let { "Effekt: ${EffectNames.of(it)}" }
+
     /** Room for another file in the composer, and nothing else going on. */
     val canAttach: Boolean
         get() = canSend && drafts.size < ChatAttachments.MAX_PER_MESSAGE && recordingSeconds == null && uploadProgress == null && !preparing
@@ -165,6 +193,12 @@ class ConversationViewModel @AssistedInject constructor(
 
     /** Whether this screen asked the transcriber already. */
     private var transcriberAsked = false
+
+    /** Effects of live messages with files, by signature, until their states say none is view once. */
+    private val awaitingEffects = mutableMapOf<String, String>()
+
+    /** Counts the playings, so the same effect plays again. */
+    private var effectPlays = 0
     private var timeline = ChatTimeline()
     private var notices: List<String> = emptyList()
     private var nextBeforeId: String? = null
@@ -218,7 +252,7 @@ class ConversationViewModel @AssistedInject constructor(
         val current = conversation
         val trusted = current != null && ChatKeyring.ownerTrusted(vault, current)
         val changed = change(mutableState.value)
-        val measured = ChatMessages.measure(changed.draft, changed.drafts)
+        val measured = ChatMessages.measure(changed.draft, changed.drafts, sentEffect(changed))
         mutableState.value = changed.copy(
             conversation = current,
             title = current?.displayTitle(myId).orEmpty(),
@@ -265,6 +299,7 @@ class ConversationViewModel @AssistedInject constructor(
                 realtime.subscribe("private-conversation.$conversationId").collect { handle(it) }
             }
             startTimers(token)
+            loadLook()
             // Asked once per screen: creating the recognizer to ask costs a moment.
             if (!transcriberAsked) {
                 transcriberAsked = true
@@ -292,6 +327,7 @@ class ConversationViewModel @AssistedInject constructor(
     fun close() {
         jobs.forEach { it.cancel() }
         jobs.clear()
+        awaitingEffects.clear()
         stopTicker()
         // A view-once file open while the chat closes (lock, leaving) counts as viewed – also when the answer fails.
         mutableState.value.viewOnce?.let { open ->
@@ -321,6 +357,8 @@ class ConversationViewModel @AssistedInject constructor(
                 uploadProgress = null,
                 attachmentViews = emptyMap(),
                 transcripts = emptyMap(),
+                playing = null,
+                pendingEffect = null,
                 viewOnce = null
             )
         }
@@ -472,7 +510,7 @@ class ConversationViewModel @AssistedInject constructor(
             "MessageSent" -> {
                 val envelope =
                     runCatching { EventJson.decodeFromJsonElement(MessageEnvelope.serializer(), event.data) }.getOrNull() ?: return
-                receive(envelope)
+                receive(envelope, live = true)
             }
 
             "KeyRotated" -> viewModelScope.launch {
@@ -489,7 +527,7 @@ class ConversationViewModel @AssistedInject constructor(
      * A new envelope (realtime, poll or own send) with the files' states when the server named them; realtime does not,
      * so the newest page is loaded for them.
      */
-    internal fun receive(envelope: MessageEnvelope, states: List<AttachmentState>? = null) {
+    internal fun receive(envelope: MessageEnvelope, states: List<AttachmentState>? = null, live: Boolean = false) {
         val current = conversation ?: return
         if (envelope.conversationId != current.id) return
         val kept = states?.let(::keptViewed)
@@ -497,6 +535,12 @@ class ConversationViewModel @AssistedInject constructor(
         val item = ChatMessages.open(envelope, current.id, vault, context.crypto, kept.orEmpty()) ?: return
         timeline = timeline.appending(item) ?: return
         if (states == null && item.content.attachments.isNotEmpty()) viewModelScope.launch { reloadStates() }
+        // Live only, once: a message from someone else with an effect plays it – after its files' states said none is
+        // view once (realtime brings no states, they come with the reload).
+        val effect = item.content.effect
+        if (live && effect != null && item.senderId != myId) {
+            if (item.content.attachments.isEmpty()) play(effect) else awaitingEffects[item.signature] = effect
+        }
         checkSafety()
         render()
         if (item.senderId != myId) {
@@ -512,6 +556,7 @@ class ConversationViewModel @AssistedInject constructor(
 
     /** The files' states of a shown message, as the server names them now. */
     private fun updateStates(signature: String, states: List<AttachmentState>) {
+        awaitingEffects.remove(signature)?.let { effect -> if (states.none { it.viewOnce }) play(effect) }
         val known = timeline.items.firstOrNull { it.signature == signature } ?: return
         val mapped = states.associateBy { it.id }
         if (known.attachmentStates == mapped) return
@@ -581,8 +626,10 @@ class ConversationViewModel @AssistedInject constructor(
         try {
             // Nothing is uploaded for a chat nothing may be sealed for.
             ChatKeyring.assertSealable(vault, current)
+            // No effect with a view-once file: the chosen one waits for the next message.
+            val effect = sentEffect(state.value)
             val references = upload(current.id, drafts)
-            val plaintext = MessagePayload.encode(MessageContent(text, references))
+            val plaintext = MessagePayload.encode(MessageContent(text, references, effect))
             val envelope = ChatMessages.seal(plaintext, current, vault, context.crypto)
             val stored = context.repository.sendMessage(current.id, envelope, references.map { it.id })
             // Left or locked meanwhile: sent, but nothing of it is kept or written to the device any more (conversation-view.js).
@@ -600,6 +647,10 @@ class ConversationViewModel @AssistedInject constructor(
             // Replying accepts a message request.
             if (current.request == true) acceptLocally()
             render { it.copy(spokenNotice = "Gesendet.") }
+            if (effect != null) {
+                render { it.copy(pendingEffect = null) }
+                play(effect)
+            }
         } catch (error: Exception) {
             // The chat was left meanwhile: its error and a reload are not for the chat shown now.
             if (!isCurrent(token)) return@inScope
@@ -895,6 +946,41 @@ class ConversationViewModel @AssistedInject constructor(
     }
 
     private fun attachmentError(error: Exception): String = if (error is ApiError.NotFound) GONE else describeChatError(error)
+
+    // endregion
+
+    // region Backgrounds and effects
+
+    /** The background and „Effekte abspielen“ as stored on this device. */
+    private suspend fun loadLook() {
+        val look = context.look
+        val choice = look.choice(conversationId)
+        val effects = look.effectsEnabled()
+        render { it.copy(look = choice, effectsOn = effects) }
+    }
+
+    /**
+     * An effect from the menu („Mit Effekt senden“): with something to send it goes at once, otherwise it waits as the
+     * chip for the next message.
+     */
+    suspend fun chooseEffect(key: String) {
+        render { it.copy(pendingEffect = key) }
+        if (state.value.canSubmit) send()
+    }
+
+    /** „✕“ on the chip. */
+    fun clearEffect() = render { it.copy(pendingEffect = null) }
+
+    /** Plays an effect once over the chat, unless „Effekte abspielen“ is off on this device. */
+    private fun play(key: String) {
+        if (state.value.effectsOn) render { it.copy(playing = EffectPlay(key, ++effectPlays)) }
+    }
+
+    /** The effect has run its course. */
+    fun effectDone() = render { it.copy(playing = null) }
+
+    /** The effect a message sent now carries: the chosen one, but none with a view-once file. */
+    private fun sentEffect(state: ConversationState): String? = state.pendingEffect.takeIf { state.drafts.none { it.viewOnce } }
 
     // endregion
 

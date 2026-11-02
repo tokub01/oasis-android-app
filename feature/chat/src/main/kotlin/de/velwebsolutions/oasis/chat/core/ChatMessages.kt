@@ -79,9 +79,9 @@ object ChatMessages {
      * Characters (code points) of the text, and UTF-8 bytes of the whole plaintext with the entries of [attachments],
      * against the message limits.
      */
-    fun measure(text: String, attachments: List<DraftAttachment> = emptyList()): DraftMeasure {
+    fun measure(text: String, attachments: List<DraftAttachment> = emptyList(), effect: String? = null): DraftMeasure {
         val characters = text.codePointCount(0, text.length)
-        val plaintext = MessagePayload.plaintext(MessageContent(text, attachments.map(::entry)))
+        val plaintext = MessagePayload.plaintext(MessageContent(text, attachments.map(::entry), effect))
         val bytes = plaintext.toByteArray(Charsets.UTF_8).size
         return DraftMeasure(characters, bytes, characters > ChatCrypto.MAX_MESSAGE_LENGTH || !MessagePayload.fits(plaintext))
     }

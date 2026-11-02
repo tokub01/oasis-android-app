@@ -32,6 +32,12 @@ class ChatTestSupport(val server: FakeChatServer = FakeChatServer()) {
     /** Timers of the vault never fire in these tests (no idle lock while a test waits for the fake server). */
     private val vaultScope = CoroutineScope(SupervisorJob() + Dispatchers.Default)
 
+    /** The chat look of every member of this support (keys carry the account). */
+    val look = de.velwebsolutions.oasis.chat.core.MemoryLook()
+
+    /** The look settings of the next contexts ([look] unless a test needs one that really suspends, like the DataStore). */
+    var lookStore: de.velwebsolutions.oasis.chat.core.LookStore = look
+
     fun context(
         userId: Int,
         secrets: DeviceSecretStore = MemoryDeviceSecretStore(available = false),
@@ -41,7 +47,9 @@ class ChatTestSupport(val server: FakeChatServer = FakeChatServer()) {
         cryptoDispatcher: CoroutineDispatcher = Dispatchers.Default,
         repository: (ChatRepository) -> ChatRepository = { it },
         media: ChatMedia = FakeChatMedia(),
-        transcriber: de.velwebsolutions.oasis.chat.core.VoiceTranscriber = de.velwebsolutions.oasis.chat.core.NoTranscriber
+        transcriber: de.velwebsolutions.oasis.chat.core.VoiceTranscriber = de.velwebsolutions.oasis.chat.core.NoTranscriber,
+        look: de.velwebsolutions.oasis.chat.core.MemoryLook = this.look,
+        lookStore: de.velwebsolutions.oasis.chat.core.LookStore = this.lookStore
     ): ChatContext {
         vault.prepare(userId.toString())
         return ChatContext(
@@ -53,7 +61,9 @@ class ChatTestSupport(val server: FakeChatServer = FakeChatServer()) {
             me = server.me(userId, canParticipate),
             media = media,
             cryptoDispatcher = cryptoDispatcher,
-            transcriber = transcriber
+            transcriber = transcriber,
+            lookStore = lookStore,
+            lookPhotos = look
         )
     }
 }

@@ -25,8 +25,12 @@ import de.velwebsolutions.oasis.chat.core.ChatMedia
 import de.velwebsolutions.oasis.chat.core.ChatPreferences
 import de.velwebsolutions.oasis.chat.core.ChatVault
 import de.velwebsolutions.oasis.chat.core.DataStoreChatPreferences
+import de.velwebsolutions.oasis.chat.core.DataStoreLookStore
 import de.velwebsolutions.oasis.chat.core.DeviceSecretStore
+import de.velwebsolutions.oasis.chat.core.FileLookPhotos
 import de.velwebsolutions.oasis.chat.core.KeystoreDeviceSecretStore
+import de.velwebsolutions.oasis.chat.core.LookPhotos
+import de.velwebsolutions.oasis.chat.core.LookStore
 import de.velwebsolutions.oasis.chat.core.PcmDecoder
 import de.velwebsolutions.oasis.chat.data.ChatRepository
 import de.velwebsolutions.oasis.chat.data.DefaultChatRepository
@@ -34,6 +38,7 @@ import de.velwebsolutions.oasis.chatcrypto.ChatCrypto
 import de.velwebsolutions.oasis.core.auth.Session
 import de.velwebsolutions.oasis.core.di.AppScope
 import de.velwebsolutions.oasis.core.network.ApiClient
+import java.io.File
 import javax.inject.Qualifier
 import javax.inject.Singleton
 import kotlinx.coroutines.CoroutineScope
@@ -119,7 +124,9 @@ object ChatModule {
         preferences: ChatPreferences,
         session: Session,
         media: ChatMedia,
-        @ApplicationContext appContext: Context
+        @ApplicationContext appContext: Context,
+        lookStore: LookStore,
+        lookPhotos: LookPhotos
     ): ChatContext = ChatContext(
         repository,
         vault,
@@ -130,6 +137,18 @@ object ChatModule {
             "Chat screens need a signed-in member."
         },
         media,
-        transcriber = AndroidVoiceTranscriber(appContext, PcmDecoder::decode, Dispatchers.IO)
+        transcriber = AndroidVoiceTranscriber(appContext, PcmDecoder::decode, Dispatchers.IO),
+        lookStore = lookStore,
+        lookPhotos = lookPhotos
     )
+
+    /** The chat look's settings on this device (cleared on sign-out by the app shell). */
+    @Provides
+    @Singleton
+    fun lookStore(@ChatStore dataStore: DataStore<Preferences>): LookStore = DataStoreLookStore(dataStore)
+
+    /** The own background photos in the app's private storage (deleted on sign-out by the app shell). */
+    @Provides
+    @Singleton
+    fun lookPhotos(@ApplicationContext context: Context): LookPhotos = FileLookPhotos(File(context.filesDir, "chat-look"))
 }

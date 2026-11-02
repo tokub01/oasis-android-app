@@ -7,8 +7,12 @@ import dagger.hilt.android.lifecycle.HiltViewModel
 import de.velwebsolutions.oasis.chat.api.ChatAvatar
 import de.velwebsolutions.oasis.chat.api.ChatConversation
 import de.velwebsolutions.oasis.chat.api.ConversationMember
+import de.velwebsolutions.oasis.chat.core.AttachmentKind
+import de.velwebsolutions.oasis.chat.core.AttachmentProblem
+import de.velwebsolutions.oasis.chat.core.ChatBackground
 import de.velwebsolutions.oasis.chat.core.ChatContext
 import de.velwebsolutions.oasis.chat.core.ChatInput
+import de.velwebsolutions.oasis.chat.core.LookChoice
 import de.velwebsolutions.oasis.chat.core.describeChatError
 import de.velwebsolutions.oasis.core.format.GermanTime
 import de.velwebsolutions.oasis.core.network.OasisJson
@@ -51,7 +55,15 @@ data class ConversationDetailsState(
     val status: String? = null,
     val error: String? = null,
     val loadFailed: String? = null,
-    val isOwner: Boolean = false
+    val isOwner: Boolean = false,
+    /** The background this chat shows on this device („Hintergrund“). */
+    val look: LookChoice = LookChoice(ChatBackground.Standard, "default"),
+    /** „Für alle Chats verwenden“: the next choice becomes the default. */
+    val forAll: Boolean = false,
+    /** „Effekte abspielen“ on this device. */
+    val effectsOn: Boolean = true,
+    /** Why an own photo could not be used. */
+    val lookError: String? = null
 ) {
     val isGroup: Boolean get() = conversation?.isGroup == true
 
@@ -100,6 +112,52 @@ class ConversationDetailsViewModel @AssistedInject constructor(
 
     /** The typed username to add. */
     fun setUsername(value: String) = mutableState.update { it.copy(username = value) }
+
+    /** The background and the effect switch as stored on this device. */
+    suspend fun loadLook() {
+        val look = context.look
+        val choice = look.choice(conversationId)
+        val effects = look.effectsEnabled()
+        mutableState.update { it.copy(look = choice, effectsOn = effects) }
+    }
+
+    /** One of the seven backgrounds; „Eigenes Foto“ is chosen by picking a photo ([choosePhoto]). */
+    suspend fun chooseBackground(background: ChatBackground) {
+        context.look.choose(conversationId, background, state.value.forAll)
+        loadLook()
+    }
+
+    /** „Für alle Chats verwenden“. */
+    fun setForAll(value: Boolean) = mutableState.update { it.copy(forAll = value) }
+
+    /** „Foto wählen“: the picked photo as JPEG (at most 2048 px, without metadata), only on this device. */
+    suspend fun choosePhoto(uri: android.net.Uri) {
+        mutableState.update { it.copy(lookError = null) }
+        val draft = try {
+            context.media.prepare(uri, 0)
+        } catch (problem: AttachmentProblem) {
+            mutableState.update { it.copy(lookError = problem.message) }
+            return
+        }
+        if (draft.kind != AttachmentKind.Image) {
+            mutableState.update { it.copy(lookError = "Dieses Foto ließ sich nicht öffnen.") }
+            return
+        }
+        context.look.choosePhoto(conversationId, draft.data, state.value.forAll)
+        loadLook()
+    }
+
+    /** „Foto entfernen“. */
+    suspend fun removePhoto() {
+        context.look.removePhoto(conversationId)
+        loadLook()
+    }
+
+    /** „Effekte abspielen“. */
+    suspend fun setEffects(enabled: Boolean) {
+        context.look.setEffectsEnabled(enabled)
+        mutableState.update { it.copy(effectsOn = enabled) }
+    }
 
     /** The confirmation toast was shown. */
     fun dismissStatus() = mutableState.update { it.copy(status = null) }

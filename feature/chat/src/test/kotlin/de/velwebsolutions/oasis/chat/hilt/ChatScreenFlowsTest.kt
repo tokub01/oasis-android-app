@@ -307,6 +307,25 @@ class ChatScreenFlowsTest {
     }
 
     @Test
+    fun theDetailsTakeABackgroundPhotoFromThePicker() {
+        val (mira, _, id) = chatWithMessages()
+        signIn(mira)
+        show(ChatRoute.Details(id))
+        waitForTag("chat.look.pick")
+        val activity = org.robolectric.Shadows.shadowOf(checkNotNull(shown).get())
+        // Cancelled: nothing changes.
+        compose.onNodeWithTag("chat.look.pick").tap()
+        activity.receiveResult(activity.nextStartedActivityForResult.intent, android.app.Activity.RESULT_CANCELED, null)
+        compose.waitForIdle()
+        // A photo: it becomes this chat's background.
+        compose.onNodeWithTag("chat.look.pick").tap()
+        val picked = android.content.Intent().setData(android.net.Uri.parse("content://oasis.test/foto"))
+        activity.receiveResult(activity.nextStartedActivityForResult.intent, android.app.Activity.RESULT_OK, picked)
+        settle { runBlocking { mira.look.choice(id.toString()).background } == de.velwebsolutions.oasis.chat.core.ChatBackground.Photo }
+        waitForTag("chat.look.remove")
+    }
+
+    @Test
     fun theSettingsChangeEverythingTheyShow() {
         val secrets = MemoryDeviceSecretStore(available = true)
         val mira = support.member(1, secrets = secrets)

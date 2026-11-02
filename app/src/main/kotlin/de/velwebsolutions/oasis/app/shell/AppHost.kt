@@ -14,6 +14,8 @@ import coil3.SingletonImageLoader
 import coil3.network.okhttp.OkHttpNetworkFetcherFactory
 import de.velwebsolutions.oasis.app.MainActivity
 import de.velwebsolutions.oasis.app.ui.RootScreen
+import de.velwebsolutions.oasis.chat.core.LookPhotos
+import de.velwebsolutions.oasis.chat.core.LookStore
 import de.velwebsolutions.oasis.core.auth.SessionState
 import de.velwebsolutions.oasis.core.network.ApiClient
 import de.velwebsolutions.oasis.core.share.PendingShare
@@ -144,7 +146,15 @@ object AppHost {
     /**
      * After a sign-out: the images the member saw (memory and disk cache – also ones a moderation quarantine withdrew
      * since) and the notifications with their previews go, like on iOS. The chat vault locks through its own listener.
+     * The chat backgrounds and own background photos belong to the member who left, so they go too.
      */
+    fun clearAfterSignOut(context: Context, lookStore: LookStore, lookPhotos: LookPhotos, scope: CoroutineScope) {
+        clearAfterSignOut(context)
+        lookPhotos.deleteAll()
+        scope.launch { lookStore.clear() }
+    }
+
+    /** The images and notifications of [clearAfterSignOut]. */
     fun clearAfterSignOut(context: Context) {
         val images = SingletonImageLoader.get(context)
         images.memoryCache?.clear()

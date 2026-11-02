@@ -9,6 +9,8 @@ import dagger.hilt.InstallIn
 import dagger.hilt.android.qualifiers.ApplicationContext
 import dagger.hilt.components.SingletonComponent
 import de.velwebsolutions.oasis.app.shell.AppHost
+import de.velwebsolutions.oasis.chat.core.LookPhotos
+import de.velwebsolutions.oasis.chat.core.LookStore
 import de.velwebsolutions.oasis.core.auth.Session
 import de.velwebsolutions.oasis.core.di.AppScope
 import de.velwebsolutions.oasis.core.di.DeviceName
@@ -47,10 +49,16 @@ object AppModule {
     /** The app's one navigator; after a sign-out the next member starts on the roots of the tabs ([AppHost.resetAfterSignOut]). */
     @Provides
     @Singleton
-    fun navigator(session: Session, @AppScope scope: CoroutineScope, @ApplicationContext context: Context): Navigator =
-        Navigator().also { navigator ->
-            // Links open screens only for this build's server (hints, push, posts).
-            DeepLink.ownHost = java.net.URI(BuildConfig.OASIS_BASE_URL).host
-            scope.launch { AppHost.resetAfterSignOut(session.state, navigator) { AppHost.clearAfterSignOut(context) } }
-        }
+    fun navigator(
+        session: Session,
+        @AppScope scope: CoroutineScope,
+        @ApplicationContext context: Context,
+        lookStore: LookStore,
+        lookPhotos: LookPhotos
+    ): Navigator = Navigator().also { navigator ->
+        // Links open screens only for this build's server (hints, push, posts).
+        DeepLink.ownHost = java.net.URI(BuildConfig.OASIS_BASE_URL).host
+        val clear = { AppHost.clearAfterSignOut(context, lookStore, lookPhotos, scope) }
+        scope.launch { AppHost.resetAfterSignOut(session.state, navigator, clear) }
+    }
 }

@@ -21,7 +21,10 @@ class ChatContext(
     /** Where Argon2id and the other expensive crypto runs (iOS: a detached task). */
     val cryptoDispatcher: CoroutineDispatcher = Dispatchers.Default,
     /** Voice messages as text, on the device only ([AndroidVoiceTranscriber]). */
-    val transcriber: VoiceTranscriber = NoTranscriber
+    val transcriber: VoiceTranscriber = NoTranscriber,
+    /** The chat look's settings and own photos on this device ([ChatLook]). */
+    val lookStore: LookStore,
+    val lookPhotos: LookPhotos
 ) {
     /** The signed-in member's id as a string, as in all crypto objects. */
     val userId: String get() = vault.userId
@@ -32,6 +35,9 @@ class ChatContext(
     val keyring: ChatKeyring get() = ChatKeyring(this)
 
     val devices: ChatDevices get() = ChatDevices(this)
+
+    /** Backgrounds and „Effekte abspielen“ of the signed-in member on this device. */
+    val look: ChatLook get() = ChatLook(lookStore, lookPhotos, userId)
 
     companion object {
         const val DEFAULT_DEVICE_LABEL = "Android (Oasis-App)"

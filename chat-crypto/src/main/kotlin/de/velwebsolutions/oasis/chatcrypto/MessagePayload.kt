@@ -35,8 +35,11 @@ data class MessageAttachment(
     @SerialName("duration_ms") val durationMs: Long? = null
 )
 
-/** What a message says: its text and its files (none for a plain text message). */
-data class MessageContent(val text: String, val attachments: List<MessageAttachment> = emptyList())
+/**
+ * What a message says: its text, its files (none for a plain text message) and the optional send effect (one of
+ * [MessagePayload.EFFECTS]; it travels only inside the encrypted payload).
+ */
+data class MessageContent(val text: String, val attachments: List<MessageAttachment> = emptyList(), val effect: String? = null)
 
 /**
  * The plaintext of a message, the same on every platform (resources/js/chat/attachments.js,
@@ -60,6 +63,9 @@ object MessagePayload {
         "audio" to listOf("audio/mp4", "audio/aac", "audio/mpeg", "audio/webm", "audio/ogg"),
         "video" to listOf("video/mp4", "video/quicktime", "video/webm")
     )
+
+    /** The send effects (docs/oasis-chat-client.md, "Backgrounds and effects"); any other value is ignored when read. */
+    val EFFECTS = listOf("konfetti", "herzen", "ballons", "feuerwerk")
 
     /** The kind of any other file (PDF, ZIP, documents …). */
     const val FILE = "file"
@@ -86,15 +92,20 @@ object MessagePayload {
      * – and also without files when the text itself looks like such an object, so a typed JSON text never turns into
      * files on the other side (`buildMessagePayload`).
      */
-    fun plaintext(content: MessageContent): String = if (content.attachments.isEmpty() && parse(content.text) == null) {
-        content.text
-    } else {
-        buildJsonObject {
-            put("t", TYPE)
-            put("v", VERSION)
-            put("text", content.text)
-            put("attachments", JsonArray(content.attachments.map { json.encodeToJsonElement(MessageAttachment.serializer(), it) }))
-        }.toString()
+    fun plaintext(content: MessageContent): String {
+        val effect = content.effect
+        if (effect != null && effect !in EFFECTS) throw ChatCryptoException.InvalidInput("Unknown effect.")
+        return if (content.attachments.isEmpty() && effect == null && parse(content.text) == null) {
+            content.text
+        } else {
+            buildJsonObject {
+                put("t", TYPE)
+                put("v", VERSION)
+                put("text", content.text)
+                put("attachments", JsonArray(content.attachments.map { json.encodeToJsonElement(MessageAttachment.serializer(), it) }))
+                if (effect != null) put("effect", effect)
+            }.toString()
+        }
     }
 
     /** Whether a plaintext stays within the message limits (UTF-8 bytes and code points). */
@@ -119,7 +130,8 @@ object MessagePayload {
         val payload = parse(plaintext) ?: return MessageContent(plaintext)
         val text = (payload["text"] as? JsonPrimitive)?.takeIf { it.isString }?.content.orEmpty()
         val listed = (payload["attachments"] as? JsonArray)?.takeIf { payload["v"].integer() == VERSION.toLong() }.orEmpty()
-        return MessageContent(text, listed.take(MAX_ATTACHMENTS).mapNotNull(::checked))
+        val effect = (payload["effect"] as? JsonPrimitive)?.takeIf { it.isString && it.content in EFFECTS }?.content
+        return MessageContent(text, listed.take(MAX_ATTACHMENTS).mapNotNull(::checked), effect)
     }
 
     /** The payload object of a plaintext, or null for plain text. */

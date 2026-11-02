@@ -10,6 +10,7 @@ import androidx.compose.animation.animateContentSize
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -39,6 +40,8 @@ import androidx.compose.material.icons.automirrored.filled.Send
 import androidx.compose.material.icons.outlined.Add
 import androidx.compose.material.icons.outlined.AddPhotoAlternate
 import androidx.compose.material.icons.outlined.AttachFile
+import androidx.compose.material.icons.outlined.AutoAwesome
+import androidx.compose.material.icons.outlined.Close
 import androidx.compose.material.icons.outlined.Info
 import androidx.compose.material.icons.outlined.Mic
 import androidx.compose.material3.AlertDialog
@@ -48,6 +51,7 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
@@ -158,7 +162,8 @@ internal fun ConversationScreen(conversationId: Int) {
             onBlockFlagged = { senderId -> scope.launch { if (model.blockAndLeave(senderId)) navigator.back() } },
             onDismissFlagged = model::dismissFlagged,
             onNoticeSpoken = model::noticeSpoken,
-            attachments = model.attachmentActions()
+            attachments = model.attachmentActions(),
+            effects = EffectActions(onChoose = model::chooseEffect, onClear = model::clearEffect, onDone = model::effectDone)
         )
     }
     report?.let { ReportSheet(it, onDismiss = { report = null }) }
@@ -196,8 +201,52 @@ internal fun ConversationContent(
     attachments: AttachmentActions,
     /** The avatar beside someone else's messages. */
     senderAvatar: (String) -> ChatAvatar = { ChatAvatar.Unknown },
-    senderProfile: (String) -> ProfileLink? = { null }
+    senderProfile: (String) -> ProfileLink? = { null },
+    effects: EffectActions = EffectActions.None
 ) {
+    val look = LookStyle.of(state.look)
+    CompositionLocalProvider(LocalChatLook provides look) {
+        Box(Modifier.fillMaxSize()) {
+            ConversationColumn(
+                state, myId, senderName, onLoadOlder, onDraftChange, onSend, onReport, onAccept, onDecline, onBlockFlagged,
+                onDismissFlagged, onNoticeSpoken, attachments, senderAvatar, senderProfile, effects
+            )
+            // Over everything, never in the way of a tap.
+            state.playing?.let { EffectOverlay(it, effects.onDone) }
+        }
+    }
+}
+
+/** The actions of the send effects: choosing one, „✕“ on the chip, and the end of a playing. */
+class EffectActions(val onChoose: suspend (String) -> Unit, val onClear: () -> Unit, val onDone: () -> Unit) {
+    companion object {
+        /** Screens without effects (previews). */
+        val None = EffectActions({}, {}, {})
+    }
+}
+
+@Composable
+@Suppress("LongParameterList")
+private fun ConversationColumn(
+    state: ConversationState,
+    myId: String,
+    senderName: (String) -> String,
+    onLoadOlder: suspend () -> Unit,
+    onDraftChange: (String) -> Unit,
+    onSend: suspend () -> Unit,
+    onReport: (ChatMessageItem) -> Unit,
+    onAccept: suspend () -> Unit,
+    onDecline: (block: Boolean) -> Unit,
+    onBlockFlagged: (String) -> Unit,
+    onDismissFlagged: () -> Unit,
+    onNoticeSpoken: () -> Unit,
+    attachments: AttachmentActions,
+    senderAvatar: (String) -> ChatAvatar,
+    senderProfile: (String) -> ProfileLink?,
+    effects: EffectActions
+) {
+    val look = LocalChatLook.current
+    val photo = rememberLookPhoto(state.look.photo)
     val listState = rememberLazyListState()
     val items = state.timeline.items
     var confirmDecline by remember { mutableStateOf(false) }
@@ -223,12 +272,17 @@ internal fun ConversationContent(
     Column(Modifier.fillMaxSize().imePadding()) {
         LazyColumn(
             state = listState,
-            modifier = Modifier.weight(1f).fillMaxWidth().testTag("chat.messages"),
+            // The personal background fills only the message area.
+            modifier = Modifier.weight(1f).fillMaxWidth().chatBackground(state.look.background, photo).testTag("chat.messages"),
             contentPadding = PaddingValues(20.dp),
             verticalArrangement = Arrangement.spacedBy(12.dp)
         ) {
             item {
-                Row(horizontalArrangement = Arrangement.spacedBy(14.dp), verticalAlignment = Alignment.CenterVertically) {
+                Row(
+                    modifier = Modifier.lookPill(look),
+                    horizontalArrangement = Arrangement.spacedBy(14.dp),
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
                     state.conversation?.let {
                         ConversationAvatar(
                             it,
@@ -300,7 +354,13 @@ internal fun ConversationContent(
             if (state.nextBeforeId != null) {
                 item {
                     Box(Modifier.fillMaxWidth(), contentAlignment = Alignment.Center) {
-                        AsyncOasisButton("Ältere Nachrichten laden", onLoadOlder, kind = OasisButtonKind.Secondary, fullWidth = false)
+                        AsyncOasisButton(
+                            "Ältere Nachrichten laden",
+                            onLoadOlder,
+                            kind = OasisButtonKind.Secondary,
+                            fullWidth = false,
+                            modifier = Modifier.lookPill(look)
+                        )
                     }
                 }
             }
@@ -314,7 +374,7 @@ internal fun ConversationContent(
                         "Noch keine Nachrichten. Schreib die erste.",
                         style = OasisType.Body,
                         color = OasisColors.Ink2,
-                        modifier = Modifier.fillMaxWidth().testTag("chat.messages.empty")
+                        modifier = Modifier.lookPill(look).testTag("chat.messages.empty")
                     )
                 }
             }
@@ -348,7 +408,7 @@ internal fun ConversationContent(
                 Modifier.background(OasisColors.Paper).padding(horizontal = 16.dp, vertical = 10.dp).testTag("chat.composer.untrustedOwner")
             )
         } else {
-            ConversationComposer(state, onDraftChange, onSend, attachments)
+            ConversationComposer(state, onDraftChange, onSend, attachments, effects)
         }
         state.viewOnce?.let { ViewOnceViewer(it, attachments, onReport) }
         state.spokenNotice?.let { notice ->
@@ -389,8 +449,10 @@ private fun ConversationComposer(
     state: ConversationState,
     onDraftChange: (String) -> Unit,
     onSend: suspend () -> Unit,
-    attachments: AttachmentActions
+    attachments: AttachmentActions,
+    effects: EffectActions
 ) {
+    var effectMenu by remember { mutableStateOf(false) }
     val shape = RoundedCornerShape(OasisRadius.XS.dp)
     val context = LocalContext.current
     val scope = rememberCoroutineScope()
@@ -438,43 +500,52 @@ private fun ConversationComposer(
             )
         }
         DraftAttachments(state, attachments)
+        state.effectChip?.let { chip -> EffectChip(chip, effects.onClear) }
         val seconds = state.recordingSeconds
         if (seconds != null) {
             RecordingBar(seconds, attachments)
         } else {
             // „+“ with the attachment actions, the field across the remaining width, and one round button: the
             // microphone while nothing is written or attached, „Senden“ as soon as something is (like iOS and the web).
-            Row(verticalAlignment = Alignment.Bottom, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                AttachMenu(
-                    enabled = state.canAttach,
-                    onMedia = {
-                        attachments.onExternalScreen {
-                            picker.launch(PickVisualMediaRequest(ActivityResultContracts.PickVisualMedia.ImageAndVideo))
-                            true
-                        }
-                    },
-                    onFile = {
-                        attachments.onExternalScreen {
-                            documents.launch(arrayOf("*/*"))
-                            true
-                        }
-                    }
-                )
-                ComposerField(state, onDraftChange, shape)
-                if (state.showsSend) {
-                    SendButton(state.canSubmit, onSend)
-                } else {
-                    RoundAction(
-                        Icons.Outlined.Mic,
-                        "Sprachnachricht aufnehmen",
+            Box {
+                // The effect menu opens at the round button, from „Senden“ or from „+“ (also with nothing written yet).
+                Box(Modifier.align(Alignment.BottomEnd)) {
+                    EffectMenu(effectMenu, onDismiss = { effectMenu = false }, onChoose = effects.onChoose)
+                }
+                Row(verticalAlignment = Alignment.Bottom, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                    AttachMenu(
                         enabled = state.canAttach,
-                        filled = false,
-                        modifier = Modifier.testTag("chat.composer.record")
-                    ) {
-                        val granted =
-                            ContextCompat.checkSelfPermission(context, Manifest.permission.RECORD_AUDIO) ==
-                                PackageManager.PERMISSION_GRANTED
-                        if (granted) attachments.recording.onStart() else explainMicrophone = true
+                        onMedia = {
+                            attachments.onExternalScreen {
+                                picker.launch(PickVisualMediaRequest(ActivityResultContracts.PickVisualMedia.ImageAndVideo))
+                                true
+                            }
+                        },
+                        onFile = {
+                            attachments.onExternalScreen {
+                                documents.launch(arrayOf("*/*"))
+                                true
+                            }
+                        },
+                        onEffect = { effectMenu = true }
+                    )
+                    ComposerField(state, onDraftChange, shape)
+                    if (state.showsSend) {
+                        // Holding „Senden“ opens the effect menu.
+                        SendButton(state.canSubmit, onSend, onLongPress = { effectMenu = true })
+                    } else {
+                        RoundAction(
+                            Icons.Outlined.Mic,
+                            "Sprachnachricht aufnehmen",
+                            enabled = state.canAttach,
+                            filled = false,
+                            modifier = Modifier.testTag("chat.composer.record")
+                        ) {
+                            val granted =
+                                ContextCompat.checkSelfPermission(context, Manifest.permission.RECORD_AUDIO) ==
+                                    PackageManager.PERMISSION_GRANTED
+                            if (granted) attachments.recording.onStart() else explainMicrophone = true
+                        }
                     }
                 }
             }
@@ -549,7 +620,7 @@ private val ADD_BUTTON = 40.dp
 
 /** „+“: a small menu with the attachment actions (photo or video, file). */
 @Composable
-private fun AttachMenu(enabled: Boolean, onMedia: () -> Unit, onFile: () -> Unit) {
+private fun AttachMenu(enabled: Boolean, onMedia: () -> Unit, onFile: () -> Unit, onEffect: () -> Unit) {
     var open by remember { mutableStateOf(false) }
     Box {
         RoundAction(
@@ -581,13 +652,63 @@ private fun AttachMenu(enabled: Boolean, onMedia: () -> Unit, onFile: () -> Unit
                 },
                 modifier = Modifier.testTag("chat.composer.file")
             )
+            DropdownMenuItem(
+                text = { Text("Mit Effekt senden …", style = OasisType.Body, color = OasisColors.Ink) },
+                leadingIcon = { Icon(Icons.Outlined.AutoAwesome, contentDescription = null, tint = OasisColors.Night) },
+                onClick = {
+                    open = false
+                    onEffect()
+                },
+                modifier = Modifier.testTag("chat.composer.effect")
+            )
+        }
+    }
+}
+
+/** „Mit Effekt senden“: the four effects; choosing one sends at once with something to send, otherwise keeps the chip. */
+@Composable
+private fun EffectMenu(expanded: Boolean, onDismiss: () -> Unit, onChoose: suspend (String) -> Unit) {
+    val scope = rememberCoroutineScope()
+    DropdownMenu(expanded = expanded, onDismissRequest = onDismiss, containerColor = OasisColors.Paper) {
+        Text(
+            "Mit Effekt senden",
+            style = OasisType.SmallBold,
+            color = OasisColors.Ink,
+            modifier = Modifier.padding(horizontal = 12.dp, vertical = 6.dp)
+        )
+        EffectNames.all.forEach { (key, name) ->
+            DropdownMenuItem(
+                text = { Text(name, style = OasisType.Body, color = OasisColors.Ink) },
+                onClick = {
+                    onDismiss()
+                    scope.launch { onChoose(key) }
+                },
+                modifier = Modifier.testTag("chat.effect.$key")
+            )
+        }
+    }
+}
+
+/** „Effekt: Konfetti“ with „✕“: the effect waits for the next message. */
+@Composable
+private fun EffectChip(text: String, onClear: () -> Unit) {
+    Row(
+        modifier = Modifier
+            .background(OasisColors.Dune, RoundedCornerShape(OasisRadius.CHIP.dp))
+            .padding(start = 12.dp)
+            .testTag("chat.composer.effectChip"),
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+        Text(text, style = OasisType.SmallBold, color = OasisColors.Ink)
+        IconButton(onClick = onClear, modifier = Modifier.testTag("chat.composer.effectClear")) {
+            Icon(Icons.Outlined.Close, contentDescription = "Effekt entfernen", tint = OasisColors.Night)
         }
     }
 }
 
 /** „Senden“ as a round button; it waits for the message to go out and cannot be pressed twice meanwhile. */
 @Composable
-private fun SendButton(enabled: Boolean, onSend: suspend () -> Unit) {
+private fun SendButton(enabled: Boolean, onSend: suspend () -> Unit, onLongPress: () -> Unit) {
     val scope = rememberCoroutineScope()
     var sending by remember { mutableStateOf(false) }
     RoundAction(
@@ -595,7 +716,8 @@ private fun SendButton(enabled: Boolean, onSend: suspend () -> Unit) {
         "Senden",
         enabled = enabled && !sending,
         filled = true,
-        modifier = Modifier.testTag("chat.composer.send")
+        modifier = Modifier.testTag("chat.composer.send"),
+        onLongClick = onLongPress
     ) {
         scope.launch {
             sending = true
@@ -617,6 +739,7 @@ private fun RoundAction(
     filled: Boolean,
     modifier: Modifier = Modifier,
     size: Dp = ROUND_BUTTON,
+    onLongClick: (() -> Unit)? = null,
     onClick: () -> Unit
 ) {
     val background = when {
@@ -629,7 +752,14 @@ private fun RoundAction(
             .size(size)
             .clip(CircleShape)
             .background(background)
-            .clickable(enabled = enabled, role = Role.Button, onClickLabel = description, onClick = onClick)
+            .combinedClickable(
+                enabled = enabled,
+                role = Role.Button,
+                onClickLabel = description,
+                onLongClickLabel = onLongClick?.let { "Mit Effekt senden" },
+                onLongClick = onLongClick,
+                onClick = onClick
+            )
             .semantics { contentDescription = description },
         contentAlignment = Alignment.Center
     ) {
@@ -701,6 +831,14 @@ private fun BubbleColumn(
             modifier = Modifier
                 .widthIn(max = 520.dp)
                 .background(if (mine) OasisColors.Night else OasisColors.Paper, RoundedCornerShape(OasisRadius.S.dp))
+                // On „Nachtwasser“ the own (night) bubbles get an outline, so they stand out.
+                .then(
+                    if (mine && LocalChatLook.current.dark) {
+                        Modifier.border(1.dp, LookColors.NightLine, RoundedCornerShape(OasisRadius.S.dp)).testTag("chat.message.outlined")
+                    } else {
+                        Modifier
+                    }
+                )
                 .padding(horizontal = 16.dp, vertical = 12.dp),
             verticalArrangement = Arrangement.spacedBy(4.dp)
         ) {
@@ -723,23 +861,27 @@ private fun BubbleColumn(
             }
             attachments()
         }
-        Row(
-            modifier = Modifier.padding(horizontal = 8.dp),
-            horizontalArrangement = Arrangement.spacedBy(12.dp),
-            verticalAlignment = Alignment.CenterVertically
-        ) {
-            item.expiresAt?.let { Text("löscht sich ${formatDateTime(it)}", style = OasisType.Caption, color = OasisColors.Muted) }
-            if (!mine && item.state == ChatMessageItem.State.Readable) {
-                Text(
-                    "Melden",
-                    style = OasisType.Caption.copy(textDecoration = TextDecoration.Underline),
-                    color = OasisColors.Muted,
-                    modifier = Modifier
-                        .pressable(onReport)
-                        .padding(vertical = 12.dp)
-                        .semantics { contentDescription = "Nachricht von $senderName melden" }
-                        .testTag("chat.message.report")
-                )
+        val reportable = !mine && item.state == ChatMessageItem.State.Readable
+        // Only a line with something in it, so no empty paper pill shows on a chosen background.
+        if (item.expiresAt != null || reportable) {
+            Row(
+                modifier = Modifier.padding(horizontal = 8.dp).lookPill(LocalChatLook.current),
+                horizontalArrangement = Arrangement.spacedBy(12.dp),
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                item.expiresAt?.let { Text("löscht sich ${formatDateTime(it)}", style = OasisType.Caption, color = OasisColors.Muted) }
+                if (reportable) {
+                    Text(
+                        "Melden",
+                        style = OasisType.Caption.copy(textDecoration = TextDecoration.Underline),
+                        color = OasisColors.Muted,
+                        modifier = Modifier
+                            .pressable(onReport)
+                            .padding(vertical = 12.dp)
+                            .semantics { contentDescription = "Nachricht von $senderName melden" }
+                            .testTag("chat.message.report")
+                    )
+                }
             }
         }
     }
