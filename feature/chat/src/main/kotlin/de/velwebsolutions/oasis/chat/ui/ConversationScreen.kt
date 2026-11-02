@@ -174,7 +174,8 @@ internal fun ConversationViewModel.attachmentActions() = AttachmentActions(
     onOpenViewOnce = ::openViewOnce,
     onCloseViewOnce = ::closeViewOnce,
     onCancelViewOnce = ::cancelViewOnce,
-    onExternalScreen = context.vault::openExternalScreen
+    onExternalScreen = context.vault::openExternalScreen,
+    text = TextActions(onTranscribe = ::transcribe, onHide = ::hideTranscript)
 )
 
 @Composable
@@ -318,7 +319,14 @@ internal fun ConversationContent(
                     avatar = if (mine) null else senderAvatar(item.senderId),
                     startsRun = index == 0 || items[index - 1].senderId != item.senderId
                 ) {
-                    MessageAttachments(item, mine, senderName(item.senderId), state.attachmentViews, attachments)
+                    MessageAttachments(
+                        item,
+                        mine,
+                        senderName(item.senderId),
+                        state.attachmentViews,
+                        attachments,
+                        TranscriptionView(state.canTranscribe, state.transcripts)
+                    )
                 }
             }
         }

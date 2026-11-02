@@ -119,8 +119,15 @@ class AttachmentActions(
      * Opens a screen of another app with the start step (a picker, a file in another app) and says whether it opened;
      * the chat stays unlocked while it is in front ([de.velwebsolutions.oasis.chat.core.ChatVault.openExternalScreen]).
      */
-    val onExternalScreen: (start: () -> Boolean) -> Boolean
+    val onExternalScreen: (start: () -> Boolean) -> Boolean,
+    val text: TextActions
 )
+
+/** A voice message as text (on the device only): „Als Text anzeigen“ and „Text ausblenden“. */
+class TextActions(val onTranscribe: suspend (MessageAttachment) -> Unit, val onHide: (String) -> Unit)
+
+/** Whether voice messages can be shown as text here, and the texts so far. */
+data class TranscriptionView(val available: Boolean = false, val transcripts: Map<String, Transcript> = emptyMap())
 
 /** The voice message in the composer: start recording, "Fertig" (it becomes a draft) and "Abbrechen". */
 class RecordingActions(val onStart: () -> Unit, val onFinish: suspend () -> Unit, val onCancel: () -> Unit)
@@ -291,7 +298,8 @@ internal fun MessageAttachments(
     mine: Boolean,
     senderName: String,
     views: Map<String, AttachmentView>,
-    actions: AttachmentActions
+    actions: AttachmentActions,
+    transcription: TranscriptionView
 ) {
     val color = if (mine) OasisColors.OnNight else OasisColors.Ink
     item.content.attachments.forEach { attachment ->
@@ -328,7 +336,7 @@ internal fun MessageAttachments(
 
                 else -> {
                     LaunchedEffect(attachment.id) { actions.onLoad(attachment, false) }
-                    Shown(attachment, kind, label, view, color, actions)
+                    Shown(attachment, kind, label, view, color, actions, transcription)
                 }
             }
         }
@@ -390,7 +398,8 @@ private fun Shown(
     label: String,
     view: AttachmentView?,
     color: Color,
-    actions: AttachmentActions
+    actions: AttachmentActions,
+    transcription: TranscriptionView
 ) {
     var fullScreen by remember { mutableStateOf(false) }
     when (view) {
@@ -420,6 +429,7 @@ private fun Shown(
 
         is AttachmentView.Playable -> if (kind == AttachmentKind.Audio) {
             VoiceMessage(view.file, attachment.durationMs ?: 0, color)
+            if (transcription.available) VoiceText(attachment, transcription.transcripts[attachment.id], color, actions)
         } else {
             Box(
                 modifier = Modifier
@@ -544,6 +554,36 @@ internal fun VoiceControls(player: VoicePlayer, color: Color, modifier: Modifier
                         .clickable(role = Role.Button, onClickLabel = "Geschwindigkeit ändern", onClick = VoiceSpeed::next)
                         .padding(horizontal = 10.dp, vertical = 4.dp)
                         .testTag("chat.voice.speed")
+                )
+            }
+        }
+    }
+}
+
+/**
+ * Under a voice message, while German speech can be recognised on this device: „Als Text anzeigen“, then „Wird
+ * umgewandelt …“, the text with „Text ausblenden“, or why it failed. Not for view-once voice messages (their viewer has
+ * none), not in the tray.
+ */
+@Composable
+private fun VoiceText(attachment: MessageAttachment, transcript: Transcript?, color: Color, actions: AttachmentActions) {
+    val scope = rememberCoroutineScope()
+    Column(verticalArrangement = Arrangement.spacedBy(4.dp), modifier = Modifier.testTag("chat.voice.text")) {
+        when (transcript) {
+            Transcript.Working -> Text("Wird umgewandelt …", style = OasisType.Small, color = color)
+
+            is Transcript.Shown -> {
+                Text(transcript.text, style = OasisType.Body, color = color, modifier = Modifier.testTag("chat.voice.transcript"))
+                OasisTextButton("Text ausblenden", { actions.text.onHide(attachment.id) }, color = color)
+            }
+
+            else -> {
+                if (transcript is Transcript.Failed) Text(transcript.message, style = OasisType.Small, color = color)
+                OasisTextButton(
+                    "Als Text anzeigen",
+                    { scope.launch { actions.text.onTranscribe(attachment) } },
+                    color = color,
+                    modifier = Modifier.testTag("chat.voice.transcribe")
                 )
             }
         }

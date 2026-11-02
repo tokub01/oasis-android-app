@@ -18,6 +18,7 @@ import dagger.hilt.components.SingletonComponent
 import de.velwebsolutions.oasis.chat.core.AndroidChatMedia
 import de.velwebsolutions.oasis.chat.core.AndroidKeystoreBiometricKeys
 import de.velwebsolutions.oasis.chat.core.AndroidSodium
+import de.velwebsolutions.oasis.chat.core.AndroidVoiceTranscriber
 import de.velwebsolutions.oasis.chat.core.BiometricPrompter
 import de.velwebsolutions.oasis.chat.core.ChatContext
 import de.velwebsolutions.oasis.chat.core.ChatMedia
@@ -26,6 +27,7 @@ import de.velwebsolutions.oasis.chat.core.ChatVault
 import de.velwebsolutions.oasis.chat.core.DataStoreChatPreferences
 import de.velwebsolutions.oasis.chat.core.DeviceSecretStore
 import de.velwebsolutions.oasis.chat.core.KeystoreDeviceSecretStore
+import de.velwebsolutions.oasis.chat.core.PcmDecoder
 import de.velwebsolutions.oasis.chat.data.ChatRepository
 import de.velwebsolutions.oasis.chat.data.DefaultChatRepository
 import de.velwebsolutions.oasis.chatcrypto.ChatCrypto
@@ -35,6 +37,7 @@ import de.velwebsolutions.oasis.core.network.ApiClient
 import javax.inject.Qualifier
 import javax.inject.Singleton
 import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
 
 /** The chat's small on-device store (biometric copy, "Nicht jetzt"). */
 @Qualifier
@@ -115,7 +118,8 @@ object ChatModule {
         secrets: DeviceSecretStore,
         preferences: ChatPreferences,
         session: Session,
-        media: ChatMedia
+        media: ChatMedia,
+        @ApplicationContext appContext: Context
     ): ChatContext = ChatContext(
         repository,
         vault,
@@ -125,6 +129,7 @@ object ChatModule {
         checkNotNull(session.me) {
             "Chat screens need a signed-in member."
         },
-        media
+        media,
+        transcriber = AndroidVoiceTranscriber(appContext, PcmDecoder::decode, Dispatchers.IO)
     )
 }

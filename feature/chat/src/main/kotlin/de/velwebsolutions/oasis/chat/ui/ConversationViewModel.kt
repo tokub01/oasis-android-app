@@ -23,6 +23,7 @@ import de.velwebsolutions.oasis.chat.core.ChatMessages
 import de.velwebsolutions.oasis.chat.core.ChatSafety
 import de.velwebsolutions.oasis.chat.core.ChatTimeline
 import de.velwebsolutions.oasis.chat.core.DraftAttachment
+import de.velwebsolutions.oasis.chat.core.TranscriptionProblem
 import de.velwebsolutions.oasis.chat.core.describeChatError
 import de.velwebsolutions.oasis.chat.core.formatDate
 import de.velwebsolutions.oasis.chat.core.lifetimeLabel
@@ -57,6 +58,18 @@ data class SafetyFlag(val item: ChatMessageItem, val title: String, val text: St
 
 /** The open view-once file: shown full screen from memory until it is closed, then reported as viewed. */
 data class ViewOnceViewer(val item: ChatMessageItem, val attachment: MessageAttachment, val view: AttachmentView)
+
+/** A voice message as text: being made, shown, hidden again, or why it failed. */
+sealed interface Transcript {
+    /** „Wird umgewandelt …“. */
+    data object Working : Transcript
+
+    data class Shown(val text: String) : Transcript
+
+    data class Hidden(val text: String) : Transcript
+
+    data class Failed(val message: String) : Transcript
+}
 
 /** What the conversation screen shows. */
 data class ConversationState(
@@ -103,7 +116,11 @@ data class ConversationState(
     val uploadProgress: Float? = null,
     /** Decrypted files of the shown messages by attachment id. */
     val attachmentViews: Map<String, AttachmentView> = emptyMap(),
-    val viewOnce: ViewOnceViewer? = null
+    val viewOnce: ViewOnceViewer? = null,
+    /** German speech can be turned into text on this device itself ([de.velwebsolutions.oasis.chat.core.VoiceTranscriber]). */
+    val canTranscribe: Boolean = false,
+    /** Voice messages as text by attachment id; in memory only, gone when the chat closes or locks. */
+    val transcripts: Map<String, Transcript> = emptyMap()
 ) {
     /** Room for another file in the composer, and nothing else going on. */
     val canAttach: Boolean
@@ -145,6 +162,9 @@ class ConversationViewModel @AssistedInject constructor(
     val state: StateFlow<ConversationState> = mutableState.asStateFlow()
 
     private var conversation: ChatConversation? = null
+
+    /** Whether this screen asked the transcriber already. */
+    private var transcriberAsked = false
     private var timeline = ChatTimeline()
     private var notices: List<String> = emptyList()
     private var nextBeforeId: String? = null
@@ -242,6 +262,12 @@ class ConversationViewModel @AssistedInject constructor(
                 realtime.subscribe("private-conversation.$conversationId").collect { handle(it) }
             }
             startTimers(token)
+            // Asked once per screen: creating the recognizer to ask costs a moment.
+            if (!transcriberAsked) {
+                transcriberAsked = true
+                val available = context.transcriber.isAvailable()
+                render { it.copy(canTranscribe = available) }
+            }
         } catch (error: Exception) {
             handleFailure(error)
         }
@@ -291,6 +317,7 @@ class ConversationViewModel @AssistedInject constructor(
                 recordingSeconds = null,
                 uploadProgress = null,
                 attachmentViews = emptyMap(),
+                transcripts = emptyMap(),
                 viewOnce = null
             )
         }
@@ -865,6 +892,45 @@ class ConversationViewModel @AssistedInject constructor(
     }
 
     private fun attachmentError(error: Exception): String = if (error is ApiError.NotFound) GONE else describeChatError(error)
+
+    // endregion
+
+    // region Voice messages as text
+
+    /**
+     * „Als Text anzeigen“: the decrypted voice message on screen is turned into text on the device; a hidden text shows
+     * again. The text stays in memory for this chat only and is never sent.
+     */
+    suspend fun transcribe(attachment: MessageAttachment) = inScope {
+        val hidden = state.value.transcripts[attachment.id] as? Transcript.Hidden
+        if (hidden != null) {
+            setTranscript(attachment.id, Transcript.Shown(hidden.text))
+            return@inScope
+        }
+        val file = (state.value.attachmentViews[attachment.id] as? AttachmentView.Playable)?.file ?: return@inScope
+        val token = openCount
+        setTranscript(attachment.id, Transcript.Working)
+        val result = try {
+            Transcript.Shown(context.transcriber.transcribe(file))
+        } catch (cancelled: CancellationException) {
+            throw cancelled
+        } catch (problem: TranscriptionProblem) {
+            Transcript.Failed(problem.text)
+        } catch (_: Exception) {
+            Transcript.Failed(TranscriptionProblem.Failed.text)
+        }
+        // Left or locked meanwhile: the text is not kept.
+        if (token == openCount) setTranscript(attachment.id, result)
+    }
+
+    /** „Text ausblenden“. */
+    fun hideTranscript(attachmentId: String) {
+        val shown = state.value.transcripts[attachmentId] as? Transcript.Shown ?: return
+        setTranscript(attachmentId, Transcript.Hidden(shown.text))
+    }
+
+    private fun setTranscript(attachmentId: String, transcript: Transcript) =
+        render { it.copy(transcripts = it.transcripts + (attachmentId to transcript)) }
 
     // endregion
 

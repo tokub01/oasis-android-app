@@ -54,6 +54,7 @@ import de.velwebsolutions.oasis.chat.ui.ConversationContent
 import de.velwebsolutions.oasis.chat.ui.ConversationState
 import de.velwebsolutions.oasis.chat.ui.ReportContent
 import de.velwebsolutions.oasis.chat.ui.ReportState
+import de.velwebsolutions.oasis.chat.ui.Transcript
 import de.velwebsolutions.oasis.chat.ui.ViewOnceViewer
 import de.velwebsolutions.oasis.chatcrypto.MessageAttachment
 import de.velwebsolutions.oasis.chatcrypto.MessageContent
@@ -280,6 +281,51 @@ class AttachmentUiTest {
         compose.onNodeWithTag("chat.voice.speed").assertTextEquals("2×")
         capture("voice-message-360dp-played")
         de.velwebsolutions.oasis.design.media.VoiceSpeed.reset()
+    }
+
+    @Test
+    @Config(qualifiers = "w360dp-h740dp")
+    fun aVoiceMessageAsTextInEveryState() {
+        val voiceFile = File(application.cacheDir, "text.m4a").apply { writeBytes(byteArrayOf(1)) }
+        val voice = entry("2", "audio", "audio/mp4", durationMs = 45_000)
+        val base = ConversationState(
+            conversation = conversation,
+            timeline = ChatTimeline(
+                listOf(item("a", "2", "", listOf(voice), listOf(AttachmentState("2", status = AttachmentState.ACCEPTED))))
+            ),
+            attachmentViews = mapOf("2" to AttachmentView.Playable(voiceFile, null))
+        )
+        // Without German on-device recognition: no button.
+        state = base
+        show()
+        compose.onNodeWithText("Als Text anzeigen").assertDoesNotExist()
+
+        state = base.copy(canTranscribe = true)
+        compose.onNodeWithText("Als Text anzeigen").performClick()
+        compose.waitForIdle()
+        assertTrue(calls.contains("transcribe 2"))
+        state = state.copy(transcripts = mapOf("2" to Transcript.Working))
+        compose.onNodeWithText("Wird umgewandelt …").assertExists()
+        state = state.copy(transcripts = mapOf("2" to Transcript.Shown("Bin in zehn Minuten da, bring Brot mit.")))
+        compose.onNodeWithTag("chat.voice.transcript").assertTextEquals("Bin in zehn Minuten da, bring Brot mit.")
+        capture("voice-message-text-360dp")
+        compose.onNodeWithText("Text ausblenden").performClick()
+        assertTrue(calls.contains("hideText 2"))
+        state = state.copy(transcripts = mapOf("2" to Transcript.Hidden("Bin in zehn Minuten da, bring Brot mit.")))
+        compose.onNodeWithTag("chat.voice.transcript").assertDoesNotExist()
+        compose.onNodeWithText("Als Text anzeigen").assertExists()
+        state = state.copy(transcripts = mapOf("2" to Transcript.Failed("Das ließ sich nicht in Text umwandeln.")))
+        compose.onNodeWithText("Das ließ sich nicht in Text umwandeln.").assertExists()
+        compose.onNodeWithText("Als Text anzeigen").assertExists()
+
+        // Not in the tray.
+        state = ConversationState(
+            conversation = conversation,
+            canSend = true,
+            canTranscribe = true,
+            drafts = listOf(DraftAttachment(1, AttachmentKind.Audio, "audio/mp4", byteArrayOf(9), durationMs = 2_000))
+        )
+        compose.onNodeWithText("Als Text anzeigen").assertDoesNotExist()
     }
 
     @Test

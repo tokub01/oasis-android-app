@@ -40,7 +40,8 @@ class ChatTestSupport(val server: FakeChatServer = FakeChatServer()) {
         vault: ChatVault = ChatVault(vaultScope, idleLock = Duration.INFINITE),
         cryptoDispatcher: CoroutineDispatcher = Dispatchers.Default,
         repository: (ChatRepository) -> ChatRepository = { it },
-        media: ChatMedia = FakeChatMedia()
+        media: ChatMedia = FakeChatMedia(),
+        transcriber: de.velwebsolutions.oasis.chat.core.VoiceTranscriber = de.velwebsolutions.oasis.chat.core.NoTranscriber
     ): ChatContext {
         vault.prepare(userId.toString())
         return ChatContext(
@@ -51,7 +52,8 @@ class ChatTestSupport(val server: FakeChatServer = FakeChatServer()) {
             preferences = preferences,
             me = server.me(userId, canParticipate),
             media = media,
-            cryptoDispatcher = cryptoDispatcher
+            cryptoDispatcher = cryptoDispatcher,
+            transcriber = transcriber
         )
     }
 }
@@ -66,9 +68,10 @@ fun ChatTestSupport.member(
     passphrase: String = TEST_PASSPHRASE,
     locked: Boolean = false,
     preferences: ChatPreferences = MemoryChatPreferences(),
-    media: ChatMedia = FakeChatMedia()
+    media: ChatMedia = FakeChatMedia(),
+    transcriber: de.velwebsolutions.oasis.chat.core.VoiceTranscriber = de.velwebsolutions.oasis.chat.core.NoTranscriber
 ): ChatContext {
-    val context = context(userId, secrets = secrets, preferences = preferences, media = media)
+    val context = context(userId, secrets = secrets, preferences = preferences, media = media, transcriber = transcriber)
     val identity = testCrypto.createIdentity()
     val copy = testCrypto.lockIdentity(identity, passphrase, KdfLimits.Minimum)
     val stored = runBlocking { context.repository.saveIdentity(copy, testCrypto.exportPublicKeys(identity)) }
@@ -187,5 +190,9 @@ fun attachmentActions(calls: MutableList<String>) = de.velwebsolutions.oasis.cha
     onOpenViewOnce = { _, attachment -> calls += "open ${attachment.id}" },
     onCloseViewOnce = { calls += "close" },
     onCancelViewOnce = { calls += "cancelViewOnce" },
-    onExternalScreen = { start -> start() }
+    onExternalScreen = { start -> start() },
+    text = de.velwebsolutions.oasis.chat.ui.TextActions(
+        onTranscribe = { calls += "transcribe ${it.id}" },
+        onHide = { calls += "hideText $it" }
+    )
 )

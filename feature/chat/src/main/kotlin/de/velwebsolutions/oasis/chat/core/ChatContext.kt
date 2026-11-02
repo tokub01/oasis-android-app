@@ -19,7 +19,9 @@ class ChatContext(
     /** The label of this device in the device lists (iOS: "iPhone (Oasis-App)"). */
     val deviceLabel: String = DEFAULT_DEVICE_LABEL,
     /** Where Argon2id and the other expensive crypto runs (iOS: a detached task). */
-    val cryptoDispatcher: CoroutineDispatcher = Dispatchers.Default
+    val cryptoDispatcher: CoroutineDispatcher = Dispatchers.Default,
+    /** Voice messages as text, on the device only ([AndroidVoiceTranscriber]). */
+    val transcriber: VoiceTranscriber = NoTranscriber
 ) {
     /** The signed-in member's id as a string, as in all crypto objects. */
     val userId: String get() = vault.userId
