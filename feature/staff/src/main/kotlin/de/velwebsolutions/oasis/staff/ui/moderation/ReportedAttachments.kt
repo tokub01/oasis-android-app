@@ -32,6 +32,7 @@ import de.velwebsolutions.oasis.design.components.AsyncOasisButton
 import de.velwebsolutions.oasis.design.components.AuthorizedImage
 import de.velwebsolutions.oasis.design.components.OasisButton
 import de.velwebsolutions.oasis.design.components.OasisButtonKind
+import de.velwebsolutions.oasis.design.media.SystemAudioFocus
 import de.velwebsolutions.oasis.design.media.VoicePlayer
 import de.velwebsolutions.oasis.design.media.playFile
 import de.velwebsolutions.oasis.design.theme.OasisColors
@@ -142,7 +143,8 @@ private fun PlayableAttachment(isVideo: Boolean, file: File?, failed: Boolean, o
 
 @Composable
 private fun ReportedVoiceMessage(file: File) {
-    val player = remember(file) { VoicePlayer(file) }
+    val context = LocalContext.current
+    val player = remember(file) { VoicePlayer(file, 0, SystemAudioFocus(context)) }
     DisposableEffect(player) { onDispose { player.release() } }
     Row(verticalAlignment = Alignment.CenterVertically) {
         IconButton(onClick = player::toggle, modifier = Modifier.testTag("case.attachment.play")) {

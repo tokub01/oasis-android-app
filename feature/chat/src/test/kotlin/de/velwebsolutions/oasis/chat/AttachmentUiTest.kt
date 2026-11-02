@@ -19,19 +19,26 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.graphics.asImageBitmap
+import androidx.compose.ui.semantics.SemanticsActions
+import androidx.compose.ui.semantics.SemanticsProperties
 import androidx.compose.ui.test.assertIsEnabled
+import androidx.compose.ui.test.assertTextEquals
+import androidx.compose.ui.test.click
 import androidx.compose.ui.test.hasContentDescription
 import androidx.compose.ui.test.hasTestTag
 import androidx.compose.ui.test.hasText
 import androidx.compose.ui.test.isRoot
 import androidx.compose.ui.test.junit4.createComposeRule
 import androidx.compose.ui.test.onAllNodesWithText
+import androidx.compose.ui.test.onFirst
 import androidx.compose.ui.test.onNodeWithContentDescription
 import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.onRoot
 import androidx.compose.ui.test.performClick
 import androidx.compose.ui.test.performScrollTo
+import androidx.compose.ui.test.performSemanticsAction
+import androidx.compose.ui.test.performTouchInput
 import androidx.core.app.ActivityOptionsCompat
 import androidx.test.core.app.ApplicationProvider
 import com.github.takahirom.roborazzi.captureRoboImage
@@ -194,7 +201,9 @@ class AttachmentUiTest {
         capture("composer-progress")
         state = ConversationState(conversation = conversation, canSend = true, recordingSeconds = 75, draft = "Hör mal")
         assertTrue("no sending while recording", !state.canSubmit)
-        compose.onNodeWithText("Aufnahme 1:15 / 3:00").assertExists()
+        compose.onNodeWithText("1:15").assertExists()
+        compose.onNodeWithText("noch 1:45").assertExists()
+        compose.onNodeWithText("Verwerfen").assertExists()
         capture("composer-recording")
         tapTag("chat.composer.cancelRecording")
         tapTag("chat.composer.finishRecording")
@@ -222,6 +231,74 @@ class AttachmentUiTest {
         compose.onNodeWithTag("chat.composer.send").assertIsEnabled().performClick()
         compose.waitForIdle()
         assertTrue(calls.contains("send"))
+    }
+
+    @Test
+    @Config(qualifiers = "w360dp-h740dp")
+    fun aVoiceMessagePlaysSeeksAndChangesItsSpeed() {
+        de.velwebsolutions.oasis.design.media.VoiceSpeed.reset()
+        val voiceFile = File(application.cacheDir, "sprachnachricht.m4a").apply { writeBytes(byteArrayOf(1)) }
+        org.robolectric.shadows.ShadowMediaPlayer.addMediaInfo(
+            org.robolectric.shadows.util.DataSource.toDataSource(voiceFile.path),
+            org.robolectric.shadows.ShadowMediaPlayer.MediaInfo(45_000, 0)
+        )
+        val voice = entry("2", "audio", "audio/mp4", durationMs = 45_000)
+        state = ConversationState(
+            conversation = conversation,
+            timeline = ChatTimeline(
+                listOf(item("a", "2", "", listOf(voice), listOf(AttachmentState("2", status = AttachmentState.ACCEPTED))))
+            ),
+            attachmentViews = mapOf("2" to AttachmentView.Playable(voiceFile, null))
+        )
+        show()
+        // Before the first play only the length.
+        compose.onNodeWithTag("chat.voice.time").assertTextEquals("0:45")
+        capture("voice-message-360dp")
+
+        compose.onNodeWithContentDescription("Abspielen").performClick()
+        compose.onNodeWithContentDescription("Pausieren").assertExists()
+        compose.onNodeWithTag("chat.voice.time").assertTextEquals("0:00 / 0:45")
+        compose.onNodeWithContentDescription("Pausieren").performClick()
+        compose.onNodeWithContentDescription("Abspielen").assertExists()
+
+        // TalkBack: the slider „Position“ moves in steps of 5 s.
+        val position = compose.onNodeWithContentDescription("Position")
+        position.performSemanticsAction(SemanticsActions.SetProgress) { it(1_000f) }
+        compose.onNodeWithTag("chat.voice.time").assertTextEquals("0:05 / 0:45")
+        position.performSemanticsAction(SemanticsActions.SetProgress) { it(30_000f) }
+        compose.onNodeWithTag("chat.voice.time").assertTextEquals("0:10 / 0:45")
+        position.performSemanticsAction(SemanticsActions.SetProgress) { it(0f) }
+        compose.onNodeWithTag("chat.voice.time").assertTextEquals("0:05 / 0:45")
+        // A tap or drag on the bar moves there (the end of a message is VoicePlayer's: back to the start).
+        compose.onNodeWithTag("chat.voice.position").performTouchInput { click(center) }
+        val moved = compose.onNodeWithTag("chat.voice.time").fetchSemanticsNode().config[SemanticsProperties.Text].single().text
+        assertTrue(moved, moved.matches(Regex("0:2[0-5] / 0:45")))
+
+        // The speed goes round for every voice message.
+        compose.onNodeWithTag("chat.voice.speed").assertTextEquals("1×").performClick()
+        compose.onNodeWithTag("chat.voice.speed").assertTextEquals("1,5×").performClick()
+        compose.onNodeWithTag("chat.voice.speed").assertTextEquals("2×")
+        capture("voice-message-360dp-played")
+        de.velwebsolutions.oasis.design.media.VoiceSpeed.reset()
+    }
+
+    @Test
+    fun aRecordingInTheTrayPlaysWithTheSamePlayer() {
+        state = ConversationState(
+            conversation = conversation,
+            canSend = true,
+            drafts = listOf(DraftAttachment(1, AttachmentKind.Audio, "audio/mp4", byteArrayOf(9, 9), durationMs = 12_000))
+        )
+        show()
+        compose.onNodeWithTag("chat.voice.time").assertTextEquals("0:12")
+        compose.onNodeWithTag("chat.composer.viewOnce").assertExists()
+        capture("composer-voice-draft")
+        compose.onNodeWithContentDescription("Sprachnachricht entfernen").performClick()
+        // A recording the player cannot read shows the error text instead of controls.
+        compose.onNodeWithContentDescription("Abspielen").performClick()
+        compose.onNodeWithText("Die Sprachnachricht lässt sich nicht abspielen.").assertExists()
+        compose.onNodeWithTag("chat.voice.position").assertDoesNotExist()
+        assertTrue(calls.contains("remove 1"))
     }
 
     @Test
@@ -346,7 +423,7 @@ class AttachmentUiTest {
         compose.onNodeWithText("Anhang ließ sich nicht prüfen.").assertExists()
         capture("messages-shown")
         compose.onNodeWithText("Noch einmal laden").performScrollTo().performClick()
-        compose.onNode(hasContentDescription("Sprachnachricht abspielen")).performScrollTo().performClick()
+        compose.onAllNodes(hasContentDescription("Abspielen")).onFirst().performScrollTo().performClick()
         compose.onNodeWithText("Die Sprachnachricht lässt sich nicht abspielen.").assertExists()
 
         tapTag("chat.attachment.photo")

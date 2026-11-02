@@ -2,8 +2,14 @@ package de.velwebsolutions.oasis.chat.ui
 
 import android.net.Uri
 import android.widget.VideoView
+import androidx.compose.animation.core.RepeatMode
+import androidx.compose.animation.core.animateFloat
+import androidx.compose.animation.core.infiniteRepeatable
+import androidx.compose.animation.core.rememberInfiniteTransition
+import androidx.compose.animation.core.tween
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -14,21 +20,24 @@ import androidx.compose.foundation.layout.aspectRatio
 import androidx.compose.foundation.layout.defaultMinSize
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.selection.toggleable
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.outlined.InsertDriveFile
 import androidx.compose.material.icons.outlined.Close
-import androidx.compose.material.icons.outlined.Mic
 import androidx.compose.material.icons.outlined.Pause
 import androidx.compose.material.icons.outlined.PlayArrow
 import androidx.compose.material.icons.outlined.Videocam
+import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.LinearProgressIndicator
+import androidx.compose.material3.Slider
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
@@ -40,17 +49,25 @@ import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.asImageBitmap
+import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.semantics.LiveRegionMode
+import androidx.compose.ui.semantics.ProgressBarRangeInfo
 import androidx.compose.ui.semantics.Role
+import androidx.compose.ui.semantics.clearAndSetSemantics
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.liveRegion
+import androidx.compose.ui.semantics.progressBarRangeInfo
 import androidx.compose.ui.semantics.semantics
+import androidx.compose.ui.semantics.setProgress
+import androidx.compose.ui.semantics.stateDescription
+import androidx.compose.ui.semantics.testTag
 import androidx.compose.ui.text.font.FontStyle
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.viewinterop.AndroidView
@@ -75,12 +92,15 @@ import de.velwebsolutions.oasis.design.components.OasisButtonKind
 import de.velwebsolutions.oasis.design.components.OasisCheckbox
 import de.velwebsolutions.oasis.design.components.OasisTextButton
 import de.velwebsolutions.oasis.design.media.ImageCodec
+import de.velwebsolutions.oasis.design.media.SystemAudioFocus
 import de.velwebsolutions.oasis.design.media.VoicePlayer
+import de.velwebsolutions.oasis.design.media.VoiceSpeed
 import de.velwebsolutions.oasis.design.media.playFile
 import de.velwebsolutions.oasis.design.theme.OasisColors
 import de.velwebsolutions.oasis.design.theme.OasisRadius
 import de.velwebsolutions.oasis.design.theme.OasisType
 import java.io.File
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 
 /** What the screen does with attachments: the composer's files and recording, and the files in messages. */
@@ -151,6 +171,10 @@ internal fun DraftAttachments(state: ConversationState, actions: AttachmentActio
 
 @Composable
 private fun DraftRow(draft: DraftAttachment, actions: AttachmentActions, enabled: Boolean) {
+    if (draft.kind == AttachmentKind.Audio) {
+        DraftVoiceMessage(draft, actions, enabled)
+        return
+    }
     val title = AttachmentTexts.title(draft.kind)
     Row(
         modifier = Modifier
@@ -173,36 +197,84 @@ private fun DraftRow(draft: DraftAttachment, actions: AttachmentActions, enabled
             color = OasisColors.Ink,
             modifier = Modifier.weight(1f)
         )
-        Row(
-            modifier = Modifier
-                .defaultMinSize(minHeight = 44.dp)
-                .toggleable(draft.viewOnce, enabled = enabled, role = Role.Checkbox) { actions.onViewOnce(draft.localId, it) }
-                .testTag("chat.composer.viewOnce"),
-            verticalAlignment = Alignment.CenterVertically
-        ) {
-            OasisCheckbox(draft.viewOnce, onCheckedChange = null, enabled = enabled)
-            Text("Einmal ansehen", style = OasisType.Caption, color = OasisColors.Ink)
-        }
-        IconButton(onClick = {
-            actions.onRemove(draft.localId)
-        }, enabled = enabled, modifier = Modifier.testTag("chat.composer.removeDraft")) {
-            Icon(Icons.Outlined.Close, contentDescription = "$title entfernen", tint = OasisColors.Night)
+        DraftViewOnce(draft, actions, enabled)
+        DraftRemove(draft, actions, enabled)
+    }
+}
+
+/** A recorded voice message in the tray: the same player as in the bubbles (from memory), „Einmal ansehen“ and remove. */
+@Composable
+private fun DraftVoiceMessage(draft: DraftAttachment, actions: AttachmentActions, enabled: Boolean) {
+    val context = LocalContext.current
+    val player = remember(draft.localId) { VoicePlayer(draft.data, draft.durationMs ?: 0, SystemAudioFocus(context)) }
+    DisposableEffect(player) { onDispose { player.release() } }
+    Column(
+        modifier = Modifier
+            .fillMaxWidth()
+            .background(OasisColors.Field, RoundedCornerShape(OasisRadius.CHIP.dp))
+            .padding(horizontal = 10.dp, vertical = 4.dp)
+            .testTag("chat.composer.draft")
+    ) {
+        VoiceControls(player, OasisColors.Ink, Modifier.fillMaxWidth())
+        Row(verticalAlignment = Alignment.CenterVertically) {
+            Box(Modifier.weight(1f)) { DraftViewOnce(draft, actions, enabled) }
+            DraftRemove(draft, actions, enabled)
         }
     }
 }
 
-/** While a voice message is recorded: the time, "Abbrechen" and "Fertig". */
+@Composable
+private fun DraftViewOnce(draft: DraftAttachment, actions: AttachmentActions, enabled: Boolean) {
+    Row(
+        modifier = Modifier
+            .defaultMinSize(minHeight = 44.dp)
+            .toggleable(draft.viewOnce, enabled = enabled, role = Role.Checkbox) { actions.onViewOnce(draft.localId, it) }
+            .testTag("chat.composer.viewOnce"),
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+        OasisCheckbox(draft.viewOnce, onCheckedChange = null, enabled = enabled)
+        Text("Einmal ansehen", style = OasisType.Caption, color = OasisColors.Ink)
+    }
+}
+
+@Composable
+private fun DraftRemove(draft: DraftAttachment, actions: AttachmentActions, enabled: Boolean) {
+    IconButton(onClick = {
+        actions.onRemove(draft.localId)
+    }, enabled = enabled, modifier = Modifier.testTag("chat.composer.removeDraft")) {
+        Icon(Icons.Outlined.Close, contentDescription = "${AttachmentTexts.title(draft.kind)} entfernen", tint = OasisColors.Night)
+    }
+}
+
+/**
+ * While a voice message is recorded: a pulsing red dot, the running time („0:07“), the time left to the limit
+ * („noch 2:53“), „Verwerfen“ and „Fertig“ (into the attachment tray). At the limit it stops by itself, as before.
+ */
 @Composable
 internal fun RecordingBar(seconds: Int, actions: AttachmentActions) {
-    Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(10.dp)) {
-        Box(Modifier.size(12.dp).background(OasisColors.Sun, RoundedCornerShape(6.dp)))
+    val pulse = rememberInfiniteTransition(label = "recording")
+    val alpha by pulse.animateFloat(1f, 0.25f, infiniteRepeatable(tween(700), RepeatMode.Reverse), label = "dot")
+    val elapsed = seconds * 1000L
+    Row(
+        modifier = Modifier.fillMaxWidth().defaultMinSize(minHeight = 48.dp),
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.spacedBy(10.dp)
+    ) {
+        Box(Modifier.size(12.dp).graphicsLayer { this.alpha = alpha }.background(OasisColors.Sun, CircleShape))
         Text(
-            "Aufnahme ${AttachmentTexts.duration(seconds * 1000L)} / ${AttachmentTexts.duration(ChatAttachments.MAX_VOICE_MS)}",
-            style = OasisType.SmallBold,
+            AttachmentTexts.duration(elapsed),
+            style = OasisType.BodyBold,
             color = OasisColors.Ink,
-            modifier = Modifier.weight(1f).testTag("chat.composer.recording")
+            modifier = Modifier.semantics { contentDescription = "Aufnahme läuft, ${AttachmentTexts.duration(elapsed)}" }
+                .testTag("chat.composer.recording")
         )
-        OasisTextButton("Abbrechen", actions.recording.onCancel, modifier = Modifier.testTag("chat.composer.cancelRecording"))
+        Text(
+            "noch ${AttachmentTexts.duration((ChatAttachments.MAX_VOICE_MS - elapsed).coerceAtLeast(0))}",
+            style = OasisType.Small,
+            color = OasisColors.Muted,
+            modifier = Modifier.weight(1f).testTag("chat.composer.remaining")
+        )
+        OasisTextButton("Verwerfen", actions.recording.onCancel, modifier = Modifier.testTag("chat.composer.cancelRecording"))
         AsyncOasisButton(
             "Fertig",
             actions.recording.onFinish,
@@ -347,7 +419,7 @@ private fun Shown(
         is AttachmentView.Document -> DocumentCard(view, label, color, actions)
 
         is AttachmentView.Playable -> if (kind == AttachmentKind.Audio) {
-            VoiceMessage(view.file, label, color)
+            VoiceMessage(view.file, attachment.durationMs ?: 0, color)
         } else {
             Box(
                 modifier = Modifier
@@ -373,23 +445,113 @@ private fun Shown(
     }
 }
 
-/** Play/pause and the duration of a voice message. */
+/** A voice message in a bubble or the view-once viewer: the player, or the error text when the file cannot be played. */
 @Composable
-internal fun VoiceMessage(file: File, label: String, color: Color) {
-    val player = remember(file) { VoicePlayer(file) }
+internal fun VoiceMessage(file: File, durationMs: Long, color: Color) {
+    val context = LocalContext.current
+    val player = remember(file) { VoicePlayer(file, durationMs, SystemAudioFocus(context)) }
     DisposableEffect(player) { onDispose { player.release() } }
-    Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(4.dp)) {
-        IconButton(onClick = player::toggle, modifier = Modifier.testTag("chat.attachment.play")) {
+    VoiceControls(player, color)
+}
+
+/**
+ * The voice message player (the same on the web and iOS): a round „Abspielen“ / „Pausieren“ button and a thin bar to tap
+ * or drag to a position (TalkBack: the slider „Position“ in steps of 5 s); under the bar the time („0:12 / 0:45“, before
+ * the first play and after the end only „0:45“) and the speed („1×“ → „1,5×“ → „2×“, for every voice message while the
+ * app runs). A file that cannot be played shows the error text and no controls. At least 260 dp wide, so the bar is.
+ */
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+internal fun VoiceControls(player: VoicePlayer, color: Color, modifier: Modifier = Modifier) {
+    if (player.failed) {
+        Note("Die Sprachnachricht lässt sich nicht abspielen.", color)
+        return
+    }
+    // The length is read from the file when the message does not name it.
+    LaunchedEffect(player) { if (player.durationMs == 0L) player.load() }
+    LaunchedEffect(player.playing) {
+        while (player.playing) {
+            player.tick()
+            delay(200)
+        }
+    }
+    val position = player.positionMs
+    val total = player.durationMs
+    val end = total.coerceAtLeast(1).toFloat()
+    val time = if (player.started) {
+        "${AttachmentTexts.duration(position)} / ${AttachmentTexts.duration(total)}"
+    } else {
+        AttachmentTexts.duration(total)
+    }
+    Row(
+        modifier = modifier.widthIn(min = 260.dp).testTag("chat.voice"),
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.spacedBy(12.dp)
+    ) {
+        Box(
+            Modifier
+                .size(44.dp)
+                .clip(CircleShape)
+                .background(color)
+                .clickable(role = Role.Button, onClick = player::toggle)
+                .semantics { contentDescription = if (player.playing) "Pausieren" else "Abspielen" }
+                .testTag("chat.attachment.play"),
+            contentAlignment = Alignment.Center
+        ) {
             Icon(
                 if (player.playing) Icons.Outlined.Pause else Icons.Outlined.PlayArrow,
-                contentDescription = if (player.playing) "Sprachnachricht pausieren" else "Sprachnachricht abspielen",
-                tint = color
+                contentDescription = null,
+                tint = if (color == OasisColors.Ink) OasisColors.Paper else OasisColors.Night
             )
         }
-        Text(label, style = OasisType.Small, color = color)
+        Column(Modifier.weight(1f)) {
+            Slider(
+                value = position.toFloat().coerceIn(0f, end),
+                onValueChange = { player.seekTo(it.toLong()) },
+                valueRange = 0f..end,
+                // A thin rounded track, the played part in the bubble's ink, a small round thumb.
+                thumb = { Box(Modifier.size(12.dp).background(color, CircleShape)) },
+                track = { slider ->
+                    val played = (slider.value - slider.valueRange.start) / (slider.valueRange.endInclusive - slider.valueRange.start)
+                    Box(Modifier.fillMaxWidth().height(4.dp).background(color.copy(alpha = 0.25f), CircleShape)) {
+                        Box(Modifier.fillMaxWidth(played).height(4.dp).background(color, CircleShape))
+                    }
+                },
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(24.dp)
+                    .clearAndSetSemantics {
+                        contentDescription = "Position"
+                        stateDescription = time
+                        testTag = "chat.voice.position"
+                        progressBarRangeInfo = ProgressBarRangeInfo(position.toFloat(), 0f..end)
+                        // TalkBack moves in steps of 5 s, whatever step it asks for.
+                        setProgress { target ->
+                            player.seekTo(position + if (target > position) VOICE_STEP_MS else -VOICE_STEP_MS)
+                            true
+                        }
+                    }
+            )
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                Text(time, style = OasisType.Small, color = color, modifier = Modifier.weight(1f).testTag("chat.voice.time"))
+                Text(
+                    VoiceSpeed.label(),
+                    style = OasisType.SmallBold,
+                    color = color,
+                    modifier = Modifier
+                        .clip(RoundedCornerShape(OasisRadius.CHIP.dp))
+                        .border(1.dp, color.copy(alpha = 0.4f), RoundedCornerShape(OasisRadius.CHIP.dp))
+                        .clickable(role = Role.Button, onClickLabel = "Geschwindigkeit ändern", onClick = VoiceSpeed::next)
+                        .padding(horizontal = 10.dp, vertical = 4.dp)
+                        .testTag("chat.voice.speed")
+                )
+            }
+        }
     }
-    if (player.failed) Note("Die Sprachnachricht lässt sich nicht abspielen.", color)
 }
+
+/** How far TalkBack moves a voice message per step. */
+private const val VOICE_STEP_MS = 5_000L
 
 /** A full-screen window for a photo or video; [secure] blocks screenshots and recordings (view once). */
 @Composable
@@ -427,7 +589,8 @@ internal fun FullMedia(view: AttachmentView, kind: AttachmentKind) {
                     modifier = Modifier.fillMaxWidth().testTag("chat.attachment.player")
                 )
             } else {
-                VoiceMessage(file, AttachmentTexts.title(kind), Color.White)
+                Text(AttachmentTexts.title(kind), style = OasisType.BodyBold, color = Color.White)
+                VoiceMessage(file, 0, Color.White)
             }
         }
         if (unplayable) Text("Das Video lässt sich nicht abspielen.", style = OasisType.Small, color = Color.White)
@@ -470,8 +633,9 @@ internal fun ViewOnceViewer(viewer: ViewOnceViewer, actions: AttachmentActions, 
 internal const val FILE_TRUST_NOTE = "Öffne Dateien nur von Menschen, denen du vertraust."
 
 private fun kindIcon(kind: AttachmentKind): ImageVector = when (kind) {
-    AttachmentKind.Audio -> Icons.Outlined.Mic
+    // Voice messages show their player instead (DraftVoiceMessage, VoiceMessage).
     AttachmentKind.File -> Icons.AutoMirrored.Outlined.InsertDriveFile
+
     else -> Icons.Outlined.Videocam
 }
 
