@@ -297,9 +297,12 @@ class ChatScreensTest {
         }
         waitFor(20_000) { model.state.value.canSend }
         compose.onNodeWithTag("chat.messages.empty").assertIsDisplayed()
-        compose.onNodeWithTag("chat.composer.send").assertIsNotEnabled()
+        // Nothing written: the round button records; with text it sends.
+        compose.onNodeWithTag("chat.composer.send").assertDoesNotExist()
+        compose.onNodeWithTag("chat.composer.record").assertIsEnabled()
 
         field("Nachricht").performTextInput("Hallo Jonas 🌴")
+        compose.onNodeWithTag("chat.composer.record").assertDoesNotExist()
         compose.onNodeWithTag("chat.composer.send").assertIsEnabled().performClick()
         waitFor(20_000) { model.state.value.timeline.items.isNotEmpty() }
         compose.onNodeWithText("Hallo Jonas 🌴").assertIsDisplayed()

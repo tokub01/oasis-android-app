@@ -109,6 +109,10 @@ data class ConversationState(
     val canAttach: Boolean
         get() = canSend && drafts.size < ChatAttachments.MAX_PER_MESSAGE && recordingSeconds == null && uploadProgress == null && !preparing
 
+    /** The round button says „Senden“ (something is written or attached); otherwise it records a voice message. */
+    val showsSend: Boolean
+        get() = draft.isNotBlank() || drafts.isNotEmpty()
+
     /** "Senden" is possible: text or files, within the limits, not while recording or uploading. */
     val canSubmit: Boolean
         get() = canSend && (draft.isNotBlank() || drafts.isNotEmpty()) && !tooLong && recordingSeconds == null && uploadProgress == null

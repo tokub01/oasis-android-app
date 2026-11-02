@@ -19,14 +19,17 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.graphics.asImageBitmap
+import androidx.compose.ui.test.assertIsEnabled
 import androidx.compose.ui.test.hasContentDescription
 import androidx.compose.ui.test.hasTestTag
 import androidx.compose.ui.test.hasText
 import androidx.compose.ui.test.isRoot
 import androidx.compose.ui.test.junit4.createComposeRule
 import androidx.compose.ui.test.onAllNodesWithText
+import androidx.compose.ui.test.onNodeWithContentDescription
 import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.onNodeWithText
+import androidx.compose.ui.test.onRoot
 import androidx.compose.ui.test.performClick
 import androidx.compose.ui.test.performScrollTo
 import androidx.core.app.ActivityOptionsCompat
@@ -37,6 +40,7 @@ import de.velwebsolutions.oasis.chat.api.ChatConversation
 import de.velwebsolutions.oasis.chat.core.AttachmentKind
 import de.velwebsolutions.oasis.chat.core.AttachmentView
 import de.velwebsolutions.oasis.chat.core.ChatMessageItem
+import de.velwebsolutions.oasis.chat.core.ChatMessages
 import de.velwebsolutions.oasis.chat.core.ChatTimeline
 import de.velwebsolutions.oasis.chat.core.DraftAttachment
 import de.velwebsolutions.oasis.chat.ui.ConversationContent
@@ -51,6 +55,7 @@ import de.velwebsolutions.oasis.design.theme.OasisTheme
 import java.io.ByteArrayOutputStream
 import java.io.File
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertFalse
 import org.junit.Assert.assertNull
 import org.junit.Assert.assertTrue
 import org.junit.Rule
@@ -198,12 +203,43 @@ class AttachmentUiTest {
     }
 
     @Test
+    @Config(qualifiers = "w360dp-h740dp")
+    fun onANarrowPhoneTheFieldTakesTheWidthAndOneButtonSendsOrRecords() {
+        state = ConversationState(conversation = conversation, canSend = true)
+        show()
+        capture("composer-360dp-empty")
+        compose.onNodeWithTag("chat.composer.record").assertIsEnabled()
+        // 360 dp minus the gutters (2 × 8), „+“ (40), the round button (48) and the gaps (2 × 8): 240 dp for the text.
+        val field = compose.onNodeWithTag("chat.composer.field").fetchSemanticsNode().size.width
+        val density = compose.onRoot().fetchSemanticsNode().layoutInfo.density.density
+        assertTrue("the field is ${field / density} dp wide", field / density >= 236f)
+
+        // The view model measures every draft (ConversationViewModel.render); this state is set by hand, so it does too.
+        val text = "Hallo Jonas, wie war dein Tag? Ich wollte dir noch etwas Längeres schreiben."
+        state = state.copy(draft = text, counter = "${ChatMessages.measure(text).characters} / 4000")
+        compose.onNodeWithText("76 / 4000").assertExists()
+        capture("composer-360dp-text")
+        compose.onNodeWithTag("chat.composer.send").assertIsEnabled().performClick()
+        compose.waitForIdle()
+        assertTrue(calls.contains("send"))
+    }
+
+    @Test
     fun picksAFileAndAsksForTheMicrophoneFirst() {
         state = ConversationState(conversation = conversation, canSend = true)
         show()
+        assertFalse("spaces alone are nothing to send", ConversationState(draft = "  ").showsSend)
+        assertTrue(ConversationState(draft = "Hallo").showsSend)
+        assertTrue(ConversationState(drafts = listOf(DraftAttachment(1, AttachmentKind.Image, "image/jpeg", byteArrayOf(1)))).showsSend)
+        // One „+“ holds the attachment actions; the round button records while nothing is written or attached.
+        compose.onNodeWithContentDescription("Anhang hinzufügen").assertExists()
+        compose.onNodeWithTag("chat.composer.send").assertDoesNotExist()
+        tapTag("chat.composer.add")
+        capture("composer-attach-menu")
         answer = null
         tapTag("chat.composer.attach")
         answer = Uri.parse("content://oasis.test/foto")
+        tapTag("chat.composer.add")
         tapTag("chat.composer.attach")
         compose.waitForIdle()
         assertTrue(calls.contains("picked content://oasis.test/foto"))
@@ -411,9 +447,14 @@ class AttachmentUiTest {
         compose.onNodeWithText("Fotos.zip · 1 KB").assertExists()
         compose.onNodeWithText("Rechnung.pdf · 240 KB").assertExists()
         capture("files")
+        // A file is attached: the round button sends.
+        compose.onNodeWithTag("chat.composer.record").assertDoesNotExist()
+        compose.onNodeWithTag("chat.composer.send").assertIsEnabled()
         answer = null
+        tapTag("chat.composer.add")
         tapTag("chat.composer.file")
         answer = Uri.parse("content://oasis.test/rechnung")
+        tapTag("chat.composer.add")
         tapTag("chat.composer.file")
         compose.onNodeWithText("Öffnen").performScrollTo().performClick()
         compose.onNodeWithText("Teilen").performScrollTo().performClick()

@@ -9,6 +9,7 @@ import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.animateContentSize
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -17,6 +18,7 @@ import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.RowScope
 import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.defaultMinSize
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.imePadding
@@ -27,16 +29,21 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.foundation.lazy.rememberLazyListState
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.BasicTextField
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.text.selection.SelectionContainer
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.Send
+import androidx.compose.material.icons.outlined.Add
 import androidx.compose.material.icons.outlined.AddPhotoAlternate
 import androidx.compose.material.icons.outlined.AttachFile
 import androidx.compose.material.icons.outlined.Info
 import androidx.compose.material.icons.outlined.Mic
 import androidx.compose.material3.AlertDialog
+import androidx.compose.material3.DropdownMenu
+import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.Text
@@ -50,10 +57,14 @@ import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.SolidColor
+import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.semantics.LiveRegionMode
+import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.liveRegion
 import androidx.compose.ui.semantics.semantics
@@ -61,6 +72,7 @@ import androidx.compose.ui.text.font.FontStyle
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardCapitalization
 import androidx.compose.ui.text.style.TextDecoration
+import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.core.content.ContextCompat
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
@@ -381,7 +393,7 @@ private fun ConversationComposer(
         modifier = Modifier
             .fillMaxWidth()
             .background(OasisColors.Paper)
-            .padding(horizontal = 16.dp, vertical = 10.dp)
+            .padding(horizontal = 8.dp, vertical = 10.dp)
             .animateContentSize(),
         verticalArrangement = Arrangement.spacedBy(8.dp)
     ) {
@@ -411,44 +423,41 @@ private fun ConversationComposer(
         if (seconds != null) {
             RecordingBar(seconds, attachments)
         } else {
-            Row(verticalAlignment = Alignment.Bottom, horizontalArrangement = Arrangement.spacedBy(4.dp)) {
-                IconButton(
-                    onClick = {
+            // „+“ with the attachment actions, the field across the remaining width, and one round button: the
+            // microphone while nothing is written or attached, „Senden“ as soon as something is (like iOS and the web).
+            Row(verticalAlignment = Alignment.Bottom, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                AttachMenu(
+                    enabled = state.canAttach,
+                    onMedia = {
                         attachments.onExternalScreen {
                             picker.launch(PickVisualMediaRequest(ActivityResultContracts.PickVisualMedia.ImageAndVideo))
                             true
                         }
                     },
-                    enabled = state.canAttach,
-                    modifier = Modifier.testTag("chat.composer.attach")
-                ) {
-                    Icon(Icons.Outlined.AddPhotoAlternate, contentDescription = "Foto oder Video anhängen", tint = OasisColors.Night)
-                }
-                IconButton(
-                    onClick = {
+                    onFile = {
                         attachments.onExternalScreen {
                             documents.launch(arrayOf("*/*"))
                             true
                         }
-                    },
-                    enabled = state.canAttach,
-                    modifier = Modifier.testTag("chat.composer.file")
-                ) {
-                    Icon(Icons.Outlined.AttachFile, contentDescription = "Datei anhängen", tint = OasisColors.Night)
-                }
-                IconButton(
-                    onClick = {
+                    }
+                )
+                ComposerField(state, onDraftChange, shape)
+                if (state.showsSend) {
+                    SendButton(state.canSubmit, onSend)
+                } else {
+                    RoundAction(
+                        Icons.Outlined.Mic,
+                        "Sprachnachricht aufnehmen",
+                        enabled = state.canAttach,
+                        filled = false,
+                        modifier = Modifier.testTag("chat.composer.record")
+                    ) {
                         val granted =
                             ContextCompat.checkSelfPermission(context, Manifest.permission.RECORD_AUDIO) ==
                                 PackageManager.PERMISSION_GRANTED
                         if (granted) attachments.recording.onStart() else explainMicrophone = true
-                    },
-                    enabled = state.canAttach,
-                    modifier = Modifier.testTag("chat.composer.record")
-                ) {
-                    Icon(Icons.Outlined.Mic, contentDescription = "Sprachnachricht aufnehmen", tint = OasisColors.Night)
+                    }
                 }
-                ComposerField(state, onDraftChange, onSend, shape)
             }
         }
         Text(state.counter, style = OasisType.Caption, color = if (state.tooLong) OasisColors.SunText else OasisColors.Muted)
@@ -482,45 +491,139 @@ private fun ConversationComposer(
 
 /** The text field and "Senden". */
 @Composable
-private fun RowScope.ComposerField(
-    state: ConversationState,
-    onDraftChange: (String) -> Unit,
-    onSend: suspend () -> Unit,
-    shape: RoundedCornerShape
-) {
-    Row(Modifier.weight(1f), verticalAlignment = Alignment.Bottom, horizontalArrangement = Arrangement.spacedBy(10.dp)) {
-        BasicTextField(
-            value = state.draft,
-            onValueChange = onDraftChange,
-            enabled = state.canSend,
-            textStyle = OasisType.Body.copy(color = OasisColors.Ink),
-            cursorBrush = SolidColor(OasisColors.Night),
-            keyboardOptions = KeyboardOptions(capitalization = KeyboardCapitalization.Sentences),
-            minLines = 1,
-            maxLines = 6,
-            modifier = Modifier
-                .weight(1f)
-                .semantics { contentDescription = "Nachricht" }
-                .testTag("chat.composer.field"),
-            decorationBox = { inner ->
-                Box(
-                    Modifier
-                        .fillMaxWidth()
-                        .background(OasisColors.Field, shape)
-                        .border(1.dp, OasisColors.FieldLine, shape)
-                        .padding(horizontal = 14.dp, vertical = 10.dp)
-                ) {
-                    if (state.draft.isEmpty()) Text("Nachricht", style = OasisType.Body, color = OasisColors.Muted)
-                    inner()
-                }
+private fun RowScope.ComposerField(state: ConversationState, onDraftChange: (String) -> Unit, shape: RoundedCornerShape) {
+    BasicTextField(
+        value = state.draft,
+        onValueChange = onDraftChange,
+        enabled = state.canSend,
+        textStyle = OasisType.Body.copy(color = OasisColors.Ink),
+        cursorBrush = SolidColor(OasisColors.Night),
+        keyboardOptions = KeyboardOptions(capitalization = KeyboardCapitalization.Sentences),
+        minLines = 1,
+        maxLines = 5,
+        modifier = Modifier
+            .weight(1f)
+            .semantics { contentDescription = "Nachricht" }
+            .testTag("chat.composer.field"),
+        decorationBox = { inner ->
+            Box(
+                Modifier
+                    .fillMaxWidth()
+                    .defaultMinSize(minHeight = ROUND_BUTTON)
+                    .background(OasisColors.Field, shape)
+                    .border(1.dp, OasisColors.FieldLine, shape)
+                    .padding(horizontal = 14.dp, vertical = 10.dp),
+                contentAlignment = Alignment.CenterStart
+            ) {
+                if (state.draft.isEmpty()) Text("Nachricht", style = OasisType.Body, color = OasisColors.Muted)
+                inner()
             }
-        )
-        AsyncOasisButton(
-            "Senden",
-            onSend,
-            fullWidth = false,
-            enabled = state.canSubmit,
-            modifier = Modifier.testTag("chat.composer.send")
+        }
+    )
+}
+
+/** The size of the round microphone and send button and the field's least height (48 dp touch target). */
+private val ROUND_BUTTON = 48.dp
+
+/** The smaller „+“, so the field keeps the width (40 dp, centred on the field's first line). */
+private val ADD_BUTTON = 40.dp
+
+/** „+“: a small menu with the attachment actions (photo or video, file). */
+@Composable
+private fun AttachMenu(enabled: Boolean, onMedia: () -> Unit, onFile: () -> Unit) {
+    var open by remember { mutableStateOf(false) }
+    Box {
+        RoundAction(
+            Icons.Outlined.Add,
+            "Anhang hinzufügen",
+            enabled,
+            filled = false,
+            size = ADD_BUTTON,
+            modifier = Modifier.padding(bottom = (ROUND_BUTTON - ADD_BUTTON) / 2).testTag("chat.composer.add")
+        ) {
+            open = true
+        }
+        DropdownMenu(expanded = open, onDismissRequest = { open = false }, containerColor = OasisColors.Paper) {
+            DropdownMenuItem(
+                text = { Text("Foto oder Video anhängen", style = OasisType.Body, color = OasisColors.Ink) },
+                leadingIcon = { Icon(Icons.Outlined.AddPhotoAlternate, contentDescription = null, tint = OasisColors.Night) },
+                onClick = {
+                    open = false
+                    onMedia()
+                },
+                modifier = Modifier.testTag("chat.composer.attach")
+            )
+            DropdownMenuItem(
+                text = { Text("Datei anhängen", style = OasisType.Body, color = OasisColors.Ink) },
+                leadingIcon = { Icon(Icons.Outlined.AttachFile, contentDescription = null, tint = OasisColors.Night) },
+                onClick = {
+                    open = false
+                    onFile()
+                },
+                modifier = Modifier.testTag("chat.composer.file")
+            )
+        }
+    }
+}
+
+/** „Senden“ as a round button; it waits for the message to go out and cannot be pressed twice meanwhile. */
+@Composable
+private fun SendButton(enabled: Boolean, onSend: suspend () -> Unit) {
+    val scope = rememberCoroutineScope()
+    var sending by remember { mutableStateOf(false) }
+    RoundAction(
+        Icons.AutoMirrored.Filled.Send,
+        "Senden",
+        enabled = enabled && !sending,
+        filled = true,
+        modifier = Modifier.testTag("chat.composer.send")
+    ) {
+        scope.launch {
+            sending = true
+            try {
+                onSend()
+            } finally {
+                sending = false
+            }
+        }
+    }
+}
+
+/** A round icon button of the composer: outlined (+, microphone) or filled in Nachtwasser (Senden). */
+@Composable
+private fun RoundAction(
+    icon: ImageVector,
+    description: String,
+    enabled: Boolean,
+    filled: Boolean,
+    modifier: Modifier = Modifier,
+    size: Dp = ROUND_BUTTON,
+    onClick: () -> Unit
+) {
+    val background = when {
+        !filled -> Color.Transparent
+        enabled -> OasisColors.Night
+        else -> OasisColors.FieldLine
+    }
+    Box(
+        modifier
+            .size(size)
+            .clip(CircleShape)
+            .background(background)
+            .clickable(enabled = enabled, role = Role.Button, onClickLabel = description, onClick = onClick)
+            .semantics { contentDescription = description },
+        contentAlignment = Alignment.Center
+    ) {
+        Icon(
+            icon,
+            contentDescription = null,
+            tint = if (filled) {
+                OasisColors.OnNight
+            } else if (enabled) {
+                OasisColors.Night
+            } else {
+                OasisColors.Muted
+            }
         )
     }
 }
