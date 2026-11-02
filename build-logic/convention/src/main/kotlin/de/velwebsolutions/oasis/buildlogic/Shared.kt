@@ -38,6 +38,11 @@ internal fun Project.configureAndroid(extension: CommonExtension) {
     tasks.withType<Test>().configureEach {
         jvmArgs("--add-opens=java.base/java.io=ALL-UNNAMED", "--add-opens=java.base/java.lang=ALL-UNNAMED")
         maxHeapSize = "2g"
+        // A failing test names itself and its cause in the log, so CI shows it without downloading the reports.
+        testLogging {
+            events(org.gradle.api.tasks.testing.logging.TestLogEvent.FAILED)
+            exceptionFormat = org.gradle.api.tasks.testing.logging.TestExceptionFormat.FULL
+        }
     }
 }
 
