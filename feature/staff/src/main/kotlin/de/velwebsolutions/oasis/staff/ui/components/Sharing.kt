@@ -6,10 +6,21 @@ import android.content.Context
 import android.content.Intent
 import androidx.core.content.FileProvider
 import de.velwebsolutions.oasis.staff.R
+import de.velwebsolutions.oasis.staff.data.StaffFiles
 import java.io.File
 
-/** The provider of the staff files (its own class, so it does not clash with other modules' providers). */
-class StaffFileProvider : FileProvider(R.xml.staff_files)
+/**
+ * The provider of the staff files (its own class, so it does not clash with other modules' providers). Android creates
+ * it when the process starts: evidence archives and decrypted files of reported chat messages that a killed process
+ * left in the cache are deleted then, like the chat's own files (ChatFileProvider).
+ */
+class StaffFileProvider : FileProvider(R.xml.staff_files) {
+    override fun onCreate(): Boolean {
+        // Android attaches the context before it calls onCreate.
+        StaffFiles(context!!.cacheDir).clear()
+        return super.onCreate()
+    }
+}
 
 /** The share sheet for the evidence archive and the drafted breach report. */
 object Sharing {

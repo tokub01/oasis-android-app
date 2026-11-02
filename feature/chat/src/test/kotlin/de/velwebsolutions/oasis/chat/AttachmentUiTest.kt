@@ -24,6 +24,7 @@ import androidx.compose.ui.test.hasTestTag
 import androidx.compose.ui.test.hasText
 import androidx.compose.ui.test.isRoot
 import androidx.compose.ui.test.junit4.createComposeRule
+import androidx.compose.ui.test.onAllNodesWithText
 import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
@@ -50,6 +51,7 @@ import de.velwebsolutions.oasis.design.theme.OasisTheme
 import java.io.ByteArrayOutputStream
 import java.io.File
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertNull
 import org.junit.Assert.assertTrue
 import org.junit.Rule
 import org.junit.Test
@@ -150,7 +152,9 @@ class AttachmentUiTest {
         sender: String,
         text: String,
         files: List<MessageAttachment>,
-        states: List<AttachmentState> = emptyList()
+        states: List<AttachmentState> = emptyList(),
+        /** Files the server's row of the message does not list (an id copied from another message). */
+        unlisted: Set<String> = emptySet()
     ) = ChatMessageItem(
         signature,
         envelope.copy(signature = signature),
@@ -159,7 +163,9 @@ class AttachmentUiTest {
         ChatMessageItem.State.Readable,
         "json",
         MessageContent(text, files),
-        states.associateBy { it.id }
+        // The server lists every file of others' messages unless the test says otherwise: pending where no state is given.
+        ((if (sender == "1") emptyList() else files.filter { it.id !in unlisted }.map { AttachmentState(it.id) }) + states)
+            .associateBy { it.id }
     )
 
     @Test
@@ -250,9 +256,12 @@ class AttachmentUiTest {
                 AttachmentState("7", status = AttachmentState.SENT)
             )
         )
-        state = ConversationState(conversation = conversation, timeline = ChatTimeline(listOf(pending, decided, own)))
+        val copied = item("d", "2", "", listOf(entry("8", "image", "image/jpeg")), unlisted = setOf("8"))
+        state = ConversationState(conversation = conversation, timeline = ChatTimeline(listOf(pending, decided, own, copied)))
         show()
         compose.onNodeWithText("Jonas möchte dir ein Foto schicken (1,4 MB).").assertExists()
+        // A file the server does not list for its message: no consent, no loading.
+        compose.onAllNodesWithText("Anhang ließ sich nicht prüfen.").fetchSemanticsNodes().let { assertTrue(it.isNotEmpty()) }
         compose.onNodeWithText("Jonas möchte dir ein Video schicken (1,4 MB).").assertExists()
         compose.onNodeWithText("Einmal ansehen: Du kannst es nur einmal ansehen, danach ist es weg.").assertExists()
         compose.onNodeWithText("Foto · 1,4 MB · Abgelehnt").assertExists()
@@ -358,10 +367,18 @@ class AttachmentUiTest {
             item("a", "2", "", listOf(entry("1", "image", "image/jpeg"))),
             "Jonas"
         )
-        assertEquals(ReportState(quote = "Jonas: (nur Anhänge)", attachments = 1), only.state.value)
-        show { ReportContent(ReportState(quote = "Jonas: (nur Anhänge)", attachments = 2), {}, {}, {}, {}, {}) }
+        assertEquals(ReportState(quote = "Jonas: (nur Anhang)", attachments = 1), only.state.value)
+        show { ReportContent(ReportState(quote = "Jonas: (nur Anhang)", attachments = 2), {}, {}, {}, {}, {}) }
         compose.onNodeWithTag("chat.report.attachments").assertExists()
-        compose.onNode(hasText("Jonas: (nur Anhänge)")).assertExists()
+        compose.onNode(hasText("Jonas: (nur Anhang)")).assertExists()
+        compose.onNode(
+            hasText("Die 2 Anhänge dieser Nachricht (Fotos, Sprachnachrichten, Videos oder Dateien) gehen mit an das Moderationsteam.")
+        ).assertExists()
+        assertNull(de.velwebsolutions.oasis.chat.ui.ReportModel.attachmentNote(0))
+        assertEquals(
+            "Der Anhang dieser Nachricht (Foto, Sprachnachricht, Video oder Datei) geht mit an das Moderationsteam.",
+            de.velwebsolutions.oasis.chat.ui.ReportModel.attachmentNote(1)
+        )
         capture("report")
     }
 

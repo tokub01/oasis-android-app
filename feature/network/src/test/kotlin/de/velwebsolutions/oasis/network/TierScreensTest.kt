@@ -9,8 +9,9 @@ import androidx.compose.ui.test.SemanticsNodeInteraction
 import androidx.compose.ui.test.assertIsEnabled
 import androidx.compose.ui.test.assertIsNotEnabled
 import androidx.compose.ui.test.hasSetTextAction
+import androidx.compose.ui.test.hasTestTag
 import androidx.compose.ui.test.hasText
-import androidx.compose.ui.test.junit4.createComposeRule
+import androidx.compose.ui.test.junit4.v2.createComposeRule
 import androidx.compose.ui.test.onNodeWithContentDescription
 import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.onNodeWithText
@@ -27,9 +28,12 @@ import de.velwebsolutions.oasis.design.navigation.Navigator
 import de.velwebsolutions.oasis.design.navigation.NetworkRoute
 import de.velwebsolutions.oasis.design.theme.OasisTheme
 import de.velwebsolutions.oasis.network.ui.components.DateTimeField
+import de.velwebsolutions.oasis.network.ui.components.clampTime
 import de.velwebsolutions.oasis.network.ui.components.pickedDay
+import de.velwebsolutions.oasis.network.ui.components.selectableDay
 import de.velwebsolutions.oasis.network.ui.oases.OasisStatisticsScreen
 import de.velwebsolutions.oasis.network.ui.oases.OasisStatisticsViewModel
+import de.velwebsolutions.oasis.network.ui.profiles.CapsuleDraft
 import de.velwebsolutions.oasis.network.ui.profiles.ProfileScreen
 import de.velwebsolutions.oasis.network.ui.profiles.ProfileViewModel
 import de.velwebsolutions.oasis.network.ui.profiles.StatisticsScreen
@@ -43,6 +47,7 @@ import java.time.LocalDate
 import java.time.ZoneId
 import org.junit.After
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertFalse
 import org.junit.Assert.assertNull
 import org.junit.Assert.assertTrue
 import org.junit.Rule
@@ -51,7 +56,14 @@ import org.junit.runner.RunWith
 import org.robolectric.RobolectricTestRunner
 import org.robolectric.annotation.Config
 
-/** Zeitkapseln, the Jahrbuch, the statistics below Oase and the supporter mark on screen, with their real view models. */
+/**
+ * Zeitkapseln, the Jahrbuch, the statistics below Oase and the supporter mark on screen, with their real view models.
+ *
+ * The v2 compose rule runs the screens' effects on a StandardTestDispatcher, so an answer from OkHttp's thread resumes
+ * on the main thread as in the app. The v1 rule's UnconfinedTestDispatcher resumed it on OkHttp's thread; after an
+ * earlier test in the same JVM, the state written there was sometimes never recomposed and the Jahrbuch stayed at
+ * "Lädt …" although its view model had loaded.
+ */
 @RunWith(RobolectricTestRunner::class)
 @Config(qualifiers = "w411dp-h4000dp")
 class TierScreensTest {
@@ -135,11 +147,41 @@ class TierScreensTest {
     }
 
     @Test
+    fun `Zeitkapseln say when one is opening right now, and only a not opened one can be deleted`() {
+        val network = StubbedNetwork(
+            stub(
+                "GET",
+                "network/time-capsules",
+                """{"data":{"available":true,"max_length":500,"past":[
+                {"id":3,"body":"Ein Jahr Oasis","opens_at":"2026-10-01T08:00:00.000000Z","opened_at":"2026-10-01T08:00:00.000000Z","post_id":44},
+                {"id":4,"body":"Ohne Mitgliedschaft","opens_at":"2026-09-01T08:00:00.000000Z","failed_reason":"Deine Mitgliedschaft lief nicht."},
+                {"id":8,"body":"Gleich da.","opens_at":"2026-10-02T08:00:00.000000Z","opened_at":"2026-10-02T08:00:01.000000Z"}]}}"""
+            ),
+            stub("DELETE", "network/time-capsules/4", """{"message":"Die Zeitkapsel ist gelöscht."}""")
+        )
+        val model = models.keep(TimeCapsulesViewModel(network.repository))
+        show { TimeCapsulesScreen(model) }
+        text("Geht gerade auf …")
+        text("Nicht aufgegangen: Deine Mitgliedschaft lief nicht.")
+        assertTrue(compose.onAllNodes(hasTestTag("capsule.delete.3")).fetchSemanticsNodes().isEmpty())
+        assertTrue(compose.onAllNodes(hasTestTag("capsule.delete.8")).fetchSemanticsNodes().isEmpty())
+
+        compose.onNodeWithTag("capsule.delete.4").performClick()
+        text("Die Zeitkapsel löschen?")
+        compose.onNodeWithTag("dialog.cancel").performClick()
+        compose.onNodeWithTag("capsule.delete.4").performClick()
+        text("Das lässt sich nicht rückgängig machen.")
+        compose.onNodeWithTag("dialog.confirm").performClick()
+        text("Die Zeitkapsel ist gelöscht.")
+    }
+
+    @Test
     fun `Zeitkapseln below Oase, without capsules and with a field error`() {
         val locked = StubbedNetwork(stub("GET", "network/time-capsules", TierFixtures.lockedCapsules))
         val lockedModel = models.keep(TimeCapsulesViewModel(locked.repository))
         show { TimeCapsulesScreen(lockedModel) }
-        text("Das gibt es ab der Mitgliedschaft Oase.")
+        text("AB OASE")
+        text("Schreib heute einen Tropfen, der erst an einem Tag deiner Wahl erscheint", substring = true)
         text("Mitgliedschaft ansehen").performClick()
         assertEquals(MembershipRoute.Overview, navigator.stack(MainTab.Profile).last())
 
@@ -180,6 +222,37 @@ class TierScreensTest {
     }
 
     @Test
+    fun `the picker keeps the opening between now and max_years`() {
+        val zone = ZoneId.of("Europe/Berlin")
+        val earliest = Instant.parse("2026-11-02T10:30:00Z")
+        val latest = CapsuleDraft.latestOpening(earliest, 10, zone)
+        assertEquals(Instant.parse("2036-11-02T10:30:00Z"), latest)
+        assertEquals(earliest, clampTime(Instant.parse("2026-11-01T10:00:00Z"), earliest, latest))
+        assertEquals(latest, clampTime(Instant.parse("2040-01-01T00:00:00Z"), earliest, latest))
+        val inside = Instant.parse("2030-01-01T00:00:00Z")
+        assertEquals(inside, clampTime(inside, earliest, latest))
+        assertEquals(inside, clampTime(inside, null, null))
+        fun day(text: String) = Instant.parse("${text}T00:00:00Z").toEpochMilli()
+        assertTrue(selectableDay(day("2026-11-02"), earliest, latest, zone))
+        assertFalse(selectableDay(day("2026-11-01"), earliest, latest, zone))
+        assertTrue(selectableDay(day("2036-11-02"), earliest, latest, zone))
+        assertFalse(selectableDay(day("2036-11-03"), earliest, latest, zone))
+        assertTrue(selectableDay(day("1990-01-01"), null, null, zone))
+
+        // A time before the earliest on its first day moves to the earliest.
+        var chosen: Instant? = null
+        show {
+            DateTimeField("Geht auf am", Instant.parse("2026-11-02T08:00:00Z"), {
+                chosen = it
+            }, zone = zone, earliest = earliest, latest = latest)
+        }
+        compose.onNodeWithTag("datetime.field").performClick()
+        compose.onNodeWithTag("datetime.next").performClick()
+        compose.onNodeWithTag("datetime.done").performClick()
+        assertEquals(earliest, chosen)
+    }
+
+    @Test
     fun `the Jahrbuch switches years, prints on the website and shows an empty year`() {
         val network = StubbedNetwork(
             stub("GET", "network/yearbook", TierFixtures.yearbook),
@@ -211,13 +284,15 @@ class TierScreensTest {
         val host = models.keep(OasisStatisticsViewModel("stadtgarten", network.repository))
         show { YearbookScreen(2024, book) }
         text("Dein Jahrbuch")
-        text("Das gibt es ab der Mitgliedschaft Oase.")
+        text("AB OASE")
+        text("Deine Tropfen und Fotos eines Jahres", substring = true)
 
         switchTo { StatisticsScreen(numbers) }
         text("Mitgliedschaft ansehen")
         text("Deine Zahlen")
 
         switchTo { OasisStatisticsScreen("stadtgarten", host) }
+        text("Statistik deiner Oase")
         text("Mitgliedschaft ansehen").performClick()
         assertTrue(MembershipRoute.Overview in navigator.stack(MainTab.Profile))
     }

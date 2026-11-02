@@ -38,6 +38,10 @@ internal suspend fun <T> attempt(block: suspend () -> T): Result<T> = try {
 /** Deine Vorteile: the perks and the outcome of the last action for the snackbar. */
 data class PerksUiState(
     val perks: Loadable<MembershipPerks> = Loadable.Idle,
+    /** Paid or gifted (the membership overview): a held companion place is not shown then, as on the web. */
+    val paying: Boolean = false,
+    /** The name of the tier a companion place gives, as the server names it (`companion_seat.tier_name`). */
+    val companionTierName: String? = null,
     val message: String? = null,
     val error: String? = null
 )
@@ -63,7 +67,17 @@ class PerksViewModel @Inject constructor(
     suspend fun load() {
         mutableState.update { it.copy(perks = it.perks.refreshing()) }
         val result = attempt { repository.perks() }
-        result.onSuccess { perks -> mutableState.update { it.copy(perks = Loadable.Loaded(perks)) } }
+        result.onSuccess { perks ->
+            // Whether the member pays only hides a held place; without the overview it stays shown.
+            val overview = attempt { repository.overview() }.getOrNull()
+            mutableState.update {
+                it.copy(
+                    perks = Loadable.Loaded(perks),
+                    paying = overview?.isPaying == true,
+                    companionTierName = overview?.companionSeat?.tierName
+                )
+            }
+        }
         result.onFailure { error ->
             mutableState.update {
                 it.copy(perks = it.perks.failing(error), error = it.perks.valueOrNull?.let { (error as ApiError).userMessage })

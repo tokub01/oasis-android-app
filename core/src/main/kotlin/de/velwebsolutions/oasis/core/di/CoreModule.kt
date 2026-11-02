@@ -43,7 +43,8 @@ object CoreModule {
 
     @Provides
     @Singleton
-    fun tokenStore(@ApplicationContext context: Context): TokenStore = KeystoreTokenStore(context)
+    fun tokenStore(@ApplicationContext context: Context, config: ApiConfig): TokenStore =
+        KeystoreTokenStore(context, origin = config.baseUrl.trimEnd('/'))
 
     @Provides
     @Singleton

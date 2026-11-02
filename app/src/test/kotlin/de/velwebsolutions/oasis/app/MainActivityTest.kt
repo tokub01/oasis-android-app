@@ -37,7 +37,7 @@ class MainActivityTest {
     fun `an activity created again does not open its link again`() {
         val link = Intent(ApplicationProvider.getApplicationContext<Application>(), MainActivity::class.java)
             .setAction(Intent.ACTION_VIEW)
-            .setData(Uri.parse("https://get-oasis.com/tropfen/4"))
+            .setData(Uri.parse("${BuildConfig.OASIS_BASE_URL}/tropfen/4"))
         ActivityScenario.launch<MainActivity>(link).use { scenario ->
             assertEquals(listOf(NetworkRoute.Post(4)), navigator.stack(MainTab.Source).toList())
             navigator.open(NetworkRoute.Profile("jonas"))

@@ -172,23 +172,37 @@ fun <T> TierLoadableView(
     title: String,
     onRetry: suspend () -> Unit,
     modifier: Modifier = Modifier,
+    feature: String? = null,
     content: @Composable (T) -> Unit
 ) {
     val locked = state.errorOrNull as? ApiError.Forbidden
-    if (locked != null) TierLockedView(title, locked.userMessage, modifier) else LoadableView(state, onRetry, modifier, content = content)
+    if (locked != null) {
+        TierLockedView(title, locked.userMessage, modifier, feature)
+    } else {
+        LoadableView(state, onRetry, modifier, content = content)
+    }
 }
 
 /**
- * Shown instead of a feature the tier does not include (the web's `x-network.tier-locked`): its name, the server's
- * message naming the tier, and the way to the membership.
+ * The tier named in the server's lock message (`TierFeatures::lockedMessage`: „Das gibt es ab der Mitgliedschaft Oase.“),
+ * or null for another text.
+ */
+fun lockedTier(message: String): String? = Regex("ab der Mitgliedschaft (.+?)\\.?$").find(message)?.groupValues?.get(1)
+
+/**
+ * Shown instead of a feature the tier does not include (the web's `x-network.tier-locked`): „Ab {Stufe}“ from the
+ * server's [message], the feature's name and what it offers ([feature]; the message where none is given), and the way
+ * to the membership.
  */
 @Composable
-fun TierLockedView(title: String, message: String, modifier: Modifier = Modifier) {
+fun TierLockedView(title: String, message: String, modifier: Modifier = Modifier, feature: String? = null) {
     val navigator = LocalNavigator.current
+    val tier = lockedTier(message)
     Column(modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(16.dp).testTag("tier.locked")) {
         Panel(spacing = 16) {
+            if (tier != null) Eyebrow("Ab $tier")
             Text(title, style = OasisType.display(28), color = OasisColors.Night, modifier = Modifier.semantics { heading() })
-            Text(message, style = OasisType.Lead, color = OasisColors.Ink2)
+            Text(feature ?: message, style = OasisType.Lead, color = OasisColors.Ink2)
             OasisButton("Mitgliedschaft ansehen", { navigator.open(MembershipRoute.Overview) }, fullWidth = false)
         }
     }

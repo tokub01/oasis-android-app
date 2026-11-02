@@ -24,8 +24,11 @@ sealed class ApiError(message: String) : Exception(message) {
     /** 413: request too large (images, chat payloads). */
     data object PayloadTooLarge : ApiError("payload too large")
 
-    /** 429: rate limit; `retryAfter` in seconds when the server sent it. */
-    data class TooManyRequests(val retryAfter: Int?) : ApiError("too many requests")
+    /**
+     * 429: rate limit; `retryAfter` in seconds when the server sent it, and the server's own message (empty for the
+     * framework's "Too Many Attempts.").
+     */
+    data class TooManyRequests(val retryAfter: Int?, val serverMessage: String = "") : ApiError("too many requests")
 
     /** 5xx or any other unexpected status. */
     data class Server(val status: Int, val serverMessage: String?) : ApiError(serverMessage ?: "HTTP $status")

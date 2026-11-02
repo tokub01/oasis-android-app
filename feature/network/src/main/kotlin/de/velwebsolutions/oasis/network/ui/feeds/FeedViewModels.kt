@@ -73,10 +73,15 @@ class SourceViewModel @Inject constructor(repository: NetworkRepository, session
         launch { list.reload() }
     }
 
-    /** An own new Tropfen goes on top, unless it is a reply (bundled under its Tropfen) or not public in "Ganz Oasis". */
+    /**
+     * An own new Tropfen goes on top of the followed Quelle, unless it is a reply (bundled under its Tropfen). "Ganz Oasis"
+     * loads again instead, like the web's `$refresh` after `post-published`: whether it lists the Tropfen depends on the
+     * author (profile open to members, not under 18; PostFeed::byOpenAuthors), not on its visibility, and only the
+     * server knows that.
+     */
     override fun belongsOnTop(post: Post): Boolean {
         val showAll = list.state.value.context?.showAll ?: false
-        return post.replyTo == null && (!showAll || post.visibility == "public")
+        return post.replyTo == null && !showAll
     }
 }
 

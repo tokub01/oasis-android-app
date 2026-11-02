@@ -35,7 +35,7 @@ class ReportModel(
 ) {
     private val mutableState = MutableStateFlow(
         ReportState(
-            quote = "$senderName: ${item.content.text.ifEmpty { "(nur Anhänge)" }}",
+            quote = "$senderName: ${item.content.text.ifEmpty { "(nur Anhang)" }}",
             attachments = item.content.attachments.size
         )
     )
@@ -75,6 +75,13 @@ class ReportModel(
     }
 
     companion object {
+        /** The note that the message's files go along with the report (report-dialog.js); null without files. */
+        fun attachmentNote(count: Int): String? = when (count) {
+            0 -> null
+            1 -> "Der Anhang dieser Nachricht (Foto, Sprachnachricht, Video oder Datei) geht mit an das Moderationsteam."
+            else -> "Die $count Anhänge dieser Nachricht (Fotos, Sprachnachrichten, Videos oder Dateien) gehen mit an das Moderationsteam."
+        }
+
         /** `App\Enums\Moderation\ReportCategory::label()`, in order. */
         val categories = listOf(
             "Mobbing – jemand wird fertiggemacht, bloßgestellt oder ausgegrenzt",

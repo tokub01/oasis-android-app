@@ -8,6 +8,7 @@ import de.velwebsolutions.oasis.chat.core.AttachmentProblem
 import de.velwebsolutions.oasis.chat.core.AttachmentView
 import de.velwebsolutions.oasis.chat.core.ChatContext
 import de.velwebsolutions.oasis.chat.core.ChatMessageItem
+import de.velwebsolutions.oasis.chat.core.ChatMessages
 import de.velwebsolutions.oasis.chat.core.DraftAttachment
 import de.velwebsolutions.oasis.chat.ui.ConversationViewModel
 import de.velwebsolutions.oasis.chatcrypto.MessageAttachment
@@ -340,9 +341,32 @@ class ConversationAttachmentsTest {
         writer.open()
         assertEquals("Geteilt aus einer anderen App", writer.state.value.draft)
         assertEquals(listOf("a.pdf", "b.pdf", "c.pdf", "d.pdf"), writer.state.value.drafts.map { it.name })
-        assertEquals("kaputt.pdf: Die Datei ließ sich nicht lesen.", writer.state.value.composerError)
-        assertTrue("the copies are gone", copies.none { it.file.exists() })
-        assertNull(PendingShare.share.value)
+        // The file beyond the four keeps waiting for the next "Teilen mit …" (iOS takeShares); the others are gone.
+        assertEquals(
+            "Du kannst höchstens 4 Anhänge an eine Nachricht hängen. Den übrigen bietet dir Oasis wieder unter „Teilen mit …“ an, " +
+                "wenn du die App das nächste Mal öffnest.",
+            writer.state.value.composerError
+        )
+        assertEquals(listOf("e.pdf"), PendingShare.share.value?.files?.map { it.name })
+        assertTrue("the copies taken are gone", copies.dropLast(1).none { it.file.exists() })
+        assertTrue(copies.last().file.exists())
+        PendingShare.discard()
+        assertFalse(copies.last().file.exists())
+
+        // Two left over while a newer share came in: the newer one wins, the rest is deleted.
+        val many = listOf("g.pdf", "h.pdf", "i.pdf", "j.pdf", "k.pdf", "l.pdf").map(::shared)
+        val newer = Share(listOf(shared("n.pdf")), null)
+        PendingShare.offer(Share(many, null))
+        PendingShare.target(id)
+        jonasMedia.beforeShared = {}
+        miraMedia.beforeShared = { if (PendingShare.share.value == null) PendingShare.offer(newer) }
+        writer.open()
+        miraMedia.beforeShared = {}
+        assertTrue(writer.state.value.composerError.orEmpty().contains("Die übrigen 2 bietet dir Oasis wieder"))
+        assertTrue(many.none { it.file.exists() })
+        assertSame(newer, PendingShare.share.value)
+        PendingShare.discard()
+        writer.open()
 
         // A share without text, for another chat, waits.
         PendingShare.offer(Share(listOf(shared("f.pdf")), null))
@@ -475,11 +499,121 @@ class ConversationAttachmentsTest {
     }
 
     @Test
-    fun theShareTargetListsChatsButNoRequests() = runTest {
+    fun aViewOnceFileShownOnceIsNeverOfferedAgainEvenWhenViewedFails() = runTest {
+        val (mira, jonas, id) = chat()
+        val writer = model(mira, id)
+        writer.open()
+        miraMedia.prepared = { _, localId -> DraftAttachment(localId, AttachmentKind.Image, "image/jpeg", photo, 4, 3) }
+        writer.addPicked(picked)
+        writer.setViewOnce(writer.state.value.drafts.single().localId, true)
+        writer.send()
+        val entry = message(writer).content.attachments.single()
+
+        val reader = model(jonas, id)
+        reader.open()
+        reader.answer(message(reader), entry, true)
+        reader.openViewOnce(message(reader), entry)
+        assertNotNull(reader.state.value.viewOnce)
+        server.failures["POST conversations/$id/attachments/${entry.id}/viewed"] = 500 to """{"message":"kaputt"}"""
+        reader.closeViewOnce()
+        assertEquals("shown is shown", AttachmentState.VIEWED, message(reader).state(entry.id, mine = false).status)
+        assertEquals("accepted", server.uploads.getValue(entry.id.toInt()).answers[2])
+
+        // Opened again: the server still says accepted, the app does not offer it and repeats the answer.
+        reader.open()
+        assertEquals(AttachmentState.VIEWED, message(reader).state(entry.id, mine = false).status)
+        waitFor { server.uploads.getValue(entry.id.toInt()).answers[2] == "viewed" }
+        clear(reader)
+        clear(writer)
+    }
+
+    @Test
+    fun aSendThatFinishesAfterALockWritesNothingToTheDevice() = runTest {
+        val (mira, _, id) = chat()
+        val writer = model(mira, id)
+        writer.open()
+        miraMedia.prepared = { _, localId -> DraftAttachment(localId, AttachmentKind.Image, "image/jpeg", photo, 4, 3) }
+        writer.addPicked(picked)
+        server.onRequest = { if (it == "POST conversations/$id/messages") mira.vault.lock(announce = false) }
+        writer.send()
+        server.onRequest = {}
+        assertEquals("sent", 1, server.messages.getValue(id.toInt()).size)
+        assertTrue("no decrypted copy written", miraMedia.presented.isEmpty())
+
+        // A send that fails after the lock reports nothing to the closed chat either.
+        assertTrue(mira.keyring.unlock(checkNotNull(mira.vault.storedIdentity), TEST_PASSPHRASE))
+        writer.open()
+        writer.setDraft("Noch eins")
+        server.failures["POST conversations/$id/messages"] = 500 to """{"message":"kaputt"}"""
+        server.onRequest = { if (it == "POST conversations/$id/messages") mira.vault.lock(announce = false) }
+        writer.send()
+        server.onRequest = {}
+        assertNull(writer.state.value.composerError)
+        clear(writer)
+    }
+
+    @Test
+    fun aViewOnceFileOpenWhenTheChatLocksCountsAsViewed() = runTest {
+        val (mira, jonas, id) = chat()
+        val writer = model(mira, id)
+        writer.open()
+        miraMedia.prepared = { _, localId -> DraftAttachment(localId, AttachmentKind.Image, "image/jpeg", photo, 4, 3) }
+        writer.addPicked(picked)
+        writer.setViewOnce(writer.state.value.drafts.single().localId, true)
+        writer.send()
+        val entry = message(writer).content.attachments.single()
+        val reader = model(jonas, id)
+        reader.open()
+        reader.answer(message(reader), entry, true)
+        reader.openViewOnce(message(reader), entry)
+        server.failures["POST conversations/$id/attachments/${entry.id}/viewed"] = 500 to """{"message":"kaputt"}"""
+        reader.close()
+        assertTrue("$id|${entry.id}" in jonas.vault.viewedOnce)
+        clear(reader)
+        clear(writer)
+    }
+
+    @Test
+    fun anAttachmentTheServerDoesNotListForTheMessageIsNeverOffered() = runTest {
+        val (mira, jonas, id) = chat()
+        val writer = model(mira, id)
+        writer.open()
+        miraMedia.prepared = { _, localId -> DraftAttachment(localId, AttachmentKind.Image, "image/jpeg", photo, 4, 3) }
+        writer.addPicked(picked)
+        writer.setViewOnce(writer.state.value.drafts.single().localId, true)
+        writer.send()
+        val entry = message(writer).content.attachments.single()
+
+        // A second message names the same file without the server linking it (an id copied from another message).
+        val copied = ChatMessages.seal(
+            MessagePayload.encode(de.velwebsolutions.oasis.chatcrypto.MessageContent("", listOf(entry))),
+            mira.repository.conversation(id),
+            mira.vault,
+            testCrypto
+        )
+        mira.repository.sendMessage(id, copied)
+
+        val reader = model(jonas, id)
+        reader.open()
+        val (real, forged) = reader.state.value.timeline.items
+        assertTrue(real.listed(entry.id, mine = false))
+        assertFalse(forged.listed(entry.id, mine = false))
+        assertTrue("own files are always the sender's", forged.listed(entry.id, mine = true))
+        reader.answer(forged, entry, true)
+        reader.openViewOnce(forged, entry)
+        assertNull(reader.state.value.viewOnce)
+        assertTrue("nothing was answered for the copy", server.uploads.getValue(entry.id.toInt()).answers.isEmpty())
+        clear(reader)
+        clear(writer)
+    }
+
+    @Test
+    fun theShareTargetListsEveryChatRequestsToo() = runTest {
         val (mira, jonas, id) = chat()
         val target = de.velwebsolutions.oasis.chat.ui.ShareTargetViewModel(jonas)
         target.load()
-        assertTrue("Mira's chat is still a request for Jonas", target.state.value.conversations.isEmpty())
+        // Like iOS: a message request is offered too; nothing is sent before "Senden" there.
+        assertEquals(listOf(true), target.state.value.conversations.map { it.request })
         val own = de.velwebsolutions.oasis.chat.ui.ShareTargetViewModel(mira)
         own.load()
         assertEquals(listOf(id), own.state.value.conversations.map { it.id })

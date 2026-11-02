@@ -63,6 +63,7 @@ import androidx.lifecycle.viewmodel.navigation3.rememberViewModelStoreNavEntryDe
 import androidx.navigation3.runtime.NavEntry
 import androidx.navigation3.runtime.rememberSaveableStateHolderNavEntryDecorator
 import androidx.navigation3.ui.NavDisplay
+import de.velwebsolutions.oasis.app.shell.AppHost
 import de.velwebsolutions.oasis.app.shell.LocalAppScreens
 import de.velwebsolutions.oasis.core.model.Me
 import de.velwebsolutions.oasis.design.components.CountBadge
@@ -104,7 +105,10 @@ fun MainTabs(me: Me, viewModel: RootViewModel) {
     val confirmation by viewModel.confirmation.collectAsStateWithLifecycle()
 
     LaunchedEffect(me.id) { viewModel.tabsAppeared(me.id) }
-    LifecycleEventEffect(Lifecycle.Event.ON_RESUME) { viewModel.foreground() }
+    LifecycleEventEffect(Lifecycle.Event.ON_RESUME) {
+        viewModel.foreground()
+        AppHost.openPendingShare(navigator)
+    }
     LaunchedEffect(navigator.selectedTab) { viewModel.live.setShowingChats(navigator.selectedTab == MainTab.Chats) }
 
     val header: @Composable (@Composable RowScope.() -> Unit) -> Unit = { actions -> AppHeader(me, viewModel, actions) }

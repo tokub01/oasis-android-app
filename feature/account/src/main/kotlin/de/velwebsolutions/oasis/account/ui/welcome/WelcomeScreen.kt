@@ -194,14 +194,16 @@ private fun ColumnScope.ProfileStep(ui: WelcomeUiState, tour: WelcomeTour, viewM
         modifier = Modifier.testTag("welcome.bio"),
         prompt = "Zum Beispiel: Ich fotografiere analog und gärtnere auf dem Balkon.",
         error = ui.fieldErrors["bio"],
-        lines = 3..6
+        lines = 3..6,
+        maxLength = 300
     )
     OasisTextField(
         "Ort (optional)",
         ui.location,
         { value -> viewModel.edit { it.copy(location = value) } },
         prompt = "Zum Beispiel deine Stadt",
-        error = ui.fieldErrors["location"]
+        error = ui.fieldErrors["location"],
+        maxLength = 80
     )
     ui.toneHint?.let { hint ->
         Text(
@@ -279,12 +281,12 @@ private fun ColumnScope.VisibilityStep(ui: WelcomeUiState, tour: WelcomeTour, vi
 @Composable
 private fun ColumnScope.OasesStep(tour: WelcomeTour, viewModel: WelcomeViewModel, open: (AppRoute) -> Unit) {
     Text(
-        "Oasen sind Gruppen zu einem Thema. Folge ein paar davon, dann füllt sich deine Quelle. Ausgesucht von Menschen, nicht von einem Algorithmus.",
+        "Oasen sind Gruppen zu einem Thema. Tritt ein paar bei, dann füllt sich deine Quelle. Ausgesucht von Menschen, nicht von einem Algorithmus.",
         style = OasisType.Body,
         color = OasisColors.Ink2
     )
     if (tour.oases.isEmpty()) {
-        Text("Noch gibt es keine öffentlichen Oasen. Du kannst selbst eine gründen.", style = OasisType.Body, color = OasisColors.Ink2)
+        Text("Noch gibt es keine Oasen. Du kannst selbst eine gründen.", style = OasisType.Body, color = OasisColors.Ink2)
     }
     tour.oases.forEach { oasis ->
         Column(
@@ -314,7 +316,7 @@ private fun ColumnScope.OasesStep(tour: WelcomeTour, viewModel: WelcomeViewModel
             }
             Text(oasis.description, style = OasisType.Small, color = OasisColors.Ink2)
             AsyncOasisButton(
-                if (oasis.joined) "Gefolgt ✓" else "Folgen",
+                if (oasis.joined) "Beigetreten ✓" else "Beitreten",
                 { viewModel.toggle(oasis) },
                 modifier = Modifier.semantics { selected = oasis.joined }.testTag("welcome.oasis.${oasis.slug}"),
                 kind = if (oasis.joined) OasisButtonKind.Primary else OasisButtonKind.Secondary,

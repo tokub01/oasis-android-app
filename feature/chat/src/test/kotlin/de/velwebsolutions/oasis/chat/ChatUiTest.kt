@@ -24,6 +24,7 @@ import de.velwebsolutions.oasis.chat.api.ChatSettings
 import de.velwebsolutions.oasis.chat.api.ConversationMember
 import de.velwebsolutions.oasis.chat.api.DeviceLinkRequest
 import de.velwebsolutions.oasis.chat.api.DeviceUnlockRow
+import de.velwebsolutions.oasis.chat.core.ChatKeyring
 import de.velwebsolutions.oasis.chat.core.ChatMessageItem
 import de.velwebsolutions.oasis.chat.core.ChatTimeline
 import de.velwebsolutions.oasis.chat.ui.ChatAccessState
@@ -307,6 +308,18 @@ class ChatUiTest {
                 listOf("accept", "decline false", "decline true", "block 2", "report a", "dismiss", "older", "spoken")
             )
         )
+    }
+
+    @Test
+    fun anUntrustedOwnerReplacesTheComposer() {
+        show { Conversation(ConversationState(conversation = chat("7"), title = "Jonas", untrustedOwner = true)) }
+        capture("conversation-untrusted-owner")
+        compose.onNodeWithTag("chat.composer.untrustedOwner").assertExists()
+        compose.onNodeWithText(ChatKeyring.UNTRUSTED_OWNER).assertExists()
+        compose.onNodeWithTag("chat.composer.field").assertDoesNotExist()
+        switchTo { Conversation(ConversationState(conversation = chat("7"), title = "Jonas")) }
+        compose.onNodeWithTag("chat.composer.untrustedOwner").assertDoesNotExist()
+        compose.onNodeWithTag("chat.composer.field").assertExists()
     }
 
     private val jonasAvatar = ChatAvatar("J", "night", "/api/v1/network/profiles/jonas/photo/a.jpg")

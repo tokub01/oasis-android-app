@@ -28,6 +28,13 @@ data class ChatMessageItem(
     /** The member's view of the files by id (from the history; empty until it was loaded for a realtime message). */
     val attachmentStates: Map<String, AttachmentState> = emptyMap()
 ) {
+    /**
+     * Whether the file belongs to this message: own files always, others' only when the server's row of the message
+     * lists them. An id copied from another message (someone's view-once photo) is never offered, answered or loaded
+     * through this one (conversation-view.js); until the row is known such a file shows as not verifiable.
+     */
+    fun listed(attachmentId: String, mine: Boolean): Boolean = mine || attachmentStates.containsKey(attachmentId)
+
     /** The state of one file; before the server named it: pending for others' files, sent for own ones. */
     fun state(attachmentId: String, mine: Boolean): AttachmentState = attachmentStates[attachmentId]
         ?: AttachmentState(attachmentId, status = if (mine) AttachmentState.SENT else AttachmentState.PENDING)
@@ -79,8 +86,13 @@ object ChatMessages {
         return DraftMeasure(characters, bytes, characters > ChatCrypto.MAX_MESSAGE_LENGTH || !MessagePayload.fits(plaintext))
     }
 
-    /** Encrypt for the conversation's current key version with the server-clock expiry. */
+    /**
+     * Encrypt for the conversation's current key version with the server-clock expiry (messages.js `sealMessage`).
+     * @throws ChatKeyringException.UntrustedOwner if the owner is not an active owner member or changed
+     * @throws ChatKeyringException.StaleKeyVersion if a newer key version of the conversation is open already
+     */
     fun seal(plaintext: String, conversation: ChatConversation, vault: ChatVault, crypto: ChatCrypto): MessageEnvelope {
+        ChatKeyring.assertSealable(vault, conversation)
         val identity = vault.identity
         val key = vault.conversationKey(conversation.id, conversation.keyVersion)
         if (identity == null || key == null) throw ChatCryptoException.InvalidInput("conversationKey must be a Uint8Array of 32 bytes.")
@@ -92,7 +104,7 @@ object ChatMessages {
             identity = identity,
             plaintext = plaintext,
             expiresAt = vault.clock.expiry(conversation.lifetimeDays),
-            now = vault.clock.now()
+            now = vault.clock.serverNow()
         )
     }
 

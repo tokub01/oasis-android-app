@@ -203,7 +203,8 @@ private fun ProfileSection(ui: SettingsUiState, settings: AccountSettings, viewM
             { value -> viewModel.edit { it.copy(email = value) } },
             modifier = Modifier.testTag("settings.email"),
             error = ui.fieldErrors["email"],
-            hint = "Wenn du sie änderst, bestätigst du die neue Adresse per Link.",
+            hint = "Wenn du sie änderst, fragen wir kurz nach deinem Passwort. Die neue Adresse bestätigst du dann per Code oder " +
+                "Link, und die bisherige bekommt Bescheid.",
             keyboardOptions = OasisKeyboard.Email
         )
         if (!settings.emailVerified) {

@@ -22,7 +22,7 @@ import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 
 /** Actions that need the password first. */
-enum class ProtectedAction { EnableTwoFactor, ConfirmTwoFactor, RegenerateCodes, DisableTwoFactor, DeleteAccount }
+enum class ProtectedAction { SaveProfile, EnableTwoFactor, ConfirmTwoFactor, RegenerateCodes, DisableTwoFactor, DeleteAccount }
 
 /** What /app/einstellungen shows. */
 data class SettingsUiState(
@@ -50,8 +50,8 @@ data class SettingsUiState(
 }
 
 /**
- * /app/einstellungen: profile, password, two-factor sign-in and account deletion. Two-factor changes and the deletion
- * need a recent password confirmation of this device; when the server answers 423 the action waits in
+ * /app/einstellungen: profile, password, two-factor sign-in and account deletion. A new e-mail address, two-factor
+ * changes and the deletion need a recent password confirmation of this device; when the server answers 423 the action waits in
  * [SettingsUiState.pendingAction], the screen asks for the password and runs it again afterwards (like the web's
  * resume), with the sheet still open until it is done.
  */
@@ -80,18 +80,12 @@ class SettingsViewModel @Inject constructor(private val repository: AccountRepos
             }
     }
 
-    /** „Profil speichern“: the session gets the refreshed member (a new address needs verification). */
+    /**
+     * „Profil speichern“: the session gets the refreshed member (a new address needs verification). A new address needs
+     * a recent password confirmation first (423): the sheet asks for it and the change goes again, like the web.
+     */
     suspend fun saveProfile() {
-        mutableUi.update { it.copy(fieldErrors = emptyMap()) }
-        catching { repository.updateProfile(ui.value.displayName, ui.value.email) }
-            .onSuccess { change ->
-                mutableUi.update { it.copy(displayName = change.data.displayName, email = change.data.email, message = change.message) }
-                load()
-                session.update(change.data)
-            }
-            .onFailure { error ->
-                handle(error.asApiError())
-            }
+        perform(ProtectedAction.SaveProfile)
     }
 
     /** „Passwort ändern“; the fields are cleared in every case, like the web. */
@@ -145,6 +139,13 @@ class SettingsViewModel @Inject constructor(private val repository: AccountRepos
         mutableUi.update { it.copy(fieldErrors = emptyMap()) }
         catching {
             when (action) {
+                ProtectedAction.SaveProfile -> {
+                    val change = repository.updateProfile(ui.value.displayName, ui.value.email)
+                    mutableUi.update { it.copy(displayName = change.data.displayName, email = change.data.email, message = change.message) }
+                    load()
+                    session.update(change.data)
+                }
+
                 ProtectedAction.EnableTwoFactor -> applyChange(repository.enableTwoFactor())
 
                 ProtectedAction.ConfirmTwoFactor -> {

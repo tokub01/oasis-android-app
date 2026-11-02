@@ -54,6 +54,7 @@ import de.velwebsolutions.oasis.design.components.TierLoadableView
 import de.velwebsolutions.oasis.design.navigation.AccountRoute
 import de.velwebsolutions.oasis.design.navigation.LocalNavigator
 import de.velwebsolutions.oasis.design.navigation.NetworkRoute
+import de.velwebsolutions.oasis.design.navigation.WebRoute
 import de.velwebsolutions.oasis.design.theme.OasisColors
 import de.velwebsolutions.oasis.design.theme.OasisRadius
 import de.velwebsolutions.oasis.design.theme.OasisType
@@ -70,6 +71,7 @@ import de.velwebsolutions.oasis.network.ui.components.WeekChart
 import de.velwebsolutions.oasis.network.ui.components.WeekRow
 import de.velwebsolutions.oasis.network.ui.components.block
 import de.velwebsolutions.oasis.network.ui.components.copyToClipboard
+import de.velwebsolutions.oasis.network.ui.components.rememberBaseUrl
 import de.velwebsolutions.oasis.network.ui.components.share
 import de.velwebsolutions.oasis.network.ui.feeds.dayMonth
 import java.time.Instant
@@ -210,7 +212,13 @@ fun StatisticsScreen(viewModel: StatisticsViewModel = hiltViewModel<StatisticsVi
     val navigator = LocalNavigator.current
     LaunchedEffect(Unit) { viewModel.loadIfNeeded() }
     OasisScreen(title = "Deine Zahlen") {
-        TierLoadableView(statistics, "Deine Zahlen", onRetry = viewModel::load) { stats ->
+        TierLoadableView(
+            statistics,
+            "Deine Zahlen",
+            onRetry = viewModel::load,
+            feature = "Wie deine Karawane wächst, welche Tropfen ankommen und wie lebendig deine Oasen sind: leise Zahlen über " +
+                "zwölf Wochen, die nur du siehst. Wer reagiert hat, zeigen sie nie."
+        ) { stats ->
             NetworkPage(onRefresh = viewModel::load) {
                 block("header") {
                     PageHeader(
@@ -283,6 +291,7 @@ fun InvitationsScreen(viewModel: InvitationsViewModel = hiltViewModel<Invitation
     val overview by viewModel.overview.collectAsStateWithLifecycle()
     val status by viewModel.status.collectAsStateWithLifecycle()
     val error by viewModel.error.collectAsStateWithLifecycle()
+    val navigator = LocalNavigator.current
     LaunchedEffect(Unit) { viewModel.loadIfNeeded() }
     OasisScreen(title = "Einladen", message = status, onDismissMessage = viewModel::dismissStatus) {
         LoadableView(overview, onRetry = viewModel::load) { info ->
@@ -310,6 +319,10 @@ fun InvitationsScreen(viewModel: InvitationsViewModel = hiltViewModel<Invitation
                             style = OasisType.Body,
                             color = OasisColors.Ink2
                         )
+                        // The conditions of the free months in the AGB (invitations.blade.php).
+                        rememberBaseUrl()?.resolve("/agb#freimonate")?.toString()?.let { terms ->
+                            UnderlinedLink("Bedingungen", { navigator.open(WebRoute(terms)) }, Modifier.testTag("invitations.terms"))
+                        }
                     }
                 }
                 error?.message("invitation")?.let { message -> block("error") { FieldError(message) } }
@@ -346,7 +359,7 @@ fun InvitationsScreen(viewModel: InvitationsViewModel = hiltViewModel<Invitation
                     SideCard("Was Eingeladene bekommen", tone = PanelTone.Dune) {
                         Bullets(
                             listOf(
-                                "Eine werbefreie Oase, getragen von den Mitgliedern.",
+                                "Dieselbe Oase wie du, mit allen Funktionen, sobald sie ihren Beitrag gewählt haben.",
                                 "Ihr folgt euch nach der Anmeldung automatisch.",
                                 "Keine Werbung, kein Feed, der festhält."
                             )

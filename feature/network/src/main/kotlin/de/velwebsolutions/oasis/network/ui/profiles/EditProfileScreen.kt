@@ -163,7 +163,8 @@ private fun ProfileForm(
                 viewModel::updateBio,
                 error = error?.message("bio"),
                 lines = 3..8,
-                modifier = Modifier.testTag("profileEdit.bio")
+                modifier = Modifier.testTag("profileEdit.bio"),
+                maxLength = 300
             )
             AnimatedVisibility(form.toneHint != null) { form.toneHint?.let { ToneHintNote(it) } }
             AnimatedVisibility(form.toneNudge) {
@@ -185,7 +186,8 @@ private fun ProfileForm(
             viewModel::updateLocation,
             error = error?.message("location"),
             hint = "Zum Beispiel deine Stadt. Lass es leer, wenn du das nicht zeigen möchtest.",
-            modifier = Modifier.testTag("profileEdit.location")
+            modifier = Modifier.testTag("profileEdit.location"),
+            maxLength = 80
         )
         OasisTextField(
             "Status (optional)",

@@ -39,6 +39,7 @@ import coil3.request.ImageRequest
 import de.velwebsolutions.oasis.core.model.Loadable
 import de.velwebsolutions.oasis.core.network.ApiError
 import de.velwebsolutions.oasis.design.navigation.StaffRoute
+import de.velwebsolutions.oasis.staff.api.Labelled
 import de.velwebsolutions.oasis.staff.api.ModerationCaseDetail
 import de.velwebsolutions.oasis.staff.api.ModerationOverview
 import de.velwebsolutions.oasis.staff.api.QueueFilter
@@ -54,6 +55,8 @@ import de.velwebsolutions.oasis.staff.ui.moderation.ComplaintReviewContent
 import de.velwebsolutions.oasis.staff.ui.moderation.ComplaintReviewScreen
 import de.velwebsolutions.oasis.staff.ui.moderation.ComplaintReviewUiState
 import de.velwebsolutions.oasis.staff.ui.moderation.ComplaintReviewViewModel
+import de.velwebsolutions.oasis.staff.ui.moderation.EVIDENCE_KINDS
+import de.velwebsolutions.oasis.staff.ui.moderation.LOCKED_ATTACHMENT
 import de.velwebsolutions.oasis.staff.ui.moderation.ModerationOverviewContent
 import de.velwebsolutions.oasis.staff.ui.moderation.ModerationOverviewScreen
 import de.velwebsolutions.oasis.staff.ui.moderation.ModerationOverviewUiState
@@ -69,7 +72,9 @@ import de.velwebsolutions.oasis.staff.ui.moderation.SuspensionsUiState
 import de.velwebsolutions.oasis.staff.ui.moderation.SuspensionsViewModel
 import java.time.Instant
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertFalse
 import org.junit.Assert.assertNotNull
+import org.junit.Assert.assertNull
 import org.junit.Assert.assertTrue
 import org.junit.Rule
 import org.junit.Test
@@ -614,7 +619,8 @@ class ModerationUiTest {
             complaints = complaints,
             escalation = escalation
         )
-        ui.show { CaseDetailContent(4, CaseDetailUiState(Loadable.Loaded(detail)), CaseDetailActions()) }
+        var shown by mutableStateOf(detail)
+        ui.show { CaseDetailContent(4, CaseDetailUiState(Loadable.Loaded(shown)), CaseDetailActions()) }
         compose.onNodeWithText("nach Widerspruch").performScrollTo().assertIsDisplayed()
         compose.onNodeWithText("noch nicht", substring = true).performScrollTo().assertIsDisplayed()
         compose.onNodeWithText("geprüft von Mo", substring = true).performScrollTo().assertIsDisplayed()
@@ -623,6 +629,52 @@ class ModerationUiTest {
         assertEquals(StaffRoute.ComplaintReview(2), ui.top)
         compose.onNodeWithText("Beweise löschen").assertDoesNotExist()
         compose.onNodeWithText("Quarantäne aufheben").performScrollTo().assertIsDisplayed()
+
+        // The question follows what the case is about: a profile's or oasis' images are served again at once.
+        val tropfen = detail.copy(subjectUrl = "https://get-oasis.com/tropfen/9")
+        val profile = detail.copy(subjectUrl = "https://get-oasis.com/profil/mira")
+        val chat = detail.copy(report = detail.report.copy(kind = "chat_report"))
+        assertEquals(
+            "Quarantäne aufheben? Die Bilder werden dann wieder ausgeliefert, sobald der Tropfen freigegeben ist.",
+            tropfen.liftQuarantineQuestion
+        )
+        assertEquals("Quarantäne aufheben? Die Anhänge der Nachricht sind dann für das Team wieder zu sehen.", chat.liftQuarantineQuestion)
+        assertEquals("Quarantäne aufheben? Profilbild und Banner werden dann wieder ausgeliefert.", profile.liftQuarantineQuestion)
+        assertEquals(
+            "Quarantäne aufheben? Das Banner der Oase wird dann wieder ausgeliefert.",
+            detail.copy(subjectUrl = "https://get-oasis.com/oasen/stadtgarten").liftQuarantineQuestion
+        )
+        shown = profile
+        compose.onNodeWithText("Quarantäne aufheben").performScrollTo().performClick()
+        compose.onNodeWithText("Quarantäne aufheben? Profilbild und Banner werden dann wieder ausgeliefert.").assertExists()
+    }
+
+    @Test
+    fun `an involved viewer, files in quarantine and file evidence are named like on the web`() {
+        val involvedNote =
+            "Du bist an diesem Fall beteiligt. Übernehmen und entscheiden kann ihn deshalb nur eine andere Person aus dem Team."
+        val open = Decoded.caseChat.copy(
+            status = Labelled("open", "Offen"),
+            can = Decoded.caseChat.can.copy(decide = false),
+            involved = true,
+            report = Decoded.caseChat.report.copy(attachments = emptyList(), lockedAttachments = 2)
+        )
+        assertEquals(involvedNote, open.involvedNote)
+        assertEquals(involvedNote, open.copy(status = Labelled("in_review", "In Prüfung")).involvedNote)
+        assertNull("decided: the decisions say the rest", open.copy(status = Labelled("decided", "Entschieden")).involvedNote)
+        assertNull(open.copy(involved = false).involvedNote)
+        assertEquals("Datei", EVIDENCE_KINDS["file"])
+        assertEquals("Bild", EVIDENCE_KINDS["image"])
+
+        val escalation = Decoded.caseEscalated.escalation!!
+        val fileEvidence = escalation.copy(evidence = listOf(escalation.evidence.first().copy(kind = "file")))
+        ui.show { CaseDetailContent(4, CaseDetailUiState(Loadable.Loaded(open.copy(escalation = fileEvidence))), CaseDetailActions()) }
+        compose.onNodeWithTag("case.involved").performScrollTo().assertIsDisplayed()
+        compose.onNodeWithText(involvedNote).assertExists()
+        compose.onNodeWithTag("case.decide").assertDoesNotExist()
+        assertEquals(2, compose.onAllNodesWithText(LOCKED_ATTACHMENT).fetchSemanticsNodes().size)
+        compose.onNodeWithText("Anhang 2").assertExists()
+        compose.onNodeWithText("Datei · gesichert", substring = true).performScrollTo().assertIsDisplayed()
     }
 
     @Test
@@ -684,6 +736,11 @@ class ModerationUiTest {
         compose.onNodeWithTag("roles.confirmEmail.${roles.data[1].id}").assertDoesNotExist()
         ui.shot("roles-access")
         compose.onNodeWithTag("roles.confirmEmail.${unconfirmed.id}").performScrollTo().performClick()
+        compose.onNodeWithText("Die E-Mail-Adresse ${unconfirmed.email} als bestätigt markieren?").assertIsDisplayed()
+        compose.onNodeWithText("Abbrechen").performClick()
+        assertFalse("nothing without the confirmation", repository.calls.any { it.startsWith("confirm") })
+        compose.onNodeWithTag("roles.confirmEmail.${unconfirmed.id}").performScrollTo().performClick()
+        compose.onNodeWithTag("roles.confirmEmail.confirm").performClick()
         compose.waitForIdle()
         assertTrue(repository.calls.contains("confirm ${unconfirmed.id}"))
         compose.onNodeWithTag("roles.passwordLink.${unconfirmed.id}").performScrollTo().performClick()
@@ -696,6 +753,8 @@ class ModerationUiTest {
         viewModel.dismissMessage()
         compose.waitForIdle()
         compose.onNodeWithTag("roles.setPassword.${confirmed.id}").performScrollTo().performClick()
+        compose.onNodeWithText("Passwort von ${confirmed.displayName} setzen? Das Konto wird überall abgemeldet.").assertIsDisplayed()
+        compose.onNodeWithTag("roles.setPassword.confirm").performClick()
         compose.waitForIdle()
         assertTrue(repository.calls.contains("password ${confirmed.id} ein-langes-passwort"))
     }

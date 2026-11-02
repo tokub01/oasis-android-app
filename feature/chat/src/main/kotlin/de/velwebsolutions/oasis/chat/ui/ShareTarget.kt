@@ -43,8 +43,8 @@ data class ShareTargetState(val conversations: List<ChatConversation> = emptyLis
 
 /**
  * Screen "Teilen mit …" (docs/oasis-chat.md, "Sharing into Oasis"): what another app shared and the member's chats; the
- * picked chat takes the share as drafts when it opens. Message requests are left out – answering one is a decision of
- * its own.
+ * picked chat takes the share as drafts when it opens. Every chat of the first page is offered, message requests too
+ * (iOS `ShareTargetModel`): nothing is sent before "Senden" there.
  */
 @HiltViewModel
 class ShareTargetViewModel @Inject constructor(context: ChatContext) : ChatViewModel(context) {
@@ -60,7 +60,7 @@ class ShareTargetViewModel @Inject constructor(context: ChatContext) : ChatViewM
     suspend fun load() = inScope {
         try {
             val page = context.repository.conversations(1)
-            mutableState.update { ShareTargetState(page.data.filter { it.request != true }, loaded = true) }
+            mutableState.update { ShareTargetState(page.data, loaded = true) }
         } catch (error: Exception) {
             mutableState.update { it.copy(error = describeChatError(error)) }
         }

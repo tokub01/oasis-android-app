@@ -59,6 +59,7 @@ import de.velwebsolutions.oasis.network.ui.components.SectionTitle
 import de.velwebsolutions.oasis.network.ui.components.UnderlinedLink
 import de.velwebsolutions.oasis.network.ui.components.block
 import de.velwebsolutions.oasis.network.ui.components.capsuleTime
+import java.time.Instant
 import java.time.ZoneId
 
 /** The text of a locked tier page when an old server sends no message of its own. */
@@ -89,7 +90,12 @@ fun TimeCapsulesScreen(viewModel: TimeCapsulesViewModel = hiltViewModel<TimeCaps
     ) {
         LoadableView(capsules, onRetry = viewModel::load) { info ->
             if (!info.available) {
-                TierLockedView("Zeitkapseln", info.lockedMessage ?: FROM_OASE)
+                TierLockedView(
+                    "Zeitkapseln",
+                    info.lockedMessage ?: FROM_OASE,
+                    feature = "Schreib heute einen Tropfen, der erst an einem Tag deiner Wahl erscheint: zum Geburtstag, zum " +
+                        "Jahrestag oder für dein künftiges Ich. Bis dahin sieht ihn niemand außer dir."
+                )
             } else {
                 NetworkPage(onRefresh = viewModel::load) {
                     block("header") {
@@ -113,7 +119,7 @@ fun TimeCapsulesScreen(viewModel: TimeCapsulesViewModel = hiltViewModel<TimeCaps
                         block("past") {
                             Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
                                 SectionTitle("Aufgegangen")
-                                info.past.forEach { capsule -> PastCapsule(capsule) }
+                                info.past.forEach { capsule -> PastCapsule(capsule, viewModel) }
                             }
                         }
                     }
@@ -147,7 +153,15 @@ private fun CapsuleForm(info: TimeCapsules, draft: CapsuleDraft, fields: Map<Str
             hint = "${draft.body.codePointCount(0, draft.body.length)} / ${info.maxLength}",
             modifier = Modifier.testTag("capsule.body")
         )
-        DateTimeField("Geht auf am", draft.opensAt, viewModel::updateOpensAt, error = fields["opens_at"])
+        val now = Instant.now()
+        DateTimeField(
+            "Geht auf am",
+            draft.opensAt,
+            viewModel::updateOpensAt,
+            error = fields["opens_at"],
+            earliest = now,
+            latest = CapsuleDraft.latestOpening(now, info.maxYears)
+        )
         Column(verticalArrangement = Arrangement.spacedBy(2.dp)) {
             Text("Erscheint", style = OasisType.SmallBold, color = OasisColors.Ink)
             ChoiceMenu(
@@ -205,20 +219,44 @@ private fun WaitingCapsule(capsule: TimeCapsule, viewModel: TimeCapsulesViewMode
 }
 
 @Composable
-private fun PastCapsule(capsule: TimeCapsule) {
+private fun PastCapsule(capsule: TimeCapsule, viewModel: TimeCapsulesViewModel) {
     val navigator = LocalNavigator.current
+    var deleting by remember { mutableStateOf(false) }
     PaperBox(spacing = 4, modifier = Modifier.testTag("capsule.past.${capsule.id}")) {
         val postId = capsule.postId
+        val reason = capsule.failedReason
         if (postId != null) {
             UnderlinedLink(
                 "Aufgegangen am ${GermanTime.format(capsule.openedAt ?: capsule.opensAt, "d. MMMM yyyy", ZoneId.systemDefault())}",
                 { navigator.open(NetworkRoute.Post(postId)) },
                 style = OasisType.BodyBold
             )
+        } else if (reason != null) {
+            Text("Nicht aufgegangen: $reason", style = OasisType.BodyBold, color = OasisColors.SunText)
         } else {
-            Text("Nicht aufgegangen: ${capsule.failedReason.orEmpty()}", style = OasisType.BodyBold, color = OasisColors.SunText)
+            // Claimed by the server, its Tropfen is being published right now (web: „Geht gerade auf …“).
+            Text("Geht gerade auf …", style = OasisType.BodyBold, color = OasisColors.Ink2)
         }
         Text(capsule.body, style = OasisType.Body, color = OasisColors.Ink2, maxLines = 2)
+        if (postId == null && capsule.openedAt == null) {
+            // A capsule that did not open keeps its text until the author removes it.
+            OasisButton(
+                "Löschen",
+                { deleting = true },
+                kind = OasisButtonKind.Destructive,
+                fullWidth = false,
+                modifier = Modifier.testTag("capsule.delete.${capsule.id}")
+            )
+        }
+    }
+    if (deleting) {
+        ConfirmDialog(
+            "Die Zeitkapsel löschen?",
+            "Löschen",
+            onConfirm = { viewModel.launch { viewModel.delete(capsule.id) } },
+            onDismiss = { deleting = false },
+            message = "Das lässt sich nicht rückgängig machen."
+        )
     }
 }
 
@@ -237,7 +275,13 @@ fun YearbookScreen(
     val navigator = LocalNavigator.current
     LaunchedEffect(Unit) { viewModel.loadIfNeeded() }
     OasisScreen(title = "Jahrbuch", error = error?.userMessage, onDismissError = viewModel::dismissError) {
-        TierLoadableView(book, "Dein Jahrbuch", onRetry = viewModel::load) { shown ->
+        TierLoadableView(
+            book,
+            "Dein Jahrbuch",
+            onRetry = viewModel::load,
+            feature = "Deine Tropfen und Fotos eines Jahres, gestaltet als Buch zum Durchblättern, Drucken oder als PDF zum " +
+                "Aufheben. Damit bleibt, was du geteilt hast, auch ohne Bildschirm."
+        ) { shown ->
             NetworkPage(onRefresh = viewModel::load) {
                 block("years") {
                     ButtonFlow {

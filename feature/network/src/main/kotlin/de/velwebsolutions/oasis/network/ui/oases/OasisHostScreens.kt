@@ -96,7 +96,13 @@ fun OasisStatisticsScreen(
     val statistics by viewModel.statistics.collectAsStateWithLifecycle()
     LaunchedEffect(Unit) { viewModel.load() }
     OasisScreen(title = "Statistik") {
-        TierLoadableView(statistics, "Statistik", onRetry = viewModel::load) { stats ->
+        TierLoadableView(
+            statistics,
+            "Statistik deiner Oase",
+            onRetry = viewModel::load,
+            feature = "Wie deine Oase wächst und wie lebendig sie ist: neue Mitglieder und Tropfen pro Woche über zwölf Wochen, " +
+                "nur für Gastgeber:innen. Wer was liest oder schreibt, zeigen die Zahlen nie."
+        ) { stats ->
             NetworkPage {
                 block("header") {
                     PageHeader(

@@ -22,6 +22,7 @@ import de.velwebsolutions.oasis.chatcrypto.MessageEnvelope
 import de.velwebsolutions.oasis.chatcrypto.createLinkKeyPair
 import de.velwebsolutions.oasis.core.realtime.RealtimeEvent
 import de.velwebsolutions.oasis.testing.MainDispatcherRule
+import java.time.Duration
 import java.time.Instant
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
@@ -78,6 +79,7 @@ class ScreensViewModelsTest {
         val (group, one) = list.state.value.conversations
         assertEquals("Gruppe · 3 Menschen · löscht nach 7 Tagen · wartet auf neuen Schlüssel", list.meta(group))
         assertEquals("Zu zweit · löscht nach 7 Tagen · wartet auf neuen Schlüssel", list.meta(one))
+        assertEquals("Zu zweit · löscht nach 7 Tagen · beendet", list.meta(one.copy(ended = true)))
         assertEquals("Jonas", list.title(one))
         assertEquals(direct, one.id)
 
@@ -353,7 +355,7 @@ class ScreensViewModelsTest {
         assertEquals("always", ConversationDetailsViewModel.muteDuration(null, now))
         assertEquals("8h", ConversationDetailsViewModel.muteDuration("2026-10-22T20:00:00Z", now))
         assertEquals("1w", ConversationDetailsViewModel.muteDuration("2026-10-29T12:00:00Z", now))
-        assertEquals("1w", ConversationDetailsViewModel.muteDuration("2026-10-29T12:00:00Z"))
+        assertEquals("1w", ConversationDetailsViewModel.muteDuration(Instant.now().plus(Duration.ofDays(7)).toString()))
         assertEquals(
             "Mira Sol (@mira) – du · hat den Chat gestartet",
             ConversationDetailsViewModel.label(ConversationMember("1", "mira", "Mira Sol", "owner"), true)

@@ -65,6 +65,17 @@ class ModelsTest {
     }
 
     @Test
+    fun `the role list names how many members a host cannot see`() {
+        assertEquals(null, OasisEditForm(summary).hiddenMembersNote)
+        assertEquals(
+            "Ein weiteres Mitglied zeigt sich hier nur Freund:innen und Menschen, denen es folgt, oder niemandem. " +
+                "Eine Rolle kannst du nur Mitgliedern geben, die du hier siehst.",
+            OasisEditForm(summary, hiddenMembers = 1).hiddenMembersNote
+        )
+        assertTrue(OasisEditForm(summary, hiddenMembers = 3).hiddenMembersNote!!.startsWith("3 weitere Mitglieder zeigen sich hier"))
+    }
+
+    @Test
     fun `Tropfen and their parts`() {
         val post = Post(1, "u", "b", createdAt = now, author = member)
         roundTrip(Member.serializer(), member)

@@ -111,18 +111,22 @@ object ChatAttachments {
      */
     suspend fun download(context: ChatContext, conversationId: String, attachment: MessageAttachment): ByteArray {
         val ciphertext = context.repository.downloadAttachment(conversationId, attachment.id)
+        // The size the signed message names, plus the tag: anything else is refused before any decryption.
+        if (ciphertext.size.toLong() != attachment.size + TAG_BYTES) throw ChatCryptoException.TamperedAttachment
         return withContext(context.cryptoDispatcher) {
             // Undecodable key or nonce: empty, which the AEAD refuses like a wrong one.
             val key = decoded(context, attachment.key)
             try {
-                val file = context.crypto.decryptAttachment(ciphertext, conversationId, key, decoded(context, attachment.nonce))
-                if (file.size.toLong() != attachment.size) throw ChatCryptoException.TamperedAttachment
-                file
+                // The AEAD only opens a ciphertext of its tag plus the plaintext: the size was checked above.
+                context.crypto.decryptAttachment(ciphertext, conversationId, key, decoded(context, attachment.nonce))
             } finally {
                 ChatEncoding.wipe(key)
             }
         }
     }
+
+    /** The AEAD tag every attachment ciphertext carries (XChaCha20-Poly1305). */
+    private const val TAG_BYTES = 16L
 
     private fun decoded(context: ChatContext, base64: String): ByteArray =
         runCatching { context.crypto.fromBase64(base64) }.getOrDefault(ByteArray(0))

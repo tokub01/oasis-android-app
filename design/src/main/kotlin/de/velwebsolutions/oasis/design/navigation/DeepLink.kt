@@ -27,6 +27,17 @@ sealed interface IncomingLink {
  * or on the Quelle when they belong to the app.
  */
 object DeepLink {
+    /**
+     * The host of this build's server (set once at start from its base URL). A web link to any other host never opens a
+     * screen or an account link of the app – a hint, push or post could otherwise dress up a foreign page as Oasis'.
+     * Null (tests, previews) checks no host.
+     */
+    @Volatile
+    var ownHost: String? = null
+
+    /** Whether [uri] is `oasis://` or a web link of [ownHost]. */
+    private fun isOwn(uri: URI): Boolean = uri.scheme == "oasis" || ownHost.let { it == null || uri.host.equals(it, ignoreCase = true) }
+
     /** Paths inside the app's App Links that stay in the browser (app/Support/Security/AppLinks.php, EXCLUDED). */
     private val BrowserOnly = listOf("/app/chat/api/", "/app/mitgliedschaft/rechnungen/", "/app/konto/export")
 
@@ -37,7 +48,7 @@ object DeepLink {
      * verified App Links take every page of the app area.
      */
     fun incoming(url: String): IncomingLink {
-        val uri = runCatching { URI(url) }.getOrNull() ?: return IncomingLink.Browser(url)
+        val uri = runCatching { URI(url) }.getOrNull()?.takeIf(::isOwn) ?: return IncomingLink.Browser(url)
         val path = uri.rawPath ?: ""
         if (uri.scheme != "oasis" && BrowserOnly.any { path.startsWith(it) }) return IncomingLink.Browser(url)
         val appScheme = uri.scheme == "oasis"
@@ -73,7 +84,7 @@ object DeepLink {
     private val CompanionToken = Regex("[A-Za-z0-9]{40}")
 
     fun route(url: String): AppRoute? {
-        val uri = runCatching { URI(url) }.getOrNull() ?: return null
+        val uri = runCatching { URI(url) }.getOrNull()?.takeIf(::isOwn) ?: return null
         // App URLs (`oasis://mitgliedschaft?checkout=…` after a payment) carry the first path segment as host.
         val appHost = if (uri.scheme == "oasis") listOfNotNull(uri.host) else emptyList()
         val parts = appHost + (uri.rawPath ?: "").split("/").filter { it.isNotEmpty() }.map { decode(it) }

@@ -14,6 +14,7 @@ import de.velwebsolutions.oasis.core.di.AppScope
 import de.velwebsolutions.oasis.core.di.DeviceName
 import de.velwebsolutions.oasis.core.network.ApiConfig
 import de.velwebsolutions.oasis.core.network.RealtimeConfig
+import de.velwebsolutions.oasis.design.navigation.DeepLink
 import de.velwebsolutions.oasis.design.navigation.Navigator
 import javax.inject.Singleton
 import kotlinx.coroutines.CoroutineScope
@@ -46,6 +47,10 @@ object AppModule {
     /** The app's one navigator; after a sign-out the next member starts on the roots of the tabs ([AppHost.resetAfterSignOut]). */
     @Provides
     @Singleton
-    fun navigator(session: Session, @AppScope scope: CoroutineScope): Navigator =
-        Navigator().also { navigator -> scope.launch { AppHost.resetAfterSignOut(session.state, navigator) } }
+    fun navigator(session: Session, @AppScope scope: CoroutineScope, @ApplicationContext context: Context): Navigator =
+        Navigator().also { navigator ->
+            // Links open screens only for this build's server (hints, push, posts).
+            DeepLink.ownHost = java.net.URI(BuildConfig.OASIS_BASE_URL).host
+            scope.launch { AppHost.resetAfterSignOut(session.state, navigator) { AppHost.clearAfterSignOut(context) } }
+        }
 }

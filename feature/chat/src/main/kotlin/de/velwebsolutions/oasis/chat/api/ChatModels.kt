@@ -111,7 +111,12 @@ data class ChatConversation(
     /** Muted for the signed-in member: no push or e-mail about new messages (`PUT conversations/{id}/mute`). */
     val muted: Boolean? = null,
     /** End of the mute (ISO 8601); null while muted means "Dauerhaft". */
-    @SerialName("muted_until") val mutedUntil: String? = null
+    @SerialName("muted_until") val mutedUntil: String? = null,
+    /**
+     * A direct chat one of the two left (or deleted their account): readable, no composer, no new key
+     * (`Conversation::isEnded`).
+     */
+    val ended: Boolean = false
 ) {
     val isGroup: Boolean get() = type == "group"
 

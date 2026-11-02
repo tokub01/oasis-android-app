@@ -181,6 +181,18 @@ fun CaseDetailContent(caseId: Int, state: CaseDetailUiState, actions: CaseDetail
                         }
                     }
                 }
+                detail.involvedNote?.takeIf { !detail.can.decide }?.let { note ->
+                    Text(
+                        note,
+                        style = OasisType.Body,
+                        color = OasisColors.Ink,
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .background(OasisColors.Dune, RoundedCornerShape(OasisRadius.TILE.dp))
+                            .padding(horizontal = 18.dp, vertical = 14.dp)
+                            .testTag("case.involved")
+                    )
+                }
                 if (detail.can.decide) {
                     SectionCard("Entscheidung") {
                         DecisionFields(state.statement, actions.onStatement, detail.outcomes, detail.grounds, state.fieldErrors, "case")
@@ -241,7 +253,7 @@ fun CaseDetailContent(caseId: Int, state: CaseDetailUiState, actions: CaseDetail
     }
     if (confirmLiftQuarantine) {
         ConfirmDialog(
-            "Quarantäne aufheben? Die Bilder werden dann wieder ausgeliefert, sobald der Tropfen freigegeben ist.",
+            state.detail.valueOrNull?.liftQuarantineQuestion ?: "Quarantäne aufheben?",
             "Quarantäne aufheben",
             { scope.launch { actions.onLiftQuarantine() } },
             { confirmLiftQuarantine = false },
@@ -264,6 +276,13 @@ private fun ReportSection(detail: ModerationCaseDetail, state: CaseDetailUiState
                 SandBox { Text(detail.report.plaintext.orEmpty(), style = OasisType.Digits.copy(fontSize = OasisType.Caption.fontSize)) }
             }
             ReportedAttachments(detail.report.attachments, state.attachmentFiles, state.failedAttachments, actions.onLoadAttachment)
+            // In quarantine (child-abuse escalation) nobody is shown the files; admins get the secured copy for the police.
+            repeat(detail.report.lockedAttachments) { index ->
+                Column(Modifier.testTag("case.attachment.locked"), verticalArrangement = Arrangement.spacedBy(4.dp)) {
+                    Text("Anhang ${detail.report.attachments.size + index + 1}", style = OasisType.SmallBold, color = OasisColors.Ink)
+                    Text(LOCKED_ATTACHMENT, style = OasisType.BodyBold, color = OasisColors.Ink)
+                }
+            }
             FactRow(
                 "Hinweis zur Prüfung",
                 "Vom meldenden Mitglied übermittelt. Absender, Chat und Zeit sind per Signatur geprüft; ob der Text zur verschlüsselten " +
@@ -428,7 +447,7 @@ private fun EvidenceRow(evidence: ModerationCaseDetail.Evidence) {
         verticalArrangement = Arrangement.spacedBy(4.dp)
     ) {
         Text(
-            "${if (evidence.kind == "image") "Bild" else "Text"} · gesichert ${StaffDate.short(evidence.createdAt)} · gelöscht ab " +
+            "${EVIDENCE_KINDS[evidence.kind] ?: "Text"} · gesichert ${StaffDate.short(evidence.createdAt)} · gelöscht ab " +
                 StaffDate.short(evidence.purgeAfter),
             style = OasisType.Caption.copy(fontWeight = FontWeight.Bold),
             color = OasisColors.Ink
@@ -547,3 +566,9 @@ private fun HistorySection(events: List<ModerationCaseDetail.Event>) {
         Text("Der Verlauf lässt sich nicht ändern oder löschen.", style = OasisType.Caption, color = OasisColors.Muted)
     }
 }
+
+/** A file of a reported chat message held back by the quarantine (case-report.blade.php). */
+internal const val LOCKED_ATTACHMENT = "Anhang gesperrt (Quarantäne). Er ist mit den Beweisen für die Polizei gesichert."
+
+/** What a piece of evidence is (escalation.blade.php); anything else is text. */
+internal val EVIDENCE_KINDS = mapOf("image" to "Bild", "file" to "Datei")

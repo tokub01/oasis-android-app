@@ -85,7 +85,7 @@ class PrivacyScreensHiltTest : HiltScreenTest() {
         )
         stub("POST", "privacy/limit-past-posts", """{"message":"Server Error"}""", status = 500)
         show { AccountScreen(AccountRoute.Privacy) }
-        waitForText("Du hast gerade keine öffentlichen Tropfen.", substring = true)
+        waitForText("Du hast keine Tropfen mit der früheren Einstellung „Öffentlich“.", substring = true)
         compose.onNodeWithText("1 Wort verborgen.", substring = true).assertExists()
         compose.onNodeWithText("Unter 18 gilt hier eine strengere Grenze", substring = true).assertExists()
         shot("privacy-limited")

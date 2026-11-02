@@ -58,11 +58,28 @@ data class OasisEditForm(
     val oasis: OasisSummary,
     val houseRules: String = "",
     val members: List<MemberRole> = emptyList(),
-    val options: OasisOptions = OasisOptions()
+    val options: OasisOptions = OasisOptions(),
+    /** How many other members chose not to appear to this host (`hidden_members`, OasisMemberList::hiddenFromHost). */
+    val hiddenMembers: Int = 0
 ) {
+    /** The note under the role list while members are hidden (oasis-form.blade.php); null when none is. */
+    val hiddenMembersNote: String?
+        get() = when (hiddenMembers) {
+            0 -> null
+
+            1 -> "Ein weiteres Mitglied zeigt sich hier nur Freund:innen und Menschen, denen es folgt, oder niemandem. $ROLE_ONLY_VISIBLE"
+
+            else ->
+                "$hiddenMembers weitere Mitglieder zeigen sich hier nur Freund:innen und Menschen, denen sie folgen, oder niemandem. " +
+                    ROLE_ONLY_VISIBLE
+        }
+
     @Serializable
     data class MemberRole(val id: Int, val username: String, val displayName: String, val role: String, val roleLabel: String)
 }
+
+/** The end of [OasisEditForm.hiddenMembersNote]. */
+private const val ROLE_ONLY_VISIBLE = "Eine Rolle kannst du nur Mitgliedern geben, die du hier siehst."
 
 /** The input of the oasis form. */
 @Serializable

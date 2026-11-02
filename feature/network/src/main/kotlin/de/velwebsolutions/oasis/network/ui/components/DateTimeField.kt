@@ -15,6 +15,7 @@ import androidx.compose.material3.DatePicker
 import androidx.compose.material3.DatePickerDialog
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
+import androidx.compose.material3.SelectableDates
 import androidx.compose.material3.Text
 import androidx.compose.material3.TimePicker
 import androidx.compose.material3.rememberDatePickerState
@@ -54,10 +55,26 @@ fun capsuleTime(instant: Instant, zone: ZoneId = ZoneId.systemDefault()): String
 internal fun pickedDay(selectedDateMillis: Long?): LocalDate? =
     selectedDateMillis?.let { Instant.ofEpochMilli(it).atZone(ZoneOffset.UTC).toLocalDate() }
 
+/** [instant] moved into [earliest] … [latest]; a null bound leaves that side open. */
+fun clampTime(instant: Instant, earliest: Instant?, latest: Instant?): Instant = when {
+    earliest != null && instant.isBefore(earliest) -> earliest
+    latest != null && instant.isAfter(latest) -> latest
+    else -> instant
+}
+
+/** Whether the date picker offers the day of [utcMillis] (its midnight in UTC) between the days of the bounds in [zone]. */
+internal fun selectableDay(utcMillis: Long, earliest: Instant?, latest: Instant?, zone: ZoneId): Boolean {
+    val day = Instant.ofEpochMilli(utcMillis).atZone(ZoneOffset.UTC).toLocalDate()
+    val first = earliest?.atZone(zone)?.toLocalDate()
+    val last = latest?.atZone(zone)?.toLocalDate()
+    return (first == null || !day.isBefore(first)) && (last == null || !day.isAfter(last))
+}
+
 /**
  * A day and a time in the device's time, chosen with the Material date picker and then the time picker (iOS
- * `DatePicker` with date and time); "Weiter" waits for a whole day when it is typed in. The server checks the bounds
- * (Zeitkapseln: one hour to ten years ahead).
+ * `DatePicker` with date and time, `in: earliest...latest`); "Weiter" waits for a whole day when it is typed in. Days
+ * outside [earliest] … [latest] cannot be picked, and a time outside them is moved to the nearest bound. The server checks
+ * the exact bounds (Zeitkapseln: one hour to ten years ahead).
  */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -67,7 +84,9 @@ fun DateTimeField(
     onChange: (Instant) -> Unit,
     modifier: Modifier = Modifier,
     error: String? = null,
-    zone: ZoneId = ZoneId.systemDefault()
+    zone: ZoneId = ZoneId.systemDefault(),
+    earliest: Instant? = null,
+    latest: Instant? = null
 ) {
     var pickingDate by remember { mutableStateOf(false) }
     var chosenDay by remember { mutableStateOf<LocalDate?>(null) }
@@ -93,8 +112,12 @@ fun DateTimeField(
         if (error != null) FieldError(error)
     }
     if (pickingDate) {
-        val dateState =
-            rememberDatePickerState(initialSelectedDateMillis = local.toLocalDate().atStartOfDay(ZoneOffset.UTC).toInstant().toEpochMilli())
+        val dateState = rememberDatePickerState(
+            initialSelectedDateMillis = local.toLocalDate().atStartOfDay(ZoneOffset.UTC).toInstant().toEpochMilli(),
+            selectableDates = object : SelectableDates {
+                override fun isSelectableDate(utcTimeMillis: Long): Boolean = selectableDay(utcTimeMillis, earliest, latest, zone)
+            }
+        )
         DatePickerDialog(
             onDismissRequest = { pickingDate = false },
             confirmButton = {
@@ -118,7 +141,9 @@ fun DateTimeField(
             onDismissRequest = { chosenDay = null },
             confirmButton = {
                 OasisTextButton("Fertig", {
-                    onChange(day.atTime(LocalTime.of(timeState.hour, timeState.minute)).atZone(zone).toInstant())
+                    onChange(
+                        clampTime(day.atTime(LocalTime.of(timeState.hour, timeState.minute)).atZone(zone).toInstant(), earliest, latest)
+                    )
                     chosenDay = null
                 }, Modifier.testTag("datetime.done"))
             },

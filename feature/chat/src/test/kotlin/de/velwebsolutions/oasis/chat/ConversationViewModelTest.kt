@@ -215,6 +215,49 @@ class ConversationViewModelTest {
         failing("POST conversations/$id/messages", 422, """{"message":"Zu lang","errors":{"envelope":["Zu lang."]}}""")
         owner.send()
         assertEquals("Zu lang.", owner.state.value.composerError)
+
+        // A refused expiry after the lifetime changed: the chat reloads and says so; nothing is sent again silently.
+        server.conversations.getValue(id.toInt()).lifetimeDays = 1
+        failing("POST conversations/$id/messages", 422, """{"message":"x","errors":{"envelope":["Ablauf passt nicht."]}}""")
+        owner.send()
+        assertEquals(
+            "Nachrichten in diesem Chat löschen sich jetzt nach 1 Tag. Zum Senden tippe noch einmal auf „Senden“.",
+            owner.state.value.composerError
+        )
+        assertEquals(1, owner.state.value.conversation?.lifetimeDays)
+        // Same lifetime: the server's own text stays.
+        failing("POST conversations/$id/messages", 422, """{"message":"x","errors":{"envelope":["Ablauf passt nicht."]}}""")
+        owner.send()
+        assertEquals("Ablauf passt nicht.", owner.state.value.composerError)
+        failing("POST conversations/$id/messages", 422, """{"message":"x","errors":{"envelope":["Ablauf passt nicht."]}}""")
+        failing("GET conversations/$id", 500)
+        owner.send()
+        assertEquals("Da ist etwas schiefgegangen. Versuch es gleich noch einmal.", owner.state.value.composerError)
+        // Locked while the chat reloads: the closed chat says nothing more.
+        failing("POST conversations/$id/messages", 422, """{"message":"x","errors":{"envelope":["Ablauf passt nicht."]}}""")
+        server.onRequest = { if (it == "GET conversations/$id") mira.vault.lock(announce = false) }
+        owner.send()
+        server.onRequest = {}
+        assertNull(owner.state.value.conversation)
+        assertNull(owner.state.value.composerError)
+        assertTrue(mira.keyring.unlock(checkNotNull(mira.vault.storedIdentity), TEST_PASSPHRASE))
+        owner.open()
+        owner.setDraft("Eins")
+
+        // A message request that waits for its answer: the server's own text.
+        failing(
+            "POST conversations/$id/messages",
+            429,
+            """{"message":"Deine Nachrichten sind noch eine Anfrage. Du kannst weiter schreiben, sobald sie angenommen ist."}"""
+        )
+        owner.send()
+        assertEquals(
+            "Deine Nachrichten sind noch eine Anfrage. Du kannst weiter schreiben, sobald sie angenommen ist.",
+            owner.state.value.composerError
+        )
+        failing("POST conversations/$id/messages", 429, """{"message":"Too Many Attempts."}""")
+        owner.send()
+        assertEquals("Zu viele Anfragen in kurzer Zeit. Warte eine Minute.", owner.state.value.composerError)
     }
 
     @Test
@@ -309,6 +352,10 @@ class ConversationViewModelTest {
         owner.open()
         failing("POST conversations/$id/leave", 422, """{"message":"Owner","errors":{"user":["Du hast die Gruppe gestartet."]}}""")
         assertTrue("the block alone stops the messages", owner.blockAndLeave("2"))
+        assertEquals(
+            "Blockiert. Die Gruppe bleibt, weil du sie gestartet hast. In den Details kannst du die Person entfernen.",
+            mira.vault.announcement.value
+        )
     }
 
     @Test
@@ -481,7 +528,7 @@ class ConversationViewModelTest {
         writer.send()
         val sent = Json.decodeFromString(MessageEnvelope.serializer(), server.messages.getValue(id.toInt()).last().second.toString())
         reader.receive(sent)
-        server.serverTime = "2026-11-30T12:00:00Z"
+        server.serverTime = inAMonth()
         reader.refresh()
         assertEquals(ChatMessageItem.State.NoKey, reader.state.value.timeline.items.single().state)
     }
@@ -508,7 +555,7 @@ class ConversationViewModelTest {
         reader.close()
         reader.receive(sent)
         reader.open()
-        jonas.vault.clock.sync("2026-11-30T12:00:00Z")
+        jonas.vault.clock.sync(inAMonth())
         reader.receive(sent)
         assertEquals(1, reader.state.value.timeline.items.size)
 
@@ -545,7 +592,7 @@ class ConversationViewModelTest {
         assertEquals("the poll fetched it", 1, reader.state.value.timeline.items.size)
         live.isConnected.value = true
         advance()
-        jonas.vault.clock.sync("2026-11-30T12:00:00Z")
+        jonas.vault.clock.sync(inAMonth())
         advance { reader.state.value.timeline.items.isEmpty() }
         assertTrue("expired and swept", reader.state.value.timeline.items.isEmpty())
         server.conversations.getValue(id.toInt()).keyVersion += 1
@@ -577,3 +624,7 @@ class ConversationViewModelTest {
         }
     }
 }
+
+/** A server time a month ahead, after every message's lifetime. */
+private fun inAMonth(): String =
+    java.time.Instant.now().plus(java.time.Duration.ofDays(30)).truncatedTo(java.time.temporal.ChronoUnit.SECONDS).toString()

@@ -4,6 +4,9 @@ import de.velwebsolutions.oasis.core.model.Me
 import de.velwebsolutions.oasis.core.network.ApiClient
 import de.velwebsolutions.oasis.core.network.ApiConfig
 import de.velwebsolutions.oasis.core.network.TokenProvider
+import java.time.Duration
+import java.time.Instant
+import java.time.temporal.ChronoUnit
 import kotlinx.serialization.json.Json
 import kotlinx.serialization.json.JsonArray
 import kotlinx.serialization.json.JsonElement
@@ -44,8 +47,17 @@ class FakeChatServer : Interceptor {
         val members: MutableList<Int>,
         val accepted: MutableSet<Int>,
         /** Per member: `muted_until` as the server returns it ("" = muted for good). */
-        val mutedUntil: MutableMap<Int, String> = mutableMapOf()
-    )
+        val mutedUntil: MutableMap<Int, String> = mutableMapOf(),
+        /** A lying server: names this account as `created_by` (with the role owner, if a member) instead of the starter. */
+        var shownOwner: Int? = null,
+        /** A lying server: lists the owner with the role member. */
+        var ownerRoleHidden: Boolean = false,
+        /** Members who left or were removed: the directory still lists them (`GET public-keys`). */
+        val former: MutableSet<Int> = mutableSetOf()
+    ) {
+        /** The owner the server names. */
+        val owner: Int get() = shownOwner ?: createdBy
+    }
 
     val users = mapOf(1 to "mira", 2 to "jonas", 3 to "aylin")
     val identities = mutableMapOf<Int, JsonObject>()
@@ -89,7 +101,12 @@ class FakeChatServer : Interceptor {
 
     /** Called for every request before it is answered ("METHOD path"), e.g. to lock a vault mid-flight. */
     var onRequest: (String) -> Unit = {}
-    var serverTime = "2026-10-22T12:00:00Z"
+
+    /**
+     * The server's clock, now by default: expiry is judged by the later of server and device time (ServerClock.now), so
+     * a fixed date in the past would let every message expire on the device.
+     */
+    var serverTime: String = Instant.now().truncatedTo(ChronoUnit.SECONDS).toString()
 
     fun client(userId: Int): ApiClient {
         val tokens = object : TokenProvider {
@@ -121,10 +138,11 @@ class FakeChatServer : Interceptor {
         put("id", conversation.id.toString())
         put("type", conversation.type)
         put("title", conversation.title)
-        put("created_by", conversation.createdBy.toString())
+        put("created_by", conversation.owner.toString())
         put("lifetime_days", conversation.lifetimeDays)
         put("key_version", conversation.keyVersion)
         put("rotation_required", conversation.rotationRequired)
+        put("ended", conversation.type == "direct" && conversation.members.size < 2)
         put(
             "members",
             buildJsonArray {
@@ -134,7 +152,7 @@ class FakeChatServer : Interceptor {
                             put("user_id", member.toString())
                             put("username", users.getValue(member))
                             put("display_name", name(member))
-                            put("role", if (member == conversation.createdBy) "owner" else "member")
+                            put("role", if (member == conversation.owner && !conversation.ownerRoleHidden) "owner" else "member")
                             put("joined_at", "2026-10-22T11:00:00.000000Z")
                             // ChatAvatar: initials in the colour, a photo for Jonas (2).
                             put(
@@ -471,7 +489,7 @@ class FakeChatServer : Interceptor {
         return when (method to parts.getOrElse(2) { "" }) {
             "GET" to "" -> 200 to data(conversationData(conversation, user))
 
-            "GET" to "public-keys" -> 200 to data(JsonArray(conversation.members.map { publicUser(it) }))
+            "GET" to "public-keys" -> 200 to data(JsonArray((conversation.members + conversation.former).distinct().map { publicUser(it) }))
 
             "GET" to "key-grants" ->
                 200 to data(JsonArray(grants[id].orEmpty().filter { it["recipient_id"]?.jsonPrimitive?.content == user.toString() }))
@@ -559,6 +577,7 @@ class FakeChatServer : Interceptor {
 
             "DELETE" to "members" -> {
                 conversation.members.remove(parts[3].toInt())
+                conversation.former += parts[3].toInt()
                 conversation.keyVersion += 1
                 conversation.rotationRequired = true
                 200 to data(conversationData(conversation, user))
@@ -573,13 +592,17 @@ class FakeChatServer : Interceptor {
 
             "POST" to "leave" -> {
                 conversation.members.remove(user)
+                conversation.former += user
                 conversation.keyVersion += 1
                 conversation.rotationRequired = true
                 200 to buildJsonObject { put("left", true) }
             }
 
             "PUT" to "mute" -> {
-                val ends = mapOf("8h" to "2026-10-22T20:00:00.000000Z", "1w" to "2026-10-29T12:00:00.000000Z", "always" to "")
+                // "1w" ends a week from now like on the server, so the app reads it back as "1w" on any day. The fixed
+                // "8h" end is in the past, which still reads back as "8h", and ChatFlowTest prints it.
+                val week = Instant.now().plus(Duration.ofDays(7)).truncatedTo(ChronoUnit.SECONDS).toString()
+                val ends = mapOf("8h" to "2026-10-22T20:00:00.000000Z", "1w" to week, "always" to "")
                 val until = ends[body["duration"]?.jsonPrimitive?.content]
                 if (until == null) {
                     422 to buildJsonObject {

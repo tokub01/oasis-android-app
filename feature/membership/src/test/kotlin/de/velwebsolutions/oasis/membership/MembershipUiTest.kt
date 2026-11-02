@@ -61,6 +61,7 @@ import java.time.Instant
 import java.time.temporal.ChronoUnit
 import kotlinx.coroutines.CompletableDeferred
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertFalse
 import org.junit.Assert.assertNotNull
 import org.junit.Assert.assertTrue
 import org.junit.Rule
@@ -124,6 +125,18 @@ class MembershipUiTest {
 
     private fun overview(overview: MembershipOverview, withClient: Boolean = true, managed: () -> Unit = {}) =
         show(withClient) { OverviewContent(OverviewUiState(Loadable.Loaded(overview)), onRefresh = {}, onSubscriptionManaged = managed) }
+
+    @Test
+    fun `a companion sees the place of the Maezen instead of Mitglied werden`() {
+        overview(noMembership.copy(companionSeat = MembershipOverview.CompanionSeat("Mia Mäzen", "oase", "Oase")))
+        compose.onNodeWithTag("membership.companion").assertIsDisplayed()
+        compose.onNodeWithText("Dein Platz bei Mia Mäzen").assertIsDisplayed()
+        compose.onNodeWithText("Mia Mäzen nimmt dich als Mäzen mit", substring = true).assertIsDisplayed()
+        compose.onNodeWithTag("membership.expired").assertDoesNotExist()
+        compose.onNodeWithTag("membership.choose").assertDoesNotExist()
+        compose.onNodeWithTag("membership.companion.perks").performClick()
+        assertEquals(MembershipRoute.Perks, top)
+    }
 
     @Test
     fun `the overview loads, fails and refreshes`() {
@@ -319,6 +332,26 @@ class MembershipUiTest {
         compose.onNodeWithText("Über „Teilen“ kannst du die Rechnung speichern, drucken oder als PDF sichern.").assertIsDisplayed()
         compose.onNodeWithContentDescription("Drucken oder als PDF sichern").assertDoesNotExist()
         shotDialog("invoice-pdf")
+    }
+
+    @Test
+    fun `the invoice web view runs no scripts, keeps nothing and never navigates away`() {
+        val view = de.velwebsolutions.oasis.membership.ui.invoiceWebView(context, "<a href=\"https://example.org\">x</a>")
+        assertFalse(view.settings.javaScriptEnabled)
+        assertFalse(view.settings.allowFileAccess)
+        assertFalse(view.settings.allowContentAccess)
+        assertFalse(view.settings.domStorageEnabled)
+        @Suppress("DEPRECATION")
+        assertFalse(view.settings.databaseEnabled)
+        val request = object : android.webkit.WebResourceRequest {
+            override fun getUrl() = android.net.Uri.parse("https://example.org")
+            override fun isForMainFrame() = true
+            override fun isRedirect() = false
+            override fun hasGesture() = true
+            override fun getMethod() = "GET"
+            override fun getRequestHeaders() = emptyMap<String, String>()
+        }
+        assertTrue(de.velwebsolutions.oasis.membership.ui.StayOnInvoice.shouldOverrideUrlLoading(view, request))
     }
 
     @Test

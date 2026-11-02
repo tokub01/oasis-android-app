@@ -34,6 +34,20 @@ class SharingTest {
     }.getParcelableExtra(Intent.EXTRA_INTENT, Intent::class.java)!!
 
     @Test
+    fun `a new process deletes the files a killed one left behind`() {
+        val files = StaffFiles(context.cacheDir)
+        val archive = files.evidenceArchive(7, "PK".toByteArray())
+        val played = files.reportedAttachment(7, 0, byteArrayOf(1), "Geheim.pdf")
+        val info = android.content.pm.ProviderInfo().apply {
+            authority = "${context.packageName}.staff.files"
+            grantUriPermissions = true
+        }
+        StaffFileProvider().attachInfo(context, info)
+        assertFalse(archive.exists())
+        assertFalse(played.exists())
+    }
+
+    @Test
     fun `the evidence archive goes out as a readable file`() {
         val archive = StaffFiles(context.cacheDir).evidenceArchive(4, "PK".toByteArray())
         assertEquals("oasis-fall-4-beweise.zip", archive.name)

@@ -55,9 +55,15 @@ object AndroidKeystoreTokenKey : TokenKeyProvider {
  * Keeps the token encrypted with AES-GCM under a key from [keys] (the Android Keystore: this device only, never in
  * backups), like the iOS Keychain item "available after first unlock, this device only". The sealed value sits in private
  * preferences; a value that no longer opens (key gone after a restore) reads as signed out.
+ *
+ * With an [origin] (the server root of this build) the token is sealed together with it and only read back for the
+ * same server: the Play test build (staging) and the release share a package, so an update must not send a staging
+ * token to production, or the other way round. A token from before the binding (sealed without a server) is taken once
+ * for this build's server and bound to it right away, like iOS' TokenStore; from then on only that server gets it.
  */
 class KeystoreTokenStore(
     context: Context,
+    private val origin: String? = null,
     private val keys: TokenKeyProvider = AndroidKeystoreTokenKey
 ) : TokenStore {
     private val preferences = context.getSharedPreferences("oasis.session", Context.MODE_PRIVATE)
@@ -68,7 +74,7 @@ class KeystoreTokenStore(
     override fun read(): String? = synchronized(lock) {
         if (!loaded) {
             val stored = preferences.getString(KEY, null)
-            cached = if (stored == null) null else runCatching { decrypt(stored) }.getOrNull()
+            cached = if (stored == null) null else runCatching { unbind(decrypt(stored)) }.getOrNull()
             loaded = true
         }
         cached
@@ -77,10 +83,24 @@ class KeystoreTokenStore(
     override fun write(token: String?) = synchronized(lock) {
         // Written synchronously: the token must be on disk before the app may be killed after signing in.
         preferences.edit(commit = true) {
-            if (token == null) remove(KEY) else putString(KEY, encrypt(token))
+            if (token == null) remove(KEY) else putString(KEY, encrypt(if (origin == null) token else "$origin$SEPARATOR$token"))
         }
         cached = token
         loaded = true
+    }
+
+    /**
+     * The token of a sealed value, if it was sealed for this build's server (or no server is bound). A token from before
+     * the binding is bound to this server now.
+     */
+    private fun unbind(plain: String): String? {
+        if (origin == null) return plain
+        if (SEPARATOR !in plain) {
+            preferences.edit(commit = true) { putString(KEY, encrypt("$origin$SEPARATOR$plain")) }
+            return plain
+        }
+        val (boundTo, token) = plain.split(SEPARATOR, limit = 2)
+        return token.takeIf { boundTo == origin }
     }
 
     private fun encrypt(token: String): String {
@@ -100,5 +120,8 @@ class KeystoreTokenStore(
         const val KEY = "api-token"
         const val TRANSFORMATION = "AES/GCM/NoPadding"
         const val IV_BYTES = 12
+
+        /** Between the server and the token in the sealed value; neither contains it. */
+        const val SEPARATOR = '\u0000'
     }
 }

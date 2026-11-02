@@ -37,6 +37,14 @@ data class CapsuleDraft(
 
         /** `opens_at` as the server reads it: ISO 8601 with the device's offset, e.g. 2026-12-24T18:00:00+01:00. */
         fun wireTime(instant: Instant, zone: ZoneId = ZoneId.systemDefault()): String = Wire.format(instant.atZone(zone))
+
+        /** The latest opening the picker offers: [maxYears] (`max_years`) from [now] (iOS `latestDay`). */
+        fun latestOpening(now: Instant, maxYears: Int, zone: ZoneId = ZoneId.systemDefault()): Instant =
+            now.atZone(zone).plusYears(maxYears.toLong()).toInstant()
+
+        /** [text] cut to [maxLength] characters (code points, as the server counts; iOS caps the same way). */
+        fun capped(text: String, maxLength: Int): String =
+            if (text.codePointCount(0, text.length) <= maxLength) text else text.substring(0, text.offsetByCodePoints(0, maxLength))
     }
 }
 
@@ -57,7 +65,11 @@ class TimeCapsulesViewModel @Inject constructor(private val repository: NetworkR
         if (capsules.value.valueOrNull == null) load()
     }
 
-    fun updateBody(body: String) = mutableDraft.update { it.copy(body = body) }
+    /** The text, at most `max_length` characters (500 until the capsules are loaded). */
+    fun updateBody(body: String) {
+        val max = capsules.value.valueOrNull?.maxLength ?: DEFAULT_MAX_LENGTH
+        mutableDraft.update { it.copy(body = CapsuleDraft.capped(body, max)) }
+    }
 
     fun updateOpensAt(opensAt: Instant) = mutableDraft.update { it.copy(opensAt = opensAt) }
 
@@ -82,6 +94,11 @@ class TimeCapsulesViewModel @Inject constructor(private val repository: NetworkR
 
     suspend fun delete(id: Int) {
         if (confirm { repository.deleteTimeCapsule(id) }) load()
+    }
+
+    private companion object {
+        /** `TimeCapsules.maxLength` before the list answered. */
+        const val DEFAULT_MAX_LENGTH = 500
     }
 }
 

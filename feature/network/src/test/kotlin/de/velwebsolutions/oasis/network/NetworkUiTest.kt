@@ -137,7 +137,7 @@ class NetworkUiTest {
         compose.onNode(hasSetTextAction() and hasAnyAncestor(hasTestTag("compose.body"))).performTextInput("UI-Test Tropfen")
         compose.onNodeWithText("15/500").assertIsDisplayed()
         compose.onNodeWithTag("network.page").performScrollToNode(hasTestTag("compose.submit"))
-        compose.onNodeWithText("Öffentlich heißt: auch ohne Konto lesbar.").assertIsDisplayed()
+        compose.onNodeWithText("Tropfen lesen nur angemeldete Mitglieder, nie Gäste oder Suchmaschinen.").assertIsDisplayed()
         compose.onNodeWithTag("compose.submit").performClick()
         // The upload runs in the view model's scope: its answer comes back through the main looper.
         compose.settle { published }

@@ -17,7 +17,9 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.test.assertIsDisplayed
+import androidx.compose.ui.test.hasSetTextAction
 import androidx.compose.ui.test.junit4.createComposeRule
 import androidx.compose.ui.test.onAllNodesWithContentDescription
 import androidx.compose.ui.test.onNodeWithContentDescription
@@ -72,6 +74,9 @@ import de.velwebsolutions.oasis.design.components.SkeletonLayout
 import de.velwebsolutions.oasis.design.components.SkeletonView
 import de.velwebsolutions.oasis.design.components.SupportContacts
 import de.velwebsolutions.oasis.design.components.TierLoadableView
+import de.velwebsolutions.oasis.design.components.TierLockedView
+import de.velwebsolutions.oasis.design.components.limitText
+import de.velwebsolutions.oasis.design.components.lockedTier
 import de.velwebsolutions.oasis.design.components.oasisScreenBackground
 import de.velwebsolutions.oasis.design.components.openWebPage
 import de.velwebsolutions.oasis.design.components.pressable
@@ -238,6 +243,35 @@ class ComponentsTest {
         compose.onNodeWithText("Das gibt es ab der Mitgliedschaft Oase.").assertExists()
         compose.onNodeWithText("Mitgliedschaft ansehen").performClick()
         assertEquals(listOf(MembershipRoute.Overview), navigator.stack(navigator.selectedTab).toList())
+    }
+
+    @Test
+    fun `fields stop at the server's limit like the web's maxlength`() {
+        assertEquals("abc", limitText("abc", null))
+        assertEquals("ab", limitText("abc", 2))
+        assertEquals("🌴🌴", limitText("🌴🌴🌴", 2))
+        assertEquals("ab", limitText("ab", 2))
+        var typed = ""
+        compose.setContent { OasisTheme { OasisTextField("Ort", typed, { typed = it }, Modifier.testTag("field"), maxLength = 3) } }
+        compose.onNode(hasSetTextAction()).performTextInput("Leipzig")
+        assertEquals("Lei", typed)
+    }
+
+    @Test
+    fun `a locked feature names its tier and what it offers, like the web`() {
+        assertEquals("Oase", lockedTier("Das gibt es ab der Mitgliedschaft Oase."))
+        assertEquals("Mäzen", lockedTier("Das gibt es ab der Mitgliedschaft Mäzen"))
+        assertNull(lockedTier("Das darfst du leider nicht."))
+        compose.setContent {
+            OasisTheme {
+                CompositionLocalProvider(LocalNavigator provides Navigator()) {
+                    TierLockedView("Zeitkapseln", "Das gibt es ab der Mitgliedschaft Oase.", feature = "Schreib heute einen Tropfen.")
+                }
+            }
+        }
+        compose.onNodeWithText("AB OASE", ignoreCase = true).assertExists()
+        compose.onNodeWithText("Schreib heute einen Tropfen.").assertExists()
+        compose.onNodeWithText("Das gibt es ab der Mitgliedschaft Oase.").assertDoesNotExist()
     }
 
     @Test

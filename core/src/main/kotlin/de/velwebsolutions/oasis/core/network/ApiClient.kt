@@ -146,7 +146,7 @@ class ApiClient(
                 409 -> ApiError.Conflict(message)
                 413 -> ApiError.PayloadTooLarge
                 422 -> ApiError.Validation(message, fieldErrors(parsed))
-                429 -> ApiError.TooManyRequests(retryAfter?.toIntOrNull())
+                429 -> ApiError.TooManyRequests(retryAfter?.toIntOrNull(), message)
                 else -> ApiError.Server(status, message.ifEmpty { null })
             }
         }

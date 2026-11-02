@@ -84,6 +84,15 @@ class ChatVault(
 
     private val conversationKeys = mutableMapOf<String, ByteArray>()
     private val publicKeys = mutableMapOf<String, VerifiedPublicKeys>()
+
+    /**
+     * View-once files shown in this app session (`conversationId|attachmentId`), kept across locks and leaving the chat
+     * (attachment-view.js `viewed`): until the server confirms `viewed`, they show as viewed and the answer goes again.
+     */
+    val viewedOnce: MutableSet<String> = mutableSetOf()
+
+    /** Conversation id → id of the owner first seen in this app session ([pinOwner]). */
+    private val owners = mutableMapOf<String, String>()
     private var idleTimer: Job? = null
 
     /** Oasis opened a screen of another app ([openExternalScreen]): the next trip to the background waits for its return. */
@@ -99,6 +108,8 @@ class ChatVault(
         this.userId = userId
         stored = Stored(false, null)
         publicKeys.clear()
+        owners.clear()
+        viewedOnce.clear()
         safety = SafetyLists.Empty
     }
 
@@ -118,7 +129,7 @@ class ChatVault(
         return true
     }
 
-    /** Wipe the identity and all conversation keys. Verified public keys are public and stay. */
+    /** Wipe the identity and all conversation keys. Verified public keys and pinned owners are public and stay (web). */
     fun lock(announce: Boolean = true) {
         generation += 1
         idleTimer?.cancel()
@@ -202,6 +213,18 @@ class ChatVault(
     /** The key of one conversation version, while the vault is open. */
     fun conversationKey(conversationId: String, keyVersion: Int): ByteArray? = conversationKeys["$conversationId:$keyVersion"]
 
+    /** The newest key version of the conversation whose key is open, 0 without one (session.js `newestKeyVersion`). */
+    fun newestKeyVersion(conversationId: String): Int = conversationKeys.keys
+        .filter { it.substringBeforeLast(':') == conversationId }
+        .maxOfOrNull { it.substringAfterLast(':').toInt() } ?: 0
+
+    /**
+     * Pin the first owner seen for a conversation and say whether [ownerId] is that one (session.js `pinOwner`). Oasis
+     * has no change of owner, so another one is a server naming someone else. Like the web tab's pins (and the verified
+     * public keys), the pins outlive a lock and go when another member signs in ([prepare]).
+     */
+    fun pinOwner(conversationId: String, ownerId: String): Boolean = owners.getOrPut(conversationId) { ownerId } == ownerId
+
     /**
      * Keep a key unless the vault was locked since [captured] was taken (then the key is wiped). A key it replaces in the
      * same slot is wiped.
@@ -228,7 +251,11 @@ class ChatVault(
     fun publicKeys(userId: String): VerifiedPublicKeys? = publicKeys[userId]
 }
 
-/** The server clock (client/clock.js): offset from `server_time`; signed expiry = server now + lifetime. */
+/**
+ * The server clock (client/clock.js): offset from `server_time`; signed expiry = server now + lifetime. Expiry of
+ * received messages is judged by [now], which never goes back behind the device clock: a server that kept expired
+ * messages could otherwise make them readable again by sending an old `server_time`.
+ */
 class ServerClock(private val localNow: () -> Instant = Instant::now) {
     @Volatile private var offsetMillis = 0L
 
@@ -238,9 +265,13 @@ class ServerClock(private val localNow: () -> Instant = Instant::now) {
         offsetMillis = date.toEpochMilli() - localNow().toEpochMilli()
     }
 
-    /** The server's time now. */
-    fun now(): Instant = localNow().plusMillis(offsetMillis)
+    /** The time expiry is judged by: the server's time, but never earlier than the device clock (clock.js `now`). */
+    fun now(): Instant = maxOf(serverNow(), localNow())
+
+    /** The server's time now, for the signature time and the signed expiry of new messages. */
+    fun serverNow(): Instant = localNow().plusMillis(offsetMillis)
 
     /** Expiry of a message sent now, rounded down to whole seconds. */
-    fun expiry(lifetimeDays: Int): Instant = Instant.ofEpochSecond(Math.floorDiv(now().toEpochMilli(), 1000L) + lifetimeDays * 86_400L)
+    fun expiry(lifetimeDays: Int): Instant =
+        Instant.ofEpochSecond(Math.floorDiv(serverNow().toEpochMilli(), 1000L) + lifetimeDays * 86_400L)
 }

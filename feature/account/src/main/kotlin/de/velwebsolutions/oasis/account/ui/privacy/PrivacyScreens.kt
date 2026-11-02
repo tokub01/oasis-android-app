@@ -161,7 +161,7 @@ internal fun PrivacyCenterScreen(viewModel: PrivacyViewModel = hiltViewModel()) 
         }
         limitCount?.let { count ->
             ConfirmDialog(
-                "Alle $count öffentlichen Tropfen nur noch für Mitglieder sichtbar machen? Das lässt sich nicht auf einmal rückgängig machen.",
+                "Alle $count früher öffentlichen Tropfen auf „Alle Mitglieder“ umstellen? Das lässt sich nicht auf einmal rückgängig machen.",
                 "Tropfen begrenzen",
                 onConfirm = { scope.launch { viewModel.limitPastPosts() } },
                 onDismiss = { limitCount = null }
@@ -217,14 +217,15 @@ private fun MoreControls(counts: PrivacyCounts, onLimit: (Int) -> Unit, open: (A
     Column(verticalArrangement = Arrangement.spacedBy(14.dp)) {
         Text("Noch mehr Kontrolle", style = OasisType.heading(21), color = OasisColors.Night, modifier = Modifier.semantics { heading() })
         val affected = when (counts.publicPosts) {
-            0 -> "Du hast gerade keine öffentlichen Tropfen."
+            0 -> "Du hast keine Tropfen mit der früheren Einstellung „Öffentlich“."
             1 -> "Betrifft 1 Tropfen."
             else -> "Betrifft ${counts.publicPosts} Tropfen."
         }
         SectionCard(
             "Frühere Tropfen begrenzen",
             detail =
-                "Macht alle deine öffentlichen Tropfen auf einmal nur für Mitglieder sichtbar – Gäste und Suchmaschinen sehen sie dann nicht mehr. $affected"
+                "Stellt Tropfen, die du früher als „Öffentlich“ geteilt hast, auf einmal auf „Alle Mitglieder“ um. " +
+                    "Gäste und Suchmaschinen sehen bei Oasis ohnehin nichts mehr. $affected"
         ) {
             if (counts.publicPosts > 0) {
                 OasisButton("Tropfen begrenzen", { onLimit(counts.publicPosts) }, kind = OasisButtonKind.Secondary, fullWidth = false)

@@ -176,6 +176,26 @@ class AccountEdgeCasesTest {
     }
 
     @Test
+    fun aNewEmailAddressAsksForThePasswordAndIsSavedAfterwards() = runTest {
+        val transport = StubTransport()
+            .stub("GET", "account", Fixtures.account)
+            .stub("PUT", "account/profile", """{"message":"Bitte bestätige zuerst dein Passwort."}""", status = 423)
+            .stub("POST", "account/confirm-password", Fixtures.account)
+        val settings = SettingsViewModel(repository(transport), session(transport, backgroundScope))
+        settings.load()
+        settings.edit { it.copy(email = "neu@x.tld") }
+        settings.saveProfile()
+        assertEquals("the sheet asks for the password", ProtectedAction.SaveProfile, settings.ui.value.pendingAction)
+        assertNull(settings.ui.value.error)
+
+        transport.add("PUT", "account/profile", json = """{"message":"Gespeichert.","data":${Fixtures.ME}}""")
+        assertTrue(settings.confirmPassword("geheim"))
+        assertNull(settings.ui.value.pendingAction)
+        assertEquals("Gespeichert.", settings.ui.value.message)
+        assertEquals(2, transport.requests.count { it.path == "account/profile" })
+    }
+
+    @Test
     fun theWelcomeTourHandlesShortLongAndRefusedTexts() = runTest {
         val transport = StubTransport()
             .stub("GET", "onboarding", Fixtures.onboarding)

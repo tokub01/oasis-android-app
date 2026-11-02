@@ -102,7 +102,11 @@ fun DiscoverScreen(viewModel: DiscoverViewModel = hiltViewModel<DiscoverViewMode
 /** Entdecken's page. */
 fun LazyListScope.discoverContent(state: PostListState<DiscoverContext>, handlers: FeedHandlers) {
     block("header") {
-        PageHeader("Wer schon da ist", eyebrow = "Entdecken", lead = "Öffentliche Tropfen, der Reihe nach. Keine Empfehlungen nach Klicks.")
+        PageHeader(
+            "Wer schon da ist",
+            eyebrow = "Entdecken",
+            lead = "Tropfen aus der Gemeinschaft, der Reihe nach. Keine Empfehlungen nach Klicks."
+        )
     }
     block("buttons") {
         val navigator = LocalNavigator.current
@@ -149,13 +153,13 @@ fun LazyListScope.discoverContent(state: PostListState<DiscoverContext>, handler
             }
         }
     }
-    feedSection(state, handlers, empty = "Noch keine öffentlichen Tropfen.")
+    feedSection(state, handlers, empty = "Hier gibt es noch keine Tropfen.")
     if (state.reachedEnd || state.posts.isEmpty()) {
         block("side.how") {
             SideCard("So funktioniert Entdecken", tone = PanelTone.Dune) {
                 Bullets(
                     listOf(
-                        "Hier stehen nur Tropfen von Menschen, die ihr Profil öffentlich gemacht haben.",
+                        "Hier stehen nur Tropfen von Mitgliedern, die ihr Profil für alle geöffnet haben. Sichtbar ist das nur für Mitglieder.",
                         "Neueste zuerst – niemand bezahlt dafür, weiter oben zu stehen.",
                         "Folge Menschen, dann landen ihre Tropfen in deiner Quelle."
                     )

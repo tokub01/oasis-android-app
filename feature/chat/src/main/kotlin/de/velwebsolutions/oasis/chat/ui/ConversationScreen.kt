@@ -68,6 +68,7 @@ import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.compose.LifecycleEventEffect
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import de.velwebsolutions.oasis.chat.api.ChatAvatar
+import de.velwebsolutions.oasis.chat.core.ChatKeyring
 import de.velwebsolutions.oasis.chat.core.ChatMessageItem
 import de.velwebsolutions.oasis.chat.core.formatDateTime
 import de.velwebsolutions.oasis.design.components.AsyncOasisButton
@@ -309,7 +310,15 @@ internal fun ConversationContent(
                 }
             }
         }
-        ConversationComposer(state, onDraftChange, onSend, attachments)
+        if (state.untrustedOwner) {
+            // Nothing can be sealed for this chat (ChatKeyring.assertSealable): the reason stands where the composer was.
+            Banner(
+                ChatKeyring.UNTRUSTED_OWNER,
+                Modifier.background(OasisColors.Paper).padding(horizontal = 16.dp, vertical = 10.dp).testTag("chat.composer.untrustedOwner")
+            )
+        } else {
+            ConversationComposer(state, onDraftChange, onSend, attachments)
+        }
         state.viewOnce?.let { ViewOnceViewer(it, attachments, onReport) }
         state.spokenNotice?.let { notice ->
             Box(

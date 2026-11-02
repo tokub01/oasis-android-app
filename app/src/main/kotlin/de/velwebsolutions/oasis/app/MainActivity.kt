@@ -21,7 +21,7 @@ import javax.inject.Inject
  * passes links (app links, `oasis://`, push taps) and shares from other apps to the navigator – each intent once, so an
  * activity Android creates again (rotation, dark mode) or reopens from the recent apps keeps the screens
  * ([AppHost.created]). While the chat is unlocked, Android's recent apps show no picture of it
- * ([AppHost.recentsScreenshots], Android 13 and later).
+ * ([AppHost.recentsScreenshots], Android 13 and later; before, the window is secure meanwhile: [AppHost.secureWhileUnlocked]).
  */
 @AndroidEntryPoint
 class MainActivity : FragmentActivity() {
@@ -37,7 +37,11 @@ class MainActivity : FragmentActivity() {
         navigator.openWeb = { url -> openWebPage(this, url) }
         setContent { AppHost.Content(navigator, apiClient) }
         AppHost.created(intent, savedInstanceState, navigator)
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) hideFromRecentsWhileChatUnlocked()
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+            hideFromRecentsWhileChatUnlocked()
+        } else {
+            AppHost.recentsScreenshots(lifecycleScope, chatVault.unlockedFlow) { enabled -> AppHost.secureWhileUnlocked(window, !enabled) }
+        }
     }
 
     override fun onNewIntent(intent: Intent) {

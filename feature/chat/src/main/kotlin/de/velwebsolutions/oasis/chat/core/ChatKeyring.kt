@@ -15,6 +15,12 @@ import kotlinx.coroutines.withContext
  * Identity setup/unlock, the member key directory, grants and owner key distribution, following the rotation procedure
  * in docs/oasis-chat.md – the twin of resources/js/chat/client/keyring.js and iOS `ChatKeyring`. Call from the main
  * thread; the expensive crypto moves to [ChatContext.cryptoDispatcher].
+ *
+ * The owner is checked like on the web ([ownerIsMember], [ownerTrusted]): a chat that can be written in lists its owner
+ * (`created_by`) as an active member with the role owner – a group owner can neither leave nor be removed, a direct chat
+ * has two people. A server naming someone else, or another owner than this app session saw first ([ChatVault.pinOwner]),
+ * would hand out a key of its own past every safety number: then no grant is opened and nothing is sealed. Only an
+ * `ended` direct chat whose starter left still opens the starter's older keys, for its history ([starterLeft]).
  */
 class ChatKeyring(private val context: ChatContext) {
     private val vault get() = context.vault
@@ -109,20 +115,27 @@ class ChatKeyring(private val context: ChatContext) {
 
     /**
      * Open every grant addressed to the caller that is not open yet; only grants signed by the owner (`created_by`)
-     * count. The pending version stays closed: until its activation the owner may still replace that batch (an
-     * overlapping distribution, the owner's other device), and nobody can write with it before. With [replaceCurrent]
-     * the current version is opened again even when a key of it is known – the owner right after activating it.
+     * count, and none while that owner is not believable (see the class notes; keyring.js `openGrants`). The pending
+     * version stays closed: until its activation the owner may still replace that batch (an overlapping distribution,
+     * the owner's other device), and nobody can write with it before. With [replaceCurrent] the current version is
+     * opened again even when a key of it is known – the owner right after activating it.
      */
     suspend fun openGrants(conversation: ChatConversation, replaceCurrent: Boolean = false) {
-        val owner = vault.publicKeys(conversation.createdBy) ?: return
+        if (!(ownerIsMember(conversation) || starterLeft(conversation)) || !vault.pinOwner(conversation.id, conversation.createdBy)) return
         val identity = vault.identity ?: return
+        // The own grants verify against the own key, never the directory's copy of it, which the server could replace.
+        val ownerSigning = if (conversation.createdBy == vault.userId) {
+            identity.signingPublicKey
+        } else {
+            vault.publicKeys(conversation.createdBy)?.signing ?: return
+        }
         val generation = vault.generation
         for (grant in api.keyGrants(conversation.id)) {
             val current = grant.keyVersion == conversation.keyVersion
             if (current && conversation.rotationRequired) continue
             if (!(current && replaceCurrent) && vault.conversationKey(conversation.id, grant.keyVersion) != null) continue
             val opened = try {
-                crypto.openKeyGrant(grant, identity, owner.signing)
+                crypto.openKeyGrant(grant, identity, ownerSigning)
             } catch (_: ChatCryptoException) {
                 continue
             }
@@ -140,19 +153,29 @@ class ChatKeyring(private val context: ChatContext) {
      * the activated batch is the one the others have.
      */
     suspend fun distributeKey(conversation: ChatConversation): ChatConversation {
-        val recipients = conversation.members.mapNotNull { member -> vault.publicKeys(member.userId)?.let { member to it } }
+        val identity = vault.identity ?: throw ChatCryptoException.InvalidInput("identity must be an identity object.")
+        // The own grant goes to the own key, never to the directory's copy of it, which the server could replace.
+        val recipients = conversation.members.mapNotNull { member ->
+            val encryption = if (member.userId ==
+                vault.userId
+            ) {
+                identity.encryptionPublicKey
+            } else {
+                vault.publicKeys(member.userId)?.encryption
+            }
+            encryption?.let { member to it }
+        }
         val missing = conversation.members.filter { member -> recipients.none { it.first == member } }
         if (missing.isNotEmpty()) throw ChatKeyringException.MissingMemberKeys(missing.map { it.username })
-        val identity = vault.identity ?: throw ChatCryptoException.InvalidInput("identity must be an identity object.")
         val key = crypto.createConversationKey()
         val grants = try {
-            recipients.map { (member, keys) ->
+            recipients.map { (member, encryption) ->
                 crypto.createKeyGrant(
                     conversationKey = key,
                     conversationId = conversation.id,
                     keyVersion = conversation.keyVersion,
                     recipientId = member.userId,
-                    recipientEncryptionPublicKey = keys.encryption,
+                    recipientEncryptionPublicKey = encryption,
                     granterId = vault.userId,
                     identity = identity
                 )
@@ -171,5 +194,51 @@ class ChatKeyring(private val context: ChatContext) {
         val identity = vault.identity ?: return null
         val other = vault.publicKeys(userId) ?: return null
         return crypto.fingerprint(identity.signingPublicKey, other.signing)
+    }
+
+    companion object {
+        /** The [ChatKeyringException.UntrustedOwner] text, also shown instead of the composer (ui/errors.js). */
+        const val UNTRUSTED_OWNER =
+            "Die Person, die diesen Chat gestartet hat, ist nicht dabei oder eine andere als vorher. Zum Schutz deiner Nachrichten kannst du hier nichts schicken. Bitte melde dich bei uns."
+
+        /** A 409 or [ChatKeyringException.StaleKeyVersion]: a key rotation is under way (ui/errors.js). */
+        const val NEW_KEY = "Der Chat bekommt gerade einen neuen Schlüssel. Versuch es gleich noch einmal."
+
+        /**
+         * Whether `created_by` is an active member with the role owner, in a direct chat one of at most two members
+         * (keyring.js `ownerIsMember`).
+         */
+        fun ownerIsMember(conversation: ChatConversation): Boolean {
+            val owner = conversation.members.firstOrNull { it.userId == conversation.createdBy }
+            return owner?.role == "owner" && (conversation.type != "direct" || conversation.members.size <= 2)
+        }
+
+        /**
+         * Whether the conversation is a direct chat that ended because its starter left: it stays pending for good, and
+         * only the starter's older keys open its history (keyring.js `starterLeft`).
+         */
+        internal fun starterLeft(conversation: ChatConversation): Boolean = conversation.type == "direct" &&
+            conversation.members.size < 2 && conversation.rotationRequired &&
+            conversation.members.none { it.userId == conversation.createdBy }
+
+        /**
+         * Whether the conversation's owner can be trusted with its keys (keyring.js `ownerTrusted`): an active owner
+         * member ([ownerIsMember]) and the one this app session saw first in [vault] (pinned on the first such call). The
+         * conversation screen shows [UNTRUSTED_OWNER] instead of the composer otherwise.
+         */
+        fun ownerTrusted(vault: ChatVault, conversation: ChatConversation): Boolean =
+            ownerIsMember(conversation) && vault.pinOwner(conversation.id, conversation.createdBy)
+
+        /**
+         * Refuse to encrypt for a conversation state the server may have forged (keyring.js `assertSealable`): an owner
+         * the members cannot see or another one than before, or an older key version than one already opened – a removed
+         * member still holds the old key.
+         * @throws ChatKeyringException.UntrustedOwner
+         * @throws ChatKeyringException.StaleKeyVersion
+         */
+        fun assertSealable(vault: ChatVault, conversation: ChatConversation) {
+            if (!ownerTrusted(vault, conversation)) throw ChatKeyringException.UntrustedOwner
+            if (vault.newestKeyVersion(conversation.id) > conversation.keyVersion) throw ChatKeyringException.StaleKeyVersion
+        }
     }
 }

@@ -56,7 +56,7 @@ class WelcomeScreenHiltTest : HiltScreenTest() {
         compose.onNodeWithTag("welcome.next").tap()
         waitForText("Alle Oasen ansehen")
         shot("welcome-oases")
-        compose.onAllNodesText("Folgen").first().tap()
+        compose.onAllNodesText("Beitreten").first().tap()
         waitForRequest("POST", "onboarding/oases/3")
         compose.onNodeWithText("Alle Oasen ansehen").tap()
         compose.onNodeWithTag("welcome.skip").tap()
@@ -112,7 +112,7 @@ class WelcomeScreenHiltTest : HiltScreenTest() {
         )
         stub("POST", "onboarding/oases/1", """{"message":"Server Error"}""", status = 500)
         show { AccountScreen(AccountRoute.Welcome) }
-        waitForText("Noch gibt es keine öffentlichen Oasen.", substring = true)
+        waitForText("Noch gibt es keine Oasen.", substring = true)
         shot("welcome-no-oases")
     }
 }

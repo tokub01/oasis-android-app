@@ -120,6 +120,21 @@ class TierViewModelsTest {
     }
 
     @Test
+    fun `the capsule text stops at max_length characters`() = runTest {
+        val network = StubbedNetwork(stub("GET", "network/time-capsules", TierFixtures.capsules))
+        val model = models.keep(TimeCapsulesViewModel(network.repository))
+        // Before the list answered: 500; an emoji counts once, like on the server and iOS.
+        model.updateBody("🎄".repeat(501))
+        assertEquals("🎄".repeat(500), model.draft.value.body)
+        model.load()
+        val max = checkNotNull(model.capsules.value.valueOrNull).maxLength
+        model.updateBody("a".repeat(max + 1))
+        assertEquals(max, model.draft.value.body.length)
+        model.updateBody("kurz")
+        assertEquals("kurz", model.draft.value.body)
+    }
+
+    @Test
     fun `sealing sends the draft, starts a fresh one and reloads`() = runTest {
         val network = StubbedNetwork(
             stub("GET", "network/time-capsules", TierFixtures.capsules),

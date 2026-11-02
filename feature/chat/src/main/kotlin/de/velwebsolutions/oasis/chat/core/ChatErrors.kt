@@ -11,6 +11,15 @@ sealed class ChatKeyringException(message: String) : Exception(message) {
     /** The server publishes other keys than the identity that was just unlocked. */
     data object PublishedKeysMismatch : ChatKeyringException("Published keys do not match.")
 
+    /**
+     * The owner the server names (`created_by`) is no active member with the role owner, or another one than this app
+     * session saw first: nothing is sealed (keyring.js `UntrustedOwnerError`).
+     */
+    data object UntrustedOwner : ChatKeyringException("Untrusted conversation owner.")
+
+    /** The conversation names an older key version than one already opened (keyring.js `StaleKeyVersionError`). */
+    data object StaleKeyVersion : ChatKeyringException("Stale key version.")
+
     /** This device cannot keep a biometric copy (no fingerprint or face unlock enrolled, cancelled …). */
     data object DeviceUnlockUnsupported : ChatKeyringException("Device unlock unavailable.")
 
@@ -33,6 +42,11 @@ fun describeChatError(error: Throwable): String = when (error) {
     ChatKeyringException.PublishedKeysMismatch ->
         "Die veröffentlichten Schlüssel passen nicht zu deinen. Bitte melde dich bei uns – schreib vorerst nichts Vertrauliches."
 
+    ChatKeyringException.UntrustedOwner -> ChatKeyring.UNTRUSTED_OWNER
+
+    // Also the honest case: a rotation finished while this message was being prepared (the server would answer 409).
+    ChatKeyringException.StaleKeyVersion -> ChatKeyring.NEW_KEY
+
     ApiError.Unauthenticated -> "Deine Sitzung ist abgelaufen. Bitte melde dich erneut an."
 
     // Server texts like the invitation refusal are more precise than the generic one.
@@ -45,16 +59,28 @@ fun describeChatError(error: Throwable): String = when (error) {
 
     ApiError.NotFound -> "Diesen Chat gibt es nicht mehr."
 
-    is ApiError.Conflict -> "Der Chat bekommt gerade einen neuen Schlüssel. Versuch es gleich noch einmal."
+    is ApiError.Conflict -> ChatKeyring.NEW_KEY
 
     is ApiError.Validation -> error.fields.values.firstOrNull()?.firstOrNull() ?: error.summary.ifEmpty { "Die Eingabe passt nicht." }
 
-    is ApiError.TooManyRequests -> "Zu viele Anfragen in kurzer Zeit. Warte eine Minute."
+    // A message request that waits for its answer (SendMessage): the server says so itself.
+    is ApiError.TooManyRequests ->
+        if (error.serverMessage.startsWith(
+                MESSAGE_REQUEST_WAITS
+            )
+        ) {
+            error.serverMessage
+        } else {
+            "Zu viele Anfragen in kurzer Zeit. Warte eine Minute."
+        }
 
     is ApiError.Transport -> error.userMessage
 
     else -> "Da ist etwas schiefgegangen. Versuch es gleich noch einmal."
 }
+
+/** The start of the server's 429 text while the member's message request is not answered yet (SendMessage.php). */
+private const val MESSAGE_REQUEST_WAITS = "Deine Nachrichten sind noch eine Anfrage"
 
 /** How the app names the biometric unlock (iOS: Face ID), in the texts of setup, unlock and settings. */
 internal object Biometrics {

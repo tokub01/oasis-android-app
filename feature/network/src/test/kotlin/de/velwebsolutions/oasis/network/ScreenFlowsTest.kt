@@ -153,7 +153,7 @@ class ScreenFlowsTest {
         )
         val model = models.keep(SourceViewModel(network.repository, network.session))
         show(ScreenChrome()) { SourceScreen(model) }
-        text("Dein Konto ist gerade nur zum Lesen.", substring = true).assertIsDisplayed()
+        text("Gerade kannst du nichts veröffentlichen. Prüf deine Mitgliedschaft.").assertIsDisplayed()
         compose.onNodeWithTag("source.compose").assertDoesNotExist()
         text("Noch hat niemand etwas geteilt. Schreib den ersten Tropfen!").assertIsDisplayed()
     }
@@ -256,7 +256,8 @@ class ScreenFlowsTest {
         val editForm =
             """{"data": {"oasis": $summary, "house_rules": "Freundlich bleiben.", "members": [{"id": 3, "username": "aylin",
             |"display_name": "Aylin Demir", "role": "member", "role_label": "Mitglied"}], "options": {"visibilities":
-            |[{"value": "public", "label": "Alle"}], "colors": [{"value": "spring", "label": "Quelle"}, {"value": "sun", "label": "Sonne"}]}}}
+            |[{"value": "public", "label": "Alle"}], "colors": [{"value": "spring", "label": "Quelle"}, {"value": "sun", "label": "Sonne"}]},
+            |"hidden_members": 2}}
             """.trimMargin()
         val network = StubbedNetwork(stub("GET", "network/oases", Fixtures.oases), stub("GET", "network/oases/stadtgarten/edit", editForm))
         val model9 = models.keep(OasisFormViewModel(null, network.repository))
@@ -268,6 +269,7 @@ class ScreenFlowsTest {
         switchTo { OasisFormScreen("stadtgarten", model10) }
         text("Stadtgarten bearbeiten").assertIsDisplayed()
         text("Zu Gastgeber:in machen").assertIsDisplayed()
+        text("2 weitere Mitglieder zeigen sich hier nur Freund:innen", substring = true).assertExists()
         compose.onNodeWithContentDescription("Sonne").performClick()
         compose.onNodeWithTag("oasisForm.close").performClick()
         assertEquals(NetworkRoute.CloseOasis("stadtgarten"), navigator.stack(MainTab.Source).last())

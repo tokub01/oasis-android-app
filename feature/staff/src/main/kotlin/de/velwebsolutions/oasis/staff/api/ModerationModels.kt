@@ -122,8 +122,38 @@ data class ModerationCaseDetail(
     val evidenceDays: Int,
     val outcomes: List<Labelled> = emptyList(),
     val grounds: List<Labelled> = emptyList(),
-    val can: Permissions
+    val can: Permissions,
+    /** The viewer is a party of the case (affected account or reporter), so another person decides it. */
+    val involved: Boolean = false
 ) {
+    /**
+     * Why the decision form is missing (case-detail.blade.php): the viewer is involved and the case still waits for its
+     * first decision (`CaseStatus::awaitsFirstDecision`). Null otherwise.
+     */
+    val involvedNote: String?
+        get() = if (involved && status.value in setOf("open", "in_review")) {
+            "Du bist an diesem Fall beteiligt. Übernehmen und entscheiden kann ihn deshalb nur eine andere Person aus dem Team."
+        } else {
+            null
+        }
+
+    /**
+     * The question before lifting the quarantine, after what the case is about (escalation.blade.php, iOS
+     * `liftQuarantineQuestion`): a chat report's attachments, a Tropfen's images, an oasis' banner, or the photo and
+     * banner of a profile – the last two are served again at once.
+     */
+    val liftQuarantineQuestion: String
+        get() = when {
+            report.kind == "chat_report" -> "Quarantäne aufheben? Die Anhänge der Nachricht sind dann für das Team wieder zu sehen."
+
+            "/tropfen/" in subjectUrl ->
+                "Quarantäne aufheben? Die Bilder werden dann wieder ausgeliefert, sobald der Tropfen freigegeben ist."
+
+            "/oasen/" in subjectUrl -> "Quarantäne aufheben? Das Banner der Oase wird dann wieder ausgeliefert."
+
+            else -> "Quarantäne aufheben? Profilbild und Banner werden dann wieder ausgeliefert."
+        }
+
     /** What was reported, and how. */
     @Serializable
     data class Report(
@@ -134,7 +164,9 @@ data class ModerationCaseDetail(
         val plaintext: String? = null,
         /** The photos, voice messages, videos and files of a reported chat message, opened with the reporter's key. */
         val attachments: List<ReportedAttachment> = emptyList(),
-        val check: Check? = null
+        val check: Check? = null,
+        /** How many files of a chat message in quarantine are held back; none of them is listed in [attachments]. */
+        val lockedAttachments: Int = 0
     )
 
     /** One file of a reported chat message (`cases/{id}/chat-attachments/{index}`, loaded with the member's token). */

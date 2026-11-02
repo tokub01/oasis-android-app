@@ -129,7 +129,8 @@ fun OasisFormScreen(
                             state.input.name,
                             { value -> viewModel.updateInput { it.copy(name = value) } },
                             error = failure?.message("name"),
-                            modifier = Modifier.testTag("oasisForm.name")
+                            modifier = Modifier.testTag("oasisForm.name"),
+                            maxLength = 60
                         )
                         OasisTextField(
                             "Worum geht es?",
@@ -138,7 +139,8 @@ fun OasisFormScreen(
                             error = failure?.message("description"),
                             hint = "Ein Satz, der neugierig macht.",
                             lines = 1..4,
-                            modifier = Modifier.testTag("oasisForm.description")
+                            modifier = Modifier.testTag("oasisForm.description"),
+                            maxLength = 300
                         )
                         OasisTextField(
                             "Hausregeln",
@@ -147,7 +149,8 @@ fun OasisFormScreen(
                             error = failure?.message("house_rules"),
                             hint = "Gelten zusätzlich zu den Community-Regeln von Oasis.",
                             lines = 4..10,
-                            modifier = Modifier.testTag("oasisForm.rules")
+                            modifier = Modifier.testTag("oasisForm.rules"),
+                            maxLength = 3000
                         )
                         Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
                             Text("Wer darf die Oase lesen?", style = OasisType.SmallBold, color = OasisColors.Ink)
@@ -215,6 +218,14 @@ fun OasisFormScreen(
                                         style = OasisType.Small
                                     )
                                 }
+                            }
+                            edit.hiddenMembersNote?.let { note ->
+                                Text(
+                                    note,
+                                    style = OasisType.Small,
+                                    color = OasisColors.Ink2,
+                                    modifier = Modifier.testTag("oasisForm.hiddenMembers")
+                                )
                             }
                         }
                     }

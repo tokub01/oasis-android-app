@@ -60,6 +60,7 @@ import androidx.compose.ui.window.SecureFlagPolicy
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.compose.LifecycleEventEffect
 import de.velwebsolutions.oasis.chat.api.AttachmentState
+import de.velwebsolutions.oasis.chat.core.AndroidChatMedia
 import de.velwebsolutions.oasis.chat.core.AttachmentKind
 import de.velwebsolutions.oasis.chat.core.AttachmentTexts
 import de.velwebsolutions.oasis.chat.core.AttachmentView
@@ -228,6 +229,9 @@ internal fun MessageAttachments(
         val view = views[attachment.id]
         Column(Modifier.testTag("chat.message.attachment"), verticalArrangement = Arrangement.spacedBy(6.dp)) {
             when {
+                // Named in the message, but not by the server's row of it: no actions (ChatMessageItem.listed).
+                !item.listed(attachment.id, mine) -> Note(AndroidChatMedia.UNVERIFIABLE, color)
+
                 !state.available -> Note(if (mine && state.viewOnce) "$label · Für alle gelöscht" else "$label · Gelöscht", color)
 
                 // Own view-once files are never shown again; other own files come down like a recipient's.

@@ -8,6 +8,10 @@ import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.testTag
@@ -16,6 +20,7 @@ import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import de.velwebsolutions.oasis.design.components.AsyncOasisButton
 import de.velwebsolutions.oasis.design.components.FieldError
+import de.velwebsolutions.oasis.design.components.OasisButton
 import de.velwebsolutions.oasis.design.components.OasisButtonKind
 import de.velwebsolutions.oasis.design.components.OasisCard
 import de.velwebsolutions.oasis.design.components.OasisScreen
@@ -23,11 +28,13 @@ import de.velwebsolutions.oasis.design.components.OasisTextField
 import de.velwebsolutions.oasis.design.theme.OasisColors
 import de.velwebsolutions.oasis.design.theme.OasisType
 import de.velwebsolutions.oasis.staff.api.RoleUser
+import de.velwebsolutions.oasis.staff.ui.components.ConfirmDialog
 import de.velwebsolutions.oasis.staff.ui.components.LoadMoreButton
 import de.velwebsolutions.oasis.staff.ui.components.OptionPicker
 import de.velwebsolutions.oasis.staff.ui.components.StaffLoadable
 import de.velwebsolutions.oasis.staff.ui.components.StaffPage
 import de.velwebsolutions.oasis.staff.ui.components.StaffTitle
+import kotlinx.coroutines.launch
 
 /** Role management for admins (web: livewire.moderation.roles). Only the operator account appoints admins. */
 @Composable
@@ -94,17 +101,42 @@ private fun RoleRow(user: RoleUser, state: RolesUiState, viewModel: RolesViewMod
     }
 }
 
-/** Operator account only: confirm the address, send the password link or set a password. */
+/**
+ * Operator account only: confirm the address, send the password link or set a password. Confirming the address and
+ * setting a password are asked first, with the web's questions (moderation/roles.blade.php).
+ */
 @Composable
 private fun AccessSection(user: RoleUser, password: String, viewModel: RolesViewModel) {
+    val scope = rememberCoroutineScope()
+    var confirmingEmail by remember { mutableStateOf(false) }
+    var settingPassword by remember { mutableStateOf(false) }
+    if (confirmingEmail) {
+        ConfirmDialog(
+            "Die E-Mail-Adresse ${user.email} als bestätigt markieren?",
+            "E-Mail bestätigen",
+            { scope.launch { viewModel.confirmEmail(user) } },
+            { confirmingEmail = false },
+            confirmTag = "roles.confirmEmail.confirm"
+        )
+    }
+    if (settingPassword) {
+        ConfirmDialog(
+            "Passwort von ${user.displayName} setzen? Das Konto wird überall abgemeldet.",
+            "Passwort setzen",
+            { scope.launch { viewModel.setPassword(user) } },
+            { settingPassword = false },
+            destructive = true,
+            confirmTag = "roles.setPassword.confirm"
+        )
+    }
     Column(Modifier.padding(top = 10.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
         HorizontalDivider(color = OasisColors.PaperLine)
         if (user.emailVerified) {
             Text("E-Mail bestätigt", style = OasisType.Small, color = OasisColors.Ink2)
         } else {
-            AsyncOasisButton(
+            OasisButton(
                 "E-Mail bestätigen",
-                { viewModel.confirmEmail(user) },
+                { confirmingEmail = true },
                 Modifier.testTag("roles.confirmEmail.${user.id}"),
                 kind = OasisButtonKind.Secondary,
                 fullWidth = false
@@ -125,9 +157,9 @@ private fun AccessSection(user: RoleUser, password: String, viewModel: RolesView
                 Modifier.weight(1f).testTag("roles.password.${user.id}"),
                 isSecure = true
             )
-            AsyncOasisButton(
+            OasisButton(
                 "Setzen",
-                { viewModel.setPassword(user) },
+                { settingPassword = true },
                 Modifier.testTag("roles.setPassword.${user.id}"),
                 kind = OasisButtonKind.Secondary,
                 fullWidth = false,

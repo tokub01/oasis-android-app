@@ -243,11 +243,26 @@ class KeyringAndDevicesTest {
     }
 
     @Test
+    fun theOwnersOwnGrantGoesToItsOwnKeyNotTheDirectorysCopy() {
+        val mira = member(1)
+        val jonas = member(2)
+        val chat = conversation(mira, 2)
+        run { mira.keyring.loadDirectory(chat.id) }
+        // A lying directory: Mira's own entry carries someone else's keys.
+        mira.vault.rememberPublicKeys("1", crypto.verifyPublicKeys(crypto.exportPublicKeys(crypto.createIdentity())))
+        run { mira.keyring.distributeKey(chat) }
+        assertNotNull("Mira opens her own stored grant", mira.vault.conversationKey(chat.id, 1))
+        run { jonas.keyring.loadDirectory(chat.id) }
+        run { jonas.keyring.openGrants(run { jonas.repository.conversation(chat.id) }) }
+        assertArrayEquals(mira.vault.conversationKey(chat.id, 1), jonas.vault.conversationKey(chat.id, 1))
+    }
+
+    @Test
     fun keyDistributionNeedsEveryKeyAndAnOpenVault() {
         val mira = member(1)
         val chat = conversation(mira, 2)
         val error = assertThrows(ChatKeyringException.MissingMemberKeys::class.java) { run { mira.keyring.distributeKey(chat) } }
-        assertEquals(listOf("mira", "jonas"), error.usernames)
+        assertEquals("the own grant needs no directory entry", listOf("jonas"), error.usernames)
         val alone = chat.copy(members = listOf(ConversationMember("1", "mira")))
         mira.vault.rememberPublicKeys("1", crypto.verifyPublicKeys(crypto.exportPublicKeys(checkNotNull(mira.vault.identity))))
         mira.vault.lock(announce = false)

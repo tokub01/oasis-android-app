@@ -12,6 +12,7 @@ import androidx.compose.foundation.text.selection.SelectionContainer
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.outlined.CardGiftcard
 import androidx.compose.material.icons.outlined.Check
+import androidx.compose.material.icons.outlined.Group
 import androidx.compose.material.icons.outlined.Lock
 import androidx.compose.material.icons.outlined.Share
 import androidx.compose.material3.HorizontalDivider
@@ -37,6 +38,7 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import de.velwebsolutions.oasis.design.components.LoadableView
 import de.velwebsolutions.oasis.design.components.OasisButton
 import de.velwebsolutions.oasis.design.components.OasisScreen
+import de.velwebsolutions.oasis.design.components.OasisTextButton
 import de.velwebsolutions.oasis.design.components.PageHeader
 import de.velwebsolutions.oasis.design.components.Panel
 import de.velwebsolutions.oasis.design.components.PanelTone
@@ -174,8 +176,8 @@ fun StatusCard(overview: MembershipOverview, onSubscriptionManaged: () -> Unit =
 
             MembershipOverview.State.Gift -> GiftStatus(overview)
 
-            // State.Expired, the last state.
-            else -> ExpiredStatus(overview)
+            // State.Expired, the last state: the place of a Mäzen gives access then (status.blade.php).
+            else -> overview.companionSeat?.let { CompanionStatus(it) } ?: ExpiredStatus(overview)
         }
     }
 }
@@ -286,6 +288,21 @@ private fun GiftStatus(overview: MembershipOverview) {
         color = OasisColors.Ink
     )
     if (overview.isFoundingMember) FoundingPill()
+}
+
+@Composable
+private fun CompanionStatus(seat: MembershipOverview.CompanionSeat) {
+    val navigator = LocalNavigator.current
+    StatusPill("Dein Platz bei ${seat.sponsor}", Icons.Outlined.Group, Modifier.testTag("membership.companion"))
+    Text(
+        boldMarkdown(
+            "${seat.sponsor} nimmt dich als Mäzen mit. Du hast Oasis mit allem aus der Stufe **${seat.tierName}** und zahlst nichts, " +
+                "solange ${seat.sponsor} Mäzen bleibt."
+        ),
+        style = OasisType.Body,
+        color = OasisColors.Ink
+    )
+    OasisTextButton("Zu deinem Platz", { navigator.open(MembershipRoute.Perks) }, Modifier.testTag("membership.companion.perks"))
 }
 
 @Composable

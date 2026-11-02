@@ -43,6 +43,12 @@ import org.robolectric.annotation.Config
 @RunWith(RobolectricTestRunner::class)
 @Config(application = HiltTestApplication::class)
 class AppWiringTest {
+    /** The real graph binds links to the debug server; these tests use get-oasis.com links. */
+    @org.junit.Before
+    fun resetOwnHost() {
+        de.velwebsolutions.oasis.design.navigation.DeepLink.ownHost = null
+    }
+
     @get:Rule(order = 0)
     val hilt = HiltAndroidRule(this)
 

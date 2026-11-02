@@ -15,6 +15,7 @@ import de.velwebsolutions.oasis.design.navigation.MainTab
 import de.velwebsolutions.oasis.design.navigation.MembershipRoute
 import de.velwebsolutions.oasis.design.navigation.Navigator
 import de.velwebsolutions.oasis.design.theme.OasisTheme
+import de.velwebsolutions.oasis.membership.api.MembershipOverview
 import de.velwebsolutions.oasis.membership.api.MembershipPerks
 import de.velwebsolutions.oasis.membership.data.MembershipEvents
 import de.velwebsolutions.oasis.membership.ui.CompanionLinkScreen
@@ -84,6 +85,8 @@ class PerksScreensTest {
     @Test
     fun `a companion gives a resting place back and may compare the tiers`() {
         repository.perks = Result.success(Fixtures.perks(Fixtures.companionPerks))
+        // Not paying: the held place shows (it is hidden for paying members, as on the web).
+        repository.overview = Result.success(Fixtures.overview(Fixtures.noMembershipOverview))
         val model = PerksViewModel(repository, events, Fixtures.session())
         show { PerksScreen(model) }
         waitFor("Dein Platz bei Mia Mäzen")
@@ -100,9 +103,15 @@ class PerksScreensTest {
     fun `an active place and a tier the server does not name`() {
         val active = Fixtures.perks(Fixtures.companionPerks).let { it.copy(heldSeat = it.heldSeat!!.copy(active = true), tierName = "") }
         repository.perks = Result.success(active)
+        repository.overview = Result.success(
+            Fixtures.overview(
+                Fixtures.noMembershipOverview
+            ).copy(companionSeat = MembershipOverview.CompanionSeat("Mia Mäzen", "oase", "Oasis plus"))
+        )
         val model = PerksViewModel(repository, events, Fixtures.session())
         show { PerksScreen(model) }
         waitFor("Mia Mäzen nimmt dich als Mäzen mit.")
+        compose.onNodeWithText("aus der Stufe Oasis plus", substring = true).assertExists()
         compose.onNodeWithText("MITGLIEDSCHAFT").assertExists()
     }
 

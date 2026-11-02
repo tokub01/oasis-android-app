@@ -237,7 +237,7 @@ class PostViewModelsTest(private val answersAtOnce: Boolean) {
     }
 
     @Test
-    fun `the Quelle switches its view and keeps a not public Tropfen out of Ganz Oasis`() = runTest {
+    fun `the Quelle switches its view and Ganz Oasis loads again after an own Tropfen`() = runTest {
         val network = StubbedNetwork(
             stub("GET", "network/source", pageJson(postJson(3), context = """{"show_all":true,"follows_anyone":true,"can_post":true}"""))
         )
@@ -250,8 +250,10 @@ class PostViewModelsTest(private val answersAtOnce: Boolean) {
         NetworkSignals.didPublish(decodePost(postJson(8, visibility = "friends")), "Dein Tropfen ist da.")
         eventually { network.transport.requests.size == 2 && !model.list.state.value.isReloading }
         assertEquals(listOf(3), model.list.posts.map { it.id })
+        // Whatever its visibility: the server decides what Ganz Oasis lists (the web's refresh).
         NetworkSignals.didPublish(decodePost(postJson(9)), "Dein Tropfen ist da.")
-        assertEquals(listOf(9, 3), model.list.posts.map { it.id })
+        eventually { network.transport.requests.size == 3 && !model.list.state.value.isReloading }
+        assertEquals(listOf(3), model.list.posts.map { it.id })
     }
 
     @Test

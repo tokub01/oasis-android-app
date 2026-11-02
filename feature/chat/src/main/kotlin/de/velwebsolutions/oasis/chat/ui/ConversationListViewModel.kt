@@ -131,13 +131,17 @@ class ConversationListViewModel @Inject constructor(context: ChatContext, privat
         }
     }
 
-    /** Meta line: "Gruppe · 3 Menschen · löscht nach 7 Tagen · wartet auf neuen Schlüssel". */
+    /** Meta line: "Gruppe · 3 Menschen · löscht nach 7 Tagen · wartet auf neuen Schlüssel" (or "· beendet"). */
     fun meta(conversation: ChatConversation): String {
         val parts = mutableListOf(
             if (conversation.isGroup) "Gruppe · ${conversation.members.size} Menschen" else "Zu zweit",
             "löscht nach ${lifetimeLabel(conversation.lifetimeDays)}"
         )
-        if (conversation.rotationRequired) parts += "wartet auf neuen Schlüssel"
+        if (conversation.ended) {
+            parts += "beendet"
+        } else if (conversation.rotationRequired) {
+            parts += "wartet auf neuen Schlüssel"
+        }
         return parts.joinToString(" · ")
     }
 

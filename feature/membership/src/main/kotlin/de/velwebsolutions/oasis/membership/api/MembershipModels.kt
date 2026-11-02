@@ -23,8 +23,20 @@ data class MembershipOverview(
     /** In-app subscriptions through Google Play (`google` of MembershipResource); null from servers before they existed. */
     val google: Google? = null,
     /** What the tier allows (TierFeatures); empty from servers before the tiers. */
-    val features: MembershipPerks.Features = MembershipPerks.Features()
+    val features: MembershipPerks.Features = MembershipPerks.Features(),
+    /**
+     * The place of a Mäzen, while it gives access (`companion_seat`). [state] stays [State.Expired] for it; the status
+     * card then shows the place instead (status.blade.php).
+     */
+    val companionSeat: CompanionSeat? = null
 ) {
+    /** Paid or gifted: a held companion place is not shown then (Perks.php `isPaying`). */
+    val isPaying: Boolean get() = state != State.Expired
+
+    /** A Mäzen's place: who gives it and the tier it brings (TierFeatures::COMPANION_TIER). */
+    @Serializable
+    data class CompanionSeat(val sponsor: String, val tier: String? = null, val tierName: String = "Oase")
+
     /** Which status card the web shows. */
     @Serializable
     enum class State {

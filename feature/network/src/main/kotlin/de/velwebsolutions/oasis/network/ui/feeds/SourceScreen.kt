@@ -190,7 +190,7 @@ fun LazyListScope.sourceContent(
         val navigator = LocalNavigator.current
         if (context?.canPost == false) {
             Panel(tone = PanelTone.Dune, spacing = 6) {
-                Text("Dein Konto ist gerade nur zum Lesen. Du kannst alles lesen, herunterladen und löschen.", style = OasisType.Body)
+                Text("Gerade kannst du nichts veröffentlichen. Prüf deine Mitgliedschaft.", style = OasisType.Body)
                 UnderlinedLink("Mitglied werden", { navigator.open(MembershipRoute.Overview) })
             }
         } else {

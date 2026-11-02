@@ -166,6 +166,36 @@ class PerksViewModelTest {
     }
 
     @Test
+    fun `a held place is hidden while the member pays, and the companion tier comes from the server`() = runTest {
+        repository.perks = Result.success(Fixtures.perks(Fixtures.companionPerks))
+        val paying = PerksViewModel(repository, events, Fixtures.session())
+        paying.load()
+        assertTrue(paying.state.value.paying)
+        assertNull(paying.state.value.companionTierName)
+
+        val seat = MembershipOverview.CompanionSeat("Mia Mäzen", "oase", "Oase")
+        repository.overview = Result.success(Fixtures.overview(Fixtures.noMembershipOverview).copy(companionSeat = seat))
+        val companion = PerksViewModel(repository, events, Fixtures.session())
+        companion.load()
+        assertFalse(companion.state.value.paying)
+        assertEquals("Oase", companion.state.value.companionTierName)
+        assertFalse(Fixtures.overview(Fixtures.noMembershipOverview).isPaying)
+
+        // Without the overview the place stays shown.
+        repository.overview = FakeMembershipRepository.failure()
+        val offline = PerksViewModel(repository, events, Fixtures.session())
+        offline.load()
+        assertFalse(offline.state.value.paying)
+        assertEquals(
+            seat,
+            OasisJson.snake.decodeFromString(
+                MembershipOverview.CompanionSeat.serializer(),
+                """{"sponsor":"Mia Mäzen","tier":"oase","tier_name":"Oase"}"""
+            )
+        )
+    }
+
+    @Test
     fun `the perks models write what they read`() {
         val json = OasisJson.snake
         val perks = Fixtures.perks().copy(heldSeat = MembershipPerks.HeldSeat("Mia Mäzen", active = true))

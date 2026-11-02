@@ -66,14 +66,16 @@ fun OasisTextField(
     lines: IntRange? = null,
     keyboardOptions: KeyboardOptions = if (isSecure) OasisKeyboard.Password else OasisKeyboard.Sentences,
     keyboardActions: KeyboardActions = KeyboardActions.Default,
-    enabled: Boolean = true
+    enabled: Boolean = true,
+    /** The server's limit in characters (the web's `maxlength`): longer input is cut there. */
+    maxLength: Int? = null
 ) {
     val shape = RoundedCornerShape(OasisRadius.XS.dp)
     Column(modifier, verticalArrangement = Arrangement.spacedBy(6.dp)) {
         Text(label, style = OasisType.SmallBold, color = OasisColors.Ink)
         BasicTextField(
             value = value,
-            onValueChange = onValueChange,
+            onValueChange = { changed -> onValueChange(limitText(changed, maxLength)) },
             enabled = enabled,
             textStyle = OasisType.Body.copy(color = OasisColors.Ink),
             cursorBrush = SolidColor(OasisColors.Night),
@@ -218,4 +220,13 @@ fun ConsentCheck(
     enabled: Boolean = true
 ) {
     ConsentCheck(checked, onCheckedChange, modifier, enabled) { Text(text, style = OasisType.Body, color = OasisColors.Ink) }
+}
+
+/** [text] cut to [maxLength] characters (code points, as the server counts them); unchanged without a limit. */
+fun limitText(text: String, maxLength: Int?): String = if (maxLength == null ||
+    text.codePointCount(0, text.length) <= maxLength
+) {
+    text
+} else {
+    text.substring(0, text.offsetByCodePoints(0, maxLength))
 }

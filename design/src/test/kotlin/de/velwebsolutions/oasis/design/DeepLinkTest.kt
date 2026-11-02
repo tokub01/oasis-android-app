@@ -20,6 +20,25 @@ class DeepLinkTest {
     private fun route(url: String) = DeepLink.route(url)
 
     @Test
+    fun `only links of the own server open screens or account links`() {
+        DeepLink.ownHost = "get-oasis.com"
+        try {
+            assertEquals(NetworkRoute.Post(12), route("https://get-oasis.com/tropfen/12"))
+            assertEquals(NetworkRoute.Post(12), route("https://GET-OASIS.com/tropfen/12"))
+            assertNull(route("https://get-oasis.com.evil.example/tropfen/12"))
+            assertEquals(
+                IncomingLink.Browser("https://evil.example/email/bestaetigen/1/h?expires=1&signature=s"),
+                DeepLink.incoming("https://evil.example/email/bestaetigen/1/h?expires=1&signature=s")
+            )
+            assertEquals(IncomingLink.Screen(MembershipRoute.Overview), DeepLink.incoming("oasis://mitgliedschaft"))
+            val navigator = Navigator().apply { openWeb = {} }
+            assertFalse(navigator.handle("https://evil.example/app/nachrichten#c/5"))
+        } finally {
+            DeepLink.ownHost = null
+        }
+    }
+
+    @Test
     fun `maps web links to screens`() {
         assertEquals(NetworkRoute.Post(12), route("https://get-oasis.com/tropfen/12"))
         assertEquals(NetworkRoute.EditPost(12), route("https://get-oasis.com/tropfen/12/bearbeiten"))

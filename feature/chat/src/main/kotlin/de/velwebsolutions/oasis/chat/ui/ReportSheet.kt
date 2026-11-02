@@ -115,9 +115,9 @@ internal fun ReportContent(
                         .padding(horizontal = 16.dp, vertical = 12.dp)
                 )
             }
-            if (state.attachments > 0) {
+            ReportModel.attachmentNote(state.attachments)?.let { note ->
                 Text(
-                    "Die angehängten Fotos, Sprachnachrichten und Videos dieser Nachricht gehen mit an das Moderationsteam.",
+                    note,
                     style = OasisType.Small,
                     color = OasisColors.Ink2,
                     modifier = Modifier.testTag("chat.report.attachments")

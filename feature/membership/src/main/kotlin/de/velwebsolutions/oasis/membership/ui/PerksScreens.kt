@@ -54,7 +54,7 @@ import de.velwebsolutions.oasis.membership.api.MembershipPerks
 import de.velwebsolutions.oasis.membership.api.SupporterInput
 import kotlinx.coroutines.launch
 
-/** The tier a companion place gives (TierFeatures::COMPANION_TIER). */
+/** The tier a companion place gives (TierFeatures::COMPANION_TIER), where the server does not name it. */
 private const val COMPANION_TIER = "Oase"
 
 /** What the perks page can ask its view model for. */
@@ -104,23 +104,31 @@ fun PerksContent(state: PerksUiState, callbacks: PerksCallbacks) {
                 lead = "Was deine Mitgliedschaft enthält. Das ganze Netzwerk gehört allen; die höheren Stufen geben dir mehr Raum zum " +
                     "Gestalten, Erinnerungen und Plätze für deine Leute."
             )
-            LoadableView(state.perks, onRetry = callbacks.onRefresh) { perks -> PerksSections(perks, callbacks) }
+            LoadableView(state.perks, onRetry = callbacks.onRefresh) { perks ->
+                PerksSections(
+                    perks,
+                    callbacks,
+                    heldSeat = perks.heldSeat?.takeIf { !state.paying },
+                    state.companionTierName ?: COMPANION_TIER
+                )
+            }
         }
     }
 }
 
 @Composable
-private fun PerksSections(perks: MembershipPerks, callbacks: PerksCallbacks) {
+private fun PerksSections(perks: MembershipPerks, callbacks: PerksCallbacks, heldSeat: MembershipPerks.HeldSeat?, companionTier: String) {
     val navigator = LocalNavigator.current
     val openWebsite = rememberOpenWebsite(navigator)
     val scope = rememberCoroutineScope()
     var givingBack by remember { mutableStateOf(false) }
     Column(verticalArrangement = Arrangement.spacedBy(18.dp)) {
-        perks.heldSeat?.let { held ->
+        // A held place shows only while the member does not pay (Perks.php `isPaying`).
+        heldSeat?.let { held ->
             SectionCard("Dein Platz bei ${held.sponsor}", Modifier.testTag("perks.heldSeat")) {
                 Text(
                     if (held.active) {
-                        "${held.sponsor} nimmt dich als Mäzen mit. Du hast Oasis mit allem aus der Stufe $COMPANION_TIER, solange " +
+                        "${held.sponsor} nimmt dich als Mäzen mit. Du hast Oasis mit allem aus der Stufe $companionTier, solange " +
                             "${held.sponsor} Mäzen bleibt."
                     } else {
                         "${held.sponsor} ist gerade kein Mäzen mehr, deshalb ruht dein Platz. Mit einer eigenen Mitgliedschaft geht es sofort weiter."

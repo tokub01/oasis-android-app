@@ -294,10 +294,13 @@ private fun Options(state: ComposeUiState, callbacks: ComposerCallbacks) {
                 callbacks.onVisibility,
                 Modifier.testTag("compose.visibility")
             )
-            // Under 18 "Öffentlich" is not offered (the server leaves it out), so the hint only shows where it applies.
-            if (context.visibilities.any { it.value == "public" }) {
-                Text("Öffentlich heißt: auch ohne Konto lesbar.", style = OasisType.Caption, color = OasisColors.Muted)
-            }
+            // Oasis is members-only: whatever is chosen, no guest or search engine reads a Tropfen (compose.blade.php).
+            Text(
+                "Tropfen lesen nur angemeldete Mitglieder, nie Gäste oder Suchmaschinen.",
+                style = OasisType.Caption,
+                color = OasisColors.Muted,
+                modifier = Modifier.testTag("compose.visibilityHint")
+            )
         }
         if (context.kinds.isNotEmpty()) {
             Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {

@@ -133,6 +133,11 @@ class CommonApiTest {
         assertEquals(ApiError.PayloadTooLarge, ApiClient.errorFor(413, null, null))
         assertEquals(ApiError.TooManyRequests(30), ApiClient.errorFor(429, null, "30"))
         assertEquals(ApiError.TooManyRequests(null), ApiClient.errorFor(429, null, "bald"))
+        assertEquals(
+            "the server's own text (a message request that waits) comes along",
+            ApiError.TooManyRequests(null, "Deine Nachrichten sind noch eine Anfrage."),
+            ApiClient.errorFor(429, """{"message":"Deine Nachrichten sind noch eine Anfrage."}""", null)
+        )
         assertEquals(ApiError.Server(500, null), ApiClient.errorFor(500, "{}", null))
         assertEquals(ApiError.Validation("x", emptyMap()), ApiClient.errorFor(422, """{"message":"x","errors":[]}""", null))
         assertEquals(

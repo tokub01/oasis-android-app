@@ -213,4 +213,17 @@ class ScreenViewModelTest(private val answersAtOnce: Boolean) {
         NetworkSignals.didPublish(decodePost(postJson(9, replyTo = 3)), "Deine Antwort ist da.")
         eventually { network.transport.requests.size == loads + 1 }
     }
+
+    @Test
+    fun `Ganz Oasis loads again after an own Tropfen, as the server decides what it lists`() = runTest {
+        val network = StubbedNetwork(
+            stub("GET", "network/source", pageJson(postJson(3), context = """{"show_all":true,"follows_anyone":true,"can_post":true}"""))
+        )
+        val model = models.keep(SourceViewModel(network.repository, network.session))
+        model.list.reload()
+        val loads = network.transport.requests.size
+        NetworkSignals.didPublish(decodePost(postJson(8)), "Dein Tropfen ist da.")
+        eventually { network.transport.requests.size == loads + 1 }
+        assertEquals(0, model.scrollToTop.value)
+    }
 }

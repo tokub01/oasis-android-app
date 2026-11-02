@@ -1,6 +1,7 @@
 package de.velwebsolutions.oasis.chat.core
 
 import de.velwebsolutions.oasis.chat.api.ChatConversation
+import de.velwebsolutions.oasis.chat.api.ConversationMember
 import de.velwebsolutions.oasis.chat.api.SafetyLists
 import de.velwebsolutions.oasis.chat.testCrypto
 import de.velwebsolutions.oasis.chatcrypto.ChatCryptoException
@@ -91,8 +92,17 @@ class ChatCoreTest {
 
     private fun vault(scope: TestScope, idle: Duration = Duration.INFINITE) = ChatVault(scope.backgroundScope, idle).apply { prepare("1") }
 
-    private fun conversation(keyVersion: Int = 1) =
-        ChatConversation("7", "direct", null, "1", 7, keyVersion, false, emptyList(), "2026-10-22T12:00:00Z")
+    private fun conversation(keyVersion: Int = 1) = ChatConversation(
+        "7",
+        "direct",
+        null,
+        "1",
+        7,
+        keyVersion,
+        false,
+        listOf(ConversationMember("1", "mira", role = "owner")),
+        "2026-10-22T12:00:00Z"
+    )
 
     @Test
     fun sealingNeedsAKeyAndAnOpenVault() = kotlinx.coroutines.test.runTest {
@@ -274,6 +284,30 @@ class ChatCoreTest {
         assertEquals(Instant.parse("2026-10-22T12:00:10Z"), clock.now())
         local = local.plusMillis(500)
         assertEquals(Instant.parse("2026-10-23T12:00:10Z"), clock.expiry(1))
+
+        // An old server_time never moves expiry behind the device clock (clock.js `now`), but signing follows the server.
+        clock.sync("2026-10-01T12:00:00Z")
+        assertEquals(local, clock.now())
+        assertEquals(Instant.parse("2026-10-01T12:00:00Z"), clock.serverNow())
+        assertEquals(Instant.parse("2026-10-02T12:00:00Z"), clock.expiry(1))
+    }
+
+    @Test
+    fun anOldServerTimeDoesNotMakeAnExpiredMessageReadable() = kotlinx.coroutines.test.runTest {
+        val local = Instant.parse("2026-10-22T12:00:00Z")
+        val vault = ChatVault(this, idleLock = kotlin.time.Duration.INFINITE, clock = ServerClock { local })
+        vault.prepare("1")
+        val sender = crypto.createIdentity()
+        vault.unlock(crypto.createIdentity(), vault.generation)
+        val key = crypto.createConversationKeyForTest()
+        vault.rememberConversationKey("7", 1, key.copyOf(), vault.generation)
+        vault.rememberPublicKeys("2", crypto.verifyPublicKeys(crypto.exportPublicKeys(sender)))
+        // Sent a day ago, expired an hour ago.
+        val sent = local.minusSeconds(86_400)
+        val envelope = crypto.encryptMessage(key, "7", 1, "2", sender, "Weg", local.minusSeconds(3_600), sent)
+        vault.clock.sync("2026-10-21T12:30:00Z")
+        assertNull(ChatMessages.open(envelope, "7", vault, crypto))
+        vault.lock(announce = false)
     }
 }
 

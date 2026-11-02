@@ -44,13 +44,7 @@ private fun InvoiceDocument(file: File) {
     val context = LocalContext.current
     // The API's HTML invoice, shown as it is, without scripts or file access; other files are only shared.
     val webView = if (file.extension == "html") {
-        remember(file) {
-            WebView(context).apply {
-                settings.javaScriptEnabled = false
-                settings.allowFileAccess = false
-                loadDataWithBaseURL(null, file.readText(), "text/html", "UTF-8", null)
-            }
-        }
+        remember(file) { invoiceWebView(context, file.readText()) }
     } else {
         null
     }
@@ -79,4 +73,24 @@ private fun InvoiceDocument(file: File) {
             )
         }
     }
+}
+
+/**
+ * The web view of an HTML invoice: no scripts, no file or content access, no storage of its own (DOM storage, databases),
+ * and it never navigates away – a link in the document opens nothing.
+ */
+internal fun invoiceWebView(context: android.content.Context, html: String): WebView = WebView(context).apply {
+    settings.javaScriptEnabled = false
+    settings.allowFileAccess = false
+    settings.allowContentAccess = false
+    settings.domStorageEnabled = false
+    @Suppress("DEPRECATION")
+    settings.databaseEnabled = false
+    webViewClient = StayOnInvoice
+    loadDataWithBaseURL(null, html, "text/html", "UTF-8", null)
+}
+
+/** Keeps the invoice web view on its document. */
+internal object StayOnInvoice : android.webkit.WebViewClient() {
+    override fun shouldOverrideUrlLoading(view: WebView, request: android.webkit.WebResourceRequest): Boolean = true
 }

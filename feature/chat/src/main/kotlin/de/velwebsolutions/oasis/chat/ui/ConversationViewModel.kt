@@ -17,6 +17,7 @@ import de.velwebsolutions.oasis.chat.core.AttachmentView
 import de.velwebsolutions.oasis.chat.core.ChatAttachments
 import de.velwebsolutions.oasis.chat.core.ChatContext
 import de.velwebsolutions.oasis.chat.core.ChatKeyring
+import de.velwebsolutions.oasis.chat.core.ChatKeyringException
 import de.velwebsolutions.oasis.chat.core.ChatMessageItem
 import de.velwebsolutions.oasis.chat.core.ChatMessages
 import de.velwebsolutions.oasis.chat.core.ChatSafety
@@ -34,6 +35,8 @@ import de.velwebsolutions.oasis.core.network.ApiError
 import de.velwebsolutions.oasis.core.realtime.RealtimeEvent
 import de.velwebsolutions.oasis.core.realtime.RealtimeService
 import de.velwebsolutions.oasis.core.share.PendingShare
+import de.velwebsolutions.oasis.core.share.Share
+import de.velwebsolutions.oasis.core.share.SharedFile
 import kotlin.time.Duration
 import kotlin.time.Duration.Companion.seconds
 import kotlinx.coroutines.CancellationException
@@ -77,8 +80,13 @@ data class ConversationState(
     val actionError: String? = null,
     /** Safety banner for the newest flagged message from someone else. */
     val flagged: SafetyFlag? = null,
-    /** Composer enabled: may participate, key active and present. */
+    /** Composer enabled: may participate, chat not ended, owner trusted, key active and present. */
     val canSend: Boolean = false,
+    /**
+     * The owner the server names is no active owner member or another one than before ([ChatKeyring.ownerTrusted]): the
+     * screen shows [ChatKeyring.UNTRUSTED_OWNER] instead of the composer.
+     */
+    val untrustedOwner: Boolean = false,
     /** "12 / 4000" or "Zu lang". */
     val counter: String = "0 / ${ChatCrypto.MAX_MESSAGE_LENGTH}",
     val tooLong: Boolean = false,
@@ -181,6 +189,7 @@ class ConversationViewModel @AssistedInject constructor(
     /** Recomputes the derived fields after a change of the conversation, the keys or the timeline. */
     private fun render(change: (ConversationState) -> ConversationState = { it }) {
         val current = conversation
+        val trusted = current != null && ChatKeyring.ownerTrusted(vault, current)
         val changed = change(mutableState.value)
         val measured = ChatMessages.measure(changed.draft, changed.drafts)
         mutableState.value = changed.copy(
@@ -193,8 +202,10 @@ class ConversationViewModel @AssistedInject constructor(
             notices = notices,
             nextBeforeId = nextBeforeId,
             flagged = flagged,
-            canSend = current != null && context.canParticipate && !current.rotationRequired &&
+            // Also with a key this app session still holds: nothing is sealed for an untrusted owner (assertSealable).
+            canSend = current != null && trusted && context.canParticipate && !current.ended && !current.rotationRequired &&
                 vault.conversationKey(current.id, current.keyVersion) != null,
+            untrustedOwner = current != null && !current.ended && !trusted,
             counter = if (measured.tooLong) "Zu lang" else "${measured.characters} / ${ChatCrypto.MAX_MESSAGE_LENGTH}",
             tooLong = measured.tooLong,
             requestTitle = current?.takeIf { it.request == true }?.let { conversation ->
@@ -249,8 +260,9 @@ class ConversationViewModel @AssistedInject constructor(
         jobs.forEach { it.cancel() }
         jobs.clear()
         stopTicker()
-        // A view-once file open while the chat closes (lock, leaving) counts as viewed.
+        // A view-once file open while the chat closes (lock, leaving) counts as viewed – also when the answer fails.
         mutableState.value.viewOnce?.let { open ->
+            vault.viewedOnce += viewedKey(open.attachment.id)
             viewModelScope.launch { runCatching { context.repository.answerAttachment(conversationId, open.attachment.id, VIEWED) } }
         }
         media.clear()
@@ -315,7 +327,8 @@ class ConversationViewModel @AssistedInject constructor(
         users = directory.users.associateBy { it.id }
         keyring.openGrants(current)
         val newWarnings = keyWarnings(current, directory).toMutableList()
-        if (current.rotationRequired && current.createdBy == myId) {
+        // An ended direct chat (the other person left) gets no key any more; it stays readable without a composer.
+        if (current.rotationRequired && current.createdBy == myId && !current.ended) {
             try {
                 val request = current.request
                 current = keyring.distributeKey(current).copy(request = request)
@@ -337,14 +350,21 @@ class ConversationViewModel @AssistedInject constructor(
         if (!context.canParticipate) {
             texts.add(0, "Dein Konto ist gerade nur zum Lesen. Mit einer Mitgliedschaft kannst du wieder schreiben.")
         }
-        if (current.rotationRequired && current.createdBy != myId) {
-            texts.add(
-                0,
+        val lead = when {
+            current.ended -> "Dieser Chat ist beendet. Du kannst ihn noch lesen und Nachrichten melden, aber nicht mehr schreiben."
+
+            // Shown instead of the composer (ConversationState.untrustedOwner).
+            !ChatKeyring.ownerTrusted(vault, current) -> null
+
+            current.rotationRequired && current.createdBy != myId ->
                 "Der Chat bekommt einen neuen Schlüssel. Sobald die Person, die ihn gestartet hat, online ist, kannst du schreiben."
-            )
-        } else if (vault.conversationKey(current.id, current.keyVersion) == null) {
-            texts.add(0, "Für diesen Chat liegt dir noch kein Schlüssel vor. Du kannst noch nicht schreiben.")
+
+            vault.conversationKey(current.id, current.keyVersion) == null ->
+                "Für diesen Chat liegt dir noch kein Schlüssel vor. Du kannst noch nicht schreiben."
+
+            else -> null
         }
+        lead?.let { texts.add(0, it) }
         notices = texts
     }
 
@@ -373,7 +393,9 @@ class ConversationViewModel @AssistedInject constructor(
         val token = openCount
         val page = context.repository.messages(conversationId, nextBeforeId)
         if (!isCurrent(token)) return
-        val items = page.data.reversed().map { ChatMessages.open(it.envelope, conversationId, vault, context.crypto, it.attachments) }
+        val items = page.data.reversed().map {
+            ChatMessages.open(it.envelope, conversationId, vault, context.crypto, keptViewed(it.attachments))
+        }
         timeline = timeline.prepending(items)
         nextBeforeId = page.nextBeforeId
         checkSafety()
@@ -436,8 +458,9 @@ class ConversationViewModel @AssistedInject constructor(
     internal fun receive(envelope: MessageEnvelope, states: List<AttachmentState>? = null) {
         val current = conversation ?: return
         if (envelope.conversationId != current.id) return
-        if (states != null) updateStates(envelope.signature, states)
-        val item = ChatMessages.open(envelope, current.id, vault, context.crypto, states.orEmpty()) ?: return
+        val kept = states?.let(::keptViewed)
+        if (kept != null) updateStates(envelope.signature, kept)
+        val item = ChatMessages.open(envelope, current.id, vault, context.crypto, kept.orEmpty()) ?: return
         timeline = timeline.appending(item) ?: return
         if (states == null && item.content.attachments.isNotEmpty()) viewModelScope.launch { reloadStates() }
         checkSafety()
@@ -465,7 +488,7 @@ class ConversationViewModel @AssistedInject constructor(
     /** States of the newest messages (after a realtime message with files). Failures leave them as they are. */
     private suspend fun reloadStates() {
         val page = runCatching { context.repository.messages(conversationId) }.getOrNull() ?: return
-        page.data.forEach { updateStates(it.envelope.signature, it.attachments) }
+        page.data.forEach { updateStates(it.envelope.signature, keptViewed(it.attachments)) }
     }
 
     /** New keys may make earlier "no key" messages readable. */
@@ -520,11 +543,16 @@ class ConversationViewModel @AssistedInject constructor(
             }
             return@inScope
         }
+        val token = openCount
         try {
+            // Nothing is uploaded for a chat nothing may be sealed for.
+            ChatKeyring.assertSealable(vault, current)
             val references = upload(current.id, drafts)
             val plaintext = MessagePayload.encode(MessageContent(text, references))
             val envelope = ChatMessages.seal(plaintext, current, vault, context.crypto)
             val stored = context.repository.sendMessage(current.id, envelope, references.map { it.id })
+            // Left or locked meanwhile: sent, but nothing of it is kept or written to the device any more (conversation-view.js).
+            if (!isCurrent(token)) return@inScope
             confirmedDraft = null
             // Sent: nothing after this may report a failure, or the member sends it again. What was picked stays on screen
             // without a download (a preview that cannot be written, on a full storage, comes down later like a
@@ -539,13 +567,37 @@ class ConversationViewModel @AssistedInject constructor(
             if (current.request == true) acceptLocally()
             render { it.copy(spokenNotice = "Gesendet.") }
         } catch (error: Exception) {
+            // The chat was left meanwhile: its error and a reload are not for the chat shown now.
+            if (!isCurrent(token)) return@inScope
             render { it.copy(composerError = describeChatError(error), uploadProgress = null) }
-            if (error is ApiError.Conflict) {
+            if (error is ApiError.Conflict || error == ChatKeyringException.StaleKeyVersion) {
                 try {
                     refresh()
                 } catch (refreshError: Exception) {
                     handleFailure(refreshError)
                 }
+            }
+            // A refused expiry: the owner may have changed the lifetime meanwhile, and open chats are not told. It is
+            // reloaded and shown; sending again under it is the member's choice, never done silently (conversation-view.js).
+            if (error is ApiError.Validation && error.fields.containsKey("envelope")) lifetimeChanged(current)
+        }
+    }
+
+    /** After a refused envelope: reload the chat and say so when its lifetime changed since [sent] was sealed for it. */
+    private suspend fun lifetimeChanged(sent: ChatConversation) {
+        try {
+            refresh()
+        } catch (refreshError: Exception) {
+            handleFailure(refreshError)
+            return
+        }
+        val now = conversation ?: return
+        if (now.lifetimeDays != sent.lifetimeDays) {
+            render {
+                it.copy(
+                    composerError = "Nachrichten in diesem Chat löschen sich jetzt nach ${lifetimeLabel(now.lifetimeDays)}. " +
+                        "Zum Senden tippe noch einmal auf „Senden“."
+                )
             }
         }
     }
@@ -592,18 +644,19 @@ class ConversationViewModel @AssistedInject constructor(
     /**
      * What the member shared into this chat under "Teilen mit …": its files become drafts (photos by the photo rules),
      * its text the draft text. Nothing is sent before "Senden"; the cache copies are deleted right after – unless the
-     * chat closed while they were read (leaving, a lock): then the share waits for the next opening of this chat.
+     * chat closed while they were read (leaving, a lock): then the share waits for the next opening of this chat. Files
+     * beyond the four of a message keep waiting for the next "Teilen mit …", like on iOS (`takeShares`).
      */
     private suspend fun takeShare(token: Int) {
         val share = PendingShare.take(conversationId) ?: return
         val problems = mutableListOf<String>()
         val taken = mutableListOf<DraftAttachment>()
+        var left = emptyList<SharedFile>()
         var waits = false
         try {
-            for (file in share.files) {
+            for ((index, file) in share.files.withIndex()) {
                 if (state.value.drafts.size + taken.size >= ChatAttachments.MAX_PER_MESSAGE) {
-                    problems +=
-                        "Höchstens ${ChatAttachments.MAX_PER_MESSAGE} Anhänge pro Nachricht. Den Rest kannst du mit der nächsten Nachricht teilen."
+                    left = share.files.drop(index)
                     break
                 }
                 try {
@@ -615,17 +668,30 @@ class ConversationViewModel @AssistedInject constructor(
             waits = !isCurrent(token)
         } finally {
             // A newer share that came in meanwhile wins, as always.
-            if (waits && PendingShare.share.value == null) {
-                PendingShare.offer(share)
-                PendingShare.target(conversationId)
-            } else {
-                PendingShare.delete(share)
+            val alone = PendingShare.share.value == null
+            when {
+                waits && alone -> {
+                    PendingShare.offer(share)
+                    PendingShare.target(conversationId)
+                }
+
+                left.isNotEmpty() && alone -> {
+                    (share.files - left.toSet()).forEach { it.file.delete() }
+                    PendingShare.offer(Share(left, null, share.folder))
+                }
+
+                else -> PendingShare.delete(share)
             }
         }
         if (waits) return
         render { it.copy(drafts = it.drafts + taken) }
         share.text?.let(::setDraft)
-        render { it.copy(composerError = problems.firstOrNull()) }
+        val rest = if (left.size == 1) "Den übrigen" else "Die übrigen ${left.size}"
+        val waiting = left.takeIf { it.isNotEmpty() }?.let {
+            "Du kannst höchstens ${ChatAttachments.MAX_PER_MESSAGE} Anhänge an eine Nachricht hängen. $rest bietet dir Oasis wieder " +
+                "unter „Teilen mit …“ an, wenn du die App das nächste Mal öffnest."
+        }
+        render { it.copy(composerError = waiting ?: problems.firstOrNull()) }
     }
 
     /** "Anhang entfernen". */
@@ -722,6 +788,7 @@ class ConversationViewModel @AssistedInject constructor(
     /** "Annehmen" / "Ablehnen" of a file someone sent: nothing is downloaded before it is accepted. */
     suspend fun answer(item: ChatMessageItem, attachment: MessageAttachment, accept: Boolean) = inScope {
         vault.touch()
+        if (!item.listed(attachment.id, item.senderId == myId)) return@inScope
         try {
             setState(
                 item.signature,
@@ -741,7 +808,7 @@ class ConversationViewModel @AssistedInject constructor(
     /** "Ansehen" of an accepted view-once file: full screen, from memory. */
     suspend fun openViewOnce(item: ChatMessageItem, attachment: MessageAttachment) = inScope {
         vault.touch()
-        if (state.value.viewOnce != null) return@inScope
+        if (state.value.viewOnce != null || !item.listed(attachment.id, item.senderId == myId)) return@inScope
         val token = openCount
         val view = fetch(attachment)
         when {
@@ -761,15 +828,35 @@ class ConversationViewModel @AssistedInject constructor(
         render { it.copy(viewOnce = null, actionError = NO_APP) }
     }
 
-    /** Closing the view-once viewer: the file is deleted here and reported as viewed, so the server deletes it too. */
+    /**
+     * Closing the view-once viewer: the file is deleted here and reported as viewed, so the server deletes it too. Shown
+     * is shown: it counts as viewed at once, so a failed answer never lets it be opened again ([keptViewed]).
+     */
     suspend fun closeViewOnce() = inScope {
         val open = state.value.viewOnce ?: return@inScope
         media.discard(open.view)
+        vault.viewedOnce += viewedKey(open.attachment.id)
         render { it.copy(viewOnce = null) }
+        setState(open.item.signature, open.item.state(open.attachment.id, mine = false).copy(status = AttachmentState.VIEWED))
         try {
             setState(open.item.signature, context.repository.answerAttachment(conversationId, open.attachment.id, VIEWED))
         } catch (error: Exception) {
             render { it.copy(actionError = attachmentError(error)) }
+        }
+    }
+
+    private fun viewedKey(attachmentId: String) = "$conversationId|$attachmentId"
+
+    /**
+     * The server's states with every view-once file this app session showed as viewed, although a failed answer left it
+     * accepted on the server (attachment-view.js `keepViewed`); the answer goes again.
+     */
+    private fun keptViewed(states: List<AttachmentState>): List<AttachmentState> = states.map { state ->
+        if (state.status != AttachmentState.ACCEPTED || viewedKey(state.id) !in vault.viewedOnce) {
+            state
+        } else {
+            viewModelScope.launch { runCatching { context.repository.answerAttachment(conversationId, state.id, VIEWED) } }
+            state.copy(status = AttachmentState.VIEWED)
         }
     }
 
@@ -820,12 +907,18 @@ class ConversationViewModel @AssistedInject constructor(
     suspend fun blockAndLeave(senderId: String): Boolean = inScope {
         try {
             context.repository.block(senderId)
-            try {
+            val left = try {
                 context.repository.leave(conversationId)
+                true
             } catch (_: ApiError.Validation) {
-                // A group owner stays; the block alone stops the messages.
+                // A group owner stays; the block alone stops the messages (iOS ConversationModel.blockAndLeave).
+                false
             }
-            vault.announcement.value = "Blockiert. Der Chat ist gelöscht."
+            vault.announcement.value = if (left) {
+                "Blockiert. Der Chat ist gelöscht."
+            } else {
+                "Blockiert. Die Gruppe bleibt, weil du sie gestartet hast. In den Details kannst du die Person entfernen."
+            }
             true
         } catch (error: Exception) {
             render { it.copy(actionError = describeChatError(error)) }
