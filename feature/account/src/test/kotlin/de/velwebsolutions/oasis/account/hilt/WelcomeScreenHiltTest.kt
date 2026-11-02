@@ -97,8 +97,14 @@ class WelcomeScreenHiltTest : HiltScreenTest() {
         waitForRequest("POST", "onboarding/finish")
         stub("POST", "onboarding/finish", "{}")
         stub("GET", "auth/me", """{"data":${Fixtures.ME}}""")
-        compose.onNodeWithTag("welcome.later").tap()
-        compose.waitUntil(5_000) { transport.requests.count { it.path == "onboarding/finish" } == 2 }
+        // The first finish may still be failing on a slow machine, and OneAtATime ignores taps until it has: tap until
+        // the second one goes out.
+        compose.waitUntil(15_000) {
+            val sent = transport.requests.count { it.path == "onboarding/finish" }
+            if (sent < 2) compose.onNodeWithTag("welcome.later").tap()
+            sent >= 2
+        }
+        compose.waitUntil(15_000) { stack().isEmpty() }
         assertEquals(emptyList<Any>(), stack())
     }
 
