@@ -1,9 +1,13 @@
 name: CI
 
+# Pushes to develop and main and pull requests only (feature branches run through their pull request), and nothing for
+# a change to docs/ or Markdown alone, so Actions minutes go to commits that ship.
 on:
   push:
-    branches: [main, develop, 'feature/**']
+    branches: [main, develop]
+    paths-ignore: ['docs/**', '**.md']
   pull_request:
+    paths-ignore: ['docs/**', '**.md']
 
 concurrency:
   group: ci-${{ github.ref }}
