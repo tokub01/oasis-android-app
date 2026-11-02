@@ -278,21 +278,27 @@ class ChatScreensTest {
             OasisTheme {
                 val state by model.state.collectAsState()
                 LaunchedEffect(Unit) { model.open() }
-                ConversationContent(
-                    state = state,
-                    myId = "1",
-                    senderName = model::senderName,
-                    onLoadOlder = model::loadOlder,
-                    onDraftChange = model::setDraft,
-                    onSend = model::send,
-                    onReport = {},
-                    onAccept = model::acceptRequest,
-                    onDecline = {},
-                    onBlockFlagged = {},
-                    onDismissFlagged = model::dismissFlagged,
-                    onNoticeSpoken = model::noticeSpoken,
-                    attachments = model.attachmentActions()
-                )
+                // The avatar of the other person opens their profile: the screen needs the navigator.
+                androidx.compose.runtime.CompositionLocalProvider(
+                    de.velwebsolutions.oasis.design.navigation.LocalNavigator provides
+                        de.velwebsolutions.oasis.design.navigation.Navigator()
+                ) {
+                    ConversationContent(
+                        state = state,
+                        myId = "1",
+                        senderName = model::senderName,
+                        onLoadOlder = model::loadOlder,
+                        onDraftChange = model::setDraft,
+                        onSend = model::send,
+                        onReport = {},
+                        onAccept = model::acceptRequest,
+                        onDecline = {},
+                        onBlockFlagged = {},
+                        onDismissFlagged = model::dismissFlagged,
+                        onNoticeSpoken = model::noticeSpoken,
+                        attachments = model.attachmentActions()
+                    )
+                }
             }
         }
         waitFor(20_000) { model.state.value.canSend }

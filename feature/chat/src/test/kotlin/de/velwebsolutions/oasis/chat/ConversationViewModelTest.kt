@@ -96,6 +96,7 @@ class ConversationViewModelTest {
         assertNull(owner.state.value.spokenNotice)
 
         val reader = model(jonas, id)
+        assertEquals(null, reader.senderProfile("1"))
         assertEquals(ChatAvatar.Unknown, reader.senderAvatar("1"))
         reader.open()
         assertEquals("Nachrichtenanfrage von Mira", reader.state.value.requestTitle)
@@ -105,6 +106,8 @@ class ConversationViewModelTest {
         assertEquals(ChatAvatar(initials = "M", avatarColor = "sun"), reader.senderAvatar("1"))
         assertEquals("/api/v1/network/profiles/jonas/photo/a.jpg", owner.senderAvatar("2").photoUrl)
         assertEquals(ChatAvatar.Unknown, reader.senderAvatar("99"))
+        assertEquals(de.velwebsolutions.oasis.chat.ui.ProfileLink("mira", "Mira"), reader.senderProfile("1"))
+        assertEquals("someone no longer in the chat opens nothing", null, reader.senderProfile("99"))
         reader.setDraft("Hallo Mira")
         reader.send()
         assertNull("answering accepts the request", reader.state.value.requestTitle)

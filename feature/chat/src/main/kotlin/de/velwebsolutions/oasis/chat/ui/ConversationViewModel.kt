@@ -210,6 +210,9 @@ class ConversationViewModel @AssistedInject constructor(
      */
     fun senderAvatar(userId: String): ChatAvatar = conversation?.avatarOf(userId) ?: ChatAvatar.Unknown
 
+    /** Whose profile the avatar beside a sender's messages opens: a member of the chat; null for anyone else („?“). */
+    fun senderProfile(userId: String): ProfileLink? = ProfileLink.of(conversation?.members?.firstOrNull { it.userId == userId })
+
     /** Recomputes the derived fields after a change of the conversation, the keys or the timeline. */
     private fun render(change: (ConversationState) -> ConversationState = { it }) {
         val current = conversation

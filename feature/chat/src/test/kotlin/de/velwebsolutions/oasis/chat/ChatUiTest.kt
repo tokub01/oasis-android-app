@@ -75,9 +75,17 @@ class ChatUiTest {
     private val calls = mutableListOf<String>()
     private var screen by mutableStateOf<@Composable () -> Unit>({})
 
+    private val navigator = de.velwebsolutions.oasis.design.navigation.Navigator()
+
     private fun show(content: @Composable () -> Unit) {
         screen = content
-        compose.setContent { OasisTheme { screen() } }
+        compose.setContent {
+            OasisTheme {
+                androidx.compose.runtime.CompositionLocalProvider(
+                    de.velwebsolutions.oasis.design.navigation.LocalNavigator provides navigator
+                ) { screen() }
+            }
+        }
     }
 
     private fun switchTo(content: @Composable () -> Unit) {

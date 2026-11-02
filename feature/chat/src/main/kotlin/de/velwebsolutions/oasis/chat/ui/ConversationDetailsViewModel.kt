@@ -32,7 +32,9 @@ data class MemberRow(
     /** Photo or initials beside the name. */
     val avatar: ChatAvatar = ChatAvatar.Unknown,
     /** The status line of their profile, under the name. */
-    val status: String? = null
+    val status: String? = null,
+    /** Whose profile the row opens (avatar and name); null without a username. */
+    val profile: ProfileLink? = null
 )
 
 /** What the details screen shows. */
@@ -141,7 +143,8 @@ class ConversationDetailsViewModel @AssistedInject constructor(
                 warning = if (!isMe && changed) "Neue Schlüssel – Nummer erneut vergleichen." else null,
                 removable = isOwner && conversation.isGroup && !isMe,
                 avatar = member.shownAvatar,
-                status = member.status
+                status = member.status,
+                profile = ProfileLink.of(member)
             )
         }
         mutableState.update { it.copy(members = rows) }

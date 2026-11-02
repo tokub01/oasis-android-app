@@ -247,16 +247,26 @@ private fun MuteSection(
 private fun MemberRowView(row: MemberRow, onRemove: () -> Unit) {
     Column(Modifier.fillMaxWidth().padding(vertical = 6.dp), verticalArrangement = Arrangement.spacedBy(4.dp)) {
         Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(12.dp)) {
-            ChatAvatarView(row.avatar, Modifier.testTag("chat.details.avatar.${row.username}"), size = 40.dp)
-            Column(Modifier.weight(1f)) {
-                Text(row.label, style = OasisType.BodyBold, color = OasisColors.Night)
-                row.status?.takeIf { it.isNotEmpty() }?.let {
-                    Text(
-                        it,
-                        style = OasisType.Small.copy(fontWeight = FontWeight.SemiBold),
-                        color = OasisColors.Ink2,
-                        modifier = Modifier.testTag("chat.details.status.${row.username}")
-                    )
+            // Avatar and name open the member's profile.
+            Row(
+                Modifier
+                    .weight(1f)
+                    .opensProfile(row.profile, profileOpener(row.profile))
+                    .testTag("chat.details.profile.${row.username}"),
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(12.dp)
+            ) {
+                ChatAvatarView(row.avatar, Modifier.testTag("chat.details.avatar.${row.username}"), size = 40.dp)
+                Column(Modifier.weight(1f)) {
+                    Text(row.label, style = OasisType.BodyBold, color = OasisColors.Night)
+                    row.status?.takeIf { it.isNotEmpty() }?.let {
+                        Text(
+                            it,
+                            style = OasisType.Small.copy(fontWeight = FontWeight.SemiBold),
+                            color = OasisColors.Ink2,
+                            modifier = Modifier.testTag("chat.details.status.${row.username}")
+                        )
+                    }
                 }
             }
             if (row.removable) {

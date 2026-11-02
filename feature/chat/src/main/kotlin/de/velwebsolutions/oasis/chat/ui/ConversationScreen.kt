@@ -148,6 +148,7 @@ internal fun ConversationScreen(conversationId: Int) {
             myId = model.context.userId,
             senderName = model::senderName,
             senderAvatar = model::senderAvatar,
+            senderProfile = model::senderProfile,
             onLoadOlder = model::loadOlder,
             onDraftChange = model::setDraft,
             onSend = model::send,
@@ -194,7 +195,8 @@ internal fun ConversationContent(
     onNoticeSpoken: () -> Unit,
     attachments: AttachmentActions,
     /** The avatar beside someone else's messages. */
-    senderAvatar: (String) -> ChatAvatar = { ChatAvatar.Unknown }
+    senderAvatar: (String) -> ChatAvatar = { ChatAvatar.Unknown },
+    senderProfile: (String) -> ProfileLink? = { null }
 ) {
     val listState = rememberLazyListState()
     val items = state.timeline.items
@@ -227,7 +229,15 @@ internal fun ConversationContent(
         ) {
             item {
                 Row(horizontalArrangement = Arrangement.spacedBy(14.dp), verticalAlignment = Alignment.CenterVertically) {
-                    state.conversation?.let { ConversationAvatar(it, myId, Modifier.testTag("chat.conversation.avatar"), size = 52.dp) }
+                    state.conversation?.let {
+                        ConversationAvatar(
+                            it,
+                            myId,
+                            it.directProfile(myId).let { link -> Modifier.opensProfile(link, profileOpener(link)) }
+                                .testTag("chat.conversation.avatar"),
+                            size = 52.dp
+                        )
+                    }
                     Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(6.dp)) {
                         Text(
                             state.title,
@@ -317,6 +327,7 @@ internal fun ConversationContent(
                     onReport = { onReport(item) },
                     // Beside someone else's messages: the avatar at the start of each of their runs, room for it below.
                     avatar = if (mine) null else senderAvatar(item.senderId),
+                    profile = if (mine) null else senderProfile(item.senderId),
                     startsRun = index == 0 || items[index - 1].senderId != item.senderId
                 ) {
                     MessageAttachments(
@@ -648,6 +659,7 @@ internal fun MessageBubble(
     onReport: () -> Unit,
     avatar: ChatAvatar? = null,
     startsRun: Boolean = true,
+    profile: ProfileLink? = null,
     attachments: @Composable () -> Unit
 ) {
     if (avatar == null) {
@@ -656,7 +668,11 @@ internal fun MessageBubble(
     }
     Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
         if (startsRun) {
-            ChatAvatarView(avatar, Modifier.testTag("chat.message.avatar"), size = MESSAGE_AVATAR_SIZE)
+            ChatAvatarView(
+                avatar,
+                Modifier.opensProfile(profile, profileOpener(profile)).testTag("chat.message.avatar"),
+                size = MESSAGE_AVATAR_SIZE
+            )
         } else {
             Spacer(Modifier.size(MESSAGE_AVATAR_SIZE))
         }
