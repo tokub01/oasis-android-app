@@ -12,7 +12,6 @@ import de.velwebsolutions.oasis.account.ui.components.ScopedViewModels
 import de.velwebsolutions.oasis.account.ui.member.ComplaintScreen
 import de.velwebsolutions.oasis.account.ui.member.GlossaryScreen
 import de.velwebsolutions.oasis.account.ui.member.SuspendedScreen
-import de.velwebsolutions.oasis.account.ui.member.VotesScreen
 import de.velwebsolutions.oasis.account.ui.privacy.HiddenWordsScreen
 import de.velwebsolutions.oasis.account.ui.privacy.PrivacyCenterScreen
 import de.velwebsolutions.oasis.account.ui.privacy.PrivacyCheckupScreen
@@ -52,12 +51,10 @@ fun AccountScreen(route: AccountRoute) {
 
         AccountRoute.Glossary -> GlossaryScreen()
 
-        AccountRoute.Suspended -> SuspendedScreen()
-
         is AccountRoute.Complaint -> ComplaintScreen(route.decisionId)
 
-        // The remaining route: Abstimmungen.
-        else -> VotesScreen()
+        // The remaining route: Gesperrt.
+        else -> SuspendedScreen()
     }
 }
 

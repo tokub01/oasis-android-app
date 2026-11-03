@@ -5,7 +5,6 @@ import de.velwebsolutions.oasis.design.navigation.StaffRoute
 import de.velwebsolutions.oasis.staff.ui.admin.AdminDashboardScreen
 import de.velwebsolutions.oasis.staff.ui.admin.AdminIdeasScreen
 import de.velwebsolutions.oasis.staff.ui.admin.AdminPaymentsScreen
-import de.velwebsolutions.oasis.staff.ui.admin.AdminVotesScreen
 import de.velwebsolutions.oasis.staff.ui.admin.DataBreachesScreen
 import de.velwebsolutions.oasis.staff.ui.admin.SystemScreen
 import de.velwebsolutions.oasis.staff.ui.moderation.CaseDetailScreen
@@ -33,8 +32,6 @@ fun StaffScreen(route: StaffRoute) {
         StaffRoute.Suspensions -> SuspensionsScreen()
 
         StaffRoute.AdminDashboard -> AdminDashboardScreen()
-
-        StaffRoute.AdminVotes -> AdminVotesScreen()
 
         StaffRoute.AdminIdeas -> AdminIdeasScreen()
 

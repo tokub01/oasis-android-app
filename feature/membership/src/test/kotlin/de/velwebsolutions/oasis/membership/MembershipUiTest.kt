@@ -29,11 +29,11 @@ import de.velwebsolutions.oasis.core.model.Loadable
 import de.velwebsolutions.oasis.core.model.Me
 import de.velwebsolutions.oasis.core.network.ApiError
 import de.velwebsolutions.oasis.design.components.LocalApiClient
-import de.velwebsolutions.oasis.design.navigation.AccountRoute
 import de.velwebsolutions.oasis.design.navigation.LocalNavigator
 import de.velwebsolutions.oasis.design.navigation.MainTab
 import de.velwebsolutions.oasis.design.navigation.MembershipRoute
 import de.velwebsolutions.oasis.design.navigation.Navigator
+import de.velwebsolutions.oasis.design.navigation.NetworkRoute
 import de.velwebsolutions.oasis.design.theme.OasisTheme
 import de.velwebsolutions.oasis.membership.api.CancellationDetails
 import de.velwebsolutions.oasis.membership.api.MembershipOverview
@@ -213,8 +213,8 @@ class MembershipUiTest {
         shot("overview-gift")
         compose.onNodeWithText("Weitergeben").performScrollTo().performClick()
         assertNotNull(shadowOf(context).nextStartedActivity)
-        compose.onNodeWithText("Zu den Abstimmungen").performScrollTo().performClick()
-        assertEquals(AccountRoute.Votes, top)
+        compose.onNodeWithText("Zu den Ideen").performScrollTo().performClick()
+        assertEquals(NetworkRoute.Ideas(), top)
         compose.onNodeWithText("Stufen & Preise").performScrollTo().performClick()
         assertEquals("http://localhost/preise", web.last())
         compose.onNodeWithText("AGB").performScrollTo().performClick()

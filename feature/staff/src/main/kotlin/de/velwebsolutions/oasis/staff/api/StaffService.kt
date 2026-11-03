@@ -118,12 +118,6 @@ interface StaffService {
     @GET("staff/admin/dashboard")
     suspend fun dashboard(@Query("tage") days: Int, @Query("monat") month: String?): DataEnvelope<AdminDashboard>
 
-    @GET("staff/admin/votes")
-    suspend fun votes(): DataEnvelope<List<AdminVote>>
-
-    @POST("staff/admin/votes")
-    suspend fun createVote(@Body vote: NewVote): Confirmed<AdminVote>
-
     /** The ideas through the member API (20 per page); `sort` popular|new. */
     @GET("ideas")
     suspend fun ideas(@Query("sort") sort: String, @Query("page") page: Int): Page<AdminIdea>

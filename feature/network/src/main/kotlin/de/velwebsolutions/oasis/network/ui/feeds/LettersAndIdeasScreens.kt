@@ -371,14 +371,6 @@ internal fun IdeaCard(idea: Idea, actions: IdeaActions) {
                 Text(reply, style = OasisType.Body, color = OasisColors.Ink)
             }
         }
-        idea.vote?.let { vote ->
-            UnderlinedLink(
-                "Zur Abstimmung: ${vote.title}",
-                { navigator.open(AccountRoute.Votes) },
-                Modifier.testTag("idea.${idea.id}.voteLink"),
-                style = OasisType.BodyBold
-            )
-        }
         if (idea.canDelete) {
             OasisButton(
                 "Löschen",

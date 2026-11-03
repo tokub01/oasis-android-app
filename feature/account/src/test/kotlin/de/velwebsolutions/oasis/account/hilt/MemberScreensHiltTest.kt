@@ -17,7 +17,7 @@ import org.robolectric.RobolectricTestRunner
 import org.robolectric.annotation.Config
 import org.robolectric.annotation.GraphicsMode
 
-/** Lock screen, complaint, votes and glossary as the app shows them. */
+/** Lock screen, complaint and glossary as the app shows them. */
 @HiltAndroidTest
 @RunWith(RobolectricTestRunner::class)
 @Config(application = HiltTestApplication::class)
@@ -152,39 +152,6 @@ class MemberScreensHiltTest : HiltScreenTest() {
         waitForTag("complaint.thanks")
         compose.onNodeWithText("Fertig").tap()
         assertEquals(null, navigator.sheet)
-    }
-
-    @Test
-    fun votesAreCastAndEndedOnesShowTheirResult() {
-        signIn()
-        stub("GET", "votes", Fixtures.votes.replace("\"can_vote\": false", "\"can_vote\": true"))
-        stub("POST", "votes/1", """{"message":"Danke für deine Stimme."}""")
-        show { AccountScreen(AccountRoute.Votes) }
-        waitForText("Wohin mit einem Überschuss?")
-        shot("votes")
-        compose.onNodeWithTag("vote.1.2").tap()
-        compose.onNodeWithTag("vote.cast.1").tap()
-        waitForRequest("POST", "votes/1")
-        waitForText("Danke für deine Stimme.")
-    }
-
-    @Test
-    fun votesForTrialMembersAndWithoutAnyVote() {
-        signIn()
-        stub("GET", "votes", Fixtures.votes.replace("\"voted\": false", "\"voted\": true"))
-        show { AccountScreen(AccountRoute.Votes) }
-        waitForText("Abstimmen können Mitglieder mit aktiver Mitgliedschaft", substring = true)
-        waitForText("Du hast abgestimmt. Danke!")
-    }
-
-    @Test
-    fun noVotesAtAll() {
-        signIn()
-        stub("GET", "votes", """{"data":{"can_vote":true,"open":[],"ended":[]}}""")
-        show { AccountScreen(AccountRoute.Votes) }
-        waitForText("Gerade läuft keine Abstimmung.")
-        compose.onNodeWithText("Noch keine abgeschlossenen Abstimmungen.").assertExists()
-        shot("votes-empty")
     }
 
     @Test

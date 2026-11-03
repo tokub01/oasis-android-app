@@ -32,7 +32,6 @@ import androidx.compose.material.icons.outlined.PanTool
 import androidx.compose.material.icons.outlined.RadioButtonChecked
 import androidx.compose.material.icons.outlined.RadioButtonUnchecked
 import androidx.compose.material.icons.outlined.Security
-import androidx.compose.material.icons.outlined.Verified
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.Text
@@ -87,7 +86,6 @@ import de.velwebsolutions.oasis.design.theme.OasisType
 import de.velwebsolutions.oasis.staff.api.Labelled
 import de.velwebsolutions.oasis.staff.api.StatTile
 import java.time.Instant
-import java.time.ZoneOffset
 import kotlinx.coroutines.launch
 
 /** Date formats of the staff pages, always in German time like the web (`d.m.Y H:i` in Europe/Berlin). */
@@ -100,12 +98,6 @@ object StaffDate {
 
     /** "22. Okt. 2026, 13:37" (Zahlungen). */
     fun medium(instant: Instant?): String = instant?.let { GermanTime.format(it, "d. MMM yyyy, HH:mm") } ?: "–"
-
-    /** A stored wall-clock value ("2026-11-01T10:00") as "1. Nov. 2026, 10:00", without a zone shift (votes, like the web). */
-    fun wallClock(value: String): String {
-        val instant = GermanTime.parse(value, "yyyy-MM-dd'T'HH:mm", ZoneOffset.UTC) ?: return value
-        return GermanTime.format(instant, "d. MMM yyyy, HH:mm", ZoneOffset.UTC)
-    }
 
     /** A date as the web's `datetime-local` value in German time ("2026-11-01T10:00"). */
     fun localInput(instant: Instant): String = GermanTime.format(instant, "yyyy-MM-dd'T'HH:mm")
@@ -132,7 +124,6 @@ enum class StaffArea(val key: String, val title: String, val icon: ImageVector, 
     Suspensions("suspensions", "Sperren", Icons.Outlined.Lock, StaffRoute.Suspensions),
     Roles("roles", "Rollen", Icons.Outlined.ManageAccounts, StaffRoute.Roles),
     Admin("admin", "Statistik", Icons.Outlined.BarChart, StaffRoute.AdminDashboard),
-    Votes("votes", "Abstimmungen", Icons.Outlined.Verified, StaffRoute.AdminVotes),
     Ideas("ideas", "Ideen", Icons.Outlined.Lightbulb, StaffRoute.AdminIdeas),
     Payments("payments", "Zahlungen", Icons.Outlined.Euro, StaffRoute.AdminPayments),
     Breaches("breaches", "Datenpannen", Icons.Outlined.GppMaybe, StaffRoute.AdminBreaches),
@@ -141,7 +132,7 @@ enum class StaffArea(val key: String, val title: String, val icon: ImageVector, 
 
     companion object {
         /** The admin pages, listed on the moderation start page and on the statistics. */
-        val adminPages = listOf(Votes, Ideas, Payments, Breaches, System)
+        val adminPages = listOf(Ideas, Payments, Breaches, System)
     }
 }
 

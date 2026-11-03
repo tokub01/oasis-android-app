@@ -61,24 +61,6 @@ data class AdminDashboard(
     data class Network(val tiles: List<StatTile> = emptyList(), val weeks: List<Week> = emptyList())
 }
 
-/** A member vote as admins see it. */
-@Serializable
-data class AdminVote(
-    val id: Int,
-    val title: String,
-    /** Wall-clock value as stored ("2026-11-01T10:00"), shown without a time zone shift like the web. */
-    val startsAt: String,
-    val endsAt: String,
-    /** läuft | beendet | geplant */
-    val state: String,
-    val participations: Int,
-    val results: List<Result>? = null
-) {
-    /** The votes of one answer. */
-    @Serializable
-    data class Result(val label: String, val votes: Int)
-}
-
 /** A member's idea as admins see it (the member API `GET ideas`, docs/oasis-admin.md „Ideen für Oasis“). */
 @Serializable
 data class AdminIdea(
@@ -90,15 +72,10 @@ data class AdminIdea(
     val statusLabel: String = "Offen",
     val statusReply: String? = null,
     val votes: Int = 0,
-    val author: Author? = null,
-    /** The linked member vote („Zur Abstimmung“). */
-    val vote: VoteRef? = null
+    val author: Author? = null
 ) {
     @Serializable
     data class Author(val displayName: String)
-
-    @Serializable
-    data class VoteRef(val id: Int, val title: String)
 
     companion object {
         /** The statuses with the web's labels (`Idea::STATUSES`). */
@@ -112,13 +89,9 @@ data class AdminIdea(
     }
 }
 
-/** „Stand setzen“: status, an optional reply (≤ 1000) and an optional linked vote. */
+/** „Stand setzen“: status and an optional reply (≤ 1000). */
 @Serializable
-data class IdeaStatusInput(val status: String, val reply: String = "", val voteId: Int? = null)
-
-/** A new vote as the form sends it (times as the web's `datetime-local` values). */
-@Serializable
-data class NewVote(val title: String, val description: String, val startsAt: String, val endsAt: String, val options: List<String>)
+data class IdeaStatusInput(val status: String, val reply: String = "")
 
 /** A local payment record (`GET staff/admin/payments`). */
 @Serializable

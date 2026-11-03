@@ -50,8 +50,6 @@ import de.velwebsolutions.oasis.design.components.OasisButtonKind
 import de.velwebsolutions.oasis.design.components.OasisScreen
 import de.velwebsolutions.oasis.design.components.Panel
 import de.velwebsolutions.oasis.design.components.PanelTone
-import de.velwebsolutions.oasis.design.components.Pill
-import de.velwebsolutions.oasis.design.components.PillTone
 import de.velwebsolutions.oasis.design.components.SideCard
 import de.velwebsolutions.oasis.design.components.SkeletonLayout
 import de.velwebsolutions.oasis.design.components.pressable
@@ -382,17 +380,6 @@ private fun LazyListScope.sideBlocks(context: SourceContext?, meetups: List<Meet
                         }
                     }
                 }
-            }
-        }
-    }
-    context?.openVote?.let { vote ->
-        block("side.vote") {
-            val navigator = LocalNavigator.current
-            Panel {
-                Pill("Abstimmung läuft", tone = PillTone.Spring)
-                Text(vote.title, style = OasisType.CardTitle, color = OasisColors.Night)
-                Text("endet am ${dayMonth(vote.endsAt)}", style = OasisType.Small, color = OasisColors.Muted)
-                OasisButton("Mitbestimmen", { navigator.open(AccountRoute.Votes) }, fullWidth = false)
             }
         }
     }

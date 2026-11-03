@@ -13,7 +13,6 @@ import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
-import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.semantics.Role
@@ -42,7 +41,6 @@ import de.velwebsolutions.oasis.design.theme.OasisColors
 import de.velwebsolutions.oasis.design.theme.OasisRadius
 import de.velwebsolutions.oasis.design.theme.OasisType
 import de.velwebsolutions.oasis.membership.api.FinanceReport
-import de.velwebsolutions.oasis.membership.api.MembershipFormat
 import de.velwebsolutions.oasis.membership.api.Transparency
 import de.velwebsolutions.oasis.membership.data.MembershipRepository
 import javax.inject.Inject
@@ -92,9 +90,6 @@ class TransparencyViewModel @Inject constructor(private val repository: Membersh
     /** Hides the error once the snackbar showed it. */
     fun dismissError() = mutableState.update { it.copy(error = null) }
 }
-
-/** „1 Stimme“, „12 Stimmen“. */
-fun voteCount(count: Int): String = if (count == 1) "1 Stimme" else "$count Stimmen"
 
 /** „1.234“ – a figure as the web shows it. */
 fun figureText(value: Int): String = java.text.NumberFormat.getIntegerInstance(java.util.Locale.GERMANY).format(value)
@@ -155,13 +150,6 @@ fun TransparencyContent(state: TransparencyUiState, onRefresh: suspend () -> Uni
                         }
                     }
                 }
-                Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
-                    Heading("Abstimmungen")
-                    if (page.figures.votes.isEmpty()) {
-                        Text("Noch keine abgeschlossene Abstimmung.", style = OasisType.Body, color = OasisColors.Ink2)
-                    }
-                    page.figures.votes.forEach { vote -> VoteResults(vote) }
-                }
             }
         }
     }
@@ -183,24 +171,6 @@ private fun Figure(value: Int, label: String) {
     ) {
         Text(figureText(value), style = OasisType.figure(), color = OasisColors.Night)
         Text(label, style = OasisType.Body, color = OasisColors.Ink2)
-    }
-}
-
-@Composable
-private fun VoteResults(vote: Transparency.Vote) {
-    Panel(spacing = 8) {
-        Text(vote.title, style = OasisType.CardTitle, color = OasisColors.Night)
-        Text(
-            "${voteCount(vote.participations)} · beendet am ${MembershipFormat.day(vote.endedAt)}",
-            style = OasisType.Small,
-            color = OasisColors.Muted
-        )
-        vote.results.forEach { result ->
-            Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
-                Text(result.label, style = OasisType.Body, color = OasisColors.Ink, modifier = Modifier.weight(1f))
-                Text("${result.votes}", style = OasisType.BodyBold, color = OasisColors.Ink)
-            }
-        }
     }
 }
 

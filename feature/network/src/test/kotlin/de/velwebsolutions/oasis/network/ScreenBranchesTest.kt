@@ -418,8 +418,7 @@ class ScreenBranchesTest {
 
     @Test
     fun `the end of Durchblättern lists what waits, one and many`() {
-        val vote = SwipeDeck.Vote(1, "Regeln")
-        var deck by mutableStateOf(SwipeDeck(unreadChats = 1, friendRequests = 1, unreadHints = 1, openVote = vote))
+        var deck by mutableStateOf(SwipeDeck(unreadChats = 1, friendRequests = 1, unreadHints = 1))
         show { SwipeContent(deck) { _, _ -> } }
         text("1 Chat mit neuen Nachrichten")
         text("1 Freundschaftsanfrage")

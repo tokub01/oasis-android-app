@@ -56,9 +56,6 @@ internal data class WelcomeProfileBody(val bio: String, val location: String, va
 internal data class WelcomeVisibilityBody(val profileAudience: String, val defaultPostVisibility: String)
 
 @Serializable
-internal data class BallotBody(val option: Int?)
-
-@Serializable
 internal data class NewPasskeyBody(val challenge: String, val credential: JsonObject, val name: String?)
 
 @Serializable
@@ -70,7 +67,7 @@ internal data class PhoneBody(val phoneNumber: String)
 /**
  * The account area's endpoints (`routes/api/v1/members/account.php`: `api.v1.account.*`, `api.v1.suspension.*`,
  * `api.v1.complaints.*`, `api.v1.privacy.*`, `api.v1.safety.*`, `api.v1.report.*`, `api.v1.onboarding.*`,
- * `api.v1.votes.*`, `api.v1.glossary`, the passkeys and the mobile number) and the guest step of the two-factor
+ * `api.v1.glossary`, the passkeys and the mobile number) and the guest step of the two-factor
  * recovery.
  */
 internal interface AccountService {
@@ -213,12 +210,6 @@ internal interface AccountService {
 
     @POST("onboarding/finish")
     suspend fun finishWelcome()
-
-    @GET("votes")
-    suspend fun votes(): DataEnvelope<VotesOverview>
-
-    @POST("votes/{id}")
-    suspend fun cast(@Path("id") id: Int, @Body body: BallotBody): MessageResponse
 
     @GET("glossary")
     suspend fun glossary(): DataEnvelope<List<GlossaryTerm>>

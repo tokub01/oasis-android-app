@@ -44,13 +44,12 @@ class AdminIdeasTest {
     private val repository = FakeStaffRepository()
 
     @Test
-    fun `ideas load with the votes to link, page on and sort`() = runTest {
+    fun `ideas load, page on and sort`() = runTest {
         val viewModel = AdminIdeasViewModel(repository)
         viewModel.load()
         val state = viewModel.state.value
         assertEquals(listOf(7, 8), state.ideas.valueOrNull?.map { it.id })
         assertEquals(2, state.nextPage)
-        assertEquals(Decoded.votes, state.votes)
         repository.ideas = Result.success(Page(listOf(Decoded.ideas.data.first(), Decoded.ideas.data.first().copy(id = 9))))
         viewModel.loadMore()
         assertEquals("known ones once", listOf(7, 8, 9), viewModel.state.value.ideas.valueOrNull?.map { it.id })
@@ -59,9 +58,6 @@ class AdminIdeasTest {
         viewModel.choose("new")
         assertTrue(repository.calls.containsAll(listOf("ideas popular 1", "ideas popular 2", "ideas new 1")))
 
-        repository.votes = FakeStaffRepository.failure()
-        viewModel.load()
-        assertEquals("the votes stay", Decoded.votes, viewModel.state.value.votes)
         repository.ideas = FakeStaffRepository.failure("Offline")
         viewModel.load()
         assertEquals("Offline", viewModel.state.value.error)
@@ -80,9 +76,8 @@ class AdminIdeasTest {
         assertEquals("Offline", paging.state.value.error)
         assertEquals(2, paging.state.value.nextPage)
         val written = de.velwebsolutions.oasis.core.network.OasisJson.snake.encodeToString(AdminIdea.serializer(), Decoded.ideas.data[1])
-        assertTrue(written.contains("Wohin mit einem Überschuss?"))
+        assertTrue(written.contains("Kommt im Winter."))
         assertEquals("Aylin", AdminIdea.Author("Aylin").displayName)
-        assertEquals(1, AdminIdea.VoteRef(1, "Frage?").id)
         val signed = Decoded.ideas.data.first()
         assertTrue(
             de.velwebsolutions.oasis.core.network.OasisJson.snake.encodeToString(AdminIdea.serializer(), signed).contains("Aylin Demir")
@@ -94,10 +89,10 @@ class AdminIdeasTest {
         val viewModel = AdminIdeasViewModel(repository)
         viewModel.load()
         val idea = viewModel.state.value.ideas.valueOrNull!!.first()
-        assertEquals(IdeaStatusInput("open", "", null), viewModel.state.value.form(idea))
-        val linked = viewModel.state.value.ideas.valueOrNull!![1]
-        assertEquals(IdeaStatusInput("planned", "Kommt im Winter.", 1), viewModel.state.value.form(linked))
-        viewModel.edit(idea) { it.copy(status = "planned", reply = "Bald.", voteId = 1) }
+        assertEquals(IdeaStatusInput("open", ""), viewModel.state.value.form(idea))
+        val answered = viewModel.state.value.ideas.valueOrNull!![1]
+        assertEquals(IdeaStatusInput("planned", "Kommt im Winter."), viewModel.state.value.form(answered))
+        viewModel.edit(idea) { it.copy(status = "planned", reply = "Bald.") }
         repository.ideaStatus = FakeStaffRepository.invalid("reply" to "Zu lang.")
         viewModel.save(idea)
         assertEquals("Zu lang.", viewModel.state.value.fieldErrors[7]?.get("reply"))
@@ -108,7 +103,7 @@ class AdminIdeasTest {
             de.velwebsolutions.oasis.core.network.Confirmed(idea.copy(status = "planned", statusLabel = "Geplant"), "Gespeichert.")
         )
         viewModel.save(idea)
-        assertTrue(repository.calls.contains("idea 7 planned Bald. 1"))
+        assertTrue(repository.calls.contains("idea 7 planned Bald."))
         assertEquals("Geplant", viewModel.state.value.ideas.valueOrNull!!.first().statusLabel)
         assertEquals("Gespeichert.", viewModel.state.value.message)
         assertTrue(viewModel.state.value.forms.isEmpty() && viewModel.state.value.fieldErrors.isEmpty())
@@ -122,7 +117,7 @@ class AdminIdeasTest {
     }
 
     @Test
-    fun `the page sets a status with a reply and a linked vote`() {
+    fun `the page sets a status with a reply`() {
         val viewModel = AdminIdeasViewModel(repository)
         ui.show { AdminIdeasScreen(viewModel) }
         compose.onNodeWithText("Dunkler Modus für die App").assertExists()
@@ -130,11 +125,9 @@ class AdminIdeasTest {
         compose.onNodeWithTag("idea.7.status").performClick()
         compose.onNodeWithText("In Arbeit").performClick()
         compose.onNode(hasSetTextAction() and hasAnyAncestor(hasTestTag("idea.7.reply"))).performScrollTo().performTextInput("Wir bauen.")
-        compose.onNodeWithTag("idea.7.vote").performScrollTo().performClick()
-        compose.onNodeWithText("Soll die Quelle eine Suchfunktion bekommen?").performClick()
         compose.onNodeWithTag("idea.7.save").performScrollTo().performClick()
         compose.waitForIdle()
-        assertTrue(repository.calls.toString(), repository.calls.any { it == "idea 7 in_progress Wir bauen. 2" })
+        assertTrue(repository.calls.toString(), repository.calls.any { it == "idea 7 in_progress Wir bauen." })
         // The confirmation's snackbar would cover the buttons below.
         viewModel.dismissMessage()
         compose.onNodeWithTag("ideas.more").performScrollTo().performClick()

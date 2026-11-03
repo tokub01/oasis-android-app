@@ -69,13 +69,8 @@ data class Idea(
     val canDelete: Boolean = false,
     val author: Member? = null,
     val createdAt: OasisInstant,
-    /** The member vote an admin linked („Zur Abstimmung“). */
-    val vote: VoteRef? = null,
     val reportUrl: String = ""
 ) {
-    @Serializable
-    data class VoteRef(val id: Int, val title: String)
-
     /** „Geplant“, „In Arbeit“ and „Umgesetzt“ stand out. */
     val isUnderway: Boolean get() = status in UNDERWAY
 

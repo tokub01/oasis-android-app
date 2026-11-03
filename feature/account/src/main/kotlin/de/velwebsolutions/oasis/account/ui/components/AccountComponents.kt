@@ -143,8 +143,8 @@ fun LinkText(text: String, onClick: () -> Unit, modifier: Modifier = Modifier, b
 }
 
 /**
- * Radio choices as pills, one per line (the web's labelled radios): privacy audiences, report categories, the
- * welcome tour's choices and vote options.
+ * Radio choices as pills, one per line (the web's labelled radios): privacy audiences, report categories and the
+ * welcome tour's choices.
  */
 @Composable
 fun <T> FlowChoices(options: List<Pair<T, String>>, selected: T?, tag: String, enabled: Boolean = true, choose: (T) -> Unit) {

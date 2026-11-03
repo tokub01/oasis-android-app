@@ -141,8 +141,7 @@ class LettersAndIdeasUiTest {
                         7,
                         status = "planned",
                         label = "Geplant",
-                        reply = "\"Kommt im Winter.\"",
-                        vote = """{"id":1,"title":"Neue Farben?"}"""
+                        reply = "\"Kommt im Winter.\""
                     ),
                     ideaJson(8, mine = true, voted = true),
                     ideaJson(9, mine = true, hidden = true).replace("\"can_delete\":true", "\"can_delete\":false"),
@@ -176,8 +175,6 @@ class LettersAndIdeasUiTest {
         compose.onNodeWithTag("ideas.cancel").tap()
 
         scrollTo("idea.7")
-        compose.onNodeWithTag("idea.7.voteLink").tap()
-        assertTrue(opened(AccountRoute.Votes))
         compose.onNodeWithTag("idea.7.vote").tap()
         compose.waitUntil(5_000) { model.ideas.value.valueOrNull?.ideas?.first()?.voted == true }
         compose.onNodeWithTag("idea.3.report").tap()

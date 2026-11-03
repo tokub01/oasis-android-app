@@ -5,7 +5,6 @@ import de.velwebsolutions.oasis.core.network.Confirmed
 import de.velwebsolutions.oasis.core.network.Page
 import de.velwebsolutions.oasis.staff.api.AdminDashboard
 import de.velwebsolutions.oasis.staff.api.AdminIdea
-import de.velwebsolutions.oasis.staff.api.AdminVote
 import de.velwebsolutions.oasis.staff.api.AssignBody
 import de.velwebsolutions.oasis.staff.api.BreachRegister
 import de.velwebsolutions.oasis.staff.api.CaseSummary
@@ -17,7 +16,6 @@ import de.velwebsolutions.oasis.staff.api.ModerationCaseDetail
 import de.velwebsolutions.oasis.staff.api.ModerationOverview
 import de.velwebsolutions.oasis.staff.api.MollieLookup
 import de.velwebsolutions.oasis.staff.api.NewBreach
-import de.velwebsolutions.oasis.staff.api.NewVote
 import de.velwebsolutions.oasis.staff.api.NoteBody
 import de.velwebsolutions.oasis.staff.api.PasswordBody
 import de.velwebsolutions.oasis.staff.api.PaymentPage
@@ -36,7 +34,7 @@ import de.velwebsolutions.oasis.staff.api.SystemStatus
 import de.velwebsolutions.oasis.staff.api.TypeBody
 import javax.inject.Inject
 
-/** Moderation (cases, complaints, roles, locks) and administration (statistics, votes, payments, breaches, system). */
+/** Moderation (cases, complaints, roles, locks) and administration (statistics, ideas, payments, breaches, system). */
 interface StaffRepository {
     suspend fun overview(): ModerationOverview
 
@@ -88,10 +86,6 @@ interface StaffRepository {
 
     /** Statistics for [days] (7, 30, 90, 365) and the revenue [month] ("YYYY-MM", "" for the current one). */
     suspend fun dashboard(days: Int, month: String): AdminDashboard
-
-    suspend fun votes(): List<AdminVote>
-
-    suspend fun createVote(vote: NewVote): Confirmed<AdminVote>
 
     /** A page of members' ideas in [sort] order (popular|new). */
     suspend fun ideas(sort: String, page: Int): Page<AdminIdea>
@@ -180,10 +174,6 @@ class DefaultStaffRepository @Inject constructor(private val client: ApiClient) 
     override suspend fun release(suspensionId: Int) = service.release(suspensionId).message
 
     override suspend fun dashboard(days: Int, month: String) = service.dashboard(days, month.ifEmpty { null }).data
-
-    override suspend fun votes() = service.votes().data
-
-    override suspend fun createVote(vote: NewVote) = service.createVote(vote)
 
     override suspend fun ideas(sort: String, page: Int) = service.ideas(sort, page)
 

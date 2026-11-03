@@ -53,7 +53,6 @@ class NetworkRepositoryTest(private val answersAtOnce: Boolean) {
         assertEquals(3, page.context?.week?.karawane)
         assertEquals("host", page.context?.oases?.first()?.role)
         assertEquals(true, page.context?.canPost)
-        assertEquals("Wohin mit einem Überschuss?", page.context?.openVote?.title)
     }
 
     @Test

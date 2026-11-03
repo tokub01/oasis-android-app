@@ -134,7 +134,7 @@ class ScreenFlowsTest {
                 pageJson(
                     postJson(3),
                     context = """{"show_all":false,"follows_anyone":false,"can_post":true,"week":{"followers":1,"reactions":2,"karawane":3},
-                    |"oases":[],"open_vote":{"id":1,"title":"Neue Regeln","ends_at":"2026-11-03T12:00:00Z"}}
+                    |"oases":[]}
                     """.trimMargin()
                 )
             )
@@ -144,7 +144,6 @@ class ScreenFlowsTest {
         )
         show(ScreenChrome()) { SourceScreen(model) }
         text("Nächste Schritte").assertIsDisplayed()
-        text("Neue Regeln").assertIsDisplayed()
         capture("source")
         compose.onNodeWithTag("source.compose").performClick()
         assertEquals(NetworkRoute.Compose(), navigator.sheet)

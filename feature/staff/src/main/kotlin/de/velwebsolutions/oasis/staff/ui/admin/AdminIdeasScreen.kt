@@ -26,7 +26,6 @@ import de.velwebsolutions.oasis.design.components.OasisTextField
 import de.velwebsolutions.oasis.design.theme.OasisColors
 import de.velwebsolutions.oasis.design.theme.OasisType
 import de.velwebsolutions.oasis.staff.api.AdminIdea
-import de.velwebsolutions.oasis.staff.api.AdminVote
 import de.velwebsolutions.oasis.staff.api.IdeaStatusInput
 import de.velwebsolutions.oasis.staff.api.Labelled
 import de.velwebsolutions.oasis.staff.data.StaffRepository
@@ -43,10 +42,9 @@ import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 
-/** The ideas page: the ideas, their „Stand setzen“ forms (by idea) and the member votes to link. */
+/** The ideas page: the ideas and their „Stand setzen“ forms (by idea). */
 data class AdminIdeasUiState(
     val ideas: Loadable<List<AdminIdea>> = Loadable.Idle,
-    val votes: List<AdminVote> = emptyList(),
     val sort: String = "popular",
     /** The page „Weitere Ideen“ loads; null on the last one. */
     val nextPage: Int? = null,
@@ -56,10 +54,10 @@ data class AdminIdeasUiState(
     val error: String? = null
 ) {
     /** The form of [idea], at first what the idea has. */
-    fun form(idea: AdminIdea): IdeaStatusInput = forms[idea.id] ?: IdeaStatusInput(idea.status, idea.statusReply.orEmpty(), idea.vote?.id)
+    fun form(idea: AdminIdea): IdeaStatusInput = forms[idea.id] ?: IdeaStatusInput(idea.status, idea.statusReply.orEmpty())
 }
 
-/** „Ideen“ for admins (web: the status form on /app/ideen, only for `administrate`): status, reply and linked vote. */
+/** „Ideen“ for admins (web: the status form on /app/ideen, only for `administrate`): status and reply. */
 @HiltViewModel
 class AdminIdeasViewModel @Inject constructor(private val repository: StaffRepository) : ViewModel() {
     private val mutableState = MutableStateFlow(AdminIdeasUiState())
@@ -77,7 +75,6 @@ class AdminIdeasViewModel @Inject constructor(private val repository: StaffRepos
             mutableState.update {
                 it.copy(ideas = Loadable.Loaded(page.data), nextPage = page.nextCursor?.toIntOrNull(), forms = emptyMap())
             }
-            attempt { repository.votes() }.onSuccess { votes -> mutableState.update { it.copy(votes = votes) } }
         }
         result.apiError?.let { failure ->
             mutableState.update {
@@ -218,14 +215,6 @@ private fun AdminIdeaCard(idea: AdminIdea, state: AdminIdeasUiState, viewModel: 
                 lines = 2..6,
                 maxLength = 1000
             )
-            OptionPicker(
-                "Abstimmung (optional)",
-                listOf(Labelled("", "Keine Abstimmung")) + state.votes.map { Labelled("${it.id}", it.title) },
-                form.voteId?.toString().orEmpty(),
-                { vote -> viewModel.edit(idea) { it.copy(voteId = vote.toIntOrNull()) } },
-                Modifier.testTag("idea.${idea.id}.vote")
-            )
-            errors["vote_id"]?.let { FieldError(it) }
             AsyncOasisButton("Stand speichern", { viewModel.save(idea) }, Modifier.testTag("idea.${idea.id}.save"), fullWidth = false)
         }
     }

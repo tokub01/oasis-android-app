@@ -2,7 +2,6 @@ package de.velwebsolutions.oasis.account.data
 
 import de.velwebsolutions.oasis.account.api.AccountService
 import de.velwebsolutions.oasis.account.api.AccountSettings
-import de.velwebsolutions.oasis.account.api.BallotBody
 import de.velwebsolutions.oasis.account.api.CodeBody
 import de.velwebsolutions.oasis.account.api.ComplaintDecision
 import de.velwebsolutions.oasis.account.api.ConfirmPasswordBody
@@ -31,7 +30,6 @@ import de.velwebsolutions.oasis.account.api.SettingsChange
 import de.velwebsolutions.oasis.account.api.StatementBody
 import de.velwebsolutions.oasis.account.api.StatementSaved
 import de.velwebsolutions.oasis.account.api.Suspension
-import de.velwebsolutions.oasis.account.api.VotesOverview
 import de.velwebsolutions.oasis.account.api.WelcomeProfileBody
 import de.velwebsolutions.oasis.account.api.WelcomeTour
 import de.velwebsolutions.oasis.account.api.WelcomeVisibilityBody
@@ -54,7 +52,7 @@ import kotlinx.serialization.json.JsonPrimitive
 val ApiError.needsPasswordConfirmation: Boolean
     get() = this is ApiError.Server && status == 423
 
-/** The account area: settings, lock and complaints, privacy, devices, safety, the welcome tour, votes and glossary. */
+/** The account area: settings, lock and complaints, privacy, devices, safety, the welcome tour and glossary. */
 interface AccountRepository {
     suspend fun settings(): AccountSettings
 
@@ -141,10 +139,6 @@ interface AccountRepository {
 
     /** The live hint for the profile text (shared with the composer: `network/tone`). */
     suspend fun profileTone(text: String): ToneHint
-
-    suspend fun votes(): VotesOverview
-
-    suspend fun cast(voteId: Int, optionId: Int?): String
 
     suspend fun glossary(): List<GlossaryTerm>
 
@@ -268,10 +262,6 @@ class DefaultAccountRepository @Inject constructor(private val client: ApiClient
     override suspend fun finishWelcome() = service.finishWelcome()
 
     override suspend fun profileTone(text: String) = common.toneHint(text, "profile")
-
-    override suspend fun votes() = service.votes().data
-
-    override suspend fun cast(voteId: Int, optionId: Int?) = service.cast(voteId, BallotBody(optionId)).message
 
     override suspend fun glossary() = service.glossary().data
 

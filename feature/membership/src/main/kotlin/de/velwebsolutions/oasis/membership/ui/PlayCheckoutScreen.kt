@@ -88,8 +88,7 @@ fun PlayCheckoutContent(
             PageHeader(
                 "Bleib in der Oase.",
                 eyebrow = "Mitgliedschaft",
-                lead = "Werbefrei und ohne Algorithmus, getragen von den Mitgliedern. Bei Abstimmungen hat jedes Mitglied eine Stimme, " +
-                    "egal welche Stufe."
+                lead = "Werbefrei und ohne Algorithmus, getragen von den Mitgliedern."
             )
             val rhythms = listOf(PlayProducts.MONTHLY to "Monatlich", PlayProducts.YEARLY to "Jährlich · 2 Monate geschenkt")
             // Both segments as high as the taller label, so "Jährlich · 2 Monate geschenkt" may wrap without a step.

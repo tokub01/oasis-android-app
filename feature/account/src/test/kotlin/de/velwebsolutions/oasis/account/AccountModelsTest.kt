@@ -3,11 +3,9 @@ package de.velwebsolutions.oasis.account
 import de.velwebsolutions.oasis.account.api.AccountSettings
 import de.velwebsolutions.oasis.account.api.ComplaintDecision
 import de.velwebsolutions.oasis.account.api.DeviceOverview
-import de.velwebsolutions.oasis.account.api.EndedVote
 import de.velwebsolutions.oasis.account.api.GlossaryTerm
 import de.velwebsolutions.oasis.account.api.HiddenWords
 import de.velwebsolutions.oasis.account.api.OasisJoined
-import de.velwebsolutions.oasis.account.api.OpenVote
 import de.velwebsolutions.oasis.account.api.PhoneNumberStatus
 import de.velwebsolutions.oasis.account.api.PrivacyCentre
 import de.velwebsolutions.oasis.account.api.PrivacyChoice
@@ -24,8 +22,6 @@ import de.velwebsolutions.oasis.account.api.StarterOasis
 import de.velwebsolutions.oasis.account.api.StatementSaved
 import de.velwebsolutions.oasis.account.api.Suspension
 import de.velwebsolutions.oasis.account.api.TwoFactorState
-import de.velwebsolutions.oasis.account.api.VoteOption
-import de.velwebsolutions.oasis.account.api.VotesOverview
 import de.velwebsolutions.oasis.account.api.WelcomeStep
 import de.velwebsolutions.oasis.account.api.WelcomeTour
 import de.velwebsolutions.oasis.account.ui.auth.PastDates
@@ -121,7 +117,7 @@ class AccountModelsTest {
     }
 
     @Test
-    fun welcomeVotesAndGlossary() {
+    fun welcomeAndGlossary() {
         roundTrip(
             WelcomeTour.serializer(),
             WelcomeTour(listOf(WelcomeStep("profil", "Über dich"))),
@@ -135,16 +131,6 @@ class AccountModelsTest {
             )
         )
         roundTrip(OasisJoined.serializer(), OasisJoined(true))
-        roundTrip(
-            VotesOverview.serializer(),
-            VotesOverview(),
-            VotesOverview(
-                true,
-                listOf(OpenVote(1, "Frage", endsAt = at), OpenVote(2, "F", "d", at, true, listOf(VoteOption(1, "Ja")))),
-                listOf(EndedVote(3, "Alt", at), EndedVote(4, "A", at, 9, listOf(VoteOption(2, "Nein", 40, false))))
-            )
-        )
-        assertEquals(listOf(3, 3), listOf(EndedVote(3, "Alt", at).id, OpenVote(3, "F", endsAt = at).id))
         val term = GlossaryTerm("Tropfen", "tropfen", "Ein Beitrag")
         roundTrip(GlossaryTerm.serializer(), term)
         assertEquals("tropfen", term.slug)

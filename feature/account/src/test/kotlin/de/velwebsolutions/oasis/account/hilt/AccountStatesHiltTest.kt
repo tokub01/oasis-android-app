@@ -52,12 +52,6 @@ class AccountStatesHiltTest : HiltScreenTest() {
     }
 
     @Test
-    fun votesRefresh() {
-        signIn()
-        refreshes(AccountRoute.Votes, "votes", Fixtures.votes.replace("\"can_vote\": false", "\"can_vote\": true"), "vote.cast.1")
-    }
-
-    @Test
     fun thePrivacyCentreRefreshes() {
         signIn()
         refreshes(AccountRoute.Privacy, "privacy", Fixtures.privacy, "privacy.checkup")

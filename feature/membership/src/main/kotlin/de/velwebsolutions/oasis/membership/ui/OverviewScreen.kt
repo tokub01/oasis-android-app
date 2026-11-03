@@ -45,10 +45,10 @@ import de.velwebsolutions.oasis.design.components.PanelTone
 import de.velwebsolutions.oasis.design.components.SectionCard
 import de.velwebsolutions.oasis.design.components.SideCard
 import de.velwebsolutions.oasis.design.components.pressable
-import de.velwebsolutions.oasis.design.navigation.AccountRoute
 import de.velwebsolutions.oasis.design.navigation.LocalNavigator
 import de.velwebsolutions.oasis.design.navigation.MembershipRoute
 import de.velwebsolutions.oasis.design.navigation.Navigator
+import de.velwebsolutions.oasis.design.navigation.NetworkRoute
 import de.velwebsolutions.oasis.design.navigation.WebRoute
 import de.velwebsolutions.oasis.design.theme.OasisColors
 import de.velwebsolutions.oasis.design.theme.OasisRadius
@@ -140,9 +140,9 @@ private fun OverviewSections(overview: MembershipOverview, onSubscriptionManaged
         }
         SideCard("Fair finanziert", tone = PanelTone.Night) {
             Text(
-                "Oasis ist werbefrei und lebt von den Beiträgen seiner Mitglieder. Bei Abstimmungen hat jedes Mitglied eine Stimme, egal welche Stufe."
+                "Oasis ist werbefrei und lebt von den Beiträgen seiner Mitglieder. Deine Wünsche und Vorschläge sammeln wir in „Ideen für Oasis“."
             )
-            InlineLink("Zu den Abstimmungen", { navigator.open(AccountRoute.Votes) }, color = OasisColors.OnNight)
+            InlineLink("Zu den Ideen", { navigator.open(NetworkRoute.Ideas()) }, color = OasisColors.OnNight)
         }
         SideCard("Gut zu wissen", tone = PanelTone.Dune) {
             InlineLink("Stufen & Preise", { openWebsite("/preise") }, color = OasisColors.Night)

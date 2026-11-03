@@ -20,17 +20,16 @@ object Fixtures {
     val roles get() = json("roles")
     val suspensions get() = json("suspensions")
     val dashboard get() = json("dashboard")
-    val votes get() = json("votes")
 
     /** `GET ideas` (the member API the admin page lists from): two ideas, one more page. */
     val ideas = """
         {"data":[{"id":7,"title":"Dunkler Modus für die App","description":"Abends angenehmer.","status":"open",
         "status_label":"Offen","status_reply":null,"votes":12,"voted":false,"mine":false,"hidden":false,"can_vote":true,
         "can_delete":false,"author":{"id":3,"username":"aylin","display_name":"Aylin Demir","initials":"AD"},
-        "created_at":"2026-10-20T10:00:00.000000Z","vote":null,"report_url":"http://localhost/app/ideen/7"},
+        "created_at":"2026-10-20T10:00:00.000000Z","report_url":"http://localhost/app/ideen/7"},
         {"id":8,"title":"Kalender-Export","description":null,"status":"planned","status_label":"Geplant",
         "status_reply":"Kommt im Winter.","votes":1,"voted":true,"mine":true,"hidden":false,"can_vote":true,"can_delete":false,
-        "author":null,"created_at":"2026-10-21T10:00:00.000000Z","vote":{"id":1,"title":"Wohin mit einem Überschuss?"},
+        "author":null,"created_at":"2026-10-21T10:00:00.000000Z",
         "report_url":"http://localhost/app/ideen/8"}],"meta":{"current_page":1,"last_page":2,"per_page":20,"total":21}}
     """.trimIndent()
     val payments get() = json("payments")

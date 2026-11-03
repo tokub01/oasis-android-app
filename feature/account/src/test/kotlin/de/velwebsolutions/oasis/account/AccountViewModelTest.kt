@@ -5,7 +5,6 @@ import de.velwebsolutions.oasis.account.api.SettingsChange
 import de.velwebsolutions.oasis.account.api.TwoFactorState
 import de.velwebsolutions.oasis.account.data.AccountRepository
 import de.velwebsolutions.oasis.account.ui.components.QrCode
-import de.velwebsolutions.oasis.account.ui.member.VotesViewModel
 import de.velwebsolutions.oasis.account.ui.privacy.HiddenWordsViewModel
 import de.velwebsolutions.oasis.account.ui.privacy.PrivacyViewModel
 import de.velwebsolutions.oasis.account.ui.safety.ReportViewModel
@@ -340,17 +339,5 @@ class AccountViewModelTest {
         model.send()
         assertTrue(model.ui.value.sent)
         assertEquals(JsonPrimitive(category), transport.lastBody("report")?.jsonObject?.get("category"))
-    }
-
-    @Test
-    fun showsTheBallotError() = runTest {
-        val transport = StubTransport()
-            .stub("GET", "votes", Fixtures.votes)
-            .stub("POST", "votes/1", """{"message":"x","errors":{"option":["Bitte wähle eine Antwort aus."]}}""", status = 422)
-        val model = VotesViewModel(repository(transport))
-        model.ui.first { loaded(it.state) }
-        val vote = model.ui.value.state.valueOrNull!!.open.first()
-        model.cast(vote)
-        assertEquals("Bitte wähle eine Antwort aus.", model.ui.value.errors[vote.id])
     }
 }

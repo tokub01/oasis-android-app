@@ -56,7 +56,6 @@ data class SourceContext(
     val canPost: Boolean = true,
     val week: Week? = null,
     val oases: List<OasisSummary>? = null,
-    val openVote: Vote? = null,
     /**
      * The newest Tropfen id of the first page at the last visit (first page only, null on the first visit): the Quelle
      * shows what is newer, then „Du hast alles Neue gesehen.“ (docs/oasis-network.md, „Alles Neue gesehen“).
@@ -65,9 +64,6 @@ data class SourceContext(
 ) {
     @Serializable
     data class Week(val followers: Int = 0, val reactions: Int = 0, val karawane: Int = 0)
-
-    @Serializable
-    data class Vote(val id: Int, val title: String, val endsAt: OasisInstant)
 }
 
 /** Entdecken's side information. */
@@ -94,14 +90,10 @@ data class SwipeDeck(
     val chapters: List<Chapter> = emptyList(),
     val unreadChats: Int = 0,
     val unreadHints: Int = 0,
-    val friendRequests: Int = 0,
-    val openVote: Vote? = null
+    val friendRequests: Int = 0
 ) {
     @Serializable
     data class Chapter(val key: String, val title: String, val reason: String = "", val posts: List<Post> = emptyList())
-
-    @Serializable
-    data class Vote(val id: Int, val title: String)
 }
 
 /** "Deine Zahlen". */

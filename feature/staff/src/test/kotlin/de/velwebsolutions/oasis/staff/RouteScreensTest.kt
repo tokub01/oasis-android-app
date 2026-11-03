@@ -25,7 +25,6 @@ import de.velwebsolutions.oasis.staff.data.StaffFiles
 import de.velwebsolutions.oasis.staff.ui.admin.AdminDashboardViewModel
 import de.velwebsolutions.oasis.staff.ui.admin.AdminIdeasViewModel
 import de.velwebsolutions.oasis.staff.ui.admin.AdminPaymentsViewModel
-import de.velwebsolutions.oasis.staff.ui.admin.AdminVotesViewModel
 import de.velwebsolutions.oasis.staff.ui.admin.DataBreachesViewModel
 import de.velwebsolutions.oasis.staff.ui.admin.SystemViewModel
 import de.velwebsolutions.oasis.staff.ui.moderation.CaseDetailViewModel
@@ -77,7 +76,6 @@ class RouteScreensTest {
             RolesViewModel::class -> RolesViewModel(repository)
             SuspensionsViewModel::class -> SuspensionsViewModel(repository)
             AdminDashboardViewModel::class -> AdminDashboardViewModel(repository)
-            AdminVotesViewModel::class -> AdminVotesViewModel(repository)
             AdminIdeasViewModel::class -> AdminIdeasViewModel(repository)
             AdminPaymentsViewModel::class -> AdminPaymentsViewModel(repository)
             DataBreachesViewModel::class -> DataBreachesViewModel(repository)
@@ -94,7 +92,6 @@ class RouteScreensTest {
             get(RolesViewModel::class)
             get(SuspensionsViewModel::class)
             get(AdminDashboardViewModel::class)
-            get(AdminVotesViewModel::class)
             get(AdminIdeasViewModel::class)
             get(AdminPaymentsViewModel::class)
             get(DataBreachesViewModel::class)
@@ -121,8 +118,6 @@ class RouteScreensTest {
         compose.onNodeWithText("Konten, die gerade gesperrt sind", substring = true).assertExists()
         route = StaffRoute.AdminDashboard
         compose.onNodeWithTag("revenue.amount").assertExists()
-        route = StaffRoute.AdminVotes
-        compose.onNodeWithText("Neue Abstimmung").assertExists()
         route = StaffRoute.AdminIdeas
         compose.onNodeWithText("Dunkler Modus für die App").assertExists()
         route = StaffRoute.AdminPayments

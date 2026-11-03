@@ -194,7 +194,6 @@ class ScreenViewModelTest(private val answersAtOnce: Boolean) {
         val after = model.deck.value.valueOrNull!!
         assertTrue(after.chapters.none { chapter -> chapter.posts.any { it.author.id == 2 } })
         assertEquals("besprochen", after.chapters.first().key)
-        assertEquals("Wohin mit einem Überschuss?", after.openVote?.title)
     }
 
     @Test

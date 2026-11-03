@@ -14,7 +14,7 @@ import org.junit.Test
  */
 class ModelConstructionTest {
     private val models = listOf(
-        "StatTile", "AdminDashboard", "AdminVote", "NewVote", "PaymentRecord", "PaymentPage", "MolliePayment", "MollieCustomer",
+        "StatTile", "AdminDashboard", "PaymentRecord", "PaymentPage", "MolliePayment", "MollieCustomer",
         "MollieLookup", "DataBreach", "BreachRegister", "NewBreach", "SystemStatus", "Labelled", "ModerationOverview", "CaseSummary",
         "QueueFilter", "Decision", "ModerationCaseDetail", "StatementOfReasons", "ComplaintDetail", "ComplaintReview", "RoleUser",
         "RolePage", "SuspensionList", "Suspension", "AssignBody", "TypeBody", "ReferenceBody", "RoleBody", "SearchBody",

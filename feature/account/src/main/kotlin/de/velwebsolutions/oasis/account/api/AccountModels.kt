@@ -290,33 +290,6 @@ data class WelcomeTour(
 @Serializable
 data class OasisJoined(val joined: Boolean)
 
-// Votes.
-
-@Serializable
-data class VoteOption(val id: Int, val label: String, val share: Int? = null, val winner: Boolean? = null)
-
-@Serializable
-data class OpenVote(
-    val id: Int,
-    val title: String,
-    val description: String = "",
-    val endsAt: OasisInstant,
-    val voted: Boolean = false,
-    val options: List<VoteOption> = emptyList()
-)
-
-@Serializable
-data class EndedVote(
-    val id: Int,
-    val title: String,
-    val endsAt: OasisInstant,
-    val total: Int = 0,
-    val options: List<VoteOption> = emptyList()
-)
-
-@Serializable
-data class VotesOverview(val canVote: Boolean = false, val open: List<OpenVote> = emptyList(), val ended: List<EndedVote> = emptyList())
-
 // Glossary.
 
 @Serializable

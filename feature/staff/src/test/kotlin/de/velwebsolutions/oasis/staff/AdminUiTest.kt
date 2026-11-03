@@ -28,8 +28,6 @@ import de.velwebsolutions.oasis.staff.ui.admin.AdminDashboardScreen
 import de.velwebsolutions.oasis.staff.ui.admin.AdminDashboardViewModel
 import de.velwebsolutions.oasis.staff.ui.admin.AdminPaymentsScreen
 import de.velwebsolutions.oasis.staff.ui.admin.AdminPaymentsViewModel
-import de.velwebsolutions.oasis.staff.ui.admin.AdminVotesScreen
-import de.velwebsolutions.oasis.staff.ui.admin.AdminVotesViewModel
 import de.velwebsolutions.oasis.staff.ui.admin.DataBreachesScreen
 import de.velwebsolutions.oasis.staff.ui.admin.DataBreachesViewModel
 import de.velwebsolutions.oasis.staff.ui.admin.MollieFormat
@@ -79,8 +77,8 @@ class AdminUiTest {
         compose.onNodeWithText("Nur geschätzt.").performScrollTo().assertIsDisplayed()
         compose.onNodeWithText("Die letzten 12 Wochen").performScrollTo().assertIsDisplayed()
         ui.shot("dashboard-weeks")
-        compose.onNodeWithTag("staff.nav.votes").performScrollTo().performClick()
-        assertEquals(StaffRoute.AdminVotes, ui.top)
+        compose.onNodeWithTag("staff.nav.ideas").performScrollTo().performClick()
+        assertEquals(StaffRoute.AdminIdeas, ui.top)
     }
 
     @Test
@@ -93,45 +91,6 @@ class AdminUiTest {
         ui.show { AdminDashboardScreen(viewModel) }
         compose.onNodeWithText("Nächster Monat ›").assertDoesNotExist()
         compose.onNodeWithText("Oase: ", substring = true).assertDoesNotExist()
-    }
-
-    @Test
-    fun `a vote is created with its dates and answers, results show after the end`() {
-        val viewModel = AdminVotesViewModel(repository)
-        ui.show { AdminVotesScreen(viewModel) }
-        ui.shot("votes")
-        compose.onNodeWithText("Ja: ", substring = true).performScrollTo().assertIsDisplayed()
-        val fields = compose.onAllNodes(hasSetTextAction())
-        fields[0].performTextInput("Neue Stufe?")
-        fields[1].performTextInput("Warum")
-        fields[2].performScrollTo().performTextInput("Ja")
-        compose.onNodeWithContentDescription("Beginn:", substring = true).performScrollTo().performClick()
-        ui.shotDialog("votes-date")
-        compose.onNodeWithText("Weiter").performClick()
-        compose.onNodeWithText("Fertig").performClick()
-        compose.onNodeWithContentDescription("Ende:", substring = true).performScrollTo().performClick()
-        compose.onNodeWithText("Abbrechen").performClick()
-        compose.onNodeWithContentDescription("Ende:", substring = true).performClick()
-        compose.onNodeWithText("Weiter").performClick()
-        compose.onNodeWithText("Abbrechen").performClick()
-        compose.onNodeWithContentDescription("Ende:", substring = true).performClick()
-        compose.onNodeWithText("Weiter").performClick()
-        compose.onNodeWithText("Fertig").performClick()
-        repository.createVote = FakeStaffRepository.invalid("starts_at" to "Beginn fehlt.", "options" to "Mindestens zwei Antworten.")
-        compose.onNodeWithTag("vote.create").performScrollTo().performClick()
-        compose.waitForIdle()
-        compose.onNodeWithText("Mindestens zwei Antworten.").performScrollTo().assertIsDisplayed()
-        compose.onNodeWithText("Beginn fehlt.").performScrollTo().assertIsDisplayed()
-        ui.shot("votes-errors")
-        assertEquals("Neue Stufe?", viewModel.state.value.title)
-    }
-
-    @Test
-    fun `no votes yet`() {
-        repository.votes = Result.success(emptyList())
-        val viewModel = AdminVotesViewModel(repository)
-        ui.show { AdminVotesScreen(viewModel) }
-        compose.onNodeWithText("Noch keine Abstimmungen.").performScrollTo().assertIsDisplayed()
     }
 
     private val mollieRecord: PaymentRecord get() = Decoded.payments.data.first().copy(
@@ -252,6 +211,25 @@ class AdminUiTest {
         compose.onNodeWithTag("payments.more").performScrollTo().performClick()
         compose.waitForIdle()
         assertTrue(repository.calls.any { it.endsWith(" 2") })
+    }
+
+    @Test
+    fun `a date and time can be cancelled at each step, an error shows at the field`() {
+        val chosen = mutableListOf<Instant>()
+        val start = Instant.parse("2026-11-01T09:00:00Z")
+        ui.show { DateTimeField("Beginn", start, { chosen += it }, error = "Beginn fehlt.") }
+        compose.onNodeWithText("Beginn fehlt.").assertIsDisplayed()
+        compose.onNodeWithContentDescription("Beginn:", substring = true).performClick()
+        ui.shotDialog("date")
+        compose.onNodeWithText("Abbrechen").performClick()
+        compose.onNodeWithContentDescription("Beginn:", substring = true).performClick()
+        compose.onNodeWithText("Weiter").performClick()
+        compose.onNodeWithText("Abbrechen").performClick()
+        assertTrue("nothing chosen yet", chosen.isEmpty())
+        compose.onNodeWithContentDescription("Beginn:", substring = true).performClick()
+        compose.onNodeWithText("Weiter").performClick()
+        compose.onNodeWithText("Fertig").performClick()
+        assertEquals(listOf(start), chosen)
     }
 
     @Test

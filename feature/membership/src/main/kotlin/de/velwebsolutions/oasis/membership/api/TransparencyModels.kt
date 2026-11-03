@@ -1,6 +1,5 @@
 package de.velwebsolutions.oasis.membership.api
 
-import de.velwebsolutions.oasis.core.network.OasisInstant
 import java.text.NumberFormat
 import java.util.Locale
 import kotlin.math.roundToInt
@@ -18,20 +17,7 @@ data class Transparency(
     val earlier: List<EarlierReport> = emptyList()
 ) {
     @Serializable
-    data class Figures(val activeMembers: Int = 0, val oases: Int = 0, val ideasDone: Int = 0, val votes: List<Vote> = emptyList())
-
-    /** A member vote that ended, with its results (secret ballot: only after the end). */
-    @Serializable
-    data class Vote(
-        val id: Int,
-        val title: String,
-        val endedAt: OasisInstant,
-        val participations: Int = 0,
-        val results: List<Result> = emptyList()
-    ) {
-        @Serializable
-        data class Result(val label: String, val votes: Int)
-    }
+    data class Figures(val activeMembers: Int = 0, val oases: Int = 0, val ideasDone: Int = 0)
 
     /** One of „Frühere Berichte“. */
     @Serializable

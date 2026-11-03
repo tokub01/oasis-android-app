@@ -15,14 +15,8 @@ object TransparencyFixtures {
         "costs_total":1077.12,"balance":$balance,"note":"Der Server wurde größer.","published_at":"2026-12-02T10:00:00Z"}
     """.trimIndent()
 
-    fun pageJson(report: String? = reportJson(4, "November 2026"), votes: Boolean = true) = """
-        {"data":{"operator":"Tobias Kubina - VelWebSolutions","figures":{"active_members":1234,"oases":17,"ideas_done":3,
-        "votes":${if (votes) {
-        """[{"id":1,"title":"Wohin mit einem Überschuss?","ended_at":"2026-10-30T18:00:00Z","participations":42,
-        "results":[{"label":"Rücklagen","votes":30},{"label":"Spenden","votes":12}]}]"""
-    } else {
-        "[]"
-    }}},
+    fun pageJson(report: String? = reportJson(4, "November 2026")) = """
+        {"data":{"operator":"Tobias Kubina - VelWebSolutions","figures":{"active_members":1234,"oases":17,"ideas_done":3},
         "report":${report ?: "null"},"earlier":[{"id":3,"period_label":"Oktober 2026"}]}}
     """.trimIndent()
 

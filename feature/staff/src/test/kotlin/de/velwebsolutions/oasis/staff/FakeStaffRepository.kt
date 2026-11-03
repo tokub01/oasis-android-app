@@ -7,7 +7,6 @@ import de.velwebsolutions.oasis.core.network.OasisJson
 import de.velwebsolutions.oasis.core.network.Page
 import de.velwebsolutions.oasis.staff.api.AdminDashboard
 import de.velwebsolutions.oasis.staff.api.AdminIdea
-import de.velwebsolutions.oasis.staff.api.AdminVote
 import de.velwebsolutions.oasis.staff.api.BreachRegister
 import de.velwebsolutions.oasis.staff.api.CaseSummary
 import de.velwebsolutions.oasis.staff.api.ComplaintDetail
@@ -17,7 +16,6 @@ import de.velwebsolutions.oasis.staff.api.ModerationCaseDetail
 import de.velwebsolutions.oasis.staff.api.ModerationOverview
 import de.velwebsolutions.oasis.staff.api.MollieLookup
 import de.velwebsolutions.oasis.staff.api.NewBreach
-import de.velwebsolutions.oasis.staff.api.NewVote
 import de.velwebsolutions.oasis.staff.api.PaymentPage
 import de.velwebsolutions.oasis.staff.api.PaymentRecord
 import de.velwebsolutions.oasis.staff.api.QueueFilter
@@ -46,7 +44,6 @@ object Decoded {
     val roles get() = plain(Fixtures.roles, RolePage.serializer())
     val suspensions get() = data(Fixtures.suspensions, SuspensionList.serializer())
     val dashboard get() = data(Fixtures.dashboard, AdminDashboard.serializer())
-    val votes get() = data(Fixtures.votes, ListSerializer(AdminVote.serializer()))
     val ideas get() = plain(Fixtures.ideas, Page.serializer(AdminIdea.serializer()))
     val payments get() = plain(Fixtures.payments, PaymentPage.serializer())
     val breaches get() = plain(Fixtures.breaches, BreachRegister.serializer())
@@ -73,8 +70,6 @@ class FakeStaffRepository : StaffRepository {
     var suspensions: Result<SuspensionList> = Result.success(Decoded.suspensions)
     var release: Result<String> = Result.success("Freigegeben.")
     var dashboard: Result<AdminDashboard> = Result.success(Decoded.dashboard)
-    var votes: Result<List<AdminVote>> = Result.success(Decoded.votes)
-    var createVote: Result<Confirmed<AdminVote>> = Result.success(Confirmed(Decoded.votes.first(), "Angelegt."))
     var ideas: Result<Page<AdminIdea>> = Result.success(Decoded.ideas)
     var ideaStatus: Result<Confirmed<AdminIdea>> =
         Result.success(
@@ -168,14 +163,9 @@ class FakeStaffRepository : StaffRepository {
 
     override suspend fun dashboard(days: Int, month: String) = answer("dashboard $days $month", dashboard)
 
-    override suspend fun votes() = answer("votes", votes)
-
-    override suspend fun createVote(vote: NewVote) = answer("vote ${vote.title}", createVote)
-
     override suspend fun ideas(sort: String, page: Int) = answer("ideas $sort $page", ideas)
 
-    override suspend fun setIdeaStatus(id: Int, input: IdeaStatusInput) =
-        answer("idea $id ${input.status} ${input.reply} ${input.voteId}", ideaStatus)
+    override suspend fun setIdeaStatus(id: Int, input: IdeaStatusInput) = answer("idea $id ${input.status} ${input.reply}", ideaStatus)
 
     /** Holds the next payments page until the test completes it. */
     var paymentsGate: kotlinx.coroutines.CompletableDeferred<Unit>? = null

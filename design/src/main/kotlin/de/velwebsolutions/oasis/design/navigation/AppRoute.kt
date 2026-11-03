@@ -174,9 +174,6 @@ sealed interface AccountRoute : AppRoute {
 
     /** Beschwerde gegen eine Moderationsentscheidung (/app/moderation/complaint/{decision}). */
     @Serializable data class Complaint(val decisionId: Int) : AccountRoute
-
-    /** Abstimmungen for members (/app/abstimmungen). */
-    @Serializable data object Votes : AccountRoute
 }
 
 /** Hinweise (notifications) and their settings. Owned by `:feature:live`. */
@@ -243,9 +240,6 @@ sealed interface StaffRoute : AppRoute {
 
     /** Admin dashboard (/admin). */
     @Serializable data object AdminDashboard : StaffRoute
-
-    /** Abstimmungen verwalten (/admin/abstimmungen). */
-    @Serializable data object AdminVotes : StaffRoute
 
     /** Ideen: set the status of members' ideas (on the web the status form on /app/ideen). */
     @Serializable data object AdminIdeas : StaffRoute

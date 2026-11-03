@@ -156,7 +156,7 @@ class ShellUiTest {
             "Einstellungen" to AccountRoute.Settings, "Mitgliedschaft" to MembershipRoute.Overview,
             "Deine Zahlen" to NetworkRoute.Statistics, "Zeitkapseln" to NetworkRoute.TimeCapsules, "Jahrbuch" to NetworkRoute.Yearbook(),
             "Menschen einladen" to NetworkRoute.Invitations,
-            "Privatsphäre" to AccountRoute.Privacy, "Blockiert & stumm" to AccountRoute.Safety, "Abstimmungen" to AccountRoute.Votes,
+            "Privatsphäre" to AccountRoute.Privacy, "Blockiert & stumm" to AccountRoute.Safety,
             "Ideen für Oasis" to NetworkRoute.Ideas(), "Wohin dein Beitrag geht" to MembershipRoute.Transparency,
             "Begriffe erklärt" to AccountRoute.Glossary, "Moderation" to StaffRoute.Moderation, "Verwaltung" to StaffRoute.AdminDashboard
         )

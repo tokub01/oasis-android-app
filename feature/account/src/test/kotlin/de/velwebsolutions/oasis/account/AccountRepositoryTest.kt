@@ -54,11 +54,10 @@ class AccountRepositoryTest {
     }
 
     @Test
-    fun decodesSafetyTourVotesGlossaryAndReport() = runTest {
+    fun decodesSafetyTourGlossaryAndReport() = runTest {
         val transport = StubTransport()
             .stub("GET", "safety", Fixtures.safety)
             .stub("GET", "onboarding", Fixtures.onboarding)
-            .stub("GET", "votes", Fixtures.votes)
             .stub("GET", "glossary", Fixtures.glossary)
             .stub("GET", "report", Fixtures.report)
         val api = repository(transport)
@@ -67,7 +66,6 @@ class AccountRepositoryTest {
         assertEquals(listOf("profil", "sichtbarkeit", "oasen", "menschen"), tour.steps.map { it.key })
         assertEquals("Sonne", tour.colors.first().label)
         assertTrue(tour.oases.isNotEmpty())
-        assertEquals(null, api.votes().open.first().options.first().share)
         assertEquals("Tropfen", api.glossary().first().term)
         val report = api.reportForm("http://localhost/profil/jonas")
         assertEquals(8, report.categories.size)

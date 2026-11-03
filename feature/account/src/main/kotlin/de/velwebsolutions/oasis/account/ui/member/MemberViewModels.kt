@@ -8,9 +8,7 @@ import dagger.assisted.AssistedInject
 import dagger.hilt.android.lifecycle.HiltViewModel
 import de.velwebsolutions.oasis.account.api.ComplaintDecision
 import de.velwebsolutions.oasis.account.api.GlossaryTerm
-import de.velwebsolutions.oasis.account.api.OpenVote
 import de.velwebsolutions.oasis.account.api.Suspension
-import de.velwebsolutions.oasis.account.api.VotesOverview
 import de.velwebsolutions.oasis.account.catching
 import de.velwebsolutions.oasis.account.data.AccountRepository
 import de.velwebsolutions.oasis.core.auth.Session
@@ -159,59 +157,6 @@ class ComplaintViewModel @AssistedInject constructor(
                 }
             }
     }
-
-    fun dismissError() = mutableUi.update { it.copy(error = null) }
-}
-
-/** Abstimmungen. */
-data class VotesUiState(
-    val state: Loadable<VotesOverview> = Loadable.Idle,
-    /** Vote id → chosen option id. */
-    val choices: Map<Int, Int> = emptyMap(),
-    val message: String? = null,
-    val error: String? = null,
-    /** Vote id → the refusal shown at that vote. */
-    val errors: Map<Int, String> = emptyMap()
-)
-
-/** Abstimmungen (/app/abstimmungen). */
-@HiltViewModel
-class VotesViewModel @Inject constructor(private val repository: AccountRepository) : ViewModel() {
-    private val mutableUi = MutableStateFlow(VotesUiState())
-    val ui: StateFlow<VotesUiState> = mutableUi.asStateFlow()
-
-    init {
-        viewModelScope.launch { load() }
-    }
-
-    fun choose(voteId: Int, optionId: Int) = mutableUi.update { it.copy(choices = it.choices + (voteId to optionId)) }
-
-    suspend fun load() {
-        mutableUi.update { it.copy(state = it.state.refreshing()) }
-        catching { repository.votes() }
-            .onSuccess { votes -> mutableUi.update { it.copy(state = Loadable.Loaded(votes)) } }
-            .onFailure { error ->
-                mutableUi.update {
-                    val failing = it.state.failing(error)
-                    it.copy(state = failing, error = if (failing.valueOrNull != null) error.asApiError().userMessage else it.error)
-                }
-            }
-    }
-
-    suspend fun cast(vote: OpenVote) {
-        mutableUi.update { it.copy(errors = it.errors - vote.id) }
-        catching { repository.cast(vote.id, ui.value.choices[vote.id]) }
-            .onSuccess { message ->
-                mutableUi.update { it.copy(message = message) }
-                load()
-            }
-            .onFailure { error ->
-                val failure = error.asApiError()
-                mutableUi.update { it.copy(errors = it.errors + (vote.id to (failure.message("option") ?: failure.userMessage))) }
-            }
-    }
-
-    fun dismissMessage() = mutableUi.update { it.copy(message = null) }
 
     fun dismissError() = mutableUi.update { it.copy(error = null) }
 }

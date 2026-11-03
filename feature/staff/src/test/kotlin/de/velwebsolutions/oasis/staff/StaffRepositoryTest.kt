@@ -5,7 +5,6 @@ import de.velwebsolutions.oasis.core.network.DataEnvelope
 import de.velwebsolutions.oasis.core.network.OasisJson
 import de.velwebsolutions.oasis.core.network.Page
 import de.velwebsolutions.oasis.staff.api.AdminDashboard
-import de.velwebsolutions.oasis.staff.api.AdminVote
 import de.velwebsolutions.oasis.staff.api.BreachRegister
 import de.velwebsolutions.oasis.staff.api.CaseSummary
 import de.velwebsolutions.oasis.staff.api.ComplaintDetail
@@ -75,7 +74,6 @@ class StaffDecodingTest {
         assertEquals(listOf(7, 30, 90, 365), dashboard.periods)
         assertEquals(12, dashboard.network.weeks.size)
         assertNull(dashboard.revenue.nextMonth)
-        assertTrue(data(Fixtures.votes, ListSerializer(AdminVote.serializer())).isNotEmpty())
         val payments = decode(Fixtures.payments, PaymentPage.serializer())
         assertEquals(7, payments.filters.statuses.size)
         assertFalse(payments.data.isEmpty())

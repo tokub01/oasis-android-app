@@ -118,11 +118,9 @@ class LettersAndIdeasTest(private val answersAtOnce: Boolean) {
         listOf(
             WeeklyLetter.LetterCollection.serializer(),
             WeeklyLetter.LetterMeetup.serializer(),
-            WeeklyLetter.Entry.serializer(),
-            Idea.VoteRef.serializer()
+            WeeklyLetter.Entry.serializer()
         ).forEach { assertTrue(it.descriptor.serialName.isNotEmpty()) }
         assertEquals("Rezepte", WeeklyLetter.LetterCollection(4, "Rezepte").name)
-        assertEquals(1, Idea.VoteRef(1, "Neue Farben?").id)
         assertTrue(de.velwebsolutions.oasis.network.ui.feeds.IdeaList().let { it.ideas.isEmpty() && it.nextPage == null })
     }
 
@@ -228,7 +226,7 @@ class LettersAndIdeasTest(private val answersAtOnce: Boolean) {
         assertTrue(idea.copy(status = "done").isUnderway)
         assertEquals(listOf("open", "planned", "in_progress", "done", "declined"), Idea.statuses.map { it.first })
         val plain = Idea(1, "Titel", createdAt = Instant.EPOCH)
-        assertTrue(plain.description == null && plain.votes == 0 && !plain.voted && plain.author == null && plain.vote == null)
+        assertTrue(plain.description == null && plain.votes == 0 && !plain.voted && plain.author == null)
         assertEquals("Offen", plain.statusLabel)
         assertEquals("", IdeaInput().title)
         assertEquals("", IdeaForm().title)
@@ -257,14 +255,13 @@ fun ideaJson(
     status: String = "open",
     label: String = "Offen",
     reply: String = "null",
-    vote: String = "null",
     hidden: Boolean = false,
     canVote: Boolean = true
 ) = """
     {"id":$id,"title":"Idee $id","description":"Was wäre, wenn …","status":"$status","status_label":"$label","status_reply":$reply,
     "status_changed_at":null,"votes":$votes,"voted":$voted,"mine":$mine,"hidden":$hidden,"can_vote":$canVote,"can_delete":$mine,
     "author":{"id":2,"username":"jonas","display_name":"Jonas Weber","initials":"JW"},"created_at":"2026-10-20T10:00:00.000000Z",
-    "vote":$vote,"report_url":"http://localhost/app/ideen/$id"}
+    "report_url":"http://localhost/app/ideen/$id"}
 """.trimIndent()
 
 fun ideasPageJson(current: Int, last: Int, vararg ideas: String) =

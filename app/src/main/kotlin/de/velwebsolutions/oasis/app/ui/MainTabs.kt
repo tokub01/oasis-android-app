@@ -323,7 +323,6 @@ private val MorePages: List<Pair<String, AppRoute>> = listOf(
     "Menschen einladen" to NetworkRoute.Invitations,
     "Privatsphäre" to AccountRoute.Privacy,
     "Blockiert & stumm" to AccountRoute.Safety,
-    "Abstimmungen" to AccountRoute.Votes,
     "Ideen für Oasis" to NetworkRoute.Ideas(),
     "Wohin dein Beitrag geht" to MembershipRoute.Transparency,
     "Begriffe erklärt" to AccountRoute.Glossary

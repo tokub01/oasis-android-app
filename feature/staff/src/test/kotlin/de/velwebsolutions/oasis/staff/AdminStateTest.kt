@@ -5,7 +5,6 @@ import de.velwebsolutions.oasis.core.network.Page
 import de.velwebsolutions.oasis.staff.api.MollieLookup
 import de.velwebsolutions.oasis.staff.ui.admin.AdminDashboardViewModel
 import de.velwebsolutions.oasis.staff.ui.admin.AdminPaymentsViewModel
-import de.velwebsolutions.oasis.staff.ui.admin.AdminVotesViewModel
 import de.velwebsolutions.oasis.staff.ui.admin.DataBreachesViewModel
 import de.velwebsolutions.oasis.staff.ui.admin.SystemViewModel
 import de.velwebsolutions.oasis.testing.MainDispatcherRule
@@ -41,29 +40,6 @@ class AdminStateTest {
         viewModel.dismissError()
         assertNull(viewModel.state.value.error)
         assertTrue(AdminDashboardViewModel(repository).state.value.dashboard is Loadable.Failed)
-    }
-
-    @Test
-    fun `a new vote is created, refused at its fields or failed as toast`() = runTest {
-        val viewModel = AdminVotesViewModel(repository)
-        viewModel.edit { it.copy(title = "Neue Stufe?", options = listOf("Ja", "Nein", "", "", "", "")) }
-        viewModel.create()
-        assertEquals("Angelegt.", viewModel.state.value.message)
-        assertEquals("", viewModel.state.value.title)
-        viewModel.dismissMessage()
-
-        repository.createVote = FakeStaffRepository.invalid("options" to "Mindestens zwei Antworten.")
-        viewModel.create()
-        assertEquals("Mindestens zwei Antworten.", viewModel.state.value.fieldErrors["options"])
-        repository.createVote = FakeStaffRepository.failure("Offline")
-        viewModel.create()
-        assertEquals("Offline", viewModel.state.value.error)
-        viewModel.dismissError()
-
-        repository.votes = FakeStaffRepository.failure("Offline")
-        viewModel.load()
-        assertEquals("Offline", viewModel.state.value.error)
-        assertTrue(AdminVotesViewModel(repository).state.value.votes is Loadable.Failed)
     }
 
     @Test

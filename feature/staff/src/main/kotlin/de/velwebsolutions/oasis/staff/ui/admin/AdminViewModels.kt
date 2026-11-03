@@ -9,12 +9,10 @@ import de.velwebsolutions.oasis.core.model.refreshing
 import de.velwebsolutions.oasis.core.network.Confirmed
 import de.velwebsolutions.oasis.core.network.asApiError
 import de.velwebsolutions.oasis.staff.api.AdminDashboard
-import de.velwebsolutions.oasis.staff.api.AdminVote
 import de.velwebsolutions.oasis.staff.api.BreachRegister
 import de.velwebsolutions.oasis.staff.api.DataBreach
 import de.velwebsolutions.oasis.staff.api.MollieLookup
 import de.velwebsolutions.oasis.staff.api.NewBreach
-import de.velwebsolutions.oasis.staff.api.NewVote
 import de.velwebsolutions.oasis.staff.api.PaymentPage
 import de.velwebsolutions.oasis.staff.api.PaymentRecord
 import de.velwebsolutions.oasis.staff.api.SystemStatus
@@ -85,78 +83,6 @@ class AdminDashboardViewModel @Inject constructor(private val repository: StaffR
         mutableState.update { it.copy(month = month) }
         load()
     }
-
-    /** Hides the error once the snackbar showed it. */
-    fun dismissError() = mutableState.update { it.copy(error = null) }
-}
-
-/** The votes page: the votes and the new vote's form. */
-data class AdminVotesUiState(
-    val votes: Loadable<List<AdminVote>> = Loadable.Idle,
-    val title: String = "",
-    val description: String = "",
-    val startsAt: Instant = Instant.now().plus(1, ChronoUnit.HOURS).truncatedTo(ChronoUnit.MINUTES),
-    val endsAt: Instant = Instant.now().plus(8, ChronoUnit.DAYS).truncatedTo(ChronoUnit.MINUTES),
-    val options: List<String> = List(6) { "" },
-    val message: String? = null,
-    val error: String? = null,
-    val fieldErrors: Map<String, String> = emptyMap()
-)
-
-/** Member votes for admins (like /admin/abstimmungen). */
-@HiltViewModel
-class AdminVotesViewModel @Inject constructor(private val repository: StaffRepository) : ViewModel() {
-    private val mutableState = MutableStateFlow(AdminVotesUiState())
-    val state: StateFlow<AdminVotesUiState> = mutableState.asStateFlow()
-
-    init {
-        viewModelScope.launch { load() }
-    }
-
-    /** Loads the page again; a failed first load shows the error page, a failed refresh a snackbar. */
-    suspend fun load() {
-        mutableState.update { it.copy(votes = it.votes.refreshing()) }
-        val result = attempt { repository.votes() }
-        result.onSuccess { votes -> mutableState.update { it.copy(votes = Loadable.Loaded(votes)) } }
-        result.apiError?.let { failure ->
-            mutableState.update {
-                it.copy(
-                    votes = it.votes.failing(failure),
-                    error = if (it.votes.valueOrNull !=
-                        null
-                    ) {
-                        failure.userMessage
-                    } else {
-                        it.error
-                    }
-                )
-            }
-        }
-    }
-
-    /** Changes the new vote's form. */
-    fun edit(transform: (AdminVotesUiState) -> AdminVotesUiState) = mutableState.update(transform)
-
-    /** Creates the vote; field errors stay at their fields. */
-    suspend fun create() {
-        val form = mutableState.value
-        val vote =
-            NewVote(form.title, form.description, StaffDate.localInput(form.startsAt), StaffDate.localInput(form.endsAt), form.options)
-        val result = attempt { repository.createVote(vote) }
-        result.onSuccess { answer ->
-            mutableState.update {
-                it.copy(message = answer.message, fieldErrors = emptyMap(), title = "", description = "", options = List(6) { "" })
-            }
-            load()
-        }
-        result.apiError?.let { failure ->
-            val fields = failure.fieldMessages
-            mutableState.update { it.copy(fieldErrors = fields, error = if (fields.isEmpty()) failure.userMessage else it.error) }
-        }
-    }
-
-    /** Hides the confirmation once the snackbar showed it. */
-    fun dismissMessage() = mutableState.update { it.copy(message = null) }
 
     /** Hides the error once the snackbar showed it. */
     fun dismissError() = mutableState.update { it.copy(error = null) }

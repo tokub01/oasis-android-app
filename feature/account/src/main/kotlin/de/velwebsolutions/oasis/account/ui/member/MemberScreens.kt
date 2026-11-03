@@ -12,7 +12,6 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.width
-import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Text
@@ -25,7 +24,6 @@ import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.testTag
-import androidx.compose.ui.semantics.clearAndSetSemantics
 import androidx.compose.ui.semantics.heading
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.SpanStyle
@@ -36,13 +34,9 @@ import androidx.compose.ui.unit.dp
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import de.velwebsolutions.oasis.account.api.ComplaintDecision
-import de.velwebsolutions.oasis.account.api.EndedVote
-import de.velwebsolutions.oasis.account.api.OpenVote
 import de.velwebsolutions.oasis.account.api.Suspension
 import de.velwebsolutions.oasis.account.ui.components.AccountPage
 import de.velwebsolutions.oasis.account.ui.components.DataExportButton
-import de.velwebsolutions.oasis.account.ui.components.FlowChoices
-import de.velwebsolutions.oasis.account.ui.components.GermanDate
 import de.velwebsolutions.oasis.account.ui.components.LinkText
 import de.velwebsolutions.oasis.account.ui.components.SubHeading
 import de.velwebsolutions.oasis.account.ui.components.webUrl
@@ -50,12 +44,8 @@ import de.velwebsolutions.oasis.core.format.GermanTime
 import de.velwebsolutions.oasis.core.model.Loadable
 import de.velwebsolutions.oasis.core.network.ApiError
 import de.velwebsolutions.oasis.design.components.AsyncOasisButton
-import de.velwebsolutions.oasis.design.components.Banner
-import de.velwebsolutions.oasis.design.components.BannerKind
-import de.velwebsolutions.oasis.design.components.Bullets
 import de.velwebsolutions.oasis.design.components.EmptyStateView
 import de.velwebsolutions.oasis.design.components.Eyebrow
-import de.velwebsolutions.oasis.design.components.FieldError
 import de.velwebsolutions.oasis.design.components.LoadableView
 import de.velwebsolutions.oasis.design.components.OasisButton
 import de.velwebsolutions.oasis.design.components.OasisButtonKind
@@ -63,7 +53,6 @@ import de.velwebsolutions.oasis.design.components.OasisScreen
 import de.velwebsolutions.oasis.design.components.OasisTextButton
 import de.velwebsolutions.oasis.design.components.OasisTextField
 import de.velwebsolutions.oasis.design.components.PageHeader
-import de.velwebsolutions.oasis.design.components.SectionCard
 import de.velwebsolutions.oasis.design.navigation.AccountRoute
 import de.velwebsolutions.oasis.design.navigation.LocalNavigator
 import de.velwebsolutions.oasis.design.navigation.MembershipRoute
@@ -316,129 +305,6 @@ internal fun ComplaintContent(
             modifier = Modifier.testTag("complaint.submit"),
             enabled = ui.reason.isNotBlank()
         )
-    }
-}
-
-/** Abstimmungen (/app/abstimmungen): running votes and the results of ended ones. */
-@OptIn(ExperimentalMaterial3Api::class)
-@Composable
-internal fun VotesScreen(viewModel: VotesViewModel = hiltViewModel()) {
-    val ui by viewModel.ui.collectAsStateWithLifecycle()
-    val scope = rememberCoroutineScope()
-    var refreshing by remember { mutableStateOf(false) }
-    OasisScreen(
-        title = "Abstimmungen",
-        message = ui.message,
-        error = ui.error,
-        onDismissMessage = viewModel::dismissMessage,
-        onDismissError = viewModel::dismissError
-    ) {
-        PullToRefreshBox(
-            isRefreshing = refreshing,
-            onRefresh = {
-                scope.launch {
-                    refreshing = true
-                    viewModel.load()
-                    refreshing = false
-                }
-            },
-            modifier = Modifier.fillMaxSize()
-        ) {
-            AccountPage {
-                VotesContent(ui, viewModel::load, viewModel::choose, viewModel::cast)
-            }
-        }
-    }
-}
-
-@Composable
-internal fun VotesContent(ui: VotesUiState, onRetry: suspend () -> Unit, onChoose: (Int, Int) -> Unit, onCast: suspend (OpenVote) -> Unit) {
-    PageHeader(
-        "Abstimmungen",
-        eyebrow = "Mitbestimmen",
-        lead =
-            "Jedes Mitglied hat eine Stimme, egal welche Stufe. Geheim: Wir speichern nur, dass du abgestimmt hast, nicht wie. Ergebnisse zeigen wir nach dem Ende."
-    )
-    LoadableView(ui.state, onRetry = onRetry) { overview ->
-        Column(verticalArrangement = Arrangement.spacedBy(20.dp)) {
-            if (!overview.canVote) {
-                Banner("Abstimmen können Mitglieder mit aktiver Mitgliedschaft.", kind = BannerKind.Info)
-            }
-            SubHeading("Laufend", 21)
-            if (overview.open.isEmpty()) Text("Gerade läuft keine Abstimmung.", style = OasisType.Body, color = OasisColors.Ink2)
-            overview.open.forEach { vote -> OpenVoteCard(vote, overview.canVote, ui, onChoose, onCast) }
-            SubHeading("Ergebnisse", 21)
-            if (overview.ended.isEmpty()) Text("Noch keine abgeschlossenen Abstimmungen.", style = OasisType.Body, color = OasisColors.Ink2)
-            overview.ended.forEach { vote -> EndedVoteCard(vote) }
-            SectionCard("So stimmen wir ab") {
-                Bullets(
-                    listOf(
-                        "Eine Stimme pro Mitglied – egal ob Solidar, Oase oder Mäzen.",
-                        "Geheim: Gespeichert wird nur, dass du abgestimmt hast.",
-                        "Ergebnisse erst nach dem Ende, damit niemand dem Trend folgt."
-                    )
-                )
-            }
-        }
-    }
-}
-
-@Composable
-private fun OpenVoteCard(
-    vote: OpenVote,
-    canVote: Boolean,
-    ui: VotesUiState,
-    onChoose: (Int, Int) -> Unit,
-    onCast: suspend (OpenVote) -> Unit
-) {
-    Column(
-        Modifier.fillMaxWidth().background(OasisColors.Paper, RoundedCornerShape(OasisRadius.M.dp)).padding(20.dp),
-        verticalArrangement = Arrangement.spacedBy(12.dp)
-    ) {
-        SubHeading(vote.title, 20)
-        Text("endet am ${GermanDate.long(vote.endsAt)}", style = OasisType.Small, color = OasisColors.Muted)
-        Text(vote.description, style = OasisType.Body, color = OasisColors.Ink)
-        if (vote.voted) {
-            Text("Du hast abgestimmt. Danke!", style = OasisType.BodyBold, color = OasisColors.SpringText)
-        } else if (canVote) {
-            FlowChoices(vote.options.map { it.id to it.label }, ui.choices[vote.id], tag = "vote.${vote.id}") { onChoose(vote.id, it) }
-            ui.errors[vote.id]?.let { FieldError(it) }
-            AsyncOasisButton("Stimme abgeben", { onCast(vote) }, modifier = Modifier.testTag("vote.cast.${vote.id}"), fullWidth = false)
-        }
-    }
-}
-
-@Composable
-private fun EndedVoteCard(vote: EndedVote) {
-    Column(
-        Modifier.fillMaxWidth().background(OasisColors.Paper, RoundedCornerShape(OasisRadius.M.dp)).padding(20.dp),
-        verticalArrangement = Arrangement.spacedBy(10.dp)
-    ) {
-        SubHeading(vote.title)
-        Text("${vote.total} Stimmen · beendet am ${GermanDate.dayLong(vote.endsAt)}", style = OasisType.Small, color = OasisColors.Muted)
-        vote.options.forEach { option ->
-            val share = option.share ?: 0
-            Column(Modifier.semantics(mergeDescendants = true) {}, verticalArrangement = Arrangement.spacedBy(4.dp)) {
-                Row {
-                    Text(
-                        option.label,
-                        style = if (option.winner ==
-                            true
-                        ) {
-                            OasisType.BodyBold
-                        } else {
-                            OasisType.Body
-                        },
-                        color = OasisColors.Ink,
-                        modifier = Modifier.weight(1f)
-                    )
-                    Text("$share %", style = OasisType.Body, color = OasisColors.Ink)
-                }
-                Box(Modifier.fillMaxWidth().height(8.dp).background(OasisColors.Dune, CircleShape).clearAndSetSemantics {}) {
-                    Box(Modifier.fillMaxWidth(share.coerceIn(0, 100) / 100f).height(8.dp).background(OasisColors.Spring, CircleShape))
-                }
-            }
-        }
     }
 }
 

@@ -18,7 +18,6 @@ class StaffFormatsTest {
         assertEquals("–", StaffDate.short(null))
         assertEquals("–", StaffDate.withUhr(null))
         assertEquals("–", StaffDate.medium(null))
-        assertEquals("kein Datum", StaffDate.wallClock("kein Datum"))
         assertEquals("22.10.2026 15:49", StaffDate.short(Instant.parse("2026-10-22T13:49:00Z")))
         assertEquals("2026-10-22T15:49", StaffDate.localInput(Instant.parse("2026-10-22T13:49:00Z")))
     }

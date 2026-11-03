@@ -19,7 +19,6 @@ object Fixtures {
     val devices get() = json("devices")
     val safety get() = json("safety")
     val onboarding get() = json("onboarding")
-    val votes get() = json("votes")
     val glossary get() = json("glossary")
     val report get() = json("report")
 

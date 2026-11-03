@@ -360,8 +360,7 @@ class StaffViewModelTest {
     }
 
     @Test
-    fun `wall-clock votes are shown without a zone shift`() {
-        assertEquals("1. Nov. 2026, 10:00", StaffDate.wallClock("2026-11-01T10:00"))
+    fun `a date becomes the web's datetime-local value in German time`() {
         assertEquals("1970-01-01T01:00", StaffDate.localInput(Instant.EPOCH))
     }
 }

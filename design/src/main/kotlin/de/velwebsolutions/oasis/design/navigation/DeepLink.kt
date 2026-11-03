@@ -145,7 +145,6 @@ object DeepLink {
             }
 
             "admin" -> when (parts[1]) {
-                "abstimmungen" -> StaffRoute.AdminVotes
                 "zahlungen" -> StaffRoute.AdminPayments
                 "datenpannen" -> StaffRoute.AdminBreaches
                 "system" -> StaffRoute.AdminSystem
@@ -240,8 +239,6 @@ object DeepLink {
         "begriffe" -> AccountRoute.Glossary
 
         "gesperrt" -> AccountRoute.Suspended
-
-        "abstimmungen" -> AccountRoute.Votes
 
         "moderation" ->
             if (rest.firstOrNull() == "complaint") rest.getOrNull(1)?.toIntOrNull()?.let { AccountRoute.Complaint(it) } else null

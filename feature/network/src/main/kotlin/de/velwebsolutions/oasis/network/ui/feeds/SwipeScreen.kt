@@ -26,7 +26,6 @@ import androidx.compose.material.icons.automirrored.outlined.ArrowBack
 import androidx.compose.material.icons.automirrored.outlined.ArrowForward
 import androidx.compose.material.icons.automirrored.outlined.Reply
 import androidx.compose.material.icons.outlined.Check
-import androidx.compose.material.icons.outlined.CheckBox
 import androidx.compose.material.icons.outlined.Email
 import androidx.compose.material.icons.outlined.Notifications
 import androidx.compose.material.icons.outlined.People
@@ -62,7 +61,6 @@ import de.velwebsolutions.oasis.design.components.OasisScreen
 import de.velwebsolutions.oasis.design.components.Pill
 import de.velwebsolutions.oasis.design.components.PillTone
 import de.velwebsolutions.oasis.design.components.pressable
-import de.velwebsolutions.oasis.design.navigation.AccountRoute
 import de.velwebsolutions.oasis.design.navigation.AppRoute
 import de.velwebsolutions.oasis.design.navigation.ChatRoute
 import de.velwebsolutions.oasis.design.navigation.LiveRoute
@@ -264,8 +262,7 @@ private fun EndCard(deck: SwipeDeck) {
                     LiveRoute.Inbox
                 )
             }
-            deck.openVote?.let { NewsLink("Abstimmung: ${it.title}", Icons.Outlined.CheckBox, AccountRoute.Votes) }
-            if (deck.unreadChats + deck.friendRequests + deck.unreadHints == 0 && deck.openVote == null) {
+            if (deck.unreadChats + deck.friendRequests + deck.unreadHints == 0) {
                 Text(
                     "Alles gelesen – nichts wartet auf dich.",
                     style = OasisType.Body,

@@ -12,7 +12,6 @@ import de.velwebsolutions.oasis.account.ui.auth.VerifyEmailViewModel
 import de.velwebsolutions.oasis.account.ui.member.ComplaintViewModel
 import de.velwebsolutions.oasis.account.ui.member.GlossaryViewModel
 import de.velwebsolutions.oasis.account.ui.member.SuspensionViewModel
-import de.velwebsolutions.oasis.account.ui.member.VotesViewModel
 import de.velwebsolutions.oasis.account.ui.privacy.HiddenWordsViewModel
 import de.velwebsolutions.oasis.account.ui.privacy.PrivacyUiState
 import de.velwebsolutions.oasis.account.ui.privacy.PrivacyViewModel
@@ -57,7 +56,6 @@ class AccountEdgeCasesTest {
             .stub("GET", "privacy", serverError, status = 500)
             .stub("GET", "privacy/words", serverError, status = 500)
             .stub("GET", "privacy/devices", serverError, status = 500)
-            .stub("GET", "votes", serverError, status = 500)
             .stub("GET", "glossary", serverError, status = 500)
             .stub("GET", "complaints/1", serverError, status = 500)
             .stub("GET", "onboarding", serverError, status = 500)
@@ -69,7 +67,6 @@ class AccountEdgeCasesTest {
         val privacy = PrivacyViewModel(repository)
         val words = HiddenWordsViewModel(repository)
         val devices = DevicesViewModel(repository)
-        val votes = VotesViewModel(repository)
         val glossary = GlossaryViewModel(repository)
         val complaint = ComplaintViewModel(1, repository)
         val welcome = WelcomeViewModel(repository, session)
@@ -77,7 +74,7 @@ class AccountEdgeCasesTest {
         val suspension = SuspensionViewModel(repository, session)
         val report = ReportViewModel("http://localhost/x", repository)
         listOf(
-            privacy::load, words::load, devices::load, votes::load, glossary::load, complaint::load, welcome::load, settings::load,
+            privacy::load, words::load, devices::load, glossary::load, complaint::load, welcome::load, settings::load,
             suspension::load, report::load
         ).forEach { it() }
         assertTrue(privacy.ui.value.state is Loadable.Failed)
@@ -88,20 +85,19 @@ class AccountEdgeCasesTest {
         assertTrue(report.ui.value.state is Loadable.Failed)
 
         transport.stub("GET", "privacy", Fixtures.privacy).stub("GET", "privacy/words", Fixtures.hiddenWords)
-            .stub("GET", "privacy/devices", Fixtures.devices).stub("GET", "votes", Fixtures.votes)
+            .stub("GET", "privacy/devices", Fixtures.devices)
             .stub("GET", "account", Fixtures.account).stub("GET", "onboarding", Fixtures.onboarding)
             .stub("GET", "suspension", SUSPENSION)
-        listOf(privacy::load, words::load, devices::load, votes::load, settings::load, welcome::load, suspension::load).forEach { it() }
+        listOf(privacy::load, words::load, devices::load, settings::load, welcome::load, suspension::load).forEach { it() }
         suspension.setStatement("Getippt")
         transport.stub("GET", "privacy", serverError, status = 500).stub("GET", "privacy/words", serverError, status = 500)
-            .stub("GET", "privacy/devices", serverError, status = 500).stub("GET", "votes", serverError, status = 500)
+            .stub("GET", "privacy/devices", serverError, status = 500)
             .stub("GET", "account", serverError, status = 500).stub("GET", "suspension", serverError, status = 500)
-        listOf(privacy::load, words::load, devices::load, votes::load, settings::load, suspension::load).forEach { it() }
+        listOf(privacy::load, words::load, devices::load, settings::load, suspension::load).forEach { it() }
         listOf(
             privacy.ui.value.error,
             words.ui.value.error,
             devices.ui.value.error,
-            votes.ui.value.error,
             settings.ui.value.error,
             suspension.ui.value.error
         )
@@ -117,8 +113,6 @@ class AccountEdgeCasesTest {
         words.dismissError()
         devices.dismissMessage()
         devices.dismissError()
-        votes.dismissMessage()
-        votes.dismissError()
         settings.dismissMessage()
         settings.dismissError()
         settings.showError("x")
@@ -133,8 +127,6 @@ class AccountEdgeCasesTest {
     @Test
     fun refusalsWithoutAFieldBecomeToasts() = runTest {
         val transport = StubTransport()
-            .stub("GET", "votes", Fixtures.votes)
-            .stub("POST", "votes/1", serverError, status = 500)
             .stub("GET", "privacy", Fixtures.privacy)
             .stub("PUT", "privacy/settings/searchable", serverError, status = 500)
             .stub("GET", "privacy/words", Fixtures.hiddenWords)
@@ -146,11 +138,6 @@ class AccountEdgeCasesTest {
             .stub("DELETE", "account/two-factor", """{"message":"x","errors":{"code":["Falsch."]}}""", status = 422)
             .stub("POST", "account/confirm-password", """{"data":{"display_name":"Mira Sol","username":"mira","email":"m@x.tld"}}""")
         val repository = repository(transport)
-        val votes = VotesViewModel(repository)
-        votes.load()
-        votes.cast(votes.ui.value.state.valueOrNull!!.open.first())
-        assertEquals("Server Error", votes.ui.value.errors[1])
-
         val privacy = PrivacyViewModel(repository)
         privacy.load()
         privacy.save("searchable", PrivacyValue.Flag(false), PrivacyValue.Flag(true))
