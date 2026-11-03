@@ -80,6 +80,10 @@ class FakeChatServer : Interceptor {
     val deviceLinks = mutableMapOf<Int, MutableMap<String, JsonElement>>()
     val reports = mutableListOf<JsonObject>()
 
+    /** What `GET suggestions` answers (round J: people to write first). */
+    var suggestions: List<JsonObject> = emptyList()
+    var suggestionsStatus = 200
+
     /** An encrypted upload (ChatAttachment): parts as they arrived, the message it went with and each recipient's answer. */
     class Upload(
         val id: Int,
@@ -383,6 +387,8 @@ class FakeChatServer : Interceptor {
                 }
                 return 200 to data(identities.getValue(user))
             }
+
+            method == "GET" && first == "suggestions" -> return suggestionsStatus to data(JsonArray(suggestions))
 
             method == "GET" && first == "safety" -> return 200 to Json.parseToJsonElement(
                 """{"data":{"lists":{"insult":["vollidiot"],"sexual":[],"hate":[],"threat":[],"extremism":[]},"tone":{"always":["digga"],"address":["alter"]}}}"""

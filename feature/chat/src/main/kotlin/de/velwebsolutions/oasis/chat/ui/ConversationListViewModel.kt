@@ -2,6 +2,7 @@ package de.velwebsolutions.oasis.chat.ui
 
 import dagger.hilt.android.lifecycle.HiltViewModel
 import de.velwebsolutions.oasis.chat.api.ChatConversation
+import de.velwebsolutions.oasis.chat.api.ChatSuggestion
 import de.velwebsolutions.oasis.chat.api.ConversationPage
 import de.velwebsolutions.oasis.chat.api.DeviceLinkRequest
 import de.velwebsolutions.oasis.chat.core.ChatContext
@@ -10,6 +11,7 @@ import de.velwebsolutions.oasis.chat.core.lifetimeLabel
 import de.velwebsolutions.oasis.chatcrypto.checkNumber
 import de.velwebsolutions.oasis.core.network.OasisJson
 import de.velwebsolutions.oasis.core.realtime.RealtimeService
+import java.time.Duration
 import javax.inject.Inject
 import kotlin.time.Duration.Companion.seconds
 import kotlinx.coroutines.coroutineScope
@@ -37,8 +39,15 @@ data class ConversationListState(
     /** The confirmation of the last action (toast). */
     val status: String? = null,
     /** The error of the last action (toast). */
-    val actionError: String? = null
-)
+    val actionError: String? = null,
+    /** „Sichere deine Chats, falls du dein Gerät verlierst“: no backup passphrase yet, and „Später“ not within 14 days. */
+    val backupRow: Boolean = false,
+    /** Up to two people to write first, for the empty list. */
+    val suggestions: List<ChatSuggestion> = emptyList()
+) {
+    /** No chats and no requests: „Noch keine Chats“. */
+    val empty: Boolean get() = loaded && conversations.isEmpty() && requests.isEmpty()
+}
 
 /**
  * Screen "list" (ui/conversation-list.js + the link requests of ui/device-links.js; iOS `ConversationListModel`):
@@ -72,7 +81,28 @@ class ConversationListViewModel @Inject constructor(context: ChatContext, privat
         } catch (error: Exception) {
             mutableState.update { it.copy(error = describeChatError(error)) }
         }
+        refreshBackupRow()
+        if (state.value.empty) loadSuggestions()
         refreshLinkRequests()
+    }
+
+    /** The backup row shows while the account has no passphrase copy and „Später“ is not within 14 days. */
+    private suspend fun refreshBackupRow() {
+        val snoozed = context.preferences.backupRowSnoozedUntil(context.userId)?.isAfter(vault.clock.now()) == true
+        val row = vault.storedIdentity?.lockedIdentity == null && !snoozed
+        mutableState.update { it.copy(backupRow = row) }
+    }
+
+    /** „Später“ on the backup row: hidden for 14 days on this device. */
+    suspend fun snoozeBackupRow() = inScope {
+        context.preferences.snoozeBackupRow(context.userId, vault.clock.now().plus(BACKUP_SNOOZE))
+        mutableState.update { it.copy(backupRow = false) }
+    }
+
+    /** People to write first; without them (or offline, or without a membership: 402) only „Neuer Chat“ shows. */
+    private suspend fun loadSuggestions() {
+        val people = runCatching { context.repository.suggestions() }.getOrDefault(emptyList())
+        mutableState.update { it.copy(suggestions = people.take(MAX_SUGGESTIONS)) }
     }
 
     /**
@@ -132,7 +162,7 @@ class ConversationListViewModel @Inject constructor(context: ChatContext, privat
         }
     }
 
-    /** Meta line: "Gruppe · 3 Menschen · löscht nach 7 Tagen · wartet auf neuen Schlüssel" (or "· beendet"). */
+    /** Meta line: "Gruppe · 3 Menschen · löscht nach 7 Tagen · wird neu gesichert" (or "· beendet"). */
     fun meta(conversation: ChatConversation): String {
         val parts = mutableListOf(
             if (conversation.isGroup) "Gruppe · ${conversation.members.size} Menschen" else "Zu zweit",
@@ -141,7 +171,7 @@ class ConversationListViewModel @Inject constructor(context: ChatContext, privat
         if (conversation.ended) {
             parts += "beendet"
         } else if (conversation.rotationRequired) {
-            parts += "wartet auf neuen Schlüssel"
+            parts += "wird neu gesichert"
         }
         return parts.joinToString(" · ")
     }
@@ -149,7 +179,7 @@ class ConversationListViewModel @Inject constructor(context: ChatContext, privat
     /** The row's title: group name or the other people's names. */
     fun title(conversation: ChatConversation): String = conversation.displayTitle(context.userId)
 
-    /** "Sperren". */
+    /** „Chats sperren“. */
     fun lock() = vault.lock()
 
     /** The confirmation toast was shown. */
@@ -280,5 +310,13 @@ class ConversationListViewModel @Inject constructor(context: ChatContext, privat
             refreshLinkRequests()
             if (!realtime.isConnected.value && ticks % 5 == 0) reloadFirstPage()
         }
+    }
+
+    private companion object {
+        /** How long „Später“ hides the backup row. */
+        val BACKUP_SNOOZE: Duration = Duration.ofDays(14)
+
+        /** The list shows at most two people to write first. */
+        const val MAX_SUGGESTIONS = 2
     }
 }

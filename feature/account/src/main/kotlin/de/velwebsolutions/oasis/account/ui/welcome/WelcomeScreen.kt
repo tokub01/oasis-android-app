@@ -94,8 +94,8 @@ internal fun WelcomeScreen(viewModel: WelcomeViewModel = hiltViewModel()) {
         viewModel.textChanged()
     }
     val finish: suspend () -> Unit = {
-        // Opened again from the settings: back to where it came from. New members get the Quelle by themselves.
-        if (viewModel.finish() == true) navigator.back()
+        // Back to where it was opened from: the Quelle's card or the settings.
+        if (viewModel.finish()) navigator.back()
     }
     // System back goes one step back first, like the „Zurück“ button.
     BackHandler(enabled = ui.step > 1, onBack = viewModel::back)

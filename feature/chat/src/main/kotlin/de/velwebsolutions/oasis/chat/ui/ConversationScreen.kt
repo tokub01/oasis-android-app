@@ -25,6 +25,7 @@ import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.defaultMinSize
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.imePadding
 import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
@@ -36,6 +37,7 @@ import androidx.compose.foundation.lazy.LazyListState
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.foundation.lazy.rememberLazyListState
+import androidx.compose.foundation.selection.toggleable
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.BasicTextField
@@ -51,11 +53,14 @@ import androidx.compose.material.icons.outlined.Close
 import androidx.compose.material.icons.outlined.Info
 import androidx.compose.material.icons.outlined.Mic
 import androidx.compose.material.icons.outlined.Poll
+import androidx.compose.material.icons.outlined.Visibility
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
+import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
+import androidx.compose.material3.ModalBottomSheet
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
@@ -121,6 +126,7 @@ import de.velwebsolutions.oasis.design.components.LocalScreenChrome
 import de.velwebsolutions.oasis.design.components.OasisButton
 import de.velwebsolutions.oasis.design.components.OasisButtonKind
 import de.velwebsolutions.oasis.design.components.OasisScreen
+import de.velwebsolutions.oasis.design.components.OasisSwitch
 import de.velwebsolutions.oasis.design.components.OasisTextButton
 import de.velwebsolutions.oasis.design.components.Panel
 import de.velwebsolutions.oasis.design.components.PanelTone
@@ -196,6 +202,8 @@ internal fun ConversationScreen(conversationId: Int) {
             onDismissFlagged = model::dismissFlagged,
             onNoticeSpoken = model::noticeSpoken,
             attachments = actions.attachments,
+            hint = SwipeHintActions(onDismiss = model::dismissSwipeHint, onNudged = model::nudged),
+            onOpenDetails = { navigator.open(ChatRoute.Details(conversationId)) },
             effects = actions.effects,
             reactions = actions.reactions,
             polls = actions.polls
@@ -215,7 +223,8 @@ private class ScreenActions(model: ConversationViewModel) {
         onQuote = model::quoteTarget,
         onPin = model::togglePin,
         onVote = model::vote,
-        onClosePoll = model::closePoll
+        onClosePoll = model::closePoll,
+        onSwipeReply = model::swipedReply
     )
     val polls = PollFormActions(
         onOpen = { model.showPollForm(PollForm()) },
@@ -229,7 +238,7 @@ private class ScreenActions(model: ConversationViewModel) {
 internal fun ConversationViewModel.attachmentActions() = AttachmentActions(
     onPicked = ::addPicked,
     onRemove = ::removeDraft,
-    onViewOnce = ::setViewOnce,
+    onViewOnce = ::setViewOnceNext,
     recording = RecordingActions(onStart = ::startRecording, onFinish = ::finishRecording, onCancel = ::cancelRecording),
     onLoad = ::loadAttachment,
     onAnswer = ::answer,
@@ -260,18 +269,30 @@ internal fun ConversationContent(
     senderProfile: (String) -> ProfileLink? = { null },
     effects: EffectActions = EffectActions.None,
     reactions: ReactionActions = ReactionActions.None,
-    polls: PollFormActions = PollFormActions.None
+    polls: PollFormActions = PollFormActions.None,
+    hint: SwipeHintActions = SwipeHintActions.None,
+    /** A tap on a quiet line: the details with the safety numbers. */
+    onOpenDetails: () -> Unit = {}
 ) {
     val look = LookStyle.of(state.look)
     CompositionLocalProvider(LocalChatLook provides look) {
         Box(Modifier.fillMaxSize()) {
             ConversationColumn(
                 state, myId, senderName, onLoadOlder, onDraftChange, onSend, onReport, onAccept, onDecline, onBlockFlagged,
-                onDismissFlagged, onNoticeSpoken, attachments, senderAvatar, senderProfile, effects, reactions, polls
+                onDismissFlagged, onNoticeSpoken, attachments, senderAvatar, senderProfile, effects, reactions, polls, hint,
+                onOpenDetails
             )
             // Over everything, never in the way of a tap.
             state.playing?.let { EffectOverlay(it, effects.onDone) }
         }
+    }
+}
+
+/** The swipe hint: „Verstanden“, and the end of the bubble's nudge. */
+class SwipeHintActions(val onDismiss: suspend () -> Unit, val onNudged: () -> Unit) {
+    companion object {
+        /** Screens without the hint (previews). */
+        val None = SwipeHintActions({}, {})
     }
 }
 
@@ -285,7 +306,14 @@ class EffectActions(val onChoose: suspend (String) -> Unit, val onClear: () -> U
 
 /** What a bubble can do, made once per screen so rows that did not change skip composing. */
 @Stable
-internal class RowActions(val reactions: ReactionActions, val onReport: (ChatMessageItem) -> Unit)
+internal class RowActions(
+    val reactions: ReactionActions,
+    val onReport: (ChatMessageItem) -> Unit,
+    /** A tap on a quiet line. */
+    val onNotice: () -> Unit,
+    /** The nudge of the swipe hint played. */
+    val onNudged: () -> Unit
+)
 
 /** One row of the message list: a day pill, the „Neue Nachrichten“ divider or a message with its gap above. */
 @Composable
@@ -295,12 +323,16 @@ private fun TimelineRowView(
     transcription: TranscriptionView,
     attachments: AttachmentActions,
     actions: RowActions,
+    /** This is the bubble the swipe hint moves right and back once. */
+    nudge: Boolean,
     onJump: (Int) -> Unit
 ) {
     when (row) {
         is RowModel.Day -> DayPill(row.label)
 
         is RowModel.Unread -> UnreadDivider()
+
+        is RowModel.Notice -> QuietLine(row.text, actions.onNotice)
 
         // A message (the last kind of row).
         else -> {
@@ -339,7 +371,9 @@ private fun TimelineRowView(
                     showName = model.showName,
                     time = model.time,
                     info = model.info,
-                    extras = extras
+                    extras = extras,
+                    onSwipeReply = { scope.launch { reactions.onSwipeReply(item) } },
+                    nudge = if (nudge) actions.onNudged else null
                 ) {
                     MessageAttachments(item, model.mine, model.senderName, attachmentViews, attachments, transcription)
                 }
@@ -380,7 +414,9 @@ private fun ConversationColumn(
     senderProfile: (String) -> ProfileLink?,
     effects: EffectActions,
     reactions: ReactionActions,
-    polls: PollFormActions
+    polls: PollFormActions,
+    hint: SwipeHintActions,
+    onOpenDetails: () -> Unit
 ) {
     val look = LocalChatLook.current
     val photo = rememberLookPhoto(state.look.photo)
@@ -400,12 +436,13 @@ private fun ConversationColumn(
             state.canSend,
             state.pinBar,
             state.canPin,
-            state.conversation
+            state.conversation,
+            state.quietNotices
         ) {
             rowModels(state, myId, senderName, senderAvatar, senderProfile, Instant.now())
         }
     val transcription = remember(state.canTranscribe, state.transcripts) { TranscriptionView(state.canTranscribe, state.transcripts) }
-    val rowActions = remember(reactions, onReport) { RowActions(reactions, onReport) }
+    val rowActions = remember(reactions, onReport, onOpenDetails, hint) { RowActions(reactions, onReport, onOpenDetails, hint.onNudged) }
     // The newest message is the list's first item, drawn at the bottom: a chat opens there without a jump, older
     // messages load above without moving what is shown, and the keyboard keeps the newest message in view.
     val listState = rememberLazyListState()
@@ -458,7 +495,7 @@ private fun ConversationColumn(
             items(rows.asReversed(), key = { it.key }, contentType = { it.contentType }) { row ->
                 // Only a row with files gets the files' views, so loading one composes no other row again.
                 val views = if (row.hasFiles) state.attachmentViews else emptyMap()
-                TimelineRowView(row, views, transcription, attachments, rowActions) { target ->
+                TimelineRowView(row, views, transcription, attachments, rowActions, nudge = row.key == state.nudge) { target ->
                     scope.launch { listState.animateScrollToItem(rows.size - 1 - target) }
                 }
             }
@@ -549,7 +586,9 @@ private fun ConversationColumn(
                         .testTag("chat.composer.untrustedOwner")
                 )
             } else {
-                ConversationComposer(state, onDraftChange, onSend, attachments, effects, reactions.onCancelReply, polls)
+                WithSwipeHint(state.swipeHint, hint.onDismiss) {
+                    ConversationComposer(state, onDraftChange, onSend, attachments, effects, reactions.onCancelReply, polls)
+                }
             }
         }
         // Outside the measured composer, so its showing does not change the list's room.
@@ -590,6 +629,15 @@ private fun ConversationColumn(
             { onBlockFlagged(flagged.item.senderId) },
             { confirmBlockFlagged = false }
         )
+    }
+}
+
+/** The composer, with the swipe hint above it while that shows. */
+@Composable
+private fun WithSwipeHint(shows: Boolean, onDismiss: suspend () -> Unit, composer: @Composable () -> Unit) {
+    Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+        if (shows) SwipeHintPill(onDismiss)
+        composer()
     }
 }
 
@@ -699,12 +747,23 @@ private fun ConversationComposer(
         state.pollForm?.let { PollFormView(it, polls) }
         state.replyBar?.let { ReplyBarView(it, onCancelReply) }
         DraftAttachments(state, attachments)
-        state.effectChip?.let { chip -> EffectChip(chip, effects.onClear) }
+        state.effectChip?.let { chip ->
+            EffectChip(chip, "Effekt entfernen", effects.onClear, "chat.composer.effectChip", "chat.composer.effectClear")
+        }
+        if (state.viewOnceNext) {
+            EffectChip(
+                "Einmal ansehen",
+                "Einmal ansehen ausschalten",
+                { attachments.onViewOnce(false) },
+                "chat.composer.viewOnceChip",
+                "chat.composer.viewOnceClear"
+            )
+        }
         val seconds = state.recordingSeconds
         if (seconds != null) {
             RecordingBar(seconds, attachments)
         } else {
-            // „+“ with the attachment actions, the field across the remaining width, and one round button: the
+            // „+“ (everything besides writing, in its sheet), the field across the remaining width, and one round button: the
             // microphone while nothing is written or attached, „Senden“ as soon as something is (like iOS and the web).
             Box {
                 // The effect menu opens at the round button, from „Senden“ or from „+“ (also with nothing written yet).
@@ -712,8 +771,11 @@ private fun ConversationComposer(
                     EffectMenu(effectMenu, onDismiss = { effectMenu = false }, onChoose = effects.onChoose)
                 }
                 Row(verticalAlignment = Alignment.Bottom, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                    AttachMenu(
-                        enabled = state.canAttach,
+                    MoreSheet(
+                        enabled = state.canSend,
+                        canAttach = state.canAttach,
+                        viewOnce = state.viewOnceNext,
+                        onViewOnce = attachments.onViewOnce,
                         onMedia = {
                             attachments.onExternalScreen {
                                 picker.launch(PickVisualMediaRequest(ActivityResultContracts.PickVisualMedia.ImageAndVideo))
@@ -831,59 +893,89 @@ private val ADD_BUTTON = 44.dp
 /** The text field's corner radius. */
 private val FIELD_RADIUS = 22.dp
 
-/** „+“: a small menu with the attachment actions (photo or video, file). */
+/**
+ * „+“ (label „Mehr“, docs/oasis-chat-client.md, „C7 Composer“): a sheet with everything besides writing, in this order:
+ * „Foto oder Video“, „Datei“, „Umfrage“, „Effekt“ and the switch „Einmal ansehen“ for the files of the next message.
+ */
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
-private fun AttachMenu(enabled: Boolean, onMedia: () -> Unit, onFile: () -> Unit, onEffect: () -> Unit, onPoll: () -> Unit) {
+@Suppress("LongParameterList")
+private fun MoreSheet(
+    enabled: Boolean,
+    canAttach: Boolean,
+    viewOnce: Boolean,
+    onViewOnce: (Boolean) -> Unit,
+    onMedia: () -> Unit,
+    onFile: () -> Unit,
+    onEffect: () -> Unit,
+    onPoll: () -> Unit
+) {
     var open by remember { mutableStateOf(false) }
-    Box {
-        RoundAction(
-            Icons.Outlined.Add,
-            "Anhang hinzufügen",
-            enabled,
-            filled = false,
-            size = ADD_BUTTON,
-            modifier = Modifier.padding(bottom = (ROUND_BUTTON - ADD_BUTTON) / 2).testTag("chat.composer.add")
-        ) {
-            open = true
+    RoundAction(
+        Icons.Outlined.Add,
+        "Mehr",
+        enabled,
+        filled = false,
+        size = ADD_BUTTON,
+        modifier = Modifier.padding(bottom = (ROUND_BUTTON - ADD_BUTTON) / 2).testTag("chat.composer.add")
+    ) {
+        open = true
+    }
+    if (!open) return
+    val close = { open = false }
+    ModalBottomSheet(onDismissRequest = close, containerColor = OasisColors.Paper, modifier = Modifier.testTag("chat.composer.more")) {
+        Column(Modifier.fillMaxWidth().padding(bottom = 24.dp)) {
+            SheetItem("Foto oder Video", Icons.Outlined.AddPhotoAlternate, canAttach, Modifier.testTag("chat.composer.attach")) {
+                close()
+                onMedia()
+            }
+            SheetItem("Datei", Icons.Outlined.AttachFile, canAttach, Modifier.testTag("chat.composer.file")) {
+                close()
+                onFile()
+            }
+            SheetItem("Umfrage", Icons.Outlined.Poll, true, Modifier.testTag("chat.composer.poll")) {
+                close()
+                onPoll()
+            }
+            SheetItem("Effekt", Icons.Outlined.AutoAwesome, true, Modifier.testTag("chat.composer.effect")) {
+                close()
+                onEffect()
+            }
+            Row(
+                Modifier
+                    .fillMaxWidth()
+                    .heightIn(min = 56.dp)
+                    .toggleable(viewOnce, role = Role.Switch, onValueChange = onViewOnce)
+                    .padding(horizontal = 24.dp)
+                    .testTag("chat.composer.viewOnce"),
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(16.dp)
+            ) {
+                Icon(Icons.Outlined.Visibility, contentDescription = null, tint = OasisColors.Night)
+                Column(Modifier.weight(1f)) {
+                    Text("Einmal ansehen", style = OasisType.Body, color = OasisColors.Ink)
+                    Text("Für die Fotos, Videos und Dateien der nächsten Nachricht", style = OasisType.Caption, color = OasisColors.Muted)
+                }
+                OasisSwitch(viewOnce, onCheckedChange = null)
+            }
         }
-        DropdownMenu(expanded = open, onDismissRequest = { open = false }, containerColor = OasisColors.Paper) {
-            DropdownMenuItem(
-                text = { Text("Foto oder Video anhängen", style = OasisType.Body, color = OasisColors.Ink) },
-                leadingIcon = { Icon(Icons.Outlined.AddPhotoAlternate, contentDescription = null, tint = OasisColors.Night) },
-                onClick = {
-                    open = false
-                    onMedia()
-                },
-                modifier = Modifier.testTag("chat.composer.attach")
-            )
-            DropdownMenuItem(
-                text = { Text("Datei anhängen", style = OasisType.Body, color = OasisColors.Ink) },
-                leadingIcon = { Icon(Icons.Outlined.AttachFile, contentDescription = null, tint = OasisColors.Night) },
-                onClick = {
-                    open = false
-                    onFile()
-                },
-                modifier = Modifier.testTag("chat.composer.file")
-            )
-            DropdownMenuItem(
-                text = { Text("Umfrage", style = OasisType.Body, color = OasisColors.Ink) },
-                leadingIcon = { Icon(Icons.Outlined.Poll, contentDescription = null, tint = OasisColors.Night) },
-                onClick = {
-                    open = false
-                    onPoll()
-                },
-                modifier = Modifier.testTag("chat.composer.poll")
-            )
-            DropdownMenuItem(
-                text = { Text("Mit Effekt senden …", style = OasisType.Body, color = OasisColors.Ink) },
-                leadingIcon = { Icon(Icons.Outlined.AutoAwesome, contentDescription = null, tint = OasisColors.Night) },
-                onClick = {
-                    open = false
-                    onEffect()
-                },
-                modifier = Modifier.testTag("chat.composer.effect")
-            )
-        }
+    }
+}
+
+/** One row of the „+“ sheet. */
+@Composable
+private fun SheetItem(label: String, icon: ImageVector, enabled: Boolean, modifier: Modifier, onClick: () -> Unit) {
+    Row(
+        modifier
+            .fillMaxWidth()
+            .heightIn(min = 56.dp)
+            .clickable(enabled = enabled, role = Role.Button, onClick = onClick)
+            .padding(horizontal = 24.dp),
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.spacedBy(16.dp)
+    ) {
+        Icon(icon, contentDescription = null, tint = if (enabled) OasisColors.Night else OasisColors.Muted)
+        Text(label, style = OasisType.Body, color = if (enabled) OasisColors.Ink else OasisColors.Muted)
     }
 }
 
@@ -911,19 +1003,16 @@ private fun EffectMenu(expanded: Boolean, onDismiss: () -> Unit, onChoose: suspe
     }
 }
 
-/** „Effekt: Konfetti“ with „✕“: the effect waits for the next message. */
+/** A chip above the field with „✕“: „Effekt: Konfetti“ (the effect waits for the next message) or „Einmal ansehen“. */
 @Composable
-private fun EffectChip(text: String, onClear: () -> Unit) {
+private fun EffectChip(text: String, clearLabel: String, onClear: () -> Unit, tag: String, clearTag: String) {
     Row(
-        modifier = Modifier
-            .background(OasisColors.Dune, RoundedCornerShape(OasisRadius.CHIP.dp))
-            .padding(start = 12.dp)
-            .testTag("chat.composer.effectChip"),
+        modifier = Modifier.testTag(tag).background(OasisColors.Dune, RoundedCornerShape(OasisRadius.CHIP.dp)).padding(start = 12.dp),
         verticalAlignment = Alignment.CenterVertically
     ) {
         Text(text, style = OasisType.SmallBold, color = OasisColors.Ink)
-        IconButton(onClick = onClear, modifier = Modifier.testTag("chat.composer.effectClear")) {
-            Icon(Icons.Outlined.Close, contentDescription = "Effekt entfernen", tint = OasisColors.Night)
+        IconButton(onClick = onClear, modifier = Modifier.testTag(clearTag)) {
+            Icon(Icons.Outlined.Close, contentDescription = clearLabel, tint = OasisColors.Night)
         }
     }
 }
@@ -1018,9 +1107,13 @@ internal fun MessageBubble(
     info: String = "",
     profile: ProfileLink? = null,
     extras: BubbleExtras,
+    /** Swiping the bubble right: answers it, like „Antworten“, and ends the swipe hint. */
+    onSwipeReply: () -> Unit,
+    /** The swipe hint's nudge for this bubble, called when it played; null for every other bubble. */
+    nudge: (() -> Unit)?,
     attachments: @Composable () -> Unit
 ) {
-    SwipeToReply(extras.canAct, extras.onReply) {
+    SwipeToReply(extras.canAct, onSwipeReply, nudge) {
         BoxWithConstraints(Modifier.fillMaxWidth()) {
             val widest = minOf(maxWidth * 0.78f, 560.dp)
             Row(
@@ -1141,7 +1234,7 @@ private fun BubbleColumn(
                 extras.quote?.let { ReplyQuoteView(it, mine) { extras.onQuote(it.to) } }
                 val (text, italic) = when (item.state) {
                     ChatMessageItem.State.Readable -> item.content.text to false
-                    ChatMessageItem.State.NoKey -> "Für diese Nachricht hast du keinen Schlüssel." to true
+                    ChatMessageItem.State.NoKey -> "Diese Nachricht kannst du auf diesem Gerät nicht lesen." to true
                     ChatMessageItem.State.Unverifiable -> "Diese Nachricht ließ sich nicht prüfen und wird nicht angezeigt." to true
                 }
                 if (extras.poll != null) {

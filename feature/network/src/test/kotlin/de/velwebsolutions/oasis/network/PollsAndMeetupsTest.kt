@@ -280,10 +280,14 @@ class PollsAndMeetupsTest(private val answersAtOnce: Boolean) {
             model.loadIfNeeded()
             assertEquals(2, meetupsIndex(model.detail.value.valueOrNull!!))
         }
-        val source = models.keep(SourceViewModel(network.repository, network.session))
+        val source = models.keep(
+            SourceViewModel(network.repository, network.session, de.velwebsolutions.oasis.testing.MemoryOnboardingCardStore())
+        )
         runBlocking { source.loadMeetups() }
         assertEquals(listOf(5), source.meetups.value.map { it.id })
-        val failing = models.keep(SourceViewModel(StubbedNetwork().repository, network.session))
+        val failing = models.keep(
+            SourceViewModel(StubbedNetwork().repository, network.session, de.velwebsolutions.oasis.testing.MemoryOnboardingCardStore())
+        )
         runBlocking { failing.loadMeetups() }
         assertTrue(failing.meetups.value.isEmpty())
 

@@ -1,6 +1,7 @@
 package de.velwebsolutions.oasis.chat.core
 
 import java.security.SecureRandom
+import java.time.Instant
 import java.util.Base64
 
 /** A device secret and the credential id of its server row. */
@@ -47,4 +48,27 @@ interface ChatPreferences {
 
     /** Remembers the answer to that offer. */
     suspend fun setBiometricOfferDeclined(userId: String, declined: Boolean)
+
+    /** „Später“ on the chat list's backup row: until when it stays hidden (null: not hidden). */
+    suspend fun backupRowSnoozedUntil(userId: String): Instant?
+
+    /** Hides the backup row until [until]. */
+    suspend fun snoozeBackupRow(userId: String, until: Instant)
+
+    /** How far the swipe hint got on this device (docs/oasis-chat-client.md, „C8 Swipe hint once“). */
+    suspend fun swipeHint(): SwipeHintProgress
+
+    /** Keeps the swipe hint's progress. */
+    suspend fun setSwipeHint(progress: SwipeHintProgress)
+}
+
+/** The swipe hint: [done] for good, or the chats it was [shown] in (it stops after three). */
+data class SwipeHintProgress(val done: Boolean = false, val shown: Set<String> = emptySet()) {
+    /** Whether the hint shows in the chat [conversationId]: not done, and one of the first three chats. */
+    fun showsIn(conversationId: String): Boolean = !done && (conversationId in shown || shown.size < MAX_CHATS)
+
+    companion object {
+        /** After three chats the hint is gone. */
+        const val MAX_CHATS = 3
+    }
 }

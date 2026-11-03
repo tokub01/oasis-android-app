@@ -43,7 +43,7 @@ class BiometricPrompterTest {
 
     /** Starts the prompt on the main thread (the test thread is Robolectric's main looper, so it must not block). */
     private fun authenticate() = CoroutineScope(Dispatchers.Main).async(start = CoroutineStart.UNDISPATCHED) {
-        prompter.authenticate(cipher, "Nachrichten entsperren")
+        prompter.authenticate(cipher, "Chats entsperren")
     }
 
     /** The prompt's answer once the main looper ran everything that was queued. */

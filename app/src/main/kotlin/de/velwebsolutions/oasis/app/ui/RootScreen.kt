@@ -14,7 +14,8 @@ import de.velwebsolutions.oasis.design.navigation.AccountRoute
 
 /**
  * The whole app: restores the session, then shows sign-in, the e-mail confirmation, the lock screen, the mobile-number
- * confirmation, "Mitglied werden" (no membership yet), the welcome tour or the tabs.
+ * confirmation, "Mitglied werden" (no membership yet) or the tabs. New members land in the tabs too; the Quelle offers
+ * the welcome tour with its card „Mach dein Tal lebendig“ (docs/oasis-accounts.md, „Nach der Registrierung“).
  */
 @Composable
 fun RootScreen(viewModel: RootViewModel = hiltViewModel()) {
@@ -34,9 +35,6 @@ fun RootScreen(viewModel: RootViewModel = hiltViewModel()) {
 
                 // Members-only: without a paid or gifted membership only "Mitglied werden" and the account pages.
                 !me.mayUseOasis -> PaywallScreen(viewModel)
-
-                // New members start with the welcome tour, like the web's Quelle sends them to /app/willkommen.
-                !me.onboarded -> StandaloneStack(AccountRoute.Welcome)
 
                 else -> MainTabs(me, viewModel)
             }

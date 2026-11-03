@@ -201,19 +201,18 @@ class WelcomeViewModel @Inject constructor(private val repository: AccountReposi
     }
 
     /**
-     * „Los geht's“ or „Später – direkt zur Quelle“: ends the tour and reloads `me`. Returns whether the tour was opened
-     * again by an onboarded member (the screen then goes back to where it was opened from); a new member's app shows
-     * the Quelle by itself once `me` is onboarded.
+     * „Los geht's“ or „Später – direkt zur Quelle“: ends the tour and reloads `me`, so the Quelle's card „Mach dein Tal
+     * lebendig“ goes. Returns whether the tour ended (the screen then goes back to where it was opened from: the card or
+     * the settings); a refusal stays on the screen.
      */
-    suspend fun finish(): Boolean? {
+    suspend fun finish(): Boolean {
         catching { repository.finishWelcome() }
             .onFailure { error ->
                 mutableUi.update { it.copy(error = error.asApiError().userMessage) }
-                return null
+                return false
             }
-        val wasOnboarded = ui.value.state.valueOrNull?.onboarded ?: true
         session.refreshMe()
-        return wasOnboarded
+        return true
     }
 
     private fun go(target: Int) {

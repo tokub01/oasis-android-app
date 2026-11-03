@@ -37,10 +37,10 @@ fun describeChatError(error: Throwable): String = when (error) {
     is ChatCryptoException.MessageTooLong -> "Die Nachricht ist zu lang."
 
     is ChatKeyringException.MissingMemberKeys ->
-        "Für ${error.usernames.joinToString(", ")} gibt es keine gültigen Chat-Schlüssel. Der Chat kann noch keinen Schlüssel bekommen."
+        "Mit ${error.usernames.joinToString(", ")} ist gerade kein sicherer Chat möglich."
 
     ChatKeyringException.PublishedKeysMismatch ->
-        "Die veröffentlichten Schlüssel passen nicht zu deinen. Bitte melde dich bei uns – schreib vorerst nichts Vertrauliches."
+        "Wir konnten nicht bestätigen, dass dieser Chat sicher ist. Schreib hier vorerst nichts Vertrauliches."
 
     ChatKeyringException.UntrustedOwner -> ChatKeyring.UNTRUSTED_OWNER
 

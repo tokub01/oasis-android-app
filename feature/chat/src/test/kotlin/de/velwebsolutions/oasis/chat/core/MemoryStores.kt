@@ -36,4 +36,22 @@ class MemoryChatPreferences : ChatPreferences {
     override suspend fun setBiometricOfferDeclined(userId: String, declined: Boolean) {
         if (declined) this.declined += userId else this.declined -= userId
     }
+
+    /** „Später“ of the backup row by account. */
+    val backupSnoozes = ConcurrentHashMap<String, java.time.Instant>()
+
+    override suspend fun backupRowSnoozedUntil(userId: String): java.time.Instant? = backupSnoozes[userId]
+
+    override suspend fun snoozeBackupRow(userId: String, until: java.time.Instant) {
+        backupSnoozes[userId] = until
+    }
+
+    /** The swipe hint's progress on this "device". */
+    @Volatile var hint = SwipeHintProgress()
+
+    override suspend fun swipeHint(): SwipeHintProgress = hint
+
+    override suspend fun setSwipeHint(progress: SwipeHintProgress) {
+        hint = progress
+    }
 }

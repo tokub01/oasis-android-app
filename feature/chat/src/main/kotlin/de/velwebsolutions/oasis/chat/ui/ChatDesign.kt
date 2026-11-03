@@ -3,9 +3,13 @@ package de.velwebsolutions.oasis.chat.ui
 import androidx.compose.runtime.Immutable
 import de.velwebsolutions.oasis.chat.api.ChatAvatar
 import de.velwebsolutions.oasis.chat.api.ChatConversation
+import de.velwebsolutions.oasis.chat.core.ChatKeyring
 import de.velwebsolutions.oasis.chat.core.ChatMessageItem
+import de.velwebsolutions.oasis.chat.core.ChatPreferences
+import de.velwebsolutions.oasis.chat.core.ChatVault
 import de.velwebsolutions.oasis.chat.core.lifetimeLabel
 import de.velwebsolutions.oasis.core.format.GermanTime
+import de.velwebsolutions.oasis.core.network.OasisJson
 import java.time.Duration
 import java.time.Instant
 import java.time.LocalDate
@@ -317,6 +321,11 @@ sealed interface RowModel {
         override val contentType: String get() = if (model.mine) "mine" else "theirs"
         override val hasFiles: Boolean get() = model.item.content.attachments.isNotEmpty()
     }
+
+    /** A quiet line where something happened ([QuietNotice]). */
+    data class Notice(val text: String, override val key: String) : RowModel {
+        override val contentType: String get() = "notice"
+    }
 }
 
 /** The rows of [state] with everything each bubble shows, for the member [myId] at [now]. */
@@ -327,14 +336,37 @@ internal fun rowModels(
     senderAvatar: (String) -> ChatAvatar,
     senderProfile: (String) -> ProfileLink?,
     now: Instant
-): List<RowModel> = state.shownRows.map { row ->
-    if (row is TimelineRow.Day) {
-        RowModel.Day(row.label, row.key)
-    } else if (row is TimelineRow.Unread) {
-        RowModel.Unread
-    } else {
-        bubbleModel(row as TimelineRow.Message, state, myId, senderName, senderAvatar, senderProfile, now)
-    }
+): List<RowModel> {
+    val rows = state.shownRows
+    val models = rows.map { row ->
+        if (row is TimelineRow.Day) {
+            RowModel.Day(row.label, row.key)
+        } else if (row is TimelineRow.Unread) {
+            RowModel.Unread
+        } else {
+            bubbleModel(row as TimelineRow.Message, state, myId, senderName, senderAvatar, senderProfile, now)
+        }
+    }.toMutableList()
+    // Placed among the rows as they are, inserted from the back so the places of the others stay right; notices at the
+    // same place keep their order.
+    state.quietNotices
+        .mapIndexed { index, notice -> Triple(noticePlace(rows, notice.at), index, notice) }
+        .sortedWith(compareByDescending<Triple<Int, Int, QuietNotice>> { it.first }.thenByDescending { it.second })
+        .forEach { (place, index, notice) -> models.add(place, RowModel.Notice(notice.text, "notice-$index")) }
+    return models
+}
+
+/**
+ * Where a quiet notice of [at] goes among [rows]: before the first message sent after it (and before that message's day
+ * pill or the „Neue Nachrichten“ divider). Unknown, before the loaded messages or after all of them: at the end.
+ */
+internal fun noticePlace(rows: List<TimelineRow>, at: Instant?): Int {
+    val messages = rows.withIndex().filter { it.value is TimelineRow.Message }
+    val next = messages.firstOrNull { (it.value as TimelineRow.Message).sent?.isAfter(at ?: Instant.MAX) == true }
+    if (next == null || next == messages.first()) return rows.size
+    var place = next.index
+    while (rows[place - 1] !is TimelineRow.Message) place -= 1
+    return place
 }
 
 private fun bubbleModel(
@@ -369,4 +401,59 @@ private fun bubbleModel(
             poll = state.polls[item.signature]
         )
     )
+}
+
+/**
+ * Quiet lines about members with a new device or newly set-up chats (when, if known; during this session: [now]) and
+ * members who cannot receive this chat securely (at the end).
+ */
+internal fun keyNotices(conversation: ChatConversation, directory: ChatKeyring.Directory, myId: String, now: Instant): List<QuietNotice> {
+    val names = directory.users.associate { it.id to it.name }
+    fun newDevice(id: String) = "${names.getValue(id)} nutzt jetzt ein neues Gerät oder hat die Chats neu eingerichtet."
+    val changed = conversation.members.filter { it.userId != myId }.mapNotNull { member ->
+        directory.user(member.userId)?.keyChangedAt?.let { QuietNotice(newDevice(member.userId), OasisJson.parseInstant(it)) }
+    }
+    return changed + directory.changedInSession.map { QuietNotice(newDevice(it), now) } +
+        directory.invalid.map { QuietNotice("${names.getValue(it)} kann diesen Chat gerade nicht sicher empfangen.", null) }
+}
+
+/**
+ * The swipe hint of one chat on this device (docs/oasis-chat-client.md, „C8 Swipe hint once“): shown in the first three
+ * chats with a message of someone else, gone for good after „Verstanden“ or the first swipe to answer.
+ */
+internal class SwipeHintTracker(private val preferences: ChatPreferences, private val conversationId: String) {
+    /** Done on this device (read when the chat opens), so a swipe does not write it again. */
+    private var done = true
+
+    /** Whether the hint shows in this chat; the chat counts as one it was shown in. */
+    suspend fun offer(): Boolean {
+        val progress = preferences.swipeHint()
+        done = progress.done
+        if (!progress.showsIn(conversationId)) return false
+        preferences.setSwipeHint(progress.copy(shown = progress.shown + conversationId))
+        return true
+    }
+
+    /** „Verstanden“ or the first swipe to answer. */
+    suspend fun finish() {
+        if (done) return
+        done = true
+        preferences.setSwipeHint(preferences.swipeHint().copy(done = true))
+    }
+}
+
+/** Why nobody can write in [current] (yet), as a banner on top: ended, waiting for the new key, no access yet; or null. */
+internal fun waitingNotice(current: ChatConversation, vault: ChatVault, myId: String): String? = when {
+    current.ended -> "Dieser Chat ist beendet. Du kannst ihn noch lesen und Nachrichten melden, aber nicht mehr schreiben."
+
+    // Shown instead of the composer (ConversationState.untrustedOwner).
+    !ChatKeyring.ownerTrusted(vault, current) -> null
+
+    current.rotationRequired && current.createdBy != myId ->
+        "Der Chat wird gerade neu gesichert. Sobald die Person, die ihn gestartet hat, online ist, kannst du schreiben."
+
+    vault.conversationKey(current.id, current.keyVersion) == null ->
+        "Du kannst hier noch nicht schreiben. Sobald die Person, die den Chat gestartet hat, online ist, geht es los."
+
+    else -> null
 }

@@ -203,7 +203,7 @@ class ChatFlowTest {
         val identity = checkNotNull(mira.vault.identity)
         mira.vault.lock()
         assertTrue(identity.isWiped)
-        assertEquals("Nachrichten gesperrt. Deine Schlüssel sind aus dem Speicher gelöscht.", mira.vault.announcement.value)
+        assertEquals("Chats gesperrt.", mira.vault.announcement.value)
 
         val access = ChatAccessViewModel(mira)
         access.load()
@@ -231,7 +231,7 @@ class ChatFlowTest {
         scheduler.advanceTimeBy(300)
         scheduler.runCurrent()
         assertFalse(mira.vault.unlocked)
-        assertEquals("Nachrichten gesperrt. Deine Schlüssel sind aus dem Speicher gelöscht.", mira.vault.announcement.value)
+        assertEquals("Chats gesperrt.", mira.vault.announcement.value)
     }
 
     @Test

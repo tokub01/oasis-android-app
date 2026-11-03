@@ -170,7 +170,7 @@ class OwnerTrustTest {
             ChatKeyring.UNTRUSTED_OWNER
         )
         assertEquals(
-            "Der Chat bekommt gerade einen neuen Schlüssel. Versuch es gleich noch einmal.",
+            "Der Chat wird gerade neu gesichert. Versuch es gleich noch einmal.",
             describeChatError(ChatKeyringException.StaleKeyVersion)
         )
     }

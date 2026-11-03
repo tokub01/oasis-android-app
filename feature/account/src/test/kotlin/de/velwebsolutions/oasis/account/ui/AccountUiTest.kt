@@ -4,6 +4,7 @@ import androidx.activity.OnBackPressedDispatcher
 import androidx.activity.compose.LocalOnBackPressedDispatcherOwner
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableIntStateOf
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.semantics.SemanticsActions
 import androidx.compose.ui.test.assertIsDisplayed
@@ -26,13 +27,17 @@ import de.velwebsolutions.oasis.account.Fixtures
 import de.velwebsolutions.oasis.account.api.PrivacyCentre
 import de.velwebsolutions.oasis.account.api.PrivacySettingItem
 import de.velwebsolutions.oasis.account.api.PrivacyValue
+import de.velwebsolutions.oasis.account.ui.auth.RegisterActions
 import de.velwebsolutions.oasis.account.ui.auth.RegisterContent
+import de.velwebsolutions.oasis.account.ui.auth.RegisterPage
 import de.velwebsolutions.oasis.account.ui.auth.RegisterUiState
+import de.velwebsolutions.oasis.account.ui.auth.RegisterViewModel
 import de.velwebsolutions.oasis.account.ui.auth.SignInActions
 import de.velwebsolutions.oasis.account.ui.auth.SignInContent
 import de.velwebsolutions.oasis.account.ui.auth.SignInUiState
 import de.velwebsolutions.oasis.account.ui.auth.TwoFactorContent
 import de.velwebsolutions.oasis.account.ui.auth.TwoFactorUiState
+import de.velwebsolutions.oasis.account.ui.auth.UsernameCheck
 import de.velwebsolutions.oasis.account.ui.auth.VerifyEmailActions
 import de.velwebsolutions.oasis.account.ui.auth.VerifyEmailContent
 import de.velwebsolutions.oasis.account.ui.auth.VerifyEmailUiState
@@ -41,6 +46,7 @@ import de.velwebsolutions.oasis.account.ui.components.QrCodeView
 import de.velwebsolutions.oasis.account.ui.privacy.PrivacyCenterContent
 import de.velwebsolutions.oasis.account.ui.privacy.PrivacyCheckupContent
 import de.velwebsolutions.oasis.account.ui.privacy.PrivacyUiState
+import de.velwebsolutions.oasis.core.auth.Registration
 import de.velwebsolutions.oasis.core.auth.RegistrationForm
 import de.velwebsolutions.oasis.core.model.Loadable
 import de.velwebsolutions.oasis.core.network.ApiError
@@ -135,19 +141,23 @@ class AccountUiTest {
         val legal = mutableListOf<String>()
         compose.setContent {
             RegisterContent(
-                RegisterUiState(form = RegistrationForm("website_url", "form_started", "abc"), birthDateMissing = true),
-                {},
-                {},
-                {},
+                RegisterUiState(
+                    form = RegistrationForm("website_url", "form_started", "abc"),
+                    page = RegisterPage.Finish,
+                    fieldErrors = mapOf("birth_date" to RegisterViewModel.BIRTH_DATE_REQUIRED, "terms" to RegisterViewModel.TERMS_REQUIRED)
+                ),
+                RegisterActions.None,
                 {},
                 { legal += it }
             )
         }
-        compose.onNodeWithText("Werde Teil der Oase.").assertIsDisplayed()
-        compose.onNodeWithText("Bitte prüfe die markierten Felder.").assertIsDisplayed()
+        compose.onNodeWithText("Fast geschafft").assertIsDisplayed()
+        compose.onNodeWithText("Schritt 1 von 4 · Konto").assertIsDisplayed()
+        compose.onNodeWithContentDescription("Seite 3 von 3").assertExists()
         compose.onNodeWithText("So geht es los").performScrollTo().assertIsDisplayed()
         compose.onNodeWithText("Beitrag wählen – bezahlt wird über Google Play").performScrollTo().assertIsDisplayed()
         compose.onNodeWithText("Das Geburtsdatum ist erforderlich.").performScrollTo().assertIsDisplayed()
+        compose.onNodeWithText("Bitte akzeptiere die Nutzungsbedingungen.").performScrollTo().assertIsDisplayed()
         compose.onNodeWithText("AGB").performScrollTo().performClick()
         assertEquals(listOf("agb"), legal)
         compose.onNodeWithTag("register.birthDate").performScrollTo().performClick()
@@ -157,8 +167,18 @@ class AccountUiTest {
     @Test
     fun aBirthDateClearedInTheKeyboardInputIsNotTaken() {
         val taken = mutableListOf<java.time.LocalDate>()
+        val actions = RegisterActions({}, {}, {}, {}, { taken += it }, {}, {}, {})
         compose.setContent {
-            RegisterContent(RegisterUiState(form = RegistrationForm("website_url", "form_started", "abc")), {}, { taken += it }, {}, {}, {})
+            RegisterContent(
+                RegisterUiState(
+                    form = RegistrationForm("website_url", "form_started", "abc"),
+                    page = RegisterPage.Finish
+                ),
+                actions,
+                {
+                },
+                {}
+            )
         }
         compose.onNodeWithTag("register.birthDate").performScrollTo().performClick()
         // The pencil of Material's date picker switches to typing the date; an empty or incomplete one selects nothing.
@@ -167,6 +187,47 @@ class AccountUiTest {
         compose.onNodeWithTag("register.birthDate.take").assertIsNotEnabled().performSemanticsAction(SemanticsActions.OnClick)
         assertTrue("nothing taken, and no crash", taken.isEmpty())
         compose.onNodeWithTag("register.birthDate.take").assertExists()
+    }
+
+    @Test
+    fun theUsernameLineOffersTheSuggestionAndThePasswordShowsItsRule() {
+        val taken = mutableListOf<String>()
+        var state by mutableStateOf(
+            RegisterUiState(
+                registration = Registration(displayName = "Mira", username = "mira"),
+                usernameCheck = UsernameCheck.Taken("mira", "mira2")
+            )
+        )
+        val actions = RegisterActions({}, {}, { taken += it }, {}, {}, {}, {}, {})
+        compose.setContent { RegisterContent(state, actions, {}, {}) }
+        compose.onNodeWithText("Wie sollen andere dich nennen?").assertExists()
+        compose.onNodeWithText("@mira ist schon vergeben – wie wäre es mit ", substring = true).assertExists()
+        compose.onNodeWithTag("register.username.suggestion").performClick()
+        assertEquals(listOf("mira2"), taken)
+        state = state.copy(usernameCheck = UsernameCheck.Taken("mira", null))
+        compose.onNodeWithText("@mira ist schon vergeben.").assertExists()
+        state = state.copy(usernameCheck = UsernameCheck.Free("mira"))
+        compose.onNodeWithText("@mira ist frei.").assertExists()
+        state = state.copy(usernameCheck = UsernameCheck.Invalid("Mi", "Der Benutzername muss mindestens 3 Zeichen lang sein."))
+        compose.onNodeWithText("Der Benutzername muss mindestens 3 Zeichen lang sein.").assertExists()
+        state = state.copy(error = ApiError.Validation("x", mapOf("username" to listOf("Dieser Benutzername ist nicht erlaubt."))))
+        compose.onNodeWithText("Dieser Benutzername ist nicht erlaubt.").assertExists()
+        compose.onNodeWithText("Bitte prüfe die markierten Felder.").assertExists()
+        compose.onNodeWithText("@mira ist frei.").assertDoesNotExist()
+        state = state.copy(error = ApiError.Server(500, "Server Error"))
+        compose.onNodeWithText("Server Error").assertExists()
+
+        state = RegisterUiState(page = RegisterPage.SignIn, registration = Registration(password = "kurz"))
+        compose.onNodeWithText("Wie meldest du dich an?").assertExists()
+        compose.onNodeWithTag("register.password.rule").assertExists()
+        compose.onNodeWithText("Mindestens 10 Zeichen", useUnmergedTree = true).assertExists()
+        compose.onNodeWithText("Später kannst du einen Passkey einrichten und dich ganz ohne Passwort anmelden.").assertExists()
+        compose.onNodeWithContentDescription("Passwort anzeigen").performClick()
+        compose.onNodeWithContentDescription("Passwort verbergen").performClick()
+        compose.onNodeWithContentDescription("Passwort anzeigen").assertExists()
+        state = state.copy(registration = Registration(password = "ein-langes-passwort"))
+        compose.onNodeWithTag("register.password.rule").assertExists()
+        compose.onNodeWithText("Werbefrei und ohne Algorithmus, getragen von den Mitgliedern.").assertDoesNotExist()
     }
 
     @Test

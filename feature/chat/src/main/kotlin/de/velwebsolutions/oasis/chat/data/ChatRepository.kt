@@ -5,6 +5,7 @@ import de.velwebsolutions.oasis.chat.api.AttachmentUpload
 import de.velwebsolutions.oasis.chat.api.ChatConversation
 import de.velwebsolutions.oasis.chat.api.ChatService
 import de.velwebsolutions.oasis.chat.api.ChatSettings
+import de.velwebsolutions.oasis.chat.api.ChatSuggestion
 import de.velwebsolutions.oasis.chat.api.ConversationPage
 import de.velwebsolutions.oasis.chat.api.CreatedDeviceLink
 import de.velwebsolutions.oasis.chat.api.DeviceLinkRequest
@@ -99,6 +100,9 @@ interface ChatRepository {
 
     /** The word lists of the on-device safety checks. */
     suspend fun safety(): SafetyLists
+
+    /** Up to two people to write first, for the empty chat list. */
+    suspend fun suggestions(): List<ChatSuggestion>
 
     /** One page of the member's conversations, newest first. */
     suspend fun conversations(page: Int = 1): ConversationPage
@@ -253,6 +257,8 @@ class DefaultChatRepository(client: ApiClient) : ChatRepository {
     override suspend fun block(userId: String) = service.block(buildJsonObject { put("user_id", id(userId)) })
 
     override suspend fun safety() = service.safety().data
+
+    override suspend fun suggestions() = service.suggestions().data
 
     override suspend fun conversations(page: Int) = service.conversations(page)
 

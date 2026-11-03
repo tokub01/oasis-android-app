@@ -18,8 +18,13 @@ import de.velwebsolutions.oasis.core.auth.SignInResult
 import de.velwebsolutions.oasis.core.network.ApiError
 import de.velwebsolutions.oasis.core.network.asApiError
 import java.time.LocalDate
+import java.time.ZoneId
+import java.util.Locale
 import javax.inject.Inject
 import kotlin.coroutines.cancellation.CancellationException
+import kotlin.time.Duration
+import kotlin.time.Duration.Companion.milliseconds
+import kotlinx.coroutines.Job
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -236,28 +241,104 @@ class ForgotPasswordViewModel @Inject constructor(private val auth: AuthApi) : V
     }
 }
 
-/** Registration, the first step of /testen. */
+/** The three small pages of step 1 „Konto anlegen“ (docs/oasis-accounts.md, „Registrierung: Schritt 1 …“). */
+enum class RegisterPage(val title: String, val fields: Set<String>) {
+    /** 1a: display name and username. */
+    Name("Wie sollen andere dich nennen?", setOf("display_name", "username")),
+
+    /** 1b: e-mail address and password. */
+    SignIn("Wie meldest du dich an?", setOf("email", "password")),
+
+    /** 1c: birth date and consent, then „Konto anlegen“; also where refusals of no field of 1a or 1b show. */
+    Finish("Fast geschafft", setOf("birth_date", "terms"));
+
+    companion object {
+        /** The first page with a field the server refused; refusals of no page's field (`form`) show on 1c. */
+        fun of(fields: Set<String>): RegisterPage = entries.firstOrNull { page -> fields.any { it in page.fields } } ?: Finish
+    }
+}
+
+/** What the live check says under the username of page 1a. */
+sealed interface UsernameCheck {
+    /** „@mira ist frei.“ */
+    data class Free(val username: String) : UsernameCheck
+
+    /** „@mira ist schon vergeben – wie wäre es mit @mira2?“ ([suggestion] null: only that it is taken). */
+    data class Taken(val username: String, val suggestion: String?) : UsernameCheck
+
+    /** The format is invalid: the server's message, shown at the field. */
+    data class Invalid(val username: String, val message: String) : UsernameCheck
+}
+
+/** The rules of a username (CreateNewUser / UsernameAvailability on the server) and the suggestion from a name. */
+object UsernameRules {
+    const val MIN_LENGTH = 3
+    const val MAX_LENGTH = 30
+
+    private val umlauts = mapOf('ä' to "ae", 'ö' to "oe", 'ü' to "ue", 'ß' to "ss")
+
+    /** „Lena Bürger“ → „lenabuerger“: lower case, umlauts spelled out, only a–z, 0–9 and _, at most 30; "" below 3. */
+    fun suggestion(displayName: String): String {
+        val spelled = displayName.lowercase(Locale.GERMAN).map { umlauts[it] ?: it.toString() }.joinToString("")
+        val kept = spelled.filter(::allowed).take(MAX_LENGTH)
+        return if (kept.length < MIN_LENGTH) "" else kept
+    }
+
+    /** The server's message for a username of the wrong form, or null when the form is right. */
+    fun formatProblem(username: String): String? = when {
+        username.isEmpty() -> "Der Benutzername ist erforderlich."
+        username.length < MIN_LENGTH -> "Der Benutzername muss mindestens $MIN_LENGTH Zeichen lang sein."
+        username.length > MAX_LENGTH -> "Der Benutzername darf höchstens $MAX_LENGTH Zeichen lang sein."
+        !username.all(::allowed) -> "Der Benutzername darf nur Buchstaben von a bis z, Zahlen und Unterstriche enthalten."
+        else -> null
+    }
+
+    private fun allowed(char: Char) = char in 'a'..'z' || char in '0'..'9' || char == '_'
+}
+
+/** Registration, the first step of /testen, in three small pages. */
 data class RegisterUiState(
     val registration: Registration = Registration(),
+    val page: RegisterPage = RegisterPage.Name,
+    /** The member typed in the username field: it no longer follows the display name. */
+    val usernameEdited: Boolean = false,
+    /** The live check of the username; null while nothing was checked (or the check failed). */
+    val usernameCheck: UsernameCheck? = null,
     /** Empty until the member picks a date, like the web's date field. */
     val birthDate: LocalDate? = null,
     /** The bot-trap token, fetched when the screen opens; null until it arrived. */
     val form: RegistrationForm? = null,
-    val error: ApiError? = null,
-    /** The birth date is missing (checked here, because the request always carries one). */
-    val birthDateMissing: Boolean = false
-)
+    /** The checks of this device before „Weiter“ and „Konto anlegen“, by field. */
+    val fieldErrors: Map<String, String> = emptyMap(),
+    val error: ApiError? = null
+) {
+    /** The message at [field]: this device's check first, then the server's. */
+    fun fieldError(field: String): String? = fieldErrors[field] ?: error?.message(field)
+
+    /** „Mindestens 10 Zeichen“ of the live checklist is ticked. */
+    val passwordLongEnough: Boolean get() = registration.password.length >= RegisterViewModel.PASSWORD_MIN_LENGTH
+}
 
 /**
- * Registration, the first step of /testen (CreateNewUser): name, username, e-mail, password, birth date (16+), terms.
- * Confirming the e-mail address and the mobile number and choosing the contribution follow, then the welcome tour
- * (oases, people). The bot-trap token is fetched when the screen opens, like the web form; when that failed (offline),
- * „Konto erstellen“ fetches one itself and keeps it. Only a token the server refused is replaced.
+ * Registration, the first step of /testen (CreateNewUser), in three small pages (round J): 1a name and username, with a
+ * suggestion from the name and a live check; 1b e-mail and password, entered once; 1c birth date (18+) and terms. Each
+ * page checks its own fields before „Weiter“; „Zurück“ keeps everything. Only „Konto anlegen“ on 1c sends the account;
+ * refused fields lead back to the first page holding one. Confirming the e-mail address and the mobile number and
+ * choosing the contribution follow. The bot-trap token is fetched when the screen opens, like the web form; when that
+ * failed (offline), „Konto anlegen“ fetches one itself and keeps it. Only a token the server refused is replaced.
  */
 @HiltViewModel
 class RegisterViewModel @Inject constructor(private val session: Session, private val auth: AuthApi) : ViewModel() {
     private val mutableUi = MutableStateFlow(RegisterUiState())
     val ui: StateFlow<RegisterUiState> = mutableUi.asStateFlow()
+
+    /** How long typing has to pause before the username is checked. */
+    var checkDelay: Duration = 400.milliseconds
+
+    private var checkJob: Job? = null
+
+    /** The day the age is counted on (the server counts in Europe/Berlin). */
+    var today: () -> LocalDate = { LocalDate.now(ZoneId.of("Europe/Berlin")) }
 
     init {
         viewModelScope.launch { loadForm() }
@@ -265,7 +346,106 @@ class RegisterViewModel @Inject constructor(private val session: Session, privat
 
     fun edit(change: (Registration) -> Registration) = mutableUi.update { it.copy(registration = change(it.registration)) }
 
-    fun setBirthDate(date: LocalDate) = mutableUi.update { it.copy(birthDate = date, birthDateMissing = false) }
+    /** The display name; the username follows it as a suggestion until the member edits that. */
+    fun setDisplayName(value: String) {
+        mutableUi.update {
+            val registration = it.registration.copy(displayName = value)
+            it.copy(
+                registration = if (it.usernameEdited) registration else registration.copy(username = UsernameRules.suggestion(value)),
+                fieldErrors = it.fieldErrors - "display_name"
+            )
+        }
+        if (!ui.value.usernameEdited) scheduleCheck()
+    }
+
+    /** Typed into the username field: from now on it stays as typed. */
+    fun setUsername(value: String) {
+        mutableUi.update {
+            it.copy(registration = it.registration.copy(username = value), usernameEdited = true, fieldErrors = it.fieldErrors - "username")
+        }
+        scheduleCheck()
+    }
+
+    /** A tap on the suggestion „@mira2“. */
+    fun takeSuggestion(username: String) = setUsername(username)
+
+    fun setBirthDate(date: LocalDate) = mutableUi.update { it.copy(birthDate = date, fieldErrors = it.fieldErrors - "birth_date") }
+
+    /** Checks the username after a pause in typing; an invalid form says so without asking the server. */
+    private fun scheduleCheck() {
+        checkJob?.cancel()
+        val username = ui.value.registration.username
+        val problem = UsernameRules.formatProblem(username)
+        if (problem != null) {
+            mutableUi.update { it.copy(usernameCheck = if (username.isEmpty()) null else UsernameCheck.Invalid(username, problem)) }
+            return
+        }
+        mutableUi.update { it.copy(usernameCheck = null) }
+        checkJob = viewModelScope.launch {
+            delay(checkDelay)
+            checkUsername(username)
+        }
+    }
+
+    /** One check of [username]; a network error shows nothing (the final submit checks again). */
+    internal suspend fun checkUsername(username: String) {
+        val check = catching { auth.usernameAvailable(username) }.fold(
+            onSuccess = { answer ->
+                if (answer.available) UsernameCheck.Free(username) else UsernameCheck.Taken(username, answer.suggestion)
+            },
+            onFailure = { error -> error.asApiError().message("username")?.let { UsernameCheck.Invalid(username, it) } }
+        )
+        mutableUi.update { if (it.registration.username == username) it.copy(usernameCheck = check) else it }
+    }
+
+    /** „Weiter“: the page's own fields are checked here first. */
+    fun next() {
+        val current = ui.value
+        val problems = problems(current, current.page)
+        mutableUi.update { it.copy(fieldErrors = problems) }
+        val taken = current.page == RegisterPage.Name && current.usernameCheck is UsernameCheck.Taken
+        if (problems.isEmpty() && !taken) go(RegisterPage.entries[current.page.ordinal + 1])
+    }
+
+    /** „Zurück“: everything typed stays. */
+    fun back() = go(RegisterPage.entries[(ui.value.page.ordinal - 1).coerceAtLeast(0)])
+
+    private fun go(page: RegisterPage) = mutableUi.update { it.copy(page = page, fieldErrors = emptyMap()) }
+
+    /** What this device finds wrong with the fields of [page]. */
+    private fun problems(state: RegisterUiState, page: RegisterPage): Map<String, String> {
+        val registration = state.registration
+        val birthDate = state.birthDate
+        val found = when (page) {
+            RegisterPage.Name -> mapOf(
+                "display_name" to (if (registration.displayName.isBlank()) "Der Anzeigename ist erforderlich." else null),
+                "username" to UsernameRules.formatProblem(registration.username)
+            )
+
+            RegisterPage.SignIn -> mapOf(
+                "email" to when {
+                    registration.email.isBlank() -> "Die E-Mail-Adresse ist erforderlich."
+                    !EMAIL.matches(registration.email.trim()) -> "Bitte gib eine gültige E-Mail-Adresse ein."
+                    else -> null
+                },
+                "password" to when {
+                    registration.password.isEmpty() -> "Das Passwort ist erforderlich."
+                    !state.passwordLongEnough -> "Das Passwort muss mindestens $PASSWORD_MIN_LENGTH Zeichen lang sein."
+                    else -> null
+                }
+            )
+
+            RegisterPage.Finish -> mapOf(
+                "birth_date" to when {
+                    birthDate == null -> BIRTH_DATE_REQUIRED
+                    birthDate.isAfter(today().minusYears(MIN_AGE)) -> TOO_YOUNG
+                    else -> null
+                },
+                "terms" to (if (registration.acceptsTerms) null else TERMS_REQUIRED)
+            )
+        }
+        return found.mapNotNull { (field, message) -> message?.let { field to it } }.toMap()
+    }
 
     suspend fun loadForm() {
         catching { auth.registrationForm() }
@@ -273,21 +453,21 @@ class RegisterViewModel @Inject constructor(private val session: Session, privat
             .onFailure { error -> mutableUi.update { it.copy(error = error.asApiError()) } }
     }
 
+    /** „Konto anlegen“ on page 1c: the only request that creates the account. */
     suspend fun submit() {
         val current = ui.value
-        mutableUi.update { it.copy(error = null) }
-        val birthDate = current.birthDate
-        if (birthDate == null) {
-            mutableUi.update { it.copy(birthDateMissing = true) }
-            return
-        }
+        val problems = problems(current, RegisterPage.Finish)
+        mutableUi.update { it.copy(error = null, fieldErrors = problems) }
+        // A missing birth date is one of the problems.
+        val birthDate = current.birthDate?.takeIf { problems.isEmpty() } ?: return
         val error = attempt {
             // Without a token from the start (offline then), one is fetched now and waits until the server takes it.
             val form = current.form ?: auth.registrationFormToSend().also { fresh -> mutableUi.update { it.copy(form = fresh) } }
             session.register(current.registration.copy(birthDate = birthDate), form)
         }
         if (error != null) {
-            mutableUi.update { it.copy(error = error) }
+            // Back to the first page holding a refused field, where its message shows.
+            mutableUi.update { it.copy(error = error, page = RegisterPage.of(error.fieldMessages.keys)) }
             // A refused token (too old, or sent too soon) is replaced, so a second try can succeed; without a fresh one
             // the old one stays. Any other refusal (a field, the server) keeps it: a token is good for 24 hours, and a
             // fresh one would refuse a second try within three seconds (ticking the terms and sending again).
@@ -300,6 +480,20 @@ class RegisterViewModel @Inject constructor(private val session: Session, privat
     companion object {
         /** Laravel's message for the empty field, so both forms say the same. */
         const val BIRTH_DATE_REQUIRED = "Das Geburtsdatum ist erforderlich."
+
+        /** The server's message below 18 (Oasis is 18+). */
+        const val TOO_YOUNG = "Du musst mindestens 18 Jahre alt sein, um Oasis zu nutzen."
+
+        /** The server's message without the consent. */
+        const val TERMS_REQUIRED = "Bitte akzeptiere die Nutzungsbedingungen."
+
+        /** `Password::min(10)` of the server, the only password rule. */
+        const val PASSWORD_MIN_LENGTH = 10
+
+        const val MIN_AGE = 18L
+
+        /** Something before and after one @ and a dot in the domain; the server checks the rest. */
+        private val EMAIL = Regex("^[^@\\s]+@[^@\\s]+\\.[^@\\s]+$")
     }
 }
 

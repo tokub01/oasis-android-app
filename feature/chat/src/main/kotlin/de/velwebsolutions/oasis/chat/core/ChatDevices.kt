@@ -89,7 +89,7 @@ class ChatDevices(private val context: ChatContext) {
     suspend fun unlock(stored: StoredIdentity, rows: List<DeviceUnlockRow>): Boolean {
         val row = ownRow(rows) ?: throw ChatKeyringException.DeviceUnlockUnsupported
         val generation = vault.generation
-        val secret = secrets.secret(vault.userId, "Nachrichten entsperren") ?: throw ChatKeyringException.DeviceUnlockUnsupported
+        val secret = secrets.secret(vault.userId, "Chats entsperren") ?: throw ChatKeyringException.DeviceUnlockUnsupported
         val identity = try {
             withContext(context.cryptoDispatcher) { crypto.unlockWithDeviceSecret(row.lockedIdentity, secret) }
         } finally {

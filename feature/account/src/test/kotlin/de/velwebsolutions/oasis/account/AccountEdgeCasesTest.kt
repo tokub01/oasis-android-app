@@ -245,6 +245,7 @@ class AccountEdgeCasesTest {
         ForgotPasswordViewModel(auth).send()
         val register = RegisterViewModel(session, auth)
         register.setBirthDate(java.time.LocalDate.of(2000, 1, 1))
+        register.edit { it.copy(acceptsTerms = true) }
         register.submit()
         assertTrue("without a form nothing is sent", transport.requests.none { it.path == "auth/register" && it.request.method == "POST" })
         assertEquals(ApiError.Server(500, "Server Error"), register.ui.value.error)
@@ -309,7 +310,7 @@ class AccountEdgeCasesTest {
         assertTrue(welcome.ui.value.steps.isEmpty())
         assertEquals("profil", welcome.ui.value.stepKey)
         welcome.toggle(Fixtures.starterOasis)
-        assertEquals("a tour that never loaded counts as onboarded", true, welcome.finish())
+        assertTrue("a tour that never loaded can still end", welcome.finish())
         welcome.edit { it.copy(bio = "Hallo") }
         welcome.textChanged()
         assertFalse(welcome.ui.value.toneQuestion)

@@ -92,7 +92,7 @@ internal fun PrivacySettingRow(setting: PrivacySettingItem, error: String?, savi
                 onCheckedChange = { onChange(PrivacyValue.Flag(it)) },
                 modifier = Modifier.testTag("privacy.${setting.key}"),
                 detail = setting.help,
-                enabled = !setting.limited && !saving
+                enabled = !saving
             )
         } else {
             Text(setting.title, style = OasisType.BodyBold, color = OasisColors.Night, modifier = Modifier.semantics { heading() })
@@ -100,13 +100,6 @@ internal fun PrivacySettingRow(setting: PrivacySettingItem, error: String?, savi
             FlowChoices(setting.choices, setting.value.choice, tag = "privacy.${setting.key}", enabled = !saving) {
                 onChange(PrivacyValue.Choice(it))
             }
-        }
-        if (setting.limited) {
-            Text(
-                "Unter 18 gilt hier eine strengere Grenze. Ab deinem 18. Geburtstag kannst du mehr freigeben.",
-                style = OasisType.Caption,
-                color = OasisColors.Ink2
-            )
         }
         AnimatedVisibility(error != null) { FieldError(error.orEmpty()) }
     }

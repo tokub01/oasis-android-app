@@ -193,7 +193,10 @@ class AttachmentUiTest {
         compose.onNodeWithTag("chat.composer.viewOnceNote").assertExists()
         compose.onNodeWithText("Anhang wird vorbereitet …").assertExists()
         capture("composer-drafts")
-        tapTag("chat.composer.viewOnce", 0)
+        compose.onNodeWithTag("chat.composer.viewOnce").assertDoesNotExist()
+        state = state.copy(viewOnceNext = true)
+        compose.onNodeWithTag("chat.composer.viewOnceChip").assertExists()
+        tapTag("chat.composer.viewOnceClear")
         tapTag("chat.composer.removeDraft", 2)
         compose.onNode(hasContentDescription("Video entfernen")).assertExists()
         state = state.copy(preparing = false, uploadProgress = 0.4f)
@@ -209,7 +212,7 @@ class AttachmentUiTest {
         tapTag("chat.composer.cancelRecording")
         tapTag("chat.composer.finishRecording")
         compose.waitForIdle()
-        assertEquals(listOf("viewOnce 1 true", "remove 3", "cancel", "finish"), calls)
+        assertEquals(listOf("viewOnce false", "remove 3", "cancel", "finish"), calls)
     }
 
     @Test
@@ -338,7 +341,7 @@ class AttachmentUiTest {
         )
         show()
         compose.onNodeWithTag("chat.voice.time").assertTextEquals("0:12")
-        compose.onNodeWithTag("chat.composer.viewOnce").assertExists()
+        compose.onNodeWithTag("chat.composer.viewOnce").assertDoesNotExist()
         capture("composer-voice-draft")
         compose.onNodeWithContentDescription("Sprachnachricht entfernen").performClick()
         // A recording the player cannot read shows the error text instead of controls.
@@ -356,10 +359,14 @@ class AttachmentUiTest {
         assertTrue(ConversationState(draft = "Hallo").showsSend)
         assertTrue(ConversationState(drafts = listOf(DraftAttachment(1, AttachmentKind.Image, "image/jpeg", byteArrayOf(1)))).showsSend)
         // One „+“ holds the attachment actions; the round button records while nothing is written or attached.
-        compose.onNodeWithContentDescription("Anhang hinzufügen").assertExists()
+        compose.onNodeWithContentDescription("Mehr").assertExists()
         compose.onNodeWithTag("chat.composer.send").assertDoesNotExist()
         tapTag("chat.composer.add")
         capture("composer-attach-menu")
+        listOf("Foto oder Video", "Datei", "Umfrage", "Effekt", "Einmal ansehen").forEach { compose.onNodeWithText(it).assertExists() }
+        tapTag("chat.composer.viewOnce")
+        assertTrue(calls.contains("viewOnce true"))
+        calls.clear()
         answer = null
         tapTag("chat.composer.attach")
         answer = Uri.parse("content://oasis.test/foto")
@@ -633,7 +640,7 @@ class AttachmentUiTest {
 
     @Test
     fun shareTargetStates() {
-        val share = de.velwebsolutions.oasis.core.share.Share(emptyList(), "Ein geteilter Text")
+        var share by mutableStateOf(de.velwebsolutions.oasis.core.share.Share(emptyList(), "Ein geteilter Text"))
         var shown by mutableStateOf(de.velwebsolutions.oasis.chat.ui.ShareTargetState())
         show { de.velwebsolutions.oasis.chat.ui.ShareTargetContent(shown, share, "1", { calls += "pick" }, { calls += "cancel" }) }
         compose.onNodeWithText("„Ein geteilter Text“").assertExists()
@@ -646,5 +653,8 @@ class AttachmentUiTest {
         tapTag("chat.share.conversation")
         tapTag("chat.share.cancel")
         assertEquals(listOf("pick", "cancel"), calls)
+        share = de.velwebsolutions.oasis.core.share.Share(emptyList(), null)
+        compose.onNodeWithText("„Ein geteilter Text“").assertDoesNotExist()
+        compose.onNodeWithTag("chat.share.summary").assertExists()
     }
 }

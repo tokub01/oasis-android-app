@@ -141,7 +141,7 @@ internal fun DevicesScreen(viewModel: DevicesViewModel = hiltViewModel()) {
         }
         lastChatDevice?.let { device ->
             ConfirmDialog(
-                "Das ist dein einziger Zugang zum Chat. Ohne Chat-Passphrase brauchst du danach neue Schlüssel und kannst bisherige Nachrichten nicht mehr lesen. Trotzdem entfernen?",
+                "Das ist dein einziger Zugang zum Chat. Ohne Reserve-Passphrase musst du die Chats danach neu einrichten und kannst bisherige Nachrichten nicht mehr lesen. Trotzdem entfernen?",
                 "Entfernen",
                 onConfirm = { scope.launch { viewModel.forgetChat(device) } },
                 onDismiss = { lastChatDevice = null }
@@ -257,7 +257,7 @@ private fun Chat(
     SectionCard(
         "Chat mit Fingerabdruck oder Gesichtserkennung",
         detail =
-            "Diese Geräte öffnen deine verschlüsselten Chats. Die Schlüssel liegen dafür im Sicherheitschip des Geräts – wir können sie nicht lesen. $passphrase Ein neues Gerät richtest du im Chat ein."
+            "Diese Geräte öffnen deine verschlüsselten Chats. Der Zugang liegt dafür im Sicherheitschip des Geräts – wir können ihn nicht lesen. $passphrase Ein neues Gerät richtest du im Chat ein."
     ) {
         if (overview.chatDevices.isEmpty()) EmptyLine("Noch kein Gerät eingerichtet.")
         overview.chatDevices.forEach { device ->

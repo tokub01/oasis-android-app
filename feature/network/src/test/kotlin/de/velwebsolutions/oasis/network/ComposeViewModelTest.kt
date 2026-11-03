@@ -312,12 +312,12 @@ class ComposeViewModelTest(private val answersAtOnce: Boolean) {
 
     @Test
     fun `offers only what the server allows and never preselects a hidden audience`() = runTest {
-        // Under 18 the server leaves "Öffentlich" out, even when the privacy default says public.
-        val minor = """
+        // A server that leaves "Öffentlich" out wins over a privacy default of public.
+        val membersOnly = """
             {"data": {"default_visibility": "public", "visibilities": [{"value": "members", "label": "Nur für Mitglieder"}],
             "kinds": [], "oasis": null, "links": [], "max_length": 500, "max_images": 4}}
         """.trimIndent()
-        val network = StubbedNetwork(stub("GET", "network/composer", minor))
+        val network = StubbedNetwork(stub("GET", "network/composer", membersOnly))
         val model = composer(network, oasisSlug = "jung")
         model.load()
         assertEquals("members", model.state.value.visibility)

@@ -77,8 +77,8 @@ class ScreensViewModelsTest {
         assertEquals("a live update that fails says so too", oops, list.state.value.error)
         list.load()
         val (group, one) = list.state.value.conversations
-        assertEquals("Gruppe · 3 Menschen · löscht nach 7 Tagen · wartet auf neuen Schlüssel", list.meta(group))
-        assertEquals("Zu zweit · löscht nach 7 Tagen · wartet auf neuen Schlüssel", list.meta(one))
+        assertEquals("Gruppe · 3 Menschen · löscht nach 7 Tagen · wird neu gesichert", list.meta(group))
+        assertEquals("Zu zweit · löscht nach 7 Tagen · wird neu gesichert", list.meta(one))
         assertEquals("Zu zweit · löscht nach 7 Tagen · beendet", list.meta(one.copy(ended = true)))
         assertEquals("Jonas", list.title(one))
         assertEquals(direct, one.id)
@@ -381,8 +381,8 @@ class ScreensViewModelsTest {
         assertEquals("Garten", details.state.value.title)
         val rows = details.state.value.members
         assertNull(rows.first { it.isMe }.safetyNumber)
-        assertEquals("Keine gültigen Schlüssel", rows.first { !it.isMe }.safetyNumber)
-        assertEquals("Neue Schlüssel – Nummer erneut vergleichen.", rows.first { !it.isMe }.warning)
+        assertEquals("Nicht sicher erreichbar", rows.first { !it.isMe }.safetyNumber)
+        assertEquals("Neues Gerät oder neu eingerichtet – Nummer erneut vergleichen.", rows.first { !it.isMe }.warning)
         assertTrue(rows.first { !it.isMe }.removable)
 
         details.setMuteDuration("1w")
@@ -412,14 +412,14 @@ class ScreensViewModelsTest {
         details.setUsername("aylin")
         failing("POST conversations/$id/members", 200, """{"data":${conversationJson(id, members = "1,2,3")}}""")
         details.addMember()
-        assertEquals("@aylin hinzugefügt. Der Chat bekommt einen neuen Schlüssel.", details.state.value.status)
+        assertEquals("@aylin hinzugefügt. Der Chat wird dafür neu gesichert.", details.state.value.status)
         details.setUsername("aylin")
         failing("POST conversations/$id/members")
         details.addMember()
         assertEquals(oops, details.state.value.addError)
         failing("DELETE conversations/$id/members/3", 200, """{"data":${conversationJson(id)}}""")
         details.remove(details.state.value.members.first { it.username == "aylin" })
-        assertEquals("@aylin entfernt. Der Chat bekommt einen neuen Schlüssel.", details.state.value.status)
+        assertEquals("@aylin entfernt. Der Chat wird dafür neu gesichert.", details.state.value.status)
 
         val jonas = support.member(2)
         val asMember = ConversationDetailsViewModel(id, jonas)

@@ -170,9 +170,7 @@ data class PrivacySettingItem(
     /** "switch" or "choice". */
     val kind: String,
     val value: PrivacyValue,
-    val choices: List<PrivacyChoice> = emptyList(),
-    /** Under 18: fewer choices (a switch is locked). */
-    val limited: Boolean = false
+    val choices: List<PrivacyChoice> = emptyList()
 ) {
     val isSwitch: Boolean get() = kind == "switch"
 

@@ -205,7 +205,7 @@ class PlayCheckoutViewModel @Inject constructor(
 
     companion object {
         const val PENDING =
-            "Dein Kauf wartet noch auf eine Bestätigung, zum Beispiel durch deine Eltern. Sobald Google Play ihn bestätigt, bist du Mitglied."
+            "Dein Kauf wartet noch auf eine Bestätigung. Sobald Google Play ihn bestätigt, bist du Mitglied."
         const val FAILED = "Der Kauf ist leider nicht gelungen. Bitte versuche es noch einmal."
         const val UNAVAILABLE = "Google Play ist auf diesem Gerät gerade nicht erreichbar. Bitte versuche es später noch einmal."
         const val NOTHING_TO_RESTORE = "Für dein Google-Konto haben wir keine laufende Mitgliedschaft gefunden."

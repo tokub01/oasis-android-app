@@ -68,7 +68,9 @@ fun OasisTextField(
     keyboardActions: KeyboardActions = KeyboardActions.Default,
     enabled: Boolean = true,
     /** The server's limit in characters (the web's `maxlength`): longer input is cut there. */
-    maxLength: Int? = null
+    maxLength: Int? = null,
+    /** A button at the end of the field, e.g. the eye that shows a password. */
+    trailing: (@Composable () -> Unit)? = null
 ) {
     val shape = RoundedCornerShape(OasisRadius.XS.dp)
     Column(modifier, verticalArrangement = Arrangement.spacedBy(6.dp)) {
@@ -89,17 +91,21 @@ fun OasisTextField(
                 .fillMaxWidth()
                 .semantics { contentDescription = label },
             decorationBox = { inner ->
-                Column(
+                Row(
                     Modifier
                         .fillMaxWidth()
                         .background(OasisColors.Field, shape)
                         .border(if (error == null) 1.dp else 2.dp, if (error == null) OasisColors.FieldLine else OasisColors.SunText, shape)
-                        .padding(horizontal = 14.dp, vertical = 12.dp)
+                        .padding(start = 14.dp, top = 12.dp, bottom = 12.dp, end = if (trailing == null) 14.dp else 2.dp),
+                    verticalAlignment = Alignment.CenterVertically
                 ) {
-                    if (value.isEmpty() && prompt != null) {
-                        Text(prompt, style = OasisType.Body, color = OasisColors.Muted)
+                    Column(Modifier.weight(1f)) {
+                        if (value.isEmpty() && prompt != null) {
+                            Text(prompt, style = OasisType.Body, color = OasisColors.Muted)
+                        }
+                        inner()
                     }
-                    inner()
+                    trailing?.invoke()
                 }
             }
         )

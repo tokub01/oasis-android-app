@@ -183,7 +183,7 @@ class ChatAccessViewModel @Inject constructor(context: ChatContext) : ChatViewMo
             val stored = context.keyring.setUp(current.passphrase)
             clearInputs()
             if (stored != null) {
-                vault.announcement.value = "Deine Chat-Schlüssel sind eingerichtet."
+                vault.announcement.value = "Deine Chats sind eingerichtet."
                 refreshIdentityFlags()
                 mutableState.update { it.copy(phase = ChatPhase.Open) }
             } else {
@@ -202,7 +202,7 @@ class ChatAccessViewModel @Inject constructor(context: ChatContext) : ChatViewMo
         mutableState.update { it.copy(deviceSetupStatus = "Bitte bestätige mit deinem Fingerabdruck oder deinem Gesicht …", busy = true) }
         try {
             if (context.devices.setUpWithDevice() != null) {
-                vault.announcement.value = "Dein Chat ist eingerichtet – ohne extra Passwort."
+                vault.announcement.value = "Deine Chats sind eingerichtet."
                 refreshIdentityFlags()
                 mutableState.update { it.copy(deviceSetupStatus = null, phase = ChatPhase.Open) }
             } else {
@@ -237,7 +237,7 @@ class ChatAccessViewModel @Inject constructor(context: ChatContext) : ChatViewMo
             val unlocked = context.keyring.unlock(stored, passphrase)
             clearInputs()
             if (unlocked) {
-                vault.announcement.value = "Nachrichten entsperrt."
+                vault.announcement.value = "Chats entsperrt."
                 mutableState.update { it.copy(phase = ChatPhase.Open) }
                 offerDeviceUnlockIfUseful()
             }
@@ -268,7 +268,7 @@ class ChatAccessViewModel @Inject constructor(context: ChatContext) : ChatViewMo
             if (context.devices.ownRow(rows) == null) {
                 mutableState.update { it.copy(canUnlockWithDevice = false) }
             } else if (context.devices.unlock(stored, rows)) {
-                vault.announcement.value = "Nachrichten entsperrt."
+                vault.announcement.value = "Chats entsperrt."
                 mutableState.update { it.copy(phase = ChatPhase.Open) }
             }
         } catch (error: Exception) {
@@ -367,7 +367,7 @@ class ChatAccessViewModel @Inject constructor(context: ChatContext) : ChatViewMo
             pendingLink = null
             mutableState.update { it.copy(linkCheck = null) }
             if (unlocked) {
-                vault.announcement.value = "Freigegeben – dein Chat ist offen."
+                vault.announcement.value = "Verbunden – deine Chats sind offen."
                 mutableState.update { it.copy(phase = ChatPhase.Open) }
                 offerDeviceUnlockIfUseful()
             }

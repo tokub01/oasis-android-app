@@ -189,7 +189,7 @@ class FakeChatMedia : ChatMedia {
 fun attachmentActions(calls: MutableList<String>) = de.velwebsolutions.oasis.chat.ui.AttachmentActions(
     onPicked = { uri, asFile -> calls += "${if (asFile) "file" else "picked"} $uri" },
     onRemove = { calls += "remove $it" },
-    onViewOnce = { id, on -> calls += "viewOnce $id $on" },
+    onViewOnce = { on -> calls += "viewOnce $on" },
     recording = de.velwebsolutions.oasis.chat.ui.RecordingActions(
         onStart = { calls += "record" },
         onFinish = { calls += "finish" },

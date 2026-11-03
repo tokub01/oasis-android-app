@@ -33,6 +33,7 @@ import androidx.compose.material.icons.outlined.Lock
 import androidx.compose.material.icons.outlined.MoreHoriz
 import androidx.compose.material.icons.outlined.NotificationsOff
 import androidx.compose.material.icons.outlined.Settings
+import androidx.compose.material.icons.outlined.Shield
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.ExperimentalMaterial3Api
@@ -62,6 +63,7 @@ import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.semantics.CustomAccessibilityAction
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.customActions
+import androidx.compose.ui.semantics.heading
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.semantics.stateDescription
 import androidx.compose.ui.text.font.FontWeight
@@ -72,12 +74,14 @@ import androidx.compose.ui.unit.sp
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import de.velwebsolutions.oasis.chat.api.ChatConversation
+import de.velwebsolutions.oasis.chat.api.ChatSuggestion
 import de.velwebsolutions.oasis.chat.api.DeviceLinkRequest
 import de.velwebsolutions.oasis.design.components.AsyncOasisButton
 import de.velwebsolutions.oasis.design.components.Banner
 import de.velwebsolutions.oasis.design.components.Bullets
 import de.velwebsolutions.oasis.design.components.DashedNote
 import de.velwebsolutions.oasis.design.components.LoadingView
+import de.velwebsolutions.oasis.design.components.OasisButton
 import de.velwebsolutions.oasis.design.components.OasisButtonKind
 import de.velwebsolutions.oasis.design.components.OasisScreen
 import de.velwebsolutions.oasis.design.components.PageHeader
@@ -95,7 +99,8 @@ import kotlinx.coroutines.launch
 
 /**
  * Screen "list" (resources/views/app/chat/partials/list.blade.php; iOS `ConversationListView`): conversations newest
- * first, message requests, other devices asking to open the chat, "Neuer Chat", "Sperren", settings.
+ * first, message requests, other devices asking to open the chat, the backup row, "Neuer Chat", „Chats sperren“, settings;
+ * without chats „Noch keine Chats“ with people to write first.
  */
 @Composable
 internal fun ConversationListScreen() {
@@ -131,7 +136,9 @@ internal fun ConversationListScreen() {
             onNew = { navigator.open(ChatRoute.NewConversation) },
             onApprove = model::approve,
             onReject = model::reject,
-            myId = model.myId
+            myId = model.myId,
+            backup = BackupRowActions(onOpen = { navigator.open(ChatRoute.Settings) }, onSnooze = model::snoozeBackupRow),
+            onWrite = { person -> navigator.open(ChatRoute.NewConversationWith(person.username)) }
         )
     }
 }
@@ -151,7 +158,10 @@ internal fun ConversationListContent(
     onApprove: suspend (DeviceLinkRequest) -> Unit,
     onReject: suspend (DeviceLinkRequest) -> Unit,
     /** The signed-in member, left out of the conversation avatars. */
-    myId: String = ""
+    myId: String = "",
+    backup: BackupRowActions = BackupRowActions.None,
+    /** „Schreiben“ beside a suggested person of the empty list. */
+    onWrite: (ChatSuggestion) -> Unit = {}
 ) {
     val scope = rememberCoroutineScope()
     var refreshing by remember { mutableStateOf(false) }
@@ -176,6 +186,7 @@ internal fun ConversationListContent(
         ) {
             item { PageHeader(eyebrow = "Ende-zu-Ende verschlüsselt", title = "Nachrichten") }
             state.error?.let { error -> item { Banner(error) } }
+            if (state.backupRow) item { BackupRow(backup) }
             if (state.linkRequests.isNotEmpty()) item { LinkRequests(state.linkRequests, onApprove, onReject) }
             if (state.requests.isNotEmpty()) {
                 item {
@@ -201,16 +212,8 @@ internal fun ConversationListContent(
                     }
                 }
             }
-            if (state.loaded && state.conversations.isEmpty()) {
-                item {
-                    DashedNote(highlighted = true, modifier = Modifier.testTag("chat.list.empty")) {
-                        Text(
-                            "Noch keine Unterhaltungen. Starte einen Chat mit jemandem, dessen Benutzernamen du kennst.",
-                            style = OasisType.Body,
-                            color = OasisColors.Ink2
-                        )
-                    }
-                }
+            if (state.empty) {
+                item { EmptyChats(state.suggestions, canParticipate, onWrite, onNew) }
             } else if (!state.loaded && state.error == null) {
                 item { Box(Modifier.fillMaxWidth().padding(vertical = 24.dp)) { LoadingView() } }
             }
@@ -223,15 +226,16 @@ internal fun ConversationListContent(
                     Bullets(
                         listOf(
                             "Nachrichten löschen sich nach 1, 7 oder 30 Tagen von selbst.",
-                            "Vergleicht die Sicherheitsnummern in den Details, um vertauschte Schlüssel auszuschließen.",
+                            "Vergleicht die Sicherheitsnummern in den Details, dann weißt du, dass niemand dazwischen mitliest.",
                             "Meldest du eine Nachricht, sieht die Moderation nur diese eine."
                         )
                     )
                 }
             }
         }
-        // The main action of the list (iOS and the web: "Neuer Chat" beside the heading) as Android's floating button.
-        if (canParticipate) {
+        // The main action of the list (iOS and the web: "Neuer Chat" beside the heading) as Android's floating button; the
+        // empty list has its own large one.
+        if (canParticipate && !state.empty) {
             ExtendedFloatingActionButton(
                 onClick = onNew,
                 icon = { Icon(Icons.Outlined.Edit, contentDescription = null) },
@@ -248,13 +252,13 @@ internal fun ConversationListContent(
 }
 
 /**
- * The web's buttons beside the heading, in the top app bar: "Sperren" and the chat settings (below the list on the web).
+ * The web's buttons beside the heading, in the top app bar: „Chats sperren“ and the chat settings (below the list on the web).
  * "Neuer Chat" is the floating button of the list.
  */
 @Composable
 internal fun ConversationListActions(onLock: () -> Unit, onSettings: () -> Unit) {
     IconButton(onClick = onLock, modifier = Modifier.testTag("chat.lock")) {
-        Icon(Icons.Outlined.Lock, contentDescription = "Sperren", tint = OasisColors.Night)
+        Icon(Icons.Outlined.Lock, contentDescription = "Chats sperren", tint = OasisColors.Night)
     }
     IconButton(onClick = onSettings, modifier = Modifier.testTag("chat.settings")) {
         Icon(Icons.Outlined.Settings, contentDescription = "Chat-Einstellungen", tint = OasisColors.Night)
@@ -532,6 +536,99 @@ class ConversationRowActions(
     }
 }
 
+/** What the backup row does: open the backup-passphrase setup, or „Später“. */
+class BackupRowActions(val onOpen: () -> Unit, val onSnooze: suspend () -> Unit) {
+    companion object {
+        /** Lists without a view model (previews, tests of other parts). */
+        val None = BackupRowActions({}, {})
+    }
+}
+
+/**
+ * The quiet row on top while the account has no backup passphrase (docs/oasis-chat-client.md, „C5 Setup with one
+ * button“): a tap opens the backup-passphrase setup in the chat settings, „Später“ hides it for 14 days on this device.
+ */
+@Composable
+private fun BackupRow(actions: BackupRowActions) {
+    val scope = rememberCoroutineScope()
+    Row(
+        Modifier
+            .fillMaxWidth()
+            .background(OasisColors.Dune, RoundedCornerShape(OasisRadius.S.dp))
+            .padding(start = 4.dp, end = 8.dp)
+            .testTag("chat.backupRow"),
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+        Row(
+            Modifier
+                .weight(1f)
+                .heightIn(min = CHAT_TARGET)
+                .pressable(actions.onOpen)
+                .padding(horizontal = 12.dp, vertical = 10.dp),
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(10.dp)
+        ) {
+            Icon(Icons.Outlined.Shield, contentDescription = null, tint = OasisColors.Night, modifier = Modifier.size(20.dp))
+            Text("Sichere deine Chats, falls du dein Gerät verlierst", style = OasisType.SmallBold, color = OasisColors.Night)
+        }
+        SmallAction("Später", { scope.launch { actions.onSnooze() } }, Modifier.testTag("chat.backupRow.later"))
+    }
+}
+
+/**
+ * „Noch keine Chats“ (docs/oasis-chat-client.md, „C6 Empty chat list“): up to two people to write first, each with
+ * „Schreiben“, and a large „Neuer Chat“ button.
+ */
+@Composable
+private fun EmptyChats(people: List<ChatSuggestion>, canParticipate: Boolean, onWrite: (ChatSuggestion) -> Unit, onNew: () -> Unit) {
+    Column(Modifier.fillMaxWidth().testTag("chat.list.empty"), verticalArrangement = Arrangement.spacedBy(16.dp)) {
+        Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
+            Text("Noch keine Chats", style = OasisType.heading(21), color = OasisColors.Night, modifier = Modifier.semantics { heading() })
+            Text("Schreib jemandem aus deinen Oasen.", style = OasisType.Body, color = OasisColors.Ink2)
+        }
+        people.forEach { person -> SuggestionRow(person, canParticipate, onWrite) }
+        if (canParticipate) {
+            OasisButton("Neuer Chat", onNew, modifier = Modifier.heightIn(min = 52.dp).testTag("chat.list.empty.new"))
+        }
+    }
+}
+
+/** A suggested person: avatar, name, @username, why, and „Schreiben“. */
+@Composable
+private fun SuggestionRow(person: ChatSuggestion, canParticipate: Boolean, onWrite: (ChatSuggestion) -> Unit) {
+    Row(
+        Modifier
+            .fillMaxWidth()
+            .background(OasisColors.Paper, RoundedCornerShape(OasisRadius.S.dp))
+            .padding(horizontal = 16.dp, vertical = 12.dp)
+            .testTag("chat.suggestion.${person.id}"),
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.spacedBy(12.dp)
+    ) {
+        ChatAvatarView(person.avatar, size = 48.dp)
+        Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(2.dp)) {
+            Text(
+                person.displayName,
+                style = OasisType.Body.copy(fontSize = 16.sp, fontWeight = FontWeight.ExtraBold),
+                color = OasisColors.Night,
+                maxLines = 1,
+                overflow = TextOverflow.Ellipsis
+            )
+            Text("@${person.username}", style = OasisType.Small.copy(fontSize = 14.sp), color = OasisColors.Muted)
+            Text(person.reason, style = OasisType.Small.copy(fontSize = 14.sp), color = OasisColors.Ink2)
+        }
+        if (canParticipate) {
+            OasisButton(
+                "Schreiben",
+                { onWrite(person) },
+                kind = OasisButtonKind.Secondary,
+                fullWidth = false,
+                modifier = Modifier.semantics { contentDescription = "${person.displayName} schreiben" }.testTag("chat.suggestion.write")
+            )
+        }
+    }
+}
+
 @Composable
 private fun LinkRequests(
     entries: List<LinkRequestEntry>,
@@ -539,7 +636,7 @@ private fun LinkRequests(
     onReject: suspend (DeviceLinkRequest) -> Unit
 ) {
     Panel(tone = PanelTone.Warning) {
-        Text("Ein Gerät möchte sich verbinden", style = OasisType.heading(19), color = OasisColors.Night)
+        Text("Dein neues Gerät möchte deine Chats öffnen", style = OasisType.heading(19), color = OasisColors.Night)
         Text(
             "Gib nur frei, wenn du das selbst gerade angefragt hast und dieselbe Zahl siehst. Das Gerät kann danach deine Chats lesen.",
             style = OasisType.Small,
@@ -563,7 +660,7 @@ private fun LinkRequests(
                 )
                 FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
                     AsyncOasisButton(
-                        "Ja, gleiche Zahl – freigeben",
+                        "Erlauben",
                         { onApprove(entry.request) },
                         fullWidth = false,
                         modifier = Modifier.testTag("chat.link.approve")

@@ -21,16 +21,19 @@ import androidx.compose.ui.test.performClick
 import androidx.compose.ui.test.performScrollTo
 import androidx.compose.ui.test.performTouchInput
 import androidx.compose.ui.test.swipeDown
+import androidx.compose.ui.test.swipeRight
 import com.github.takahirom.roborazzi.captureRoboImage
 import de.velwebsolutions.oasis.chat.api.ChatAvatar
 import de.velwebsolutions.oasis.chat.api.ChatConversation
 import de.velwebsolutions.oasis.chat.api.ChatSettings
+import de.velwebsolutions.oasis.chat.api.ChatSuggestion
 import de.velwebsolutions.oasis.chat.api.ConversationMember
 import de.velwebsolutions.oasis.chat.api.DeviceLinkRequest
 import de.velwebsolutions.oasis.chat.api.DeviceUnlockRow
 import de.velwebsolutions.oasis.chat.core.ChatKeyring
 import de.velwebsolutions.oasis.chat.core.ChatMessageItem
 import de.velwebsolutions.oasis.chat.core.ChatTimeline
+import de.velwebsolutions.oasis.chat.ui.BackupRowActions
 import de.velwebsolutions.oasis.chat.ui.ChatAccessState
 import de.velwebsolutions.oasis.chat.ui.ChatHeaderBar
 import de.velwebsolutions.oasis.chat.ui.ChatSettingsContent
@@ -48,11 +51,13 @@ import de.velwebsolutions.oasis.chat.ui.LinkRequestEntry
 import de.velwebsolutions.oasis.chat.ui.MemberRow
 import de.velwebsolutions.oasis.chat.ui.NewConversationContent
 import de.velwebsolutions.oasis.chat.ui.NewConversationState
+import de.velwebsolutions.oasis.chat.ui.QuietNotice
 import de.velwebsolutions.oasis.chat.ui.ReportContent
 import de.velwebsolutions.oasis.chat.ui.ReportModel
 import de.velwebsolutions.oasis.chat.ui.ReportSheet
 import de.velwebsolutions.oasis.chat.ui.ReportState
 import de.velwebsolutions.oasis.chat.ui.SafetyFlag
+import de.velwebsolutions.oasis.chat.ui.SwipeHintActions
 import de.velwebsolutions.oasis.chatcrypto.KdfLimits
 import de.velwebsolutions.oasis.chatcrypto.MessageContent
 import de.velwebsolutions.oasis.chatcrypto.MessageEnvelope
@@ -143,15 +148,24 @@ class ChatUiTest {
     fun setupWithBiometricsOrAPassphrase() {
         show { Setup(ChatAccessState(deviceAvailable = true, deviceSetupStatus = "Bitte bestätige …", canCancelReset = true)) }
         capture("setup-device")
+        compose.onNodeWithText("Chats neu einrichten").assertExists()
+        compose.onNodeWithText("Ältere Nachrichten auf diesem Gerät kannst du danach nicht mehr lesen.").assertExists()
+        compose.onNodeWithText("Deine Chatpartner sehen einen Hinweis, dass du die Chats neu eingerichtet hast.").assertExists()
         tapTag("chat.setup.device")
+        compose.onNodeWithTag("chat.setup.submit").assertDoesNotExist()
         tapTag("chat.setup.passphraseToggle")
         tapTag("chat.setup.submit")
         tap("Zurück zum Entsperren")
-        tap("Lieber mit eigener Chat-Passphrase")
-        compose.onNodeWithTag("chat.setup.submit").assertDoesNotExist()
+        compose.onNodeWithTag("chat.setup.passphraseToggle").assertDoesNotExist()
+        switchTo { Setup(ChatAccessState(deviceAvailable = true)) }
+        compose.onNodeWithText("Deine Chats sind privat").assertExists()
+        compose.onNodeWithText("Nur ihr könnt eure Nachrichten lesen – nicht einmal Oasis. Das Einrichten dauert ein paar Sekunden.")
+            .assertExists()
+        compose.onNodeWithText("Mit Fingerabdruck einrichten").assertExists()
         switchTo { Setup(ChatAccessState(busy = true, formError = "Die Passphrase braucht mindestens 12 Zeichen.")) }
         capture("setup-passphrase-busy")
-        compose.onNodeWithText("Schlüssel werden erstellt. Das dauert ein paar Sekunden …").assertExists()
+        compose.onNodeWithText("Wird eingerichtet. Das dauert ein paar Sekunden …").assertExists()
+        compose.onNodeWithText("Chats einrichten").assertExists()
         assertEquals(listOf("device", "setUp", "cancelReset"), calls)
     }
 
@@ -161,8 +175,10 @@ class ChatUiTest {
             Unlock(ChatAccessState(canUnlockWithDevice = true, hasPassphrase = true, deviceUnlockError = "Das hat nicht geklappt."))
         }
         capture("unlock-device")
+        compose.onNodeWithText("Chats entsperren").assertExists()
         tapTag("chat.unlock.device")
         tapTag("chat.unlock.usePassphrase")
+        compose.onNodeWithText("Mit Passphrase entsperren").assertExists()
         tapTag("chat.unlock.submit")
         tapTag("chat.link.request")
         tap("Passphrase vergessen?")
@@ -231,9 +247,115 @@ class ChatUiTest {
         assertTrue(calls.containsAll(listOf("approve 8", "reject 8", "more", "refresh")))
     }
 
+    @Test
+    fun theBackupRowAndPeopleToWriteFirst() {
+        var written = ""
+        val people = listOf(
+            ChatSuggestion("2", "jonas", "Jonas", null, "Ihr seid befreundet"),
+            ChatSuggestion("3", "aylin", "Aylin", null, "Ihr seid beide in Oase Lindenhof")
+        )
+        var canWrite by mutableStateOf(true)
+        show {
+            ConversationListContent(
+                state = ConversationListState(loaded = true, backupRow = true, suggestions = people),
+                canParticipate = canWrite,
+                title = { it.displayTitle("1") },
+                meta = { "" },
+                onRefresh = {},
+                onLoadMore = {},
+                onOpen = {},
+                onNew = { calls += "new" },
+                onApprove = {},
+                onReject = {},
+                backup = BackupRowActions(onOpen = { calls += "backup" }, onSnooze = { calls += "later" }),
+                onWrite = { written = it.username }
+            )
+        }
+        capture("list-empty-suggestions")
+        compose.onNodeWithText("Noch keine Chats").assertExists()
+        compose.onNodeWithText("Schreib jemandem aus deinen Oasen.").assertExists()
+        compose.onNodeWithText("Ihr seid beide in Oase Lindenhof").assertExists()
+        compose.onNodeWithText("@aylin").assertExists()
+        compose.onNodeWithTag("chat.new").assertDoesNotExist()
+        compose.onNode(hasContentDescription("Aylin schreiben")).performClick()
+        assertEquals("aylin", written)
+        tapTag("chat.list.empty.new")
+        tap("Sichere deine Chats, falls du dein Gerät verlierst")
+        tapTag("chat.backupRow.later")
+        compose.waitForIdle()
+        canWrite = false
+        compose.onNodeWithTag("chat.list.empty.new").assertDoesNotExist()
+        compose.onNode(hasContentDescription("Jonas schreiben")).assertDoesNotExist()
+        assertEquals(listOf("new", "backup", "later"), calls)
+    }
+
     // endregion
 
     // region Conversation
+
+    @Test
+    fun quietNoticesTheSwipeHintAndItsNudge() {
+        var details = 0
+        var nudged = 0
+        var conversation by mutableStateOf(
+            ConversationState(
+                conversation = chat("7"),
+                title = "Jonas",
+                canSend = true,
+                quietNotices = listOf(QuietNotice("Jonas nutzt jetzt ein neues Gerät oder hat die Chats neu eingerichtet.", null)),
+                swipeHint = true,
+                nudge = "a",
+                timeline = ChatTimeline(listOf(item("a", ChatMessageItem.State.Readable, text = "Hallo")))
+            )
+        )
+        show {
+            ConversationContent(
+                state = conversation,
+                myId = "1",
+                senderName = { "Jonas" },
+                onLoadOlder = {},
+                onDraftChange = {},
+                onSend = {},
+                onReport = {},
+                onAccept = {},
+                onDecline = {},
+                onBlockFlagged = {},
+                onDismissFlagged = {},
+                onNoticeSpoken = {},
+                attachments = attachmentActions(calls),
+                hint = SwipeHintActions(onDismiss = { calls += "understood" }, onNudged = { nudged += 1 }),
+                onOpenDetails = { details += 1 }
+            )
+        }
+        capture("conversation-quiet-hint")
+        compose.waitUntil(5_000) { nudged == 1 }
+        compose.onNodeWithText("Tipp: Nachricht nach rechts wischen zum Antworten").assertExists()
+        compose.onNodeWithTag("chat.notice").performClick()
+        assertEquals(1, details)
+        compose.onNodeWithTag("chat.swipeHint.dismiss").performClick()
+        compose.waitUntil(5_000) { "understood" in calls }
+        conversation = conversation.copy(swipeHint = false, nudge = null)
+        compose.onNodeWithTag("chat.swipeHint").assertDoesNotExist()
+        compose.onNodeWithTag("chat.message.a").performTouchInput { swipeRight(startX = centerX - 40f, endX = centerX + 160f) }
+        compose.waitForIdle()
+        assertEquals(1, nudged)
+    }
+
+    @Test
+    fun withoutMotionTheNudgeOnlyCountsAsPlayed() {
+        val resolver = androidx.test.core.app.ApplicationProvider.getApplicationContext<android.content.Context>().contentResolver
+        android.provider.Settings.Global.putFloat(resolver, android.provider.Settings.Global.ANIMATOR_DURATION_SCALE, 0f)
+        try {
+            var nudged = 0
+            show {
+                de.velwebsolutions.oasis.chat.ui.SwipeToReply(true, {
+                }, nudge = { nudged += 1 }) { androidx.compose.material3.Text("Hallo") }
+            }
+            compose.waitUntil(5_000) { nudged == 1 }
+        } finally {
+            android.provider.Settings.Global.putFloat(resolver, android.provider.Settings.Global.ANIMATOR_DURATION_SCALE, 1f)
+        }
+    }
 
     private val envelope = MessageEnvelope(1, "7", 1, "2", "n", "c", "s1", "2100-01-01T00:00:00Z")
 
@@ -276,7 +398,7 @@ class ChatUiTest {
                 ConversationState(
                     conversation = chat("7"),
                     title = "Jonas",
-                    notices = listOf("Für diesen Chat liegt dir noch kein Schlüssel vor."),
+                    notices = listOf("Du kannst hier noch nicht schreiben."),
                     requestTitle = "Nachrichtenanfrage von Jonas",
                     flagged = flagged,
                     nextBeforeId = "4",
@@ -446,7 +568,7 @@ class ChatUiTest {
                 "jonas",
                 false,
                 "12345 67890",
-                "Neue Schlüssel – Nummer erneut vergleichen.",
+                "Neues Gerät oder neu eingerichtet – Nummer erneut vergleichen.",
                 owner,
                 jonasAvatar,
                 status = "Im Urlaub bis Sonntag"

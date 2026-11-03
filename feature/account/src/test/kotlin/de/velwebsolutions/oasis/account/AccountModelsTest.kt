@@ -90,7 +90,7 @@ class AccountModelsTest {
                         true,
                         listOf(
                             switch,
-                            PrivacySettingItem("c", "C", "h", "choice", PrivacyValue.Choice("a"), listOf(PrivacyChoice("a", "A")), true)
+                            PrivacySettingItem("c", "C", "h", "choice", PrivacyValue.Choice("a"), listOf(PrivacyChoice("a", "A")))
                         )
                     )
                 ),
@@ -167,8 +167,8 @@ class AccountModelsTest {
     }
 
     @Test
-    fun aBirthDateLiesInThePast() {
-        val dates = PastDates(today = 1_000)
+    fun aBirthDateLiesAtLeastEighteenYearsBack() {
+        val dates = PastDates(latest = 1_000)
         assertTrue(dates.isSelectableDate(1_000))
         assertFalse(dates.isSelectableDate(1_001))
     }

@@ -269,3 +269,19 @@ data class OptionalIdentity(val data: StoredIdentity? = null)
 /** `{ "data": … | null }` of the device-link pickup: null until another device approved. */
 @Serializable
 data class OptionalLinkApproval(val data: LinkApproval? = null)
+
+/**
+ * Someone to write first (`GET /chat/suggestions`, docs/oasis-chat.md, „Vorschläge für den ersten Chat“): chat-ready,
+ * would accept a message from the member; [reason] says why („Ihr seid befreundet“, „Ihr seid beide in Oase …“).
+ */
+@Serializable
+data class ChatSuggestion(
+    val id: String,
+    val username: String,
+    @SerialName("display_name") val displayName: String,
+    @SerialName("avatar_url") val avatarUrl: String? = null,
+    val reason: String
+) {
+    /** The photo where the server sends one, otherwise the initials. */
+    val avatar: ChatAvatar get() = ChatAvatar.initialsOf(displayName).copy(photoUrl = avatarUrl)
+}

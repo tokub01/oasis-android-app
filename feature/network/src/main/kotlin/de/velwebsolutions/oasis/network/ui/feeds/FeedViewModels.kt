@@ -8,6 +8,7 @@ import de.velwebsolutions.oasis.core.auth.Session
 import de.velwebsolutions.oasis.core.auth.SessionState
 import de.velwebsolutions.oasis.core.model.Loadable
 import de.velwebsolutions.oasis.core.network.ApiError
+import de.velwebsolutions.oasis.core.onboarding.OnboardingCardStore
 import de.velwebsolutions.oasis.network.NetworkSignals
 import de.velwebsolutions.oasis.network.api.DiscoverContext
 import de.velwebsolutions.oasis.network.api.Meetup
@@ -28,6 +29,7 @@ import de.velwebsolutions.oasis.network.ui.apiError
 import de.velwebsolutions.oasis.network.ui.applying
 import de.velwebsolutions.oasis.network.ui.attempt
 import de.velwebsolutions.oasis.network.ui.perform
+import java.time.Instant
 import javax.inject.Inject
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -63,12 +65,17 @@ abstract class FeedViewModel<C>(val list: PostListModel<C>) : NetworkViewModel()
 
 /** Quelle (/app): own Tropfen and those of friends, followed people and oases – or "Ganz Oasis". */
 @HiltViewModel
-class SourceViewModel @Inject constructor(private val repository: NetworkRepository, session: Session) :
-    FeedViewModel<SourceContext>(PostListModel(repository) { view, cursor -> source(view, cursor) }) {
+class SourceViewModel @Inject constructor(
+    private val repository: NetworkRepository,
+    session: Session,
+    private val onboardingCard: OnboardingCardStore
+) : FeedViewModel<SourceContext>(PostListModel(repository) { view, cursor -> source(view, cursor) }) {
     val session: StateFlow<SessionState> = session.state
 
-    /** The member already saw (or was sent to) the welcome tour in this session. */
-    var askedWelcome = false
+    private val mutableCardSnoozed = MutableStateFlow(onboardingCard.snoozedUntil()?.isAfter(Instant.now()) == true)
+
+    /** „Später“ on „Mach dein Tal lebendig“ hides the card for 14 days on this device. */
+    val cardSnoozed: StateFlow<Boolean> = mutableCardSnoozed.asStateFlow()
 
     private val mutableShowOlder = MutableStateFlow(false)
     private val mutableMemories = MutableStateFlow<List<MemoryYear>>(emptyList())
@@ -90,6 +97,12 @@ class SourceViewModel @Inject constructor(private val repository: NetworkReposit
         // Each view has its own marker of what was seen.
         mutableShowOlder.value = false
         launch { list.reload() }
+    }
+
+    /** „Später“ on the card „Mach dein Tal lebendig“. */
+    fun snoozeOnboardingCard() {
+        onboardingCard.snooze(Instant.now().plus(OnboardingCardStore.SNOOZE))
+        mutableCardSnoozed.value = true
     }
 
     /** „Ältere Tropfen“ after „Du hast alles Neue gesehen.“ */

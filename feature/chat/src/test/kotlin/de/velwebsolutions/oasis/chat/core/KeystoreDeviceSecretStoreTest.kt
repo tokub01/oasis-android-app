@@ -92,11 +92,11 @@ class KeystoreDeviceSecretStoreTest {
         val created = store.create("1")
         assertTrue(created.credentialId.startsWith(APP_CREDENTIAL_PREFIX))
         assertEquals(created.credentialId, store.credentialId("1"))
-        assertArrayEquals(created.secret, store.secret("1", "Nachrichten entsperren"))
+        assertArrayEquals(created.secret, store.secret("1", "Chats entsperren"))
 
         store.delete("1")
         assertNull(store.credentialId("1"))
-        assertNull(store.secret("1", "Nachrichten entsperren"))
+        assertNull(store.secret("1", "Chats entsperren"))
         assertTrue(keys.keys.isEmpty())
     }
 
@@ -160,6 +160,21 @@ class KeystoreDeviceSecretStoreTest {
         assertFalse(preferences.biometricOfferDeclined("2"))
         preferences.setBiometricOfferDeclined("1", false)
         assertFalse(preferences.biometricOfferDeclined("1"))
+    }
+
+    @Test
+    fun remembersTheBackupRowAndTheSwipeHintOnThisDevice() = runBlocking {
+        val preferences = DataStoreChatPreferences(dataStore)
+        assertNull(preferences.backupRowSnoozedUntil("1"))
+        val until = java.time.Instant.parse("2026-11-17T10:00:00Z")
+        preferences.snoozeBackupRow("1", until)
+        assertEquals(until, preferences.backupRowSnoozedUntil("1"))
+        assertNull("per account", preferences.backupRowSnoozedUntil("2"))
+        assertEquals(SwipeHintProgress(), preferences.swipeHint())
+        preferences.setSwipeHint(SwipeHintProgress(shown = setOf("7", "8")))
+        assertEquals(SwipeHintProgress(shown = setOf("7", "8")), preferences.swipeHint())
+        preferences.setSwipeHint(SwipeHintProgress(done = true, shown = setOf("7")))
+        assertEquals(SwipeHintProgress(done = true, shown = setOf("7")), preferences.swipeHint())
     }
 
     @Test

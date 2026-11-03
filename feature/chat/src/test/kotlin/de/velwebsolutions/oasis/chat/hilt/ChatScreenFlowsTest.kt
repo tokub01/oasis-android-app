@@ -155,7 +155,7 @@ class ChatScreenFlowsTest {
         show(ChatRoute.Conversations, wrapped = true)
         waitFor("Noch einmal versuchen")
         tap("Noch einmal versuchen")
-        waitFor("Chat einrichten")
+        waitFor("Deine Chats sind privat")
     }
 
     @Test
@@ -171,7 +171,7 @@ class ChatScreenFlowsTest {
         waitFor("Künftig mit Fingerabdruck entsperren?")
         Espresso.pressBack()
         waitForTag("chat.lock")
-        compose.waitUntil(15_000) { compose.onAllNodes(hasText("Nachrichten entsperrt.")).fetchSemanticsNodes().isEmpty() }
+        compose.waitUntil(15_000) { compose.onAllNodes(hasText("Chats entsperrt.")).fetchSemanticsNodes().isEmpty() }
 
         // Offered again to Jonas, who takes it; the next unlock uses it.
         val jonas = support.member(2, secrets = secrets, locked = true)
@@ -179,7 +179,7 @@ class ChatScreenFlowsTest {
         show(ChatRoute.Conversations)
         compose.waitUntilAtLeastOneExists(hasSetTextAction() and hasContentDescription("Chat-Passphrase"), 20_000)
         compose.onNode(hasSetTextAction() and hasContentDescription("Chat-Passphrase")).performTextInput(TEST_PASSPHRASE)
-        tap("Entsperren")
+        tap("Chats entsperren")
         waitFor("Fingerabdruck verwenden")
         tap("Fingerabdruck verwenden")
         waitForTag("chat.lock")
@@ -198,7 +198,7 @@ class ChatScreenFlowsTest {
         show(ChatRoute.Conversations)
         compose.waitUntilAtLeastOneExists(hasSetTextAction() and hasContentDescription("Chat-Passphrase"), 20_000)
         compose.onNode(hasSetTextAction() and hasContentDescription("Chat-Passphrase")).performTextInput(TEST_PASSPHRASE)
-        tap("Entsperren")
+        tap("Chats entsperren")
         waitFor("Nicht jetzt")
         tap("Nicht jetzt")
         assertTrue(runBlocking { aylin.preferences.biometricOfferDeclined("3") })

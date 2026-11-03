@@ -96,7 +96,7 @@ class ChatScreenWiringTest {
     fun aNewMemberSetsUpFirst() {
         signIn(support.context(1))
         show(ChatRoute.Conversations)
-        waitFor("Chat einrichten")
+        waitFor("Deine Chats sind privat")
     }
 
     @Test
@@ -104,12 +104,13 @@ class ChatScreenWiringTest {
         val mira = support.member(1)
         signIn(mira)
         show(ChatRoute.Conversations)
-        waitForTag("chat.new")
-        compose.onNodeWithTag("chat.new").performClick()
+        // Without chats the list invites with its own large „Neuer Chat“.
+        waitForTag("chat.list.empty.new")
+        compose.onNodeWithTag("chat.list.empty.new").performClick()
         compose.onNodeWithTag("chat.settings").performClick()
         assertEquals(listOf(ChatRoute.NewConversation, ChatRoute.Settings), navigator.stack(navigator.selectedTab).toList())
         compose.onNodeWithTag("chat.lock").performClick()
-        waitFor("Nachrichten entsperren")
+        waitFor("Deine Chats sind gesperrt")
         assertFalse(mira.vault.unlocked)
     }
 

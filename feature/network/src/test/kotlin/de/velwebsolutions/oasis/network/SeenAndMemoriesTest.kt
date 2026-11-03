@@ -85,7 +85,9 @@ class SeenAndMemoriesTest {
             stub("GET", "network/memories", """{"data":$memoriesJson}"""),
             stub("POST", "network/memories/dismiss", """{"message":"Bis morgen ausgeblendet."}""")
         )
-        val model = models.keep(SourceViewModel(network.repository, network.session))
+        val model = models.keep(
+            SourceViewModel(network.repository, network.session, de.velwebsolutions.oasis.testing.MemoryOnboardingCardStore())
+        )
         model.showOlderPosts()
         assertTrue(model.showOlder.value)
         model.selectView("alle")
@@ -105,7 +107,9 @@ class SeenAndMemoriesTest {
             stub("GET", "network/memories", """{"message":"kaputt"}""", status = 500),
             stub("POST", "network/memories/dismiss", """{"message":"kaputt"}""", status = 500)
         )
-        val model = models.keep(SourceViewModel(network.repository, network.session))
+        val model = models.keep(
+            SourceViewModel(network.repository, network.session, de.velwebsolutions.oasis.testing.MemoryOnboardingCardStore())
+        )
         runBlocking { model.loadMemories() }
         assertTrue(model.memories.value.isEmpty())
         runBlocking { model.dismissMemories() }

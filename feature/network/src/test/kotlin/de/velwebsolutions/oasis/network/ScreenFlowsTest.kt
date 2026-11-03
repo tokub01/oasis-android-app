@@ -139,7 +139,9 @@ class ScreenFlowsTest {
                 )
             )
         )
-        val model = models.keep(SourceViewModel(network.repository, network.session))
+        val model = models.keep(
+            SourceViewModel(network.repository, network.session, de.velwebsolutions.oasis.testing.MemoryOnboardingCardStore())
+        )
         show(ScreenChrome()) { SourceScreen(model) }
         text("Nächste Schritte").assertIsDisplayed()
         text("Neue Regeln").assertIsDisplayed()
@@ -164,7 +166,9 @@ class ScreenFlowsTest {
                 )
             )
         )
-        val model = models.keep(SourceViewModel(network.repository, network.session))
+        val model = models.keep(
+            SourceViewModel(network.repository, network.session, de.velwebsolutions.oasis.testing.MemoryOnboardingCardStore())
+        )
         Appearance.show(AppearanceChoice.Dark)
         try {
             show(ScreenChrome()) { SourceScreen(model) }
@@ -180,7 +184,9 @@ class ScreenFlowsTest {
         val network = StubbedNetwork(
             stub("GET", "network/source", pageJson(context = """{"show_all":true,"follows_anyone":true,"can_post":false}"""))
         )
-        val model = models.keep(SourceViewModel(network.repository, network.session))
+        val model = models.keep(
+            SourceViewModel(network.repository, network.session, de.velwebsolutions.oasis.testing.MemoryOnboardingCardStore())
+        )
         show(ScreenChrome()) { SourceScreen(model) }
         text("Gerade kannst du nichts veröffentlichen. Prüf deine Mitgliedschaft.").assertIsDisplayed()
         compose.onNodeWithTag("source.compose").assertDoesNotExist()

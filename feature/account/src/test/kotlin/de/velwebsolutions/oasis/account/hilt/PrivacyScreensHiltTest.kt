@@ -92,20 +92,20 @@ class PrivacyScreensHiltTest : HiltScreenTest() {
     }
 
     @Test
-    fun theCentreWithoutPublicPostsAndWithHiddenWordsAndALimitedSwitch() {
+    fun theCentreWithoutPublicPostsAndWithHiddenWords() {
         signIn()
         stub(
             "GET",
             "privacy",
             """{"data":{"sections":[{"key":"s","title":"Sicherheit","in_checkup":true,"settings":[""" +
-                """{"key":"login_alerts","title":"Anmelde-Warnungen","kind":"switch","value":true,"limited":true}]}],""" +
+                """{"key":"login_alerts","title":"Anmelde-Warnungen","kind":"switch","value":true}]}],""" +
                 """"counts":{"public_posts":0,"hidden_words":1}}}"""
         )
         stub("POST", "privacy/limit-past-posts", """{"message":"Server Error"}""", status = 500)
         show { AccountScreen(AccountRoute.Privacy) }
         waitForText("Du hast keine Tropfen mit der früheren Einstellung „Öffentlich“.", substring = true)
         compose.onNodeWithText("1 Wort verborgen.", substring = true).assertExists()
-        compose.onNodeWithText("Unter 18 gilt hier eine strengere Grenze", substring = true).assertExists()
+        compose.onNodeWithTag("privacy.login_alerts").assertExists()
         shot("privacy-limited")
     }
 

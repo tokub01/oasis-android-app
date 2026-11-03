@@ -202,7 +202,7 @@ class ChatKeyring(private val context: ChatContext) {
             "Die Person, die diesen Chat gestartet hat, ist nicht dabei oder eine andere als vorher. Zum Schutz deiner Nachrichten kannst du hier nichts schicken. Bitte melde dich bei uns."
 
         /** A 409 or [ChatKeyringException.StaleKeyVersion]: a key rotation is under way (ui/errors.js). */
-        const val NEW_KEY = "Der Chat bekommt gerade einen neuen Schlüssel. Versuch es gleich noch einmal."
+        const val NEW_KEY = "Der Chat wird gerade neu gesichert. Versuch es gleich noch einmal."
 
         /**
          * Whether `created_by` is an active member with the role owner, in a direct chat one of at most two members

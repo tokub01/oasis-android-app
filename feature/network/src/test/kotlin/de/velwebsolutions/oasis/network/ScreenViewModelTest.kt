@@ -202,7 +202,9 @@ class ScreenViewModelTest(private val answersAtOnce: Boolean) {
         val network = StubbedNetwork(
             stub("GET", "network/source", pageJson(postJson(3), context = """{"show_all":false,"follows_anyone":true,"can_post":true}"""))
         )
-        val model = models.keep(SourceViewModel(network.repository, network.session))
+        val model = models.keep(
+            SourceViewModel(network.repository, network.session, de.velwebsolutions.oasis.testing.MemoryOnboardingCardStore())
+        )
         model.list.reload()
 
         NetworkSignals.didPublish(decodePost(postJson(8)), "Dein Tropfen ist da.")
@@ -219,7 +221,9 @@ class ScreenViewModelTest(private val answersAtOnce: Boolean) {
         val network = StubbedNetwork(
             stub("GET", "network/source", pageJson(postJson(3), context = """{"show_all":true,"follows_anyone":true,"can_post":true}"""))
         )
-        val model = models.keep(SourceViewModel(network.repository, network.session))
+        val model = models.keep(
+            SourceViewModel(network.repository, network.session, de.velwebsolutions.oasis.testing.MemoryOnboardingCardStore())
+        )
         model.list.reload()
         val loads = network.transport.requests.size
         NetworkSignals.didPublish(decodePost(postJson(8)), "Dein Tropfen ist da.")

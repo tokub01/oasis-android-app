@@ -402,23 +402,6 @@ class ScreenBranchesTest {
     }
 
     @Test
-    fun `the Quelle sends a new member to the welcome tour once and scrolls up for a new Tropfen`() {
-        val network = StubbedNetwork(
-            stub("GET", "network/source", pageJson(postJson(3), context = """{"show_all":false,"follows_anyone":true,"can_post":true}"""))
-        )
-        network.session.update(Me(7, "mira", "Mira Sol", "MS", "mira@example.org", onboarded = false))
-        val model = models.keep(SourceViewModel(network.repository, network.session))
-        show(ScreenChrome()) { SourceScreen(model) }
-        text("Hallo Mira Sol.")
-        assertEquals(AccountRoute.Welcome, navigator.sheet)
-        assertTrue(model.askedWelcome)
-        NetworkSignals.didPublish(decodePost(postJson(9)), "Dein Tropfen ist da.")
-        text("Tropfen 9")
-        compose.onNodeWithContentDescription("Dein Tropfen: Was möchtest du teilen?").performSemanticsAction(SemanticsActions.OnClick)
-        compose.onNodeWithText("Gefolgt").performClick()
-    }
-
-    @Test
     fun `the Quelle's page before its context and when it follows somebody`() {
         var state by mutableStateOf(PostListState<SourceContext>(state = Loadable.Loaded(Unit)))
         show { NetworkPage { sourceContent(SeenCut(state, false), "Mira", handlers, onSelectView = {}) } }
@@ -845,22 +828,6 @@ class ScreenBranchesTest {
         waitFor { model.list.state.value.context != null }
         compose.onNode(hasSetTextAction()).performImeAction()
         assertTrue(navigator.stack(MainTab.Source).isEmpty())
-    }
-
-    @Test
-    fun `a member who knows the tour, and one already sent there in this session`() {
-        val page = pageJson(postJson(3), context = """{"show_all":false,"follows_anyone":true,"can_post":true}""")
-        val network = StubbedNetwork(stub("GET", "network/source", page))
-        network.session.update(Me(7, "mira", "Mira Sol", "MS", "mira@example.org"))
-        val known = models.keep(SourceViewModel(network.repository, network.session))
-        show(ScreenChrome()) { SourceScreen(known) }
-        text("Hallo Mira Sol.")
-        assertNull(navigator.sheet)
-        network.session.update(Me(7, "mira", "Mira Sol", "MS", "mira@example.org", onboarded = false))
-        val asked = models.keep(SourceViewModel(network.repository, network.session)).apply { askedWelcome = true }
-        switchTo { SourceScreen(asked) }
-        compose.waitForIdle()
-        assertNull(navigator.sheet)
     }
 
     @Test

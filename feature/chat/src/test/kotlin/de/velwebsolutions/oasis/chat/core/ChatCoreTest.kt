@@ -37,15 +37,15 @@ class ChatCoreTest {
             ChatCryptoException.WrongPassphrase to "Die Passphrase stimmt nicht.",
             ChatCryptoException.MessageTooLong(4000) to "Die Nachricht ist zu lang.",
             ChatKeyringException.MissingMemberKeys(listOf("mira", "jonas")) to
-                "Für mira, jonas gibt es keine gültigen Chat-Schlüssel. Der Chat kann noch keinen Schlüssel bekommen.",
+                "Mit mira, jonas ist gerade kein sicherer Chat möglich.",
             ChatKeyringException.PublishedKeysMismatch to
-                "Die veröffentlichten Schlüssel passen nicht zu deinen. Bitte melde dich bei uns – schreib vorerst nichts Vertrauliches.",
+                "Wir konnten nicht bestätigen, dass dieser Chat sicher ist. Schreib hier vorerst nichts Vertrauliches.",
             ApiError.Unauthenticated to "Deine Sitzung ist abgelaufen. Bitte melde dich erneut an.",
             ApiError.Forbidden("Mira nimmt gerade keine Nachrichten an.") to "Mira nimmt gerade keine Nachrichten an.",
             ApiError.Forbidden("This action is unauthorized.") to "Du hast keinen Zugriff (mehr) auf diesen Chat.",
             ApiError.Forbidden("") to "Du hast keinen Zugriff (mehr) auf diesen Chat.",
             ApiError.NotFound to "Diesen Chat gibt es nicht mehr.",
-            ApiError.Conflict("stale") to "Der Chat bekommt gerade einen neuen Schlüssel. Versuch es gleich noch einmal.",
+            ApiError.Conflict("stale") to "Der Chat wird gerade neu gesichert. Versuch es gleich noch einmal.",
             ApiError.Validation("Zusammenfassung", mapOf("title" to listOf("Zu lang."))) to "Zu lang.",
             ApiError.Validation("Zusammenfassung", mapOf("title" to emptyList())) to "Zusammenfassung",
             ApiError.Validation("", emptyMap()) to "Die Eingabe passt nicht.",
@@ -195,7 +195,7 @@ class ChatCoreTest {
         assertTrue(vault.rememberPublicKeys("2", VerifiedPublicKeys(ByteArray(32), ByteArray(32) { 1 })))
 
         vault.lockForBackground()
-        assertEquals("Nachrichten gesperrt. Deine Schlüssel sind aus dem Speicher gelöscht.", vault.announcement.value)
+        assertEquals("Chats gesperrt.", vault.announcement.value)
         vault.announcement.value = null
         vault.lockForBackground()
         vault.lock()
@@ -246,7 +246,7 @@ class ChatCoreTest {
         advanceTimeBy(5.minutes)
         runCurrent()
         assertFalse(vault.unlocked)
-        assertEquals("Nachrichten gesperrt. Deine Schlüssel sind aus dem Speicher gelöscht.", vault.announcement.value)
+        assertEquals("Chats gesperrt.", vault.announcement.value)
 
         // Touching Oasis again (a picker shown above it and closed) ends the wait.
         vault.cameToForeground()

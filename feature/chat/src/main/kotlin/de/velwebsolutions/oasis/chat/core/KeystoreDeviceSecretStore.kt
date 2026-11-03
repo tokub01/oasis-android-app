@@ -10,10 +10,13 @@ import androidx.datastore.core.DataStore
 import androidx.datastore.preferences.core.Preferences
 import androidx.datastore.preferences.core.booleanPreferencesKey
 import androidx.datastore.preferences.core.edit
+import androidx.datastore.preferences.core.longPreferencesKey
 import androidx.datastore.preferences.core.stringPreferencesKey
+import androidx.datastore.preferences.core.stringSetPreferencesKey
 import java.security.GeneralSecurityException
 import java.security.KeyStore
 import java.security.SecureRandom
+import java.time.Instant
 import java.util.Base64
 import javax.crypto.Cipher
 import javax.crypto.KeyGenerator
@@ -170,5 +173,31 @@ class DataStoreChatPreferences(private val dataStore: DataStore<Preferences>) : 
         dataStore.edit { it[declinedKey(userId)] = declined }
     }
 
+    override suspend fun backupRowSnoozedUntil(userId: String): Instant? =
+        dataStore.data.first()[backupKey(userId)]?.let(Instant::ofEpochMilli)
+
+    override suspend fun snoozeBackupRow(userId: String, until: Instant) {
+        dataStore.edit { it[backupKey(userId)] = until.toEpochMilli() }
+    }
+
+    override suspend fun swipeHint(): SwipeHintProgress {
+        val stored = dataStore.data.first()
+        return SwipeHintProgress(stored[SWIPE_HINT_DONE] == true, stored[SWIPE_HINT_SHOWN].orEmpty())
+    }
+
+    override suspend fun setSwipeHint(progress: SwipeHintProgress) {
+        dataStore.edit {
+            it[SWIPE_HINT_DONE] = progress.done
+            it[SWIPE_HINT_SHOWN] = progress.shown
+        }
+    }
+
     private fun declinedKey(userId: String) = booleanPreferencesKey("biometric-offer-declined.$userId")
+
+    private fun backupKey(userId: String) = longPreferencesKey("backup-row.snoozed-until.$userId")
+
+    private companion object {
+        val SWIPE_HINT_DONE = booleanPreferencesKey("swipe-hint.done")
+        val SWIPE_HINT_SHOWN = stringSetPreferencesKey("swipe-hint.shown")
+    }
 }

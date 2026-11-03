@@ -1,6 +1,7 @@
 package de.velwebsolutions.oasis.account
 
 import de.velwebsolutions.oasis.account.ui.auth.ForgotPasswordViewModel
+import de.velwebsolutions.oasis.account.ui.auth.RegisterPage
 import de.velwebsolutions.oasis.account.ui.auth.RegisterViewModel
 import de.velwebsolutions.oasis.account.ui.auth.SignInViewModel
 import de.velwebsolutions.oasis.account.ui.auth.TwoFactorRecoveryViewModel
@@ -109,19 +110,19 @@ class AuthViewModelTest {
                 username = "lena",
                 email = "lena@beispiel.tld",
                 password = "ein-langes-passwort",
-                passwordConfirmation = "ein-langes-passwort",
                 acceptsTerms = true
             )
         }
         model.submit()
-        assertTrue("the birth date is required", model.ui.value.birthDateMissing)
+        assertEquals("the birth date is required", RegisterViewModel.BIRTH_DATE_REQUIRED, model.ui.value.fieldError("birth_date"))
         assertTrue(transport.requests.none { it.request.method == "POST" })
 
         model.setBirthDate(LocalDate.of(2004, 5, 17))
-        assertFalse(model.ui.value.birthDateMissing)
+        assertNull(model.ui.value.fieldError("birth_date"))
         model.submit()
         val body = transport.lastBody("auth/register")!!.jsonObject
         assertEquals(JsonPrimitive("2004-05-17"), body["birth_date"])
+        assertNull("the password is entered once", body["password_confirmation"])
         assertEquals(JsonPrimitive("1"), body["terms"])
         assertEquals(JsonPrimitive(""), body["website_url"])
         assertEquals(JsonPrimitive("abc"), body["form_started"])
@@ -141,7 +142,9 @@ class AuthViewModelTest {
         val model = RegisterViewModel(session(transport, backgroundScope), RemoteAuthApi(transport.client))
         model.ui.first { it.form != null }
         model.setBirthDate(LocalDate.of(2000, 1, 1))
+        model.edit { it.copy(acceptsTerms = true) }
         model.submit()
+        assertEquals(RegisterPage.Name, model.ui.value.page)
         assertEquals("Dieser Benutzername ist schon vergeben.", model.ui.value.error?.message("username"))
         // A token is good for 24 hours; a fresh one would refuse a second try within three seconds (BotProtection).
         assertEquals(1, transport.requests.count { it.request.method == "GET" && it.path == "auth/register" })
@@ -150,6 +153,7 @@ class AuthViewModelTest {
         transport.add("GET", "auth/register", json = form.replace("abc", "def"))
         model.submit()
         assertEquals("Das hat nicht geklappt.", model.ui.value.error?.message("form"))
+        assertEquals("a refusal of no field shows on the last page", RegisterPage.Finish, model.ui.value.page)
         assertEquals("a refused token is replaced", "def", model.ui.value.form?.formToken)
 
         // Refused again, and no fresh token comes (offline now): the one there is stays for the next try.
@@ -168,6 +172,7 @@ class AuthViewModelTest {
         transport.add("GET", "auth/register", json = form)
         transport.add("POST", "auth/register", json = """{"token":"t","data":${Fixtures.ME}}""")
         model.setBirthDate(LocalDate.of(2000, 1, 1))
+        model.edit { it.copy(acceptsTerms = true) }
         val before = testScheduler.currentTime
         model.submit()
         assertTrue("the fresh token waits until the server takes it", testScheduler.currentTime - before >= 3_000)

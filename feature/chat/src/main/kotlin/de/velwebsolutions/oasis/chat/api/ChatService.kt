@@ -82,6 +82,10 @@ interface ChatService {
     @GET("chat/safety")
     suspend fun safety(): DataEnvelope<SafetyLists>
 
+    /** `GET /api/v1/chat/suggestions`. */
+    @GET("chat/suggestions")
+    suspend fun suggestions(): DataEnvelope<List<ChatSuggestion>>
+
     /** `GET /api/v1/chat/conversations`. */
     @GET("chat/conversations")
     suspend fun conversations(@Query("page") page: Int): ConversationPage

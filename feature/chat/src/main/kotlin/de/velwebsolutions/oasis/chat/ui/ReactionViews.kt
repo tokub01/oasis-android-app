@@ -67,7 +67,9 @@ class ReactionActions(
     /** A vote for the answer with the index in the poll. */
     val onVote: suspend (ChatMessageItem, Int) -> Unit,
     /** „Umfrage beenden“. */
-    val onClosePoll: suspend (ChatMessageItem) -> Unit
+    val onClosePoll: suspend (ChatMessageItem) -> Unit,
+    /** Swiping a message right: answering it, which also ends the swipe hint. */
+    val onSwipeReply: suspend (ChatMessageItem) -> Unit = { onReply(it) }
 ) {
     companion object {
         /** Screens without reactions (previews). */

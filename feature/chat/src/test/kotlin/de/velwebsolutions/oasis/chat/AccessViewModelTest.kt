@@ -128,7 +128,7 @@ class AccessViewModelTest {
         refused.setConfirmation(TEST_PASSPHRASE)
         failing("PUT identity", 409)
         refused.setUp()
-        assertEquals("Der Chat bekommt gerade einen neuen Schlüssel. Versuch es gleich noch einmal.", refused.state.value.formError)
+        assertEquals("Der Chat wird gerade neu gesichert. Versuch es gleich noch einmal.", refused.state.value.formError)
         assertFalse(refused.state.value.busy)
 
         // Published while Oasis went to the background: the new keys wait to be unlocked on return.
@@ -400,7 +400,7 @@ class AccessViewModelTest {
         )
         assertTrue(model.pollOnce())
         assertEquals(ChatPhase.Open, model.state.value.phase)
-        assertEquals("Freigegeben – dein Chat ist offen.", laptop.vault.announcement.value)
+        assertEquals("Verbunden – deine Chats sind offen.", laptop.vault.announcement.value)
         laptop.vault.lock()
 
         // Approved while Oasis is in the background (the browser on this phone): picked up on the return, in front.

@@ -182,7 +182,9 @@ class EdgeCasesTest(private val answersAtOnce: Boolean) {
             stub("GET", "network/source", pageJson(postJson(3), context = """{"show_all":false,"follows_anyone":true,"can_post":true}""")),
             stub("GET", "network/search", """{"message":"Kaputt."}""", 500)
         )
-        val source = models.keep(SourceViewModel(network.repository, network.session))
+        val source = models.keep(
+            SourceViewModel(network.repository, network.session, de.velwebsolutions.oasis.testing.MemoryOnboardingCardStore())
+        )
         NetworkSignals.didPublish(decodePost(postJson(8)), "Dein Tropfen ist da.")
         assertEquals(listOf(8), source.list.posts.map { it.id })
         NetworkSignals.didPublish(null, "Gespeichert.")

@@ -195,7 +195,7 @@ internal fun ConversationDetailsContent(
                 Panel {
                     Text("Sicherheitsnummern", style = OasisType.heading(), color = OasisColors.Night)
                     Text(
-                        "Vergleicht die Nummer persönlich oder am Telefon. Stimmt sie bei beiden überein, liest niemand dazwischen mit. Ändert sie sich, hat jemand neue Schlüssel – frag nach, bevor du Vertrauliches schreibst.",
+                        "Vergleicht die Nummer persönlich oder am Telefon. Stimmt sie bei beiden überein, liest niemand dazwischen mit. Ändert sie sich, nutzt jemand ein neues Gerät oder hat die Chats neu eingerichtet – frag nach, bevor du Vertrauliches schreibst.",
                         style = OasisType.Body,
                         color = OasisColors.Ink2
                     )
@@ -211,7 +211,7 @@ internal fun ConversationDetailsContent(
                             state.username,
                             onUsername,
                             error = state.addError,
-                            hint = "Neue Mitglieder sehen nur Nachrichten ab jetzt. Danach bekommt der Chat einen neuen Schlüssel.",
+                            hint = "Neue Mitglieder sehen nur Nachrichten ab jetzt. Danach wird der Chat dafür neu gesichert.",
                             keyboardOptions = OasisKeyboard.Username
                         )
                         AsyncOasisButton("Hinzufügen", onAddMember, fullWidth = false, enabled = canParticipate)
@@ -231,7 +231,7 @@ internal fun ConversationDetailsContent(
     }
     if (confirmLeave) ConfirmDialog("Chat verlassen? Er verschwindet aus deiner Liste.", "Verlassen", onLeave) { confirmLeave = false }
     pendingRemoval?.let { row ->
-        ConfirmDialog("@${row.username} aus dem Chat entfernen? Der Chat bekommt einen neuen Schlüssel.", "Entfernen", { onRemove(row) }) {
+        ConfirmDialog("@${row.username} aus dem Chat entfernen? Der Chat wird dafür neu gesichert.", "Entfernen", { onRemove(row) }) {
             pendingRemoval = null
         }
     }

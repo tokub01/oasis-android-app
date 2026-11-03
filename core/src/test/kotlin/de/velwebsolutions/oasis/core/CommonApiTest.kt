@@ -7,6 +7,7 @@ import de.velwebsolutions.oasis.core.auth.RegistrationForm
 import de.velwebsolutions.oasis.core.auth.RemoteAuthApi
 import de.velwebsolutions.oasis.core.auth.SignInMethods
 import de.velwebsolutions.oasis.core.auth.SignInResult
+import de.velwebsolutions.oasis.core.auth.UsernameAvailability
 import de.velwebsolutions.oasis.core.model.PushPreview
 import de.velwebsolutions.oasis.core.model.ToneHint
 import de.velwebsolutions.oasis.core.network.ApiClient
@@ -51,6 +52,7 @@ class CommonApiTest {
                 json = """{"data":{"honeypot_field":"website","token_field":"form_token","form_token":"ft"}}"""
             ),
             StubTransport.Stub("POST", "auth/register", json = """{"token":"t","data":$me}"""),
+            StubTransport.Stub("GET", "auth/username-available", json = """{"available":false,"suggestion":"mira2"}"""),
             StubTransport.Stub("POST", "auth/forgot-password", json = """{"message":"Wenn es das Konto gibt, kommt eine Mail."}"""),
             StubTransport.Stub("POST", "auth/reset-password", json = """{"message":"Dein Passwort wurde zurückgesetzt."}"""),
             StubTransport.Stub("POST", "auth/logout", status = 204, json = ""),
@@ -62,7 +64,7 @@ class CommonApiTest {
         val form = auth.registrationForm()
         assertEquals(RegistrationForm("website", "form_token", "ft"), form)
         auth.register(
-            Registration("Mira", "mira", "m@example.org", LocalDate.of(2000, 1, 2), "pw", "pw", acceptsTerms = true),
+            Registration("Mira", "mira", "m@example.org", LocalDate.of(2000, 1, 2), "pw", acceptsTerms = true),
             form,
             "Pixel"
         )
@@ -71,8 +73,11 @@ class CommonApiTest {
         assertEquals("1", body["terms"]!!.jsonPrimitive.content)
         assertEquals("", body["website"]!!.jsonPrimitive.content)
         assertEquals("ft", body["form_token"]!!.jsonPrimitive.content)
+        assertNull("the password is entered once", body["password_confirmation"])
         auth.register(Registration(), form, "Pixel")
         assertEquals("0", stub.lastBody("auth/register")!!.jsonObject["terms"]!!.jsonPrimitive.content)
+        assertEquals(UsernameAvailability(available = false, suggestion = "mira2"), auth.usernameAvailable("mira"))
+        assertEquals("mira", stub.requests.last().request.url.queryParameter("username"))
         assertEquals("Wenn es das Konto gibt, kommt eine Mail.", auth.forgotPassword("m@example.org"))
         assertEquals("Dein Passwort wurde zurückgesetzt.", auth.resetPassword("tok", "m@example.org", "neu-und-lang", "neu-und-lang"))
         assertEquals(

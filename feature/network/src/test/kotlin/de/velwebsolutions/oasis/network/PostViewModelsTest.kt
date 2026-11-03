@@ -241,8 +241,10 @@ class PostViewModelsTest(private val answersAtOnce: Boolean) {
         val network = StubbedNetwork(
             stub("GET", "network/source", pageJson(postJson(3), context = """{"show_all":true,"follows_anyone":true,"can_post":true}"""))
         )
-        val model = models.keep(SourceViewModel(network.repository, network.session))
-        assertFalse(model.askedWelcome)
+        val model = models.keep(
+            SourceViewModel(network.repository, network.session, de.velwebsolutions.oasis.testing.MemoryOnboardingCardStore())
+        )
+        assertFalse(model.cardSnoozed.value)
         model.selectView("alle")
         eventually { model.list.posts.isNotEmpty() }
         assertEquals("alle", network.last("network/source").request.url.queryParameter("view"))

@@ -13,6 +13,7 @@ import kotlinx.serialization.json.JsonPrimitive
 import retrofit2.http.Body
 import retrofit2.http.GET
 import retrofit2.http.POST
+import retrofit2.http.Query
 
 /** Answer of a sign-in step: either the token, or a two-factor challenge. */
 sealed interface SignInResult {
@@ -46,16 +47,19 @@ data class PasskeyCeremony(val challenge: String, val options: JsonObject)
 @Serializable
 data class RegistrationForm(val honeypotField: String, val tokenField: String, val formToken: String)
 
-/** What a new account needs (same fields as /testen). */
+/** What a new account needs (same fields as /testen); the password is entered once (round J). */
 data class Registration(
     val displayName: String = "",
     val username: String = "",
     val email: String = "",
     val birthDate: LocalDate = LocalDate.now().minusYears(20),
     val password: String = "",
-    val passwordConfirmation: String = "",
     val acceptsTerms: Boolean = false
 )
+
+/** Answer of `auth/username-available`: free, or taken with the first free numbered [suggestion] (null if none is). */
+@Serializable
+data class UsernameAvailability(val available: Boolean, val suggestion: String? = null)
 
 @Serializable
 internal data class TokenAnswer(
@@ -100,6 +104,9 @@ internal interface AuthService {
     @POST("auth/register")
     suspend fun register(@Body body: JsonObject): TokenAnswer
 
+    @GET("auth/username-available")
+    suspend fun usernameAvailable(@Query("username") username: String): UsernameAvailability
+
     @POST("auth/forgot-password")
     suspend fun forgotPassword(@Body body: EmailBody): MessageResponse
 
@@ -140,6 +147,9 @@ interface AuthApi {
     suspend fun registrationForm(): RegistrationForm
 
     suspend fun register(registration: Registration, form: RegistrationForm, deviceName: String): SignInResult
+
+    /** Whether [username] can still be taken (registration page 1a); a 422 when its format is invalid. */
+    suspend fun usernameAvailable(username: String): UsernameAvailability
 
     suspend fun forgotPassword(email: String): String
 
@@ -188,7 +198,6 @@ class RemoteAuthApi(client: ApiClient) : AuthApi {
             "email" to registration.email,
             "birth_date" to OasisJson.formatDay(registration.birthDate),
             "password" to registration.password,
-            "password_confirmation" to registration.passwordConfirmation,
             "terms" to if (registration.acceptsTerms) "1" else "0",
             "device_name" to deviceName,
             form.honeypotField to "",
@@ -196,6 +205,8 @@ class RemoteAuthApi(client: ApiClient) : AuthApi {
         )
         return result(service.register(JsonObject(fields.mapValues { JsonPrimitive(it.value) })))
     }
+
+    override suspend fun usernameAvailable(username: String) = service.usernameAvailable(username)
 
     override suspend fun forgotPassword(email: String) = service.forgotPassword(EmailBody(email)).message
 

@@ -98,13 +98,8 @@ fun SourceScreen(viewModel: SourceViewModel = hiltViewModel<SourceViewModel>()) 
     val listState = rememberLazyListState()
     val me = (session as? SessionState.SignedIn)?.me
 
-    LaunchedEffect(Unit) {
-        if (me?.onboarded == false && !viewModel.askedWelcome) {
-            viewModel.askedWelcome = true
-            navigator.present(AccountRoute.Welcome)
-        }
-        viewModel.list.loadIfNeeded()
-    }
+    val cardSnoozed by viewModel.cardSnoozed.collectAsStateWithLifecycle()
+    LaunchedEffect(Unit) { viewModel.list.loadIfNeeded() }
     LaunchedEffect(Unit) {
         viewModel.loadMemories()
         viewModel.loadMeetups()
@@ -128,7 +123,14 @@ fun SourceScreen(viewModel: SourceViewModel = hiltViewModel<SourceViewModel>()) 
                         me?.displayName.orEmpty(),
                         handlers,
                         onSelectView = viewModel::selectView,
-                        extras = SourceExtras(memories, viewModel::dismissMemories, viewModel::showOlderPosts, meetups)
+                        extras = SourceExtras(
+                            memories,
+                            viewModel::dismissMemories,
+                            viewModel::showOlderPosts,
+                            meetups,
+                            // „Mach dein Tal lebendig“ until the tour is done, unless „Später“ hides it.
+                            onSnoozeOnboarding = viewModel::snoozeOnboardingCard.takeIf { me?.onboarded == false && !cardSnoozed }
+                        )
                     )
                 }
             }
@@ -145,7 +147,9 @@ class SourceExtras(
     val onDismissMemories: suspend () -> Unit,
     val onShowOlder: () -> Unit,
     /** „Nächste Treffen“. */
-    val meetups: List<Meetup> = emptyList()
+    val meetups: List<Meetup> = emptyList(),
+    /** „Später“ of the card „Mach dein Tal lebendig“; null while the card does not show. */
+    val onSnoozeOnboarding: (() -> Unit)? = null
 ) {
     companion object {
         val None = SourceExtras(emptyList(), {}, {})
@@ -238,6 +242,7 @@ fun LazyListScope.sourceContent(
             }
         }
     }
+    extras.onSnoozeOnboarding?.let { onSnooze -> onboardingCard(onSnooze) }
     if (context?.followsAnyone == false) {
         block("steps") {
             Panel {
@@ -277,6 +282,36 @@ fun LazyListScope.sourceContent(
         }
     }
     if (cut.seen || state.reachedEnd || state.posts.isEmpty()) sideBlocks(context, extras.meetups)
+}
+
+/**
+ * „Mach dein Tal lebendig“ (docs/oasis-accounts.md, „Nach der Registrierung“): the welcome tour is no hurdle after
+ * registering any more, this card offers it until it is done; „Später“ hides the card for 14 days on this device.
+ */
+private fun LazyListScope.onboardingCard(onSnooze: () -> Unit) {
+    block("source.onboarding") {
+        val navigator = LocalNavigator.current
+        Panel(tone = PanelTone.Dune, spacing = 10, modifier = Modifier.testTag("source.onboarding")) {
+            SectionTitle("Mach dein Tal lebendig")
+            Text("Wähl ein paar Oasen und Menschen, dann füllt sich dein Tal.", style = OasisType.Body, color = OasisColors.Ink2)
+            Row(horizontalArrangement = Arrangement.spacedBy(10.dp), verticalAlignment = Alignment.CenterVertically) {
+                OasisButton(
+                    "Los geht’s",
+                    { navigator.present(AccountRoute.Welcome) },
+                    kind = OasisButtonKind.Accent,
+                    fullWidth = false,
+                    modifier = Modifier.testTag("source.onboarding.start")
+                )
+                OasisButton(
+                    "Später",
+                    onSnooze,
+                    kind = OasisButtonKind.Secondary,
+                    fullWidth = false,
+                    modifier = Modifier.testTag("source.onboarding.later")
+                )
+            }
+        }
+    }
 }
 
 /** „Erinnerungen“ („Nur für dich“): the member's own Tropfen of this day in earlier years, with „Ausblenden“. */

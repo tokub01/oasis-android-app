@@ -12,7 +12,9 @@ import de.velwebsolutions.oasis.account.Fixtures
 import de.velwebsolutions.oasis.account.SignedOutScreen
 import de.velwebsolutions.oasis.account.VerifyEmailScreen
 import de.velwebsolutions.oasis.core.auth.SessionState
+import kotlinx.serialization.json.jsonObject
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertNull
 import org.junit.Assert.assertTrue
 import org.junit.Test
 import org.junit.runner.RunWith
@@ -108,20 +110,22 @@ class AuthScreensHiltTest : HiltScreenTest() {
     @Test
     fun registersWithTheBirthDateTheTermsAndTheLegalPages() {
         stub("GET", "auth/register", form)
+        stub("GET", "auth/username-available", """{"available":true}""")
         stub("POST", "auth/register", """{"message":"x","errors":{"username":["Dieser Benutzername ist schon vergeben."]}}""", status = 422)
         show { SignedOutScreen() }
         waitForTag("register.button")
         compose.onNodeWithTag("register.button").tap()
-        waitForTag("register.submit")
+        waitForTag("register.next")
         shot("register")
-        listOf("Wie sollen andere dich nennen?" to "Mira", "Benutzername" to "mira", "E-Mail-Adresse" to "mira@demo.oasis.tld")
-            .forEach { (label, text) ->
-                type(label, text)
-                compose.onNodeWithContentDescription(label).performImeAction()
-            }
+        type("Dein Name", "Mira")
+        compose.onNodeWithContentDescription("Benutzername").performImeAction()
+        waitForText("Wie meldest du dich an?")
+        shot("register-signin")
+        type("E-Mail-Adresse", "mira@demo.oasis.tld")
+        compose.onNodeWithContentDescription("E-Mail-Adresse").performImeAction()
         type("Passwort", "geheim-geheim")
         compose.onNodeWithContentDescription("Passwort").performImeAction()
-        type("Passwort wiederholen", "geheim-geheim")
+        waitForText("Fast geschafft")
         compose.onNodeWithTag("register.submit").tap()
         waitForText("Das Geburtsdatum ist erforderlich.")
         compose.onNodeWithTag("register.birthDate").tap()
@@ -132,9 +136,18 @@ class AuthScreensHiltTest : HiltScreenTest() {
         compose.onNodeWithTag("register.terms").tap()
         listOf("Community-Regeln", "AGB", "Datenschutz").forEach { compose.onNodeWithText(it).tap() }
         assertEquals(3, web.size)
-        compose.onNodeWithContentDescription("Passwort wiederholen").performScrollTo().performImeAction()
+        compose.onNodeWithTag("register.submit").tap()
+        // The refused username leads back to page 1a.
         waitForText("Dieser Benutzername ist schon vergeben.")
+        compose.onNodeWithText("Wie sollen andere dich nennen?").assertExists()
         shot("register-refused")
+        compose.onNodeWithTag("register.next").tap()
+        waitForText("Wie meldest du dich an?")
+        back()
+        waitForText("Wie sollen andere dich nennen?")
+        compose.onNodeWithTag("register.next").tap()
+        compose.onNodeWithTag("register.next").tap()
+        waitForTag("register.submit")
         stub("POST", "auth/register", """{"message":"x","errors":{"form":["Bitte lade das Formular neu."]}}""", status = 422)
         compose.onNodeWithTag("register.submit").tap()
         waitForText("Bitte lade das Formular neu.")
@@ -142,10 +155,14 @@ class AuthScreensHiltTest : HiltScreenTest() {
         stub("GET", "auth/register", """{"message":"Server Error"}""", status = 500)
         compose.onNodeWithTag("register.submit").tap()
         compose.waitUntil(5_000) { transport.requests.count { it.path == "auth/register" && it.request.method == "POST" } == 3 }
+        assertNull("the password is entered once", transport.lastBody("auth/register")?.jsonObject?.get("password_confirmation"))
+        compose.onNodeWithTag("register.back").tap()
+        compose.onNodeWithTag("register.back").tap()
+        waitForText("Wie sollen andere dich nennen?")
         compose.onNodeWithText("Anmelden").tap()
         waitForTag("signin.button")
         compose.onNodeWithTag("register.button").tap()
-        waitForTag("register.submit")
+        waitForTag("register.next")
         back()
         waitForTag("signin.button")
     }
@@ -225,6 +242,7 @@ class AuthScreensHiltTest : HiltScreenTest() {
     @Test
     fun theNameCheckRefusesDisplayNameAndUsernameAtTheirFields() {
         stub("GET", "auth/register", form)
+        stub("GET", "auth/username-available", """{"available":true}""")
         stub(
             "POST",
             "auth/register",
@@ -233,9 +251,16 @@ class AuthScreensHiltTest : HiltScreenTest() {
         )
         show { SignedOutScreen() }
         compose.onNodeWithTag("register.button").tap()
+        waitForTag("register.next")
+        type("Dein Name", "Mira")
+        compose.onNodeWithTag("register.next").tap()
+        type("E-Mail-Adresse", "mira@demo.oasis.tld")
+        type("Passwort", "geheim-geheim")
+        compose.onNodeWithTag("register.next").tap()
         waitForTag("register.submit")
         compose.onNodeWithTag("register.birthDate").tap()
         compose.onNodeWithTag("register.birthDate.take").press()
+        compose.onNodeWithTag("register.terms").tap()
         compose.onNodeWithTag("register.submit").tap()
         waitForText("Dieser Name ist nicht erlaubt.")
         waitForText("Dieser Benutzername ist nicht erlaubt.")

@@ -17,6 +17,8 @@ import de.velwebsolutions.oasis.core.network.ApiClient
 import de.velwebsolutions.oasis.core.network.ApiConfig
 import de.velwebsolutions.oasis.core.network.CommonApi
 import de.velwebsolutions.oasis.core.network.RemoteCommonApi
+import de.velwebsolutions.oasis.core.onboarding.OnboardingCardStore
+import de.velwebsolutions.oasis.core.onboarding.PreferencesOnboardingCardStore
 import de.velwebsolutions.oasis.core.screentime.PreferencesScreenTimeStore
 import de.velwebsolutions.oasis.core.screentime.ScreenTime
 import java.util.concurrent.TimeUnit
@@ -53,6 +55,11 @@ object CoreModule {
     @Singleton
     fun session(tokenStore: TokenStore, deviceName: DeviceName, @AppScope scope: CoroutineScope, auth: Lazy<AuthApi>): Session =
         Session(tokenStore, deviceName.value, scope) { auth.get() }
+
+    /** „Später“ of the Quelle's card „Mach dein Tal lebendig“, on this device. */
+    @Provides
+    @Singleton
+    fun onboardingCard(@ApplicationContext context: Context): OnboardingCardStore = PreferencesOnboardingCardStore(context)
 
     /** „Deine Zeit in Oasis“ of the signed-in account, on this device only. */
     @Provides

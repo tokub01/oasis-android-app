@@ -153,11 +153,18 @@ class ConversationViewModelTest {
         waiting.open()
         val notices = waiting.state.value.notices
         assertEquals(
-            "Der Chat bekommt einen neuen Schlüssel. Sobald die Person, die ihn gestartet hat, online ist, kannst du schreiben.",
+            "Der Chat wird gerade neu gesichert. Sobald die Person, die ihn gestartet hat, online ist, kannst du schreiben.",
             notices.first()
         )
-        assertTrue(notices.any { it.startsWith("Aylin hat am 18.10.2026 neue Chat-Schlüssel erstellt.") })
-        assertTrue(notices.any { it.startsWith("Die Schlüssel von Aylin haben sich gerade geändert.") })
+        // A member's new device is no banner, but a quiet line where it happened (C9).
+        val quiet = waiting.state.value.quietNotices
+        val newDevice = "Aylin nutzt jetzt ein neues Gerät oder hat die Chats neu eingerichtet."
+        assertEquals(
+            de.velwebsolutions.oasis.chat.ui.QuietNotice(newDevice, java.time.Instant.parse("2026-10-18T12:00:00Z")),
+            quiet.first()
+        )
+        assertTrue("also the change seen during this session", quiet.count { it.text == newDevice } == 2 && quiet[1].at != null)
+        assertTrue(notices.none { "Aylin" in it })
         assertFalse(waiting.state.value.canSend)
 
         // A member without keys stops the owner's distribution; the owner sees why.
@@ -167,9 +174,13 @@ class ConversationViewModelTest {
         }
         val owner = model(mira, id)
         owner.open()
-        assertTrue(owner.state.value.notices.any { it.startsWith("Die Schlüssel von Aylin sind ungültig.") })
-        assertTrue(owner.state.value.notices.any { it.startsWith("Für aylin gibt es keine gültigen Chat-Schlüssel.") })
-        assertTrue(owner.state.value.notices.first().startsWith("Für diesen Chat liegt dir noch kein Schlüssel vor."))
+        assertTrue(
+            owner.state.value.quietNotices.contains(
+                de.velwebsolutions.oasis.chat.ui.QuietNotice("Aylin kann diesen Chat gerade nicht sicher empfangen.", null)
+            )
+        )
+        assertTrue(owner.state.value.notices.any { it == "Mit aylin ist gerade kein sicherer Chat möglich." })
+        assertTrue(owner.state.value.notices.first().startsWith("Du kannst hier noch nicht schreiben."))
         assertNotNull(aylin)
 
         val readOnly = support.context(2, canParticipate = false, vault = jonas.vault)
@@ -210,7 +221,7 @@ class ConversationViewModelTest {
         owner.setDraft("Eins")
         failing("POST conversations/$id/messages", 409, """{"message":"rotation"}""")
         owner.send()
-        assertEquals("Der Chat bekommt gerade einen neuen Schlüssel. Versuch es gleich noch einmal.", owner.state.value.composerError)
+        assertEquals("Der Chat wird gerade neu gesichert. Versuch es gleich noch einmal.", owner.state.value.composerError)
         failing("POST conversations/$id/messages", 409, """{"message":"rotation"}""")
         failing("GET conversations/$id", 500)
         owner.send()
@@ -499,7 +510,7 @@ class ConversationViewModelTest {
         val reader = model(jonas, id)
         assertEquals(ChatAvatar.Unknown, reader.senderAvatar("1"))
         reader.open()
-        assertTrue(reader.state.value.notices.first().startsWith("Der Chat bekommt einen neuen Schlüssel."))
+        assertTrue(reader.state.value.notices.first().startsWith("Der Chat wird gerade neu gesichert."))
         val writer = model(mira, id)
         writer.open()
         writer.setDraft("Vorher")

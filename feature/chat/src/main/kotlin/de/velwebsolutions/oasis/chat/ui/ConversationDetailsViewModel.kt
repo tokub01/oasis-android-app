@@ -29,7 +29,7 @@ data class MemberRow(
     val label: String,
     val username: String,
     val isMe: Boolean,
-    /** 12 groups of 5 digits, or "Keine gültigen Schlüssel"; null for the member themselves. */
+    /** 12 groups of 5 digits, or "Nicht sicher erreichbar"; null for the member themselves. */
     val safetyNumber: String?,
     val warning: String?,
     val removable: Boolean,
@@ -197,8 +197,8 @@ class ConversationDetailsViewModel @AssistedInject constructor(
                 label = label(member, isMe),
                 username = member.username,
                 isMe = isMe,
-                safetyNumber = if (isMe) null else keyring.safetyNumber(member.userId) ?: "Keine gültigen Schlüssel",
-                warning = if (!isMe && changed) "Neue Schlüssel – Nummer erneut vergleichen." else null,
+                safetyNumber = if (isMe) null else keyring.safetyNumber(member.userId) ?: "Nicht sicher erreichbar",
+                warning = if (!isMe && changed) "Neues Gerät oder neu eingerichtet – Nummer erneut vergleichen." else null,
                 removable = isOwner && conversation.isGroup && !isMe,
                 avatar = member.shownAvatar,
                 status = member.status,
@@ -237,7 +237,7 @@ class ConversationDetailsViewModel @AssistedInject constructor(
             }
             render(context.repository.addMember(conversationId, user.id))
             mutableState.update {
-                it.copy(username = "", addError = null, status = "@$name hinzugefügt. Der Chat bekommt einen neuen Schlüssel.")
+                it.copy(username = "", addError = null, status = "@$name hinzugefügt. Der Chat wird dafür neu gesichert.")
             }
         } catch (error: Exception) {
             mutableState.update { it.copy(addError = describeChatError(error)) }
@@ -245,7 +245,7 @@ class ConversationDetailsViewModel @AssistedInject constructor(
     }
 
     /** "Entfernen" (group owner, after the confirmation). */
-    suspend fun remove(row: MemberRow) = save("@${row.username} entfernt. Der Chat bekommt einen neuen Schlüssel.") { removeMember(row) }
+    suspend fun remove(row: MemberRow) = save("@${row.username} entfernt. Der Chat wird dafür neu gesichert.") { removeMember(row) }
 
     private suspend fun removeMember(row: MemberRow) = context.repository.removeMember(conversationId, row.id)
 

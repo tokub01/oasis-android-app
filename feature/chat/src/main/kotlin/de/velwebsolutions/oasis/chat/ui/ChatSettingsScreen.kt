@@ -113,7 +113,7 @@ internal fun ChatSettingsContent(
         SectionCard(
             "Mit Fingerabdruck oder Gesichtserkennung entsperren",
             detail =
-                "Statt die Passphrase zu tippen, reicht dann dein Finger oder ein Blick. Oasis speichert nur eine verschlüsselte Kopie deiner Chat-Schlüssel, die sich ausschließlich mit dem Sicherheitschip dieses Geräts öffnen lässt – nicht von uns. Deine Passphrase gilt weiter."
+                "Statt die Passphrase zu tippen, reicht dann dein Finger oder ein Blick. Oasis speichert nur eine verschlüsselte Kopie deines Chat-Zugangs, die sich ausschließlich mit dem Sicherheitschip dieses Geräts öffnen lässt – nicht von uns. Deine Passphrase gilt weiter."
         ) {
             state.devices.forEach { row ->
                 Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.testTag("chat.devices.row")) {
@@ -149,7 +149,7 @@ internal fun ChatSettingsContent(
         SectionCard(
             state.backupTitle,
             detail =
-                "Mit der Passphrase öffnest du den Chat auch auf Geräten ohne Fingerabdruck oder Gesichtserkennung. Sie verlässt nie dein Gerät; wir speichern nur deine damit verschlüsselten Schlüssel."
+                "Mit der Passphrase öffnest du den Chat auch auf Geräten ohne Fingerabdruck oder Gesichtserkennung. Sie verlässt nie dein Gerät; wir speichern nur deinen damit verschlüsselten Chat-Zugang."
         ) {
             OasisTextField(
                 "Neue Passphrase",
@@ -195,7 +195,7 @@ internal fun ChatSettingsContent(
     }
     pendingRemoval?.let { row ->
         ConfirmDialog(
-            "Das ist dein einziger Zugang zum Chat. Ohne Reserve-Passphrase brauchst du danach neue Schlüssel und kannst bisherige Nachrichten nicht mehr lesen. Trotzdem entfernen?",
+            "Das ist dein einziger Zugang zum Chat. Ohne Reserve-Passphrase musst du die Chats danach neu einrichten und kannst bisherige Nachrichten nicht mehr lesen. Trotzdem entfernen?",
             "Entfernen",
             { onRemoveDevice(row) }
         ) { pendingRemoval = null }

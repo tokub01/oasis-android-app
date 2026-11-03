@@ -99,7 +99,7 @@ class ChatScreensTest {
             }
         }
         waitFor(10_000) { model.state.value.phase == ChatPhase.Setup }
-        compose.onNodeWithText("Chat einrichten").assertIsDisplayed()
+        compose.onNodeWithText("Deine Chats sind privat").assertIsDisplayed()
 
         field("Passphrase").performTextInput("zu kurz")
         field("Passphrase wiederholen").performTextInput("zu kurz")
@@ -113,7 +113,7 @@ class ChatScreensTest {
         field("Passphrase wiederholen").performTextInput(passphrase)
         compose.onNodeWithTag("chat.setup.submit").performScrollTo().performClick()
         waitFor(30_000) { model.state.value.phase == ChatPhase.Open }
-        assertEquals("Deine Chat-Schlüssel sind eingerichtet.", model.context.vault.announcement.value)
+        assertEquals("Deine Chats sind eingerichtet.", model.context.vault.announcement.value)
     }
 
     @Test
@@ -137,7 +137,7 @@ class ChatScreensTest {
             }
         }
         waitFor(10_000) { model.state.value.phase == ChatPhase.Unlock }
-        compose.onNodeWithText("Nachrichten entsperren").assertIsDisplayed()
+        compose.onNodeWithText("Deine Chats sind gesperrt").assertIsDisplayed()
         compose.onNodeWithTag("chat.link.request").assertIsDisplayed()
 
         field("Chat-Passphrase").performTextInput("falsch falsch falsch")
@@ -259,7 +259,7 @@ class ChatScreensTest {
                 Row { ConversationListActions(onLock = { locks++ }, onSettings = { settings++ }) }
             }
         }
-        compose.onNode(hasContentDescription("Sperren")).performClick()
+        compose.onNode(hasContentDescription("Chats sperren")).performClick()
         compose.onNode(hasContentDescription("Chat-Einstellungen")).performClick()
         assertEquals(1, locks)
         assertEquals(1, settings)

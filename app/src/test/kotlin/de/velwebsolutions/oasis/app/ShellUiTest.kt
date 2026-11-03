@@ -100,9 +100,9 @@ class ShellUiTest {
     }
 
     @Test
-    fun `a new member starts with the welcome tour`() {
+    fun `a new member lands in the tabs, the tour waits behind the Quelle's card`() {
         start(mira.copy(onboarded = false))
-        compose.onNodeWithText("Inhalt ${AccountRoute.Welcome}").assertIsDisplayed()
+        compose.onNodeWithText("Inhalt ${NetworkRoute.Source}").assertIsDisplayed()
     }
 
     @Test

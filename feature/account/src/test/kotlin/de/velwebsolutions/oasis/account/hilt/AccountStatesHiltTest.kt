@@ -200,11 +200,11 @@ class AccountStatesHiltTest : HiltScreenTest() {
         activity.onBackPressedDispatcher.onBackPressed()
         waitForText("mira")
         compose.onNodeWithTag("register.button").tap()
-        waitForTag("register.submit")
-        compose.onNodeWithTag("register.terms").tap()
+        waitForTag("register.next")
+        type("Dein Name", "Lena")
         recreate()
-        waitForTag("register.submit")
-        compose.onNodeWithTag("register.terms").assertIsOn()
+        waitForTag("register.next")
+        waitForText("Lena")
         assertTrue(transport.requests.isNotEmpty())
     }
 }

@@ -1,11 +1,14 @@
 package de.velwebsolutions.oasis.account.ui.auth
 
+import androidx.activity.compose.BackHandler
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.ExperimentalLayoutApi
+import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -22,14 +25,19 @@ import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.outlined.CalendarMonth
 import androidx.compose.material.icons.outlined.Check
+import androidx.compose.material.icons.outlined.CheckCircle
 import androidx.compose.material.icons.outlined.FavoriteBorder
+import androidx.compose.material.icons.outlined.RadioButtonUnchecked
 import androidx.compose.material.icons.outlined.Schedule
+import androidx.compose.material.icons.outlined.Visibility
+import androidx.compose.material.icons.outlined.VisibilityOff
 import androidx.compose.material3.DatePicker
 import androidx.compose.material3.DatePickerDefaults
 import androidx.compose.material3.DatePickerDialog
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
 import androidx.compose.material3.SelectableDates
 import androidx.compose.material3.Text
 import androidx.compose.material3.rememberDatePickerState
@@ -37,30 +45,36 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
-import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.focus.FocusDirection
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalFocusManager
 import androidx.compose.ui.platform.testTag
+import androidx.compose.ui.semantics.LiveRegionMode
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.semantics.clearAndSetSemantics
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.heading
+import androidx.compose.ui.semantics.liveRegion
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.semantics.stateDescription
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.ImeAction
+import androidx.compose.ui.text.style.TextDecoration
 import androidx.compose.ui.unit.dp
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import de.velwebsolutions.oasis.account.ui.components.LinkText
 import de.velwebsolutions.oasis.core.auth.Registration
+import de.velwebsolutions.oasis.core.network.ApiError
 import de.velwebsolutions.oasis.design.components.AsyncOasisButton
 import de.velwebsolutions.oasis.design.components.Banner
 import de.velwebsolutions.oasis.design.components.ConsentCheck
 import de.velwebsolutions.oasis.design.components.FieldError
+import de.velwebsolutions.oasis.design.components.OasisButton
 import de.velwebsolutions.oasis.design.components.OasisButtonKind
 import de.velwebsolutions.oasis.design.components.OasisKeyboard
 import de.velwebsolutions.oasis.design.components.OasisScreen
@@ -73,7 +87,6 @@ import java.time.Instant
 import java.time.LocalDate
 import java.time.ZoneOffset
 import java.time.format.DateTimeFormatter
-import kotlinx.coroutines.launch
 
 private val Steps = listOf(
     "Konto anlegen",
@@ -84,32 +97,54 @@ private val Steps = listOf(
 
 private val GermanDay = DateTimeFormatter.ofPattern("dd.MM.yyyy")
 
-/** Registration, the first of the four steps (account, e-mail address, mobile number, contribution) of /testen. */
+/** What the registration pages ask of their view model. */
+internal class RegisterActions(
+    val onDisplayName: (String) -> Unit,
+    val onUsername: (String) -> Unit,
+    val onTakeSuggestion: (String) -> Unit,
+    val onEdit: ((Registration) -> Registration) -> Unit,
+    val onBirthDate: (LocalDate) -> Unit,
+    val onNext: () -> Unit,
+    val onBack: () -> Unit,
+    val onSubmit: suspend () -> Unit
+) {
+    companion object {
+        /** Pages without a view model (UI tests). */
+        val None = RegisterActions({}, {}, {}, {}, {}, {}, {}, {})
+    }
+}
+
+/**
+ * Registration, the first of the four steps (account, e-mail address, mobile number, contribution) of /testen, in three
+ * small pages (docs/oasis-accounts.md, „Registrierung: Schritt 1 in drei kleinen Seiten“).
+ */
 @Composable
 internal fun RegisterScreen(onSignIn: () -> Unit, onLegal: (String) -> Unit) {
     val viewModel: RegisterViewModel = hiltViewModel()
     val ui by viewModel.ui.collectAsStateWithLifecycle()
+    val actions = remember(viewModel) {
+        RegisterActions(
+            onDisplayName = viewModel::setDisplayName,
+            onUsername = viewModel::setUsername,
+            onTakeSuggestion = viewModel::takeSuggestion,
+            onEdit = viewModel::edit,
+            onBirthDate = viewModel::setBirthDate,
+            onNext = viewModel::next,
+            onBack = viewModel::back,
+            onSubmit = viewModel::submit
+        )
+    }
+    // Back on page 1b or 1c goes one page back, with everything typed kept.
+    BackHandler(enabled = ui.page != RegisterPage.Name, onBack = viewModel::back)
     OasisScreen(title = "Konto erstellen") {
-        RegisterContent(ui, viewModel::edit, viewModel::setBirthDate, viewModel::submit, onSignIn, onLegal)
+        RegisterContent(ui, actions, onSignIn, onLegal)
     }
 }
 
-@OptIn(ExperimentalMaterial3Api::class)
 @Composable
-internal fun RegisterContent(
-    ui: RegisterUiState,
-    onEdit: ((Registration) -> Registration) -> Unit,
-    onBirthDate: (LocalDate) -> Unit,
-    onSubmit: suspend () -> Unit,
-    onSignIn: () -> Unit,
-    onLegal: (String) -> Unit
-) {
-    val focus = LocalFocusManager.current
-    val scope = rememberCoroutineScope()
+internal fun RegisterContent(ui: RegisterUiState, actions: RegisterActions, onSignIn: () -> Unit, onLegal: (String) -> Unit) {
     var pickingBirthDate by remember { mutableStateOf(false) }
-    val error = ui.error
-    val registration = ui.registration
-    val next = KeyboardActions(onNext = { focus.moveFocus(FocusDirection.Down) })
+    val focus = LocalFocusManager.current
     Column(
         Modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(16.dp),
         horizontalAlignment = Alignment.CenterHorizontally
@@ -120,116 +155,29 @@ internal fun RegisterContent(
                 Modifier.fillMaxWidth().background(OasisColors.Paper, shape).border(1.dp, OasisColors.PaperLine, shape).padding(22.dp),
                 verticalArrangement = Arrangement.spacedBy(18.dp)
             ) {
-                Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                    Text("Schritt 1 von ${Steps.size} · Konto", style = OasisType.SmallBold, color = OasisColors.Ink2)
-                    Row(Modifier.widthIn(max = 280.dp).fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(6.dp)) {
-                        Steps.indices.forEach { index ->
-                            val color = if (index == 0) OasisColors.Night else OasisColors.DuneLine
-                            Box(Modifier.weight(1f).height(6.dp).background(color, CircleShape))
-                        }
-                    }
-                }
+                Progress(ui.page)
                 Text(
-                    "Werde Teil der Oase.",
-                    style = OasisType.display(34),
+                    ui.page.title,
+                    style = OasisType.display(30),
                     color = OasisColors.Night,
-                    modifier = Modifier.semantics { heading() }
+                    modifier = Modifier.semantics { heading() }.testTag("register.title")
                 )
-                Text("Werbefrei und ohne Algorithmus, getragen von den Mitgliedern.", style = OasisType.Body, color = OasisColors.Ink2)
-                val formError = error?.message("form")
-                when {
-                    formError != null -> Banner(formError)
+                if (ui.page == RegisterPage.Name) {
+                    Text("Werbefrei und ohne Algorithmus, getragen von den Mitgliedern.", style = OasisType.Body, color = OasisColors.Ink2)
+                }
+                FormBanner(ui.error)
+                when (ui.page) {
+                    RegisterPage.Name -> NamePage(ui, actions)
 
-                    // Also for the birth date checked here: its message sits far below, next to the button.
-                    ui.birthDateMissing || error?.fieldMessages?.isNotEmpty() == true -> Banner("Bitte prüfe die markierten Felder.")
+                    RegisterPage.SignIn -> SignInPage(ui, actions)
 
-                    error != null -> Banner(error.userMessage)
-                }
-                OasisTextField(
-                    "Wie sollen andere dich nennen?",
-                    registration.displayName,
-                    { value -> onEdit { it.copy(displayName = value) } },
-                    modifier = Modifier.testTag("register.displayName"),
-                    prompt = "z. B. Lena Berger",
-                    error = error?.message("display_name"),
-                    keyboardOptions = OasisKeyboard.Sentences.copy(imeAction = ImeAction.Next),
-                    keyboardActions = next
-                )
-                OasisTextField(
-                    "Benutzername",
-                    registration.username,
-                    { value -> onEdit { it.copy(username = value) } },
-                    modifier = Modifier.testTag("register.username"),
-                    prompt = "@lena",
-                    error = error?.message("username"),
-                    hint = "3 bis 30 Zeichen: Kleinbuchstaben, Ziffern und Unterstrich (_)",
-                    keyboardOptions = OasisKeyboard.Username.copy(imeAction = ImeAction.Next),
-                    keyboardActions = next
-                )
-                OasisTextField(
-                    "E-Mail-Adresse",
-                    registration.email,
-                    { value -> onEdit { it.copy(email = value) } },
-                    modifier = Modifier.testTag("register.email"),
-                    prompt = "name@beispiel.tld",
-                    error = error?.message("email"),
-                    keyboardOptions = OasisKeyboard.Email.copy(imeAction = ImeAction.Next),
-                    keyboardActions = next
-                )
-                OasisTextField(
-                    "Passwort",
-                    registration.password,
-                    { value -> onEdit { it.copy(password = value) } },
-                    modifier = Modifier.testTag("register.password"),
-                    error = error?.message("password"),
-                    hint = "Mindestens 10 Zeichen",
-                    isSecure = true,
-                    keyboardOptions = OasisKeyboard.Password.copy(imeAction = ImeAction.Next),
-                    keyboardActions = next
-                )
-                OasisTextField(
-                    "Passwort wiederholen",
-                    registration.passwordConfirmation,
-                    { value -> onEdit { it.copy(passwordConfirmation = value) } },
-                    modifier = Modifier.testTag("register.passwordConfirmation"),
-                    isSecure = true,
-                    keyboardOptions = OasisKeyboard.Password.copy(imeAction = ImeAction.Done),
-                    keyboardActions = KeyboardActions(onDone = { scope.launch { onSubmit() } })
-                )
-                BirthDateField(ui, error?.message("birth_date")) {
-                    focus.clearFocus()
-                    pickingBirthDate = true
-                }
-                Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
-                    ConsentCheck(
-                        registration.acceptsTerms,
-                        { checked -> onEdit { it.copy(acceptsTerms = checked) } },
-                        Modifier.testTag("register.terms")
-                    ) {
-                        Text(
-                            "Ich akzeptiere die Community-Regeln und die AGB. Wie wir mit deinen Daten umgehen, steht in der Datenschutzerklärung.",
-                            style = OasisType.Small,
-                            color = OasisColors.Ink
-                        )
+                    // RegisterPage.Finish.
+                    else -> FinishPage(ui, actions, onLegal) {
+                        focus.clearFocus()
+                        pickingBirthDate = true
                     }
-                    Row(horizontalArrangement = Arrangement.spacedBy(14.dp)) {
-                        LinkText("Community-Regeln", { onLegal("community-regeln") })
-                        LinkText("AGB", { onLegal("agb") })
-                        LinkText("Datenschutz", { onLegal("datenschutz") })
-                    }
-                    error?.message("terms")?.let { FieldError(it) }
                 }
-                // Also without the bot-trap token (offline when the screen opened): the view model fetches one then.
-                AsyncOasisButton("Konto erstellen", onSubmit, modifier = Modifier.testTag("register.submit"), kind = OasisButtonKind.Accent)
-                Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                    Icon(Icons.Outlined.FavoriteBorder, contentDescription = null, tint = OasisColors.Ink2, modifier = Modifier.size(18.dp))
-                    Text(
-                        "Oasis gibt es nur mit Mitgliedschaft – ohne Werbung, ohne Verkauf deiner Daten. Den Beitrag wählst du, nachdem " +
-                            "du deine Adresse und deine Handynummer bestätigt hast.",
-                        style = OasisType.Small,
-                        color = OasisColors.Ink2
-                    )
-                }
+                PageButtons(ui.page, actions)
                 Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(4.dp)) {
                     Text("Schon dabei?", style = OasisType.Body, color = OasisColors.Ink2)
                     LinkText("Anmelden", onSignIn, bold = false)
@@ -241,15 +189,247 @@ internal fun RegisterContent(
     if (pickingBirthDate) {
         BirthDateDialog(ui.birthDate, onDismiss = { pickingBirthDate = false }) {
             pickingBirthDate = false
-            onBirthDate(it)
+            actions.onBirthDate(it)
+        }
+    }
+}
+
+/** „Schritt 1 von 4 · Konto“, the bar of the four steps and the three dots of the pages of step 1. */
+@Composable
+private fun Progress(page: RegisterPage) {
+    Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+        Text("Schritt 1 von ${Steps.size} · Konto", style = OasisType.SmallBold, color = OasisColors.Ink2)
+        Row(Modifier.widthIn(max = 280.dp).fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+            Steps.indices.forEach { index ->
+                val color = if (index == 0) OasisColors.Night else OasisColors.DuneLine
+                Box(Modifier.weight(1f).height(6.dp).background(color, CircleShape))
+            }
+        }
+        val pages = RegisterPage.entries.size
+        Row(
+            Modifier.clearAndSetSemantics { contentDescription = "Seite ${page.ordinal + 1} von $pages" }.testTag("register.page"),
+            horizontalArrangement = Arrangement.spacedBy(6.dp)
+        ) {
+            RegisterPage.entries.forEach { dot ->
+                val current = dot == page
+                Box(
+                    Modifier
+                        .size(8.dp)
+                        .background(if (current) OasisColors.Night else Color.Transparent, CircleShape)
+                        .border(1.5.dp, OasisColors.Night, CircleShape)
+                )
+            }
+        }
+    }
+}
+
+/** A refusal that belongs to no field shows on top; refused fields are marked at the field. */
+@Composable
+private fun FormBanner(error: ApiError?) {
+    val formError = error?.message("form")
+    when {
+        formError != null -> Banner(formError)
+        error?.fieldMessages?.isNotEmpty() == true -> Banner("Bitte prüfe die markierten Felder.")
+        error != null -> Banner(error.userMessage)
+    }
+}
+
+/** 1a: the display name, and the username with its suggestion and live check. */
+@Composable
+private fun NamePage(ui: RegisterUiState, actions: RegisterActions) {
+    val focus = LocalFocusManager.current
+    val registration = ui.registration
+    OasisTextField(
+        "Dein Name",
+        registration.displayName,
+        actions.onDisplayName,
+        modifier = Modifier.testTag("register.displayName"),
+        prompt = "z. B. Lena Berger",
+        error = ui.fieldError("display_name"),
+        keyboardOptions = OasisKeyboard.Sentences.copy(imeAction = ImeAction.Next),
+        keyboardActions = KeyboardActions(onNext = { focus.moveFocus(FocusDirection.Down) })
+    )
+    val check = ui.usernameCheck
+    Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
+        OasisTextField(
+            "Benutzername",
+            registration.username,
+            actions.onUsername,
+            modifier = Modifier.testTag("register.username"),
+            prompt = "@lena",
+            error = ui.fieldError("username") ?: (check as? UsernameCheck.Invalid)?.message,
+            hint = "3 bis 30 Zeichen: Kleinbuchstaben, Ziffern und Unterstrich (_)".takeIf { check == null },
+            keyboardOptions = OasisKeyboard.Username.copy(imeAction = ImeAction.Done),
+            keyboardActions = KeyboardActions(onDone = { actions.onNext() })
+        )
+        if (ui.fieldError("username") == null) UsernameLine(check, actions.onTakeSuggestion)
+    }
+}
+
+/** „@mira ist frei.“ or „@mira ist schon vergeben – wie wäre es mit @mira2?“ (the suggestion is a link). */
+@OptIn(ExperimentalLayoutApi::class)
+@Composable
+private fun UsernameLine(check: UsernameCheck?, onTake: (String) -> Unit) {
+    when (check) {
+        is UsernameCheck.Free -> Text(
+            "@${check.username} ist frei.",
+            style = OasisType.Caption,
+            color = OasisColors.Ink2,
+            modifier = Modifier.semantics { liveRegion = LiveRegionMode.Polite }.testTag("register.username.free")
+        )
+
+        is UsernameCheck.Taken -> {
+            val suggestion = check.suggestion
+            FlowRow(
+                Modifier.semantics(mergeDescendants = true) { liveRegion = LiveRegionMode.Polite }.testTag("register.username.taken"),
+                verticalArrangement = Arrangement.Center
+            ) {
+                if (suggestion == null) {
+                    Text("@${check.username} ist schon vergeben.", style = OasisType.Caption, color = OasisColors.SunText)
+                } else {
+                    Text("@${check.username} ist schon vergeben – wie wäre es mit ", style = OasisType.Caption, color = OasisColors.SunText)
+                    Text(
+                        "@$suggestion",
+                        style = OasisType.Caption.copy(fontWeight = FontWeight.Bold, textDecoration = TextDecoration.Underline),
+                        color = OasisColors.Night,
+                        modifier = Modifier.clickable(role = Role.Button, onClickLabel = "@$suggestion nehmen") { onTake(suggestion) }
+                            .testTag("register.username.suggestion")
+                    )
+                    Text("?", style = OasisType.Caption, color = OasisColors.SunText)
+                }
+            }
+        }
+
+        // Nothing checked yet, or the format is wrong (shown at the field).
+        else -> {}
+    }
+}
+
+/** 1b: e-mail address and the password, entered once, with the eye and the live checklist. */
+@Composable
+private fun SignInPage(ui: RegisterUiState, actions: RegisterActions) {
+    val focus = LocalFocusManager.current
+    val registration = ui.registration
+    var shown by rememberSaveable { mutableStateOf(false) }
+    OasisTextField(
+        "E-Mail-Adresse",
+        registration.email,
+        { value -> actions.onEdit { it.copy(email = value) } },
+        modifier = Modifier.testTag("register.email"),
+        prompt = "name@beispiel.tld",
+        error = ui.fieldError("email"),
+        keyboardOptions = OasisKeyboard.Email.copy(imeAction = ImeAction.Next),
+        keyboardActions = KeyboardActions(onNext = { focus.moveFocus(FocusDirection.Down) })
+    )
+    Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+        OasisTextField(
+            "Passwort",
+            registration.password,
+            { value -> actions.onEdit { it.copy(password = value) } },
+            modifier = Modifier.testTag("register.password"),
+            error = ui.fieldError("password"),
+            isSecure = !shown,
+            keyboardOptions = OasisKeyboard.Password.copy(imeAction = ImeAction.Done),
+            keyboardActions = KeyboardActions(onDone = { actions.onNext() }),
+            trailing = {
+                IconButton(onClick = { shown = !shown }, modifier = Modifier.testTag("register.password.toggle")) {
+                    Icon(
+                        if (shown) Icons.Outlined.VisibilityOff else Icons.Outlined.Visibility,
+                        contentDescription = if (shown) "Passwort verbergen" else "Passwort anzeigen",
+                        tint = OasisColors.Night
+                    )
+                }
+            }
+        )
+        val ticked = ui.passwordLongEnough
+        Row(
+            Modifier.semantics(mergeDescendants = true) {
+                stateDescription = if (ticked) "erfüllt" else "noch nicht erfüllt"
+            }.testTag("register.password.rule"),
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(6.dp)
+        ) {
+            Icon(
+                if (ticked) Icons.Outlined.CheckCircle else Icons.Outlined.RadioButtonUnchecked,
+                contentDescription = null,
+                tint = if (ticked) OasisColors.Night else OasisColors.Muted,
+                modifier = Modifier.size(18.dp)
+            )
+            Text("Mindestens ${RegisterViewModel.PASSWORD_MIN_LENGTH} Zeichen", style = OasisType.Small, color = OasisColors.Ink)
+        }
+        Text(
+            "Später kannst du einen Passkey einrichten und dich ganz ohne Passwort anmelden.",
+            style = OasisType.Caption,
+            color = OasisColors.Muted
+        )
+    }
+}
+
+/** 1c: birth date (18+) and the consent; „Konto anlegen“ follows. */
+@Composable
+private fun FinishPage(ui: RegisterUiState, actions: RegisterActions, onLegal: (String) -> Unit, onPickBirthDate: () -> Unit) {
+    val registration = ui.registration
+    BirthDateField(ui, ui.fieldError("birth_date"), onPickBirthDate)
+    Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
+        ConsentCheck(
+            registration.acceptsTerms,
+            { checked -> actions.onEdit { it.copy(acceptsTerms = checked) } },
+            Modifier.testTag("register.terms")
+        ) {
+            Text(
+                "Ich akzeptiere die Community-Regeln und die AGB. Wie wir mit deinen Daten umgehen, steht in der Datenschutzerklärung.",
+                style = OasisType.Small,
+                color = OasisColors.Ink
+            )
+        }
+        Row(horizontalArrangement = Arrangement.spacedBy(14.dp)) {
+            LinkText("Community-Regeln", { onLegal("community-regeln") })
+            LinkText("AGB", { onLegal("agb") })
+            LinkText("Datenschutz", { onLegal("datenschutz") })
+        }
+        ui.fieldError("terms")?.let { FieldError(it) }
+    }
+    Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+        Icon(Icons.Outlined.FavoriteBorder, contentDescription = null, tint = OasisColors.Ink2, modifier = Modifier.size(18.dp))
+        Text(
+            "Oasis gibt es nur mit Mitgliedschaft – ohne Werbung, ohne Verkauf deiner Daten. Den Beitrag wählst du, nachdem " +
+                "du deine Adresse und deine Handynummer bestätigt hast.",
+            style = OasisType.Small,
+            color = OasisColors.Ink2
+        )
+    }
+}
+
+/** „Weiter“ (1a, 1b) or „Konto anlegen“ (1c), with „Zurück“ from page 1b on. */
+@Composable
+private fun PageButtons(page: RegisterPage, actions: RegisterActions) {
+    Row(horizontalArrangement = Arrangement.spacedBy(10.dp), verticalAlignment = Alignment.CenterVertically) {
+        if (page != RegisterPage.Name) {
+            OasisButton(
+                "Zurück",
+                actions.onBack,
+                kind = OasisButtonKind.Secondary,
+                fullWidth = false,
+                modifier = Modifier.testTag("register.back")
+            )
+        }
+        if (page == RegisterPage.Finish) {
+            // Also without the bot-trap token (offline when the screen opened): the view model fetches one then.
+            AsyncOasisButton(
+                "Konto anlegen",
+                actions.onSubmit,
+                modifier = Modifier.testTag("register.submit"),
+                kind = OasisButtonKind.Accent
+            )
+        } else {
+            OasisButton("Weiter", actions.onNext, kind = OasisButtonKind.Accent, modifier = Modifier.testTag("register.next"))
         }
     }
 }
 
 /** The date as a field that opens the calendar; empty until chosen. */
 @Composable
-private fun BirthDateField(ui: RegisterUiState, serverError: String?, onPick: () -> Unit) {
-    val message = if (ui.birthDateMissing) RegisterViewModel.BIRTH_DATE_REQUIRED else serverError
+private fun BirthDateField(ui: RegisterUiState, message: String?, onPick: () -> Unit) {
     val shape = RoundedCornerShape(OasisRadius.XS.dp)
     val text = ui.birthDate?.format(GermanDay)
     Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
@@ -287,7 +467,7 @@ private fun BirthDateField(ui: RegisterUiState, serverError: String?, onPick: ()
             FieldError(message)
         } else {
             Text(
-                "Oasis ist ab 16. Für eine Mitgliedschaft unter 18 brauchst du die Zustimmung deiner Eltern.",
+                "Oasis ist ab 18.",
                 style = OasisType.Caption,
                 color = OasisColors.Muted
             )
@@ -295,24 +475,25 @@ private fun BirthDateField(ui: RegisterUiState, serverError: String?, onPick: ()
     }
 }
 
-/** Days up to [today] (UTC midnight in milliseconds): a birth date lies in the past. */
+/** Days up to [latest] (UTC midnight in milliseconds): a birth date at least 18 years back (Oasis is 18+). */
 @OptIn(ExperimentalMaterial3Api::class)
-internal class PastDates(private val today: Long) : SelectableDates {
-    override fun isSelectableDate(utcTimeMillis: Long) = utcTimeMillis <= today
+internal class PastDates(private val latest: Long) : SelectableDates {
+    override fun isSelectableDate(utcTimeMillis: Long) = utcTimeMillis <= latest
 }
 
 /**
- * The calendar for the birth date; "Übernehmen" sets it. It starts at a plausible age, never after today. Typed in by
- * keyboard (the pencil), an empty, incomplete or future date selects nothing, so "Übernehmen" waits for a valid one.
+ * The calendar for the birth date; "Übernehmen" sets it. It starts at a plausible age and offers no day less than 18
+ * years back. Typed in by keyboard (the pencil), an empty, incomplete or too recent date selects nothing, so
+ * "Übernehmen" waits for a valid one.
  */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 private fun BirthDateDialog(current: LocalDate?, onDismiss: () -> Unit, onTake: (LocalDate) -> Unit) {
     val start = current ?: LocalDate.now().minusYears(20)
-    val today = LocalDate.now().atStartOfDay(ZoneOffset.UTC).toInstant().toEpochMilli()
+    val latest = LocalDate.now().minusYears(RegisterViewModel.MIN_AGE).atStartOfDay(ZoneOffset.UTC).toInstant().toEpochMilli()
     val state = rememberDatePickerState(
         initialSelectedDateMillis = start.atStartOfDay(ZoneOffset.UTC).toInstant().toEpochMilli(),
-        selectableDates = PastDates(today)
+        selectableDates = PastDates(latest)
     )
     DatePickerDialog(
         onDismissRequest = onDismiss,
@@ -369,7 +550,7 @@ private fun NightCard() {
         HorizontalDivider(color = OasisColors.NightLine)
         Text("DANACH", style = OasisType.Eyebrow, color = OasisColors.OnNightMuted)
         Text(
-            "Interessen und Oasen wählen\nLeute finden oder deine Gruppe einladen",
+            "Oasen und Menschen finden – wann es dir passt\nDeine Gruppe einladen",
             style = OasisType.Body,
             color = OasisColors.OnNight2
         )

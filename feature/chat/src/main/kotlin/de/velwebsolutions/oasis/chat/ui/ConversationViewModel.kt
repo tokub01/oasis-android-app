@@ -131,12 +131,25 @@ object QuoteTexts {
     const val NOT_LOADED = "Die Nachricht ist nicht geladen. Ältere Nachrichten laden, um sie zu sehen."
 }
 
+/**
+ * An informational line in the timeline (docs/oasis-chat-client.md, „C9 Quiet notices“) at the moment it happened
+ * ([at]); null, or before the loaded messages: at the end of what is loaded.
+ */
+data class QuietNotice(val text: String, val at: Instant?)
+
 /** What the conversation screen shows. */
 data class ConversationState(
     val conversation: ChatConversation? = null,
     val title: String = "",
     val timeline: ChatTimeline = ChatTimeline(),
+    /** Banners where the member must act or cannot write (read-only, ended, no access yet, a failed step). */
     val notices: List<String> = emptyList(),
+    /** Small lines in the timeline where something happened (a member's new device …); a tap opens the details. */
+    val quietNotices: List<QuietNotice> = emptyList(),
+    /** „Tipp: Nachricht nach rechts wischen zum Antworten“ above the composer, until „Verstanden“. */
+    val swipeHint: Boolean = false,
+    /** The newest received message, which moves right and back once with the hint; null once it did. */
+    val nudge: String? = null,
     val nextBeforeId: String? = null,
     val loadFailed: String? = null,
     /** The member's access ended (403/404): the screen goes back to the list. */
@@ -167,6 +180,8 @@ data class ConversationState(
     val isOwner: Boolean = false,
     /** Files picked or recorded for the next message. */
     val drafts: List<DraftAttachment> = emptyList(),
+    /** „Einmal ansehen“ of the „+“ sheet: every file of the next message is view-once (the chip above the field). */
+    val viewOnceNext: Boolean = false,
     /** A picked file is being checked and prepared. */
     val preparing: Boolean = false,
     /** Seconds of the voice message being recorded; null while not recording. */
@@ -289,6 +304,9 @@ class ConversationViewModel @AssistedInject constructor(
     private var reply: MessageReply? = null
     private var timeline = ChatTimeline()
     private var notices: List<String> = emptyList()
+    private var quiet: List<QuietNotice> = emptyList()
+
+    private val swipeHint by lazy { SwipeHintTracker(context.preferences, conversationId) }
     private var nextBeforeId: String? = null
     private var users: Map<String, PublicUser> = emptyMap()
     private var warnings: List<String> = emptyList()
@@ -360,6 +378,7 @@ class ConversationViewModel @AssistedInject constructor(
             title = current?.displayTitle(myId).orEmpty(),
             timeline = timeline,
             notices = notices,
+            quietNotices = quiet,
             nextBeforeId = nextBeforeId,
             flagged = flagged,
             canSend = canSend,
@@ -399,6 +418,7 @@ class ConversationViewModel @AssistedInject constructor(
             if (!isCurrent(token)) return@inScope
             takeShare(token)
             if (!isCurrent(token)) return@inScope
+            offerSwipeHint()
             jobs += viewModelScope.launch {
                 realtime.subscribe("private-conversation.$conversationId").collect { handle(it) }
             }
@@ -444,6 +464,7 @@ class ConversationViewModel @AssistedInject constructor(
         conversation = null
         nextBeforeId = null
         notices = emptyList()
+        quiet = emptyList()
         flagged = null
         dismissed.clear()
         confirmedDraft = null
@@ -459,6 +480,7 @@ class ConversationViewModel @AssistedInject constructor(
                 loadFailed = null,
                 composerError = null,
                 drafts = emptyList(),
+                viewOnceNext = false,
                 preparing = false,
                 recordingSeconds = null,
                 uploadProgress = null,
@@ -505,7 +527,8 @@ class ConversationViewModel @AssistedInject constructor(
         val directory = keyring.loadDirectory(conversationId)
         users = directory.users.associateBy { it.id }
         keyring.openGrants(current)
-        val newWarnings = keyWarnings(current, directory).toMutableList()
+        val newQuiet = keyNotices(current, directory, myId, vault.clock.now())
+        val newWarnings = mutableListOf<String>()
         // An ended direct chat (the other person left) gets no key any more; it stays readable without a composer.
         if (current.rotationRequired && current.createdBy == myId && !current.ended) {
             try {
@@ -518,6 +541,7 @@ class ConversationViewModel @AssistedInject constructor(
         }
         if (!isCurrent(token)) return
         warnings = newWarnings
+        quiet = newQuiet
         conversation = current
         if (!readAtTaken) readAt = current.lastReadAt?.let(OasisJson::parseInstant).also { readAtTaken = true }
         renderNotices(current)
@@ -526,46 +550,8 @@ class ConversationViewModel @AssistedInject constructor(
     }
 
     private fun renderNotices(current: ChatConversation) {
-        val texts = warnings.toMutableList()
-        if (!context.canParticipate) {
-            texts.add(0, "Dein Konto ist gerade nur zum Lesen. Mit einer Mitgliedschaft kannst du wieder schreiben.")
-        }
-        val lead = when {
-            current.ended -> "Dieser Chat ist beendet. Du kannst ihn noch lesen und Nachrichten melden, aber nicht mehr schreiben."
-
-            // Shown instead of the composer (ConversationState.untrustedOwner).
-            !ChatKeyring.ownerTrusted(vault, current) -> null
-
-            current.rotationRequired && current.createdBy != myId ->
-                "Der Chat bekommt einen neuen Schlüssel. Sobald die Person, die ihn gestartet hat, online ist, kannst du schreiben."
-
-            vault.conversationKey(current.id, current.keyVersion) == null ->
-                "Für diesen Chat liegt dir noch kein Schlüssel vor. Du kannst noch nicht schreiben."
-
-            else -> null
-        }
-        lead?.let { texts.add(0, it) }
-        notices = texts
-    }
-
-    /** Warnings about replaced identities, keys changed during this session and invalid bundles. */
-    internal fun keyWarnings(conversation: ChatConversation, directory: ChatKeyring.Directory): List<String> {
-        val names = directory.users.associate { it.id to it.name }
-        val result = mutableListOf<String>()
-        for (member in conversation.members) {
-            if (member.userId == myId) continue
-            val changed = directory.user(member.userId)?.keyChangedAt ?: continue
-            result += "${names.getValue(member.userId)} hat am ${formatDate(changed)} neue Chat-Schlüssel erstellt. " +
-                "Vergleicht eure Sicherheitsnummer erneut."
-        }
-        for (id in directory.changedInSession) {
-            result += "Die Schlüssel von ${names.getValue(id)} haben sich gerade geändert. " +
-                "Vergleicht eure Sicherheitsnummer, bevor du Vertrauliches schreibst."
-        }
-        for (id in directory.invalid) {
-            result += "Die Schlüssel von ${names.getValue(id)} sind ungültig. Diese Person bekommt keinen Schlüssel für den Chat."
-        }
-        return result
+        val readOnly = "Dein Konto ist gerade nur zum Lesen. Mit einer Mitgliedschaft kannst du wieder schreiben."
+        notices = listOfNotNull(waitingNotice(current, vault, myId), readOnly.takeUnless { context.canParticipate }) + warnings
     }
 
     /** Step 3: the next 50 older messages ("Ältere Nachrichten laden"). */
@@ -755,9 +741,9 @@ class ConversationViewModel @AssistedInject constructor(
                 runCatching { media.present(draft.kind, draft.data, draft.mime, draft.name) }.getOrNull()?.let { reference.id to it }
             }.toMap()
             render { it.copy(drafts = it.drafts - drafts.toSet(), uploadProgress = null, attachmentViews = it.attachmentViews + shown) }
-            // The quote went along: the bar closes.
+            // The quote went along: the bar closes. „Einmal ansehen“ was for this message only.
             reply = null
-            render { it.copy(replyBar = null) }
+            render { it.copy(replyBar = null, viewOnceNext = false) }
             setDraft(remainder(state.value.draft, typed))
             receive(envelope, stored.attachments)
             // Replying accepts a message request.
@@ -834,7 +820,7 @@ class ConversationViewModel @AssistedInject constructor(
         render { it.copy(preparing = true, composerError = null) }
         try {
             val draft = prepare(++nextLocalId)
-            render { it.copy(drafts = it.drafts + draft) }
+            render { it.copy(drafts = it.drafts + draft.withViewOnce(it.viewOnceNext)) }
         } catch (problem: AttachmentProblem) {
             render { it.copy(composerError = problem.message) }
         } finally {
@@ -885,7 +871,7 @@ class ConversationViewModel @AssistedInject constructor(
             }
         }
         if (waits) return
-        render { it.copy(drafts = it.drafts + taken) }
+        render { state -> state.copy(drafts = state.drafts + taken.map { it.withViewOnce(state.viewOnceNext) }) }
         share.text?.let(::setDraft)
         val rest = if (left.size == 1) "Den übrigen" else "Die übrigen ${left.size}"
         val waiting = left.takeIf { it.isNotEmpty() }?.let {
@@ -898,8 +884,13 @@ class ConversationViewModel @AssistedInject constructor(
     /** "Anhang entfernen". */
     fun removeDraft(localId: Long) = render { state -> state.copy(drafts = state.drafts.filter { it.localId != localId }) }
 
-    /** "Einmal ansehen" of one draft. */
-    fun setViewOnce(localId: Long, value: Boolean) = render { state ->
+    /** „Einmal ansehen“ in the „+“ sheet (or ✕ on its chip): all files of the next message, also those added later. */
+    fun setViewOnceNext(value: Boolean) = render { state ->
+        state.copy(viewOnceNext = value, drafts = state.drafts.map { it.withViewOnce(value) })
+    }
+
+    /** View-once for one draft only (a message with some view-once files, as other clients may send). */
+    internal fun setViewOnce(localId: Long, value: Boolean) = render { state ->
         state.copy(drafts = state.drafts.map { if (it.localId == localId) it.withViewOnce(value) else it })
     }
 
@@ -931,7 +922,7 @@ class ConversationViewModel @AssistedInject constructor(
             if (draft == null) {
                 it.copy(recordingSeconds = null, composerError = "Die Aufnahme ist leer. Versuch es noch einmal.")
             } else {
-                it.copy(recordingSeconds = null, drafts = it.drafts + draft)
+                it.copy(recordingSeconds = null, drafts = it.drafts + draft.withViewOnce(it.viewOnceNext))
             }
         }
     }
@@ -1206,6 +1197,33 @@ class ConversationViewModel @AssistedInject constructor(
             }
         }
     }
+
+    // region Swipe hint (docs/oasis-chat-client.md, „C8 Swipe hint once“)
+
+    /** A chat with a message of someone else: the hint, and the newest such message nudges once. */
+    private suspend fun offerSwipeHint() {
+        val newest = mutableState.value.bubbles.lastOrNull { it.senderId != myId } ?: return
+        if (swipeHint.offer()) render { it.copy(swipeHint = true, nudge = newest.id) }
+    }
+
+    /** The nudge played (or could not, without motion). */
+    fun nudged() = render { it.copy(nudge = null) }
+
+    /** „Verstanden“: the hint is gone for good on this device. */
+    suspend fun dismissSwipeHint() = inScope { endSwipeHint() }
+
+    /** A message swiped right: answering it, and the hint has done its job. */
+    suspend fun swipedReply(item: ChatMessageItem) = inScope {
+        startReply(item)
+        endSwipeHint()
+    }
+
+    private suspend fun endSwipeHint() {
+        render { it.copy(swipeHint = false, nudge = null) }
+        swipeHint.finish()
+    }
+
+    // endregion
 
     /** „Antworten“: the quote bar above the composer („Antwort an {Name}“, „Antwort an dich“). */
     fun startReply(item: ChatMessageItem) {

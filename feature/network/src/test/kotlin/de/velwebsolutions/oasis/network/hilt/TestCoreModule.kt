@@ -12,6 +12,8 @@ import de.velwebsolutions.oasis.core.di.CoreModule
 import de.velwebsolutions.oasis.core.network.ApiClient
 import de.velwebsolutions.oasis.core.network.CommonApi
 import de.velwebsolutions.oasis.core.network.RemoteCommonApi
+import de.velwebsolutions.oasis.core.onboarding.OnboardingCardStore
+import de.velwebsolutions.oasis.testing.MemoryOnboardingCardStore
 import de.velwebsolutions.oasis.testing.StubTransport
 import de.velwebsolutions.oasis.testing.testTokenStore
 import javax.inject.Singleton
@@ -44,6 +46,10 @@ object TestCoreModule {
     @Provides
     @Singleton
     fun commonApi(client: ApiClient): CommonApi = RemoteCommonApi(client)
+
+    @Provides
+    @Singleton
+    fun onboardingCard(): OnboardingCardStore = MemoryOnboardingCardStore()
 }
 
 /** An activity with Hilt's view-model factory, for screens that create their view models themselves. */

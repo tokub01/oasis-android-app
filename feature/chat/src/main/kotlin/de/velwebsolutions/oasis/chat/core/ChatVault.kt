@@ -150,7 +150,7 @@ class ChatVault(
         conversationKeys.clear()
         previews.clear()
         if (announce && wasUnlocked) {
-            announcement.value = "Nachrichten gesperrt. Deine Schlüssel sind aus dem Speicher gelöscht."
+            announcement.value = "Chats gesperrt."
         }
     }
 

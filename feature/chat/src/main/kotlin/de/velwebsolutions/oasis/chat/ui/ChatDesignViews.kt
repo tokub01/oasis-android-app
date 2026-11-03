@@ -6,6 +6,7 @@ import androidx.compose.animation.core.animate
 import androidx.compose.animation.core.tween
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.gestures.awaitEachGesture
 import androidx.compose.foundation.gestures.awaitFirstDown
 import androidx.compose.foundation.layout.Arrangement
@@ -31,6 +32,7 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.mutableFloatStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
@@ -48,21 +50,26 @@ import androidx.compose.ui.input.pointer.positionChange
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalView
 import androidx.compose.ui.platform.testTag
+import androidx.compose.ui.semantics.LiveRegionMode
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.semantics.clearAndSetSemantics
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.heading
+import androidx.compose.ui.semantics.liveRegion
 import androidx.compose.ui.semantics.role
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import de.velwebsolutions.oasis.chat.api.ChatConversation
+import de.velwebsolutions.oasis.design.components.OasisTextButton
 import de.velwebsolutions.oasis.design.components.pressable
 import de.velwebsolutions.oasis.design.theme.OasisColors
+import de.velwebsolutions.oasis.design.theme.OasisRadius
 import de.velwebsolutions.oasis.design.theme.OasisType
 import kotlin.math.roundToInt
 import kotlinx.coroutines.launch
@@ -146,6 +153,57 @@ internal fun DayPill(label: String) {
                 .semantics { heading() }
                 .testTag("chat.day")
         )
+    }
+}
+
+/**
+ * A quiet notice in the timeline (docs/oasis-chat-client.md, „C9 Quiet notices“): centred, small and muted; on a chosen
+ * background in the paper pill. A tap opens the details with the safety numbers.
+ */
+@Composable
+internal fun QuietLine(text: String, onOpen: () -> Unit) {
+    val look = LocalChatLook.current
+    Box(Modifier.fillMaxWidth().padding(top = 12.dp), contentAlignment = Alignment.Center) {
+        Text(
+            text,
+            style = OasisType.Caption.copy(fontSize = 13.sp),
+            color = OasisColors.Muted,
+            textAlign = TextAlign.Center,
+            modifier = Modifier
+                .fillMaxWidth(QUIET_WIDTH)
+                .clip(RoundedCornerShape(OasisRadius.CHIP.dp))
+                .clickable(role = Role.Button, onClickLabel = "Details öffnen", onClick = onOpen)
+                .lookPill(look)
+                .padding(horizontal = 12.dp, vertical = 4.dp)
+                .testTag("chat.notice")
+        )
+    }
+}
+
+/** How wide a quiet line may get. */
+private const val QUIET_WIDTH = 0.9f
+
+/** „Tipp: Nachricht nach rechts wischen zum Antworten“ with „Verstanden“ (C8), above the composer. */
+@Composable
+internal fun SwipeHintPill(onDismiss: suspend () -> Unit) {
+    val scope = rememberCoroutineScope()
+    Row(
+        Modifier
+            .fillMaxWidth()
+            .background(OasisColors.Paper, CircleShape)
+            .border(1.dp, OasisColors.PaperLine, CircleShape)
+            .padding(start = 16.dp, end = 4.dp)
+            .semantics { liveRegion = LiveRegionMode.Polite }
+            .testTag("chat.swipeHint"),
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+        Text(
+            "Tipp: Nachricht nach rechts wischen zum Antworten",
+            style = OasisType.Small,
+            color = OasisColors.Ink,
+            modifier = Modifier.weight(1f)
+        )
+        OasisTextButton("Verstanden", { scope.launch { onDismiss() } }, Modifier.testTag("chat.swipeHint.dismiss"))
     }
 }
 
@@ -257,13 +315,23 @@ internal fun Modifier.bubbleTail(show: Boolean, mine: Boolean, color: Color): Mo
  * motion (the system's animations off) nothing moves, the icon still shows the progress.
  */
 @Composable
-internal fun SwipeToReply(enabled: Boolean, onReply: () -> Unit, content: @Composable () -> Unit) {
+internal fun SwipeToReply(enabled: Boolean, onReply: () -> Unit, nudge: (() -> Unit)? = null, content: @Composable () -> Unit) {
     val view = LocalView.current
     val moves = motionAllowed(LocalContext.current)
     val scope = rememberCoroutineScope()
     // The offset is read only in the layout and drawing of the row (offset { }, graphicsLayer { }): a swipe moves the
     // bubble without composing it again for every pixel, and no move starts a coroutine.
     val drag = remember { mutableFloatStateOf(0f) }
+    // The swipe hint: 24 to the right and back once (2 × 200 ms, ease-out); without motion only the pill shows.
+    LaunchedEffect(nudge != null) {
+        if (nudge == null) return@LaunchedEffect
+        if (moves) {
+            val spec = tween<Float>(NUDGE_MS, easing = FastOutSlowInEasing)
+            animate(0f, NUDGE, animationSpec = spec) { value, _ -> drag.floatValue = value }
+            animate(NUDGE, 0f, animationSpec = spec) { value, _ -> drag.floatValue = value }
+        }
+        nudge()
+    }
     val onMove: (SwipeTracker) -> Unit = { tracker ->
         if (tracker.crossed(ChatSwipe.REPLY)) view.performHapticFeedback(HapticFeedbackConstants.CLOCK_TICK)
         drag.floatValue = tracker.dx
@@ -328,6 +396,10 @@ internal suspend fun PointerInputScope.swipes(allowed: (Float) -> Boolean, onMov
 
 /** How long a bubble or row takes back to its place. */
 internal const val SETTLE_MS = 180
+
+/** How far the swipe hint moves the newest received bubble (dp), and how long each way takes. */
+private const val NUDGE = 24f
+private const val NUDGE_MS = 200
 
 /** The gap above a row of the message list: 2 inside a run, 12 between runs. */
 internal fun rowGap(run: ChatLayout.Run): Dp = if (run == ChatLayout.Run.Middle || run == ChatLayout.Run.Last) 2.dp else 12.dp

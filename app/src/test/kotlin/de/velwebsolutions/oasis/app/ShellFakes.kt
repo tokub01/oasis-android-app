@@ -67,6 +67,8 @@ class FakeAuth(var me: Me = mira, var error: Exception? = null) : AuthApi {
 
     override suspend fun register(registration: Registration, form: RegistrationForm, deviceName: String) = login("", "", "")
 
+    override suspend fun usernameAvailable(username: String) = de.velwebsolutions.oasis.core.auth.UsernameAvailability(true)
+
     override suspend fun forgotPassword(email: String) = "ok"
 
     override suspend fun resetPassword(token: String, email: String, password: String, passwordConfirmation: String) = "ok"

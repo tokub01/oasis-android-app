@@ -60,8 +60,8 @@ import de.velwebsolutions.oasis.design.theme.OasisType
 import kotlinx.coroutines.launch
 
 /**
- * Shows the chat screen only while the keys are open in memory; otherwise "Chat einrichten" or "Nachrichten entsperren"
- * (resources/views/app/chat/partials/setup.blade.php and unlock.blade.php; iOS `ChatGate`).
+ * Shows the chat screen only while the keys are open in memory; otherwise „Deine Chats sind privat“ (setup) or „Deine Chats
+ * sind gesperrt“ (resources/views/app/chat/partials/setup.blade.php and unlock.blade.php; iOS `ChatGate`).
  */
 @Composable
 internal fun ChatGate(content: @Composable () -> Unit) {
@@ -144,7 +144,12 @@ internal fun ChatGate(content: @Composable () -> Unit) {
     }
 }
 
-/** "Chat einrichten": biometrics without a passphrase (where the device can), or a separate chat passphrase. */
+/**
+ * „Deine Chats sind privat“ (docs/oasis-chat-client.md, „C5 Setup with one button“): one button, „Mit Fingerabdruck
+ * einrichten“, where the device can; „Lieber mit Passphrase“ opens the passphrase form, which is the only way on devices
+ * without biometrics. No backup passphrase is asked here: the chat list offers it afterwards. After „Chats neu
+ * einrichten“ the same screen says what that means.
+ */
 @Composable
 internal fun ChatSetupContent(
     state: ChatAccessState,
@@ -155,53 +160,45 @@ internal fun ChatSetupContent(
     onCancelReset: suspend () -> Unit
 ) {
     var showsPassphrase by rememberSaveable { mutableStateOf(false) }
+    val reset = state.canCancelReset
     ChatPage(spacing = 24) {
         PageHeader(
-            eyebrow = "Nachrichten",
-            title = "Chat einrichten",
-            lead =
-                "Deine Nachrichten werden auf deinem Gerät verschlüsselt. Lesen können sie nur die Menschen im Chat – nicht Oasis und nicht unser Hosting."
+            eyebrow = "Ende-zu-Ende verschlüsselt",
+            title = if (reset) "Chats neu einrichten" else "Deine Chats sind privat",
+            lead = if (reset) {
+                "Ältere Nachrichten auf diesem Gerät kannst du danach nicht mehr lesen."
+            } else {
+                "Nur ihr könnt eure Nachrichten lesen – nicht einmal Oasis. Das Einrichten dauert ein paar Sekunden."
+            }
         )
-        if (state.canCancelReset) {
-            Banner(
-                "Neue Schlüssel: Bisherige Nachrichten kannst du danach nicht mehr lesen, und deine Chatpartner sehen einen Hinweis, dass sich deine Schlüssel geändert haben.",
-                kind = BannerKind.Info
+        if (reset) {
+            Text(
+                "Deine Chatpartner sehen einen Hinweis, dass du die Chats neu eingerichtet hast.",
+                style = OasisType.Body,
+                color = OasisColors.Ink2
             )
         }
         if (state.deviceAvailable) {
-            Panel(tone = PanelTone.Night) {
-                Text(
-                    "Mit Fingerabdruck oder Gesichtserkennung – ohne extra Passwort",
-                    style = OasisType.heading(21),
-                    color = OasisColors.OnNight
-                )
-                Text(
-                    "Deine Chat-Schlüssel lassen sich dann nur mit dem Sicherheitschip dieses Geräts öffnen – nicht von uns. Zum Öffnen reicht dein Finger oder ein Blick.",
-                    style = OasisType.Body,
-                    color = OasisColors.OnNightMuted
-                )
+            Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
                 AsyncOasisButton(
-                    "Mit Fingerabdruck / Gesichtserkennung einrichten",
+                    "Mit Fingerabdruck einrichten",
                     onSetUpWithDevice,
                     kind = OasisButtonKind.Accent,
-                    fullWidth = false,
                     enabled = !state.busy,
                     modifier = Modifier.testTag("chat.setup.device")
                 )
-                state.deviceSetupStatus?.let { Text(it, style = OasisType.Small, color = OasisColors.OnNight) }
+                state.deviceSetupStatus?.let { Text(it, style = OasisType.Small, color = OasisColors.Ink2) }
+                if (!showsPassphrase) {
+                    SmallAction("Lieber mit Passphrase", {
+                        showsPassphrase = true
+                    }, Modifier.testTag("chat.setup.passphraseToggle"), underline = true)
+                }
             }
-            Disclosure(
-                "Lieber mit eigener Chat-Passphrase",
-                showsPassphrase,
-                { showsPassphrase = !showsPassphrase },
-                Modifier.testTag("chat.setup.passphraseToggle")
-            ) {
-                PassphraseForm(state, onPassphraseChange, onConfirmationChange, onSetUp)
-            }
+            AnimatedVisibility(showsPassphrase) { PassphraseForm(state, onPassphraseChange, onConfirmationChange, onSetUp) }
         } else {
             PassphraseForm(state, onPassphraseChange, onConfirmationChange, onSetUp)
         }
-        if (state.canCancelReset) {
+        if (reset) {
             AsyncOasisButton("Zurück zum Entsperren", onCancelReset, kind = OasisButtonKind.Secondary, fullWidth = false)
         }
     }
@@ -248,20 +245,20 @@ private fun PassphraseForm(
             )
             AnimatedVisibility(state.formError != null) { FieldError(state.formError.orEmpty()) }
             AsyncOasisButton(
-                "Schlüssel erstellen",
+                "Chats einrichten",
                 onSetUp,
                 fullWidth = false,
                 enabled = !state.busy,
                 modifier = Modifier.testTag("chat.setup.submit")
             )
             if (state.busy) {
-                Text("Schlüssel werden erstellt. Das dauert ein paar Sekunden …", style = OasisType.Small, color = OasisColors.Ink2)
+                Text("Wird eingerichtet. Das dauert ein paar Sekunden …", style = OasisType.Small, color = OasisColors.Ink2)
             }
         }
     }
 }
 
-/** "Nachrichten entsperren": biometrics (where this device has a copy), another device, or the passphrase. */
+/** „Deine Chats sind gesperrt“: biometrics (where this device has a copy), another device, or the passphrase. */
 @Composable
 internal fun ChatUnlockContent(
     state: ChatAccessState,
@@ -279,10 +276,10 @@ internal fun ChatUnlockContent(
     val scope = rememberCoroutineScope()
     ChatPage(spacing = 24) {
         PageHeader(
-            eyebrow = "Nachrichten",
-            title = "Nachrichten entsperren",
+            eyebrow = "Ende-zu-Ende verschlüsselt",
+            title = "Deine Chats sind gesperrt",
             lead = when {
-                state.canUnlockWithDevice -> "Öffne deine Nachrichten mit Fingerabdruck oder Gesichtserkennung."
+                state.canUnlockWithDevice -> "Öffne sie mit deinem Fingerabdruck."
                 state.hasPassphrase -> "Gib deine Chat-Passphrase ein. Sie bleibt auf diesem Gerät."
                 else -> null
             }
@@ -290,7 +287,7 @@ internal fun ChatUnlockContent(
         if (state.canUnlockWithDevice) {
             Panel {
                 AsyncOasisButton(
-                    "Mit Fingerabdruck oder Gesichtserkennung entsperren",
+                    "Chats entsperren",
                     onUnlockWithDevice,
                     fullWidth = false,
                     modifier = Modifier.testTag("chat.unlock.device")
@@ -305,7 +302,7 @@ internal fun ChatUnlockContent(
         if (!state.hasPassphrase && !state.canUnlockWithDevice) {
             Panel {
                 Text(
-                    "Deinen Chat öffnest du mit Fingerabdruck oder Gesichtserkennung auf dem Gerät, auf dem du ihn eingerichtet hast. Auf anderen Geräten hilft „Mit anderem Gerät freigeben“ oder eine Reserve-Passphrase.",
+                    "Deine Chats öffnest du mit deinem Fingerabdruck auf dem Gerät, auf dem du sie eingerichtet hast. Auf anderen Geräten hilft „Neues Gerät verbinden“ oder eine Reserve-Passphrase.",
                     style = OasisType.Body,
                     color = OasisColors.Ink2
                 )
@@ -324,7 +321,8 @@ internal fun ChatUnlockContent(
                 )
                 AnimatedVisibility(state.formError != null) { FieldError(state.formError.orEmpty()) }
                 AsyncOasisButton(
-                    "Entsperren",
+                    // With the fingerprint button above, this one says which way it opens.
+                    if (state.canUnlockWithDevice) "Mit Passphrase entsperren" else "Chats entsperren",
                     onUnlock,
                     fullWidth = false,
                     enabled = !state.busy,
@@ -337,18 +335,18 @@ internal fun ChatUnlockContent(
             Panel {
                 Disclosure("Passphrase vergessen?", showForgotten, { showForgotten = !showForgotten }) {
                     Text(
-                        "Ohne Passphrase lassen sich deine bisherigen Schlüssel nicht öffnen – von niemandem. Du kannst neue Schlüssel erstellen. Dann gilt:",
+                        "Ohne Passphrase lässt sich dein bisheriger Zugang nicht öffnen – von niemandem. Du kannst die Chats neu einrichten. Dann gilt:",
                         style = OasisType.Body,
                         color = OasisColors.Ink2
                     )
                     Bullets(
                         listOf(
-                            "Bisherige Nachrichten kannst du nicht mehr lesen.",
-                            "Deine Chatpartner sehen einen Hinweis, dass sich deine Schlüssel geändert haben."
+                            "Ältere Nachrichten auf diesem Gerät kannst du danach nicht mehr lesen.",
+                            "Deine Chatpartner sehen einen Hinweis, dass du die Chats neu eingerichtet hast."
                         )
                     )
                     OasisButton(
-                        "Neue Schlüssel erstellen",
+                        "Chats neu einrichten",
                         onStartReset,
                         kind = OasisButtonKind.Secondary,
                         fullWidth = false,
@@ -360,12 +358,12 @@ internal fun ChatUnlockContent(
     }
 }
 
-/** "Mit anderem Gerät freigeben". */
+/** „Neues Gerät verbinden“: an open chat on another device lets this one in. */
 @Composable
 private fun LinkBox(state: ChatAccessState, onRequestLink: suspend () -> Unit, onCancelLink: suspend () -> Unit) {
     val scope = rememberCoroutineScope()
     Panel {
-        Text("Mit anderem Gerät freigeben", style = OasisType.heading(19), color = OasisColors.Night)
+        Text("Neues Gerät verbinden", style = OasisType.heading(19), color = OasisColors.Night)
         Text(
             "Ist dein Chat auf einem anderen Gerät gerade offen (z. B. im Browser)? Dann kann es dieses Gerät freigeben – ohne Passphrase.",
             style = OasisType.Small,
@@ -392,7 +390,7 @@ private fun LinkBox(state: ChatAccessState, onRequestLink: suspend () -> Unit, o
             SmallAction("Abbrechen", { scope.launch { onCancelLink() } })
         } else {
             AsyncOasisButton(
-                "Freigabe anfragen",
+                "Verbindung anfragen",
                 onRequestLink,
                 kind = OasisButtonKind.Secondary,
                 fullWidth = false,

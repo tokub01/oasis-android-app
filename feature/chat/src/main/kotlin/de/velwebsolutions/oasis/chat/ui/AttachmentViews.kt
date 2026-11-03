@@ -16,6 +16,7 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.aspectRatio
 import androidx.compose.foundation.layout.defaultMinSize
 import androidx.compose.foundation.layout.fillMaxSize
@@ -108,7 +109,8 @@ class AttachmentActions(
     /** A picked photo or video, or under "Datei" ([asFile]) any file. */
     val onPicked: suspend (uri: Uri, asFile: Boolean) -> Unit,
     val onRemove: (Long) -> Unit,
-    val onViewOnce: (Long, Boolean) -> Unit,
+    /** „Einmal ansehen“ of the „+“ sheet for every file of the next message. */
+    val onViewOnce: (Boolean) -> Unit,
     val recording: RecordingActions,
     val onLoad: suspend (MessageAttachment, Boolean) -> Unit,
     val onAnswer: suspend (ChatMessageItem, MessageAttachment, Boolean) -> Unit,
@@ -146,7 +148,7 @@ private fun label(kind: AttachmentKind, size: Long, durationMs: Long?, name: Str
     else -> AttachmentTexts.title(kind) + " · " + AttachmentTexts.size(size)
 }
 
-/** The composer's files: preview, "Einmal ansehen", remove; the upload progress while sending. */
+/** The composer's files: preview and remove (view-once ones say so); the upload progress while sending. */
 @Composable
 internal fun DraftAttachments(state: ConversationState, actions: AttachmentActions) {
     Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
@@ -204,12 +206,11 @@ private fun DraftRow(draft: DraftAttachment, actions: AttachmentActions, enabled
             color = OasisColors.Ink,
             modifier = Modifier.weight(1f)
         )
-        DraftViewOnce(draft, actions, enabled)
         DraftRemove(draft, actions, enabled)
     }
 }
 
-/** A recorded voice message in the tray: the same player as in the bubbles (from memory), „Einmal ansehen“ and remove. */
+/** A recorded voice message in the tray: the same player as in the bubbles (from memory) and remove. */
 @Composable
 private fun DraftVoiceMessage(draft: DraftAttachment, actions: AttachmentActions, enabled: Boolean) {
     val context = LocalContext.current
@@ -224,23 +225,9 @@ private fun DraftVoiceMessage(draft: DraftAttachment, actions: AttachmentActions
     ) {
         VoiceControls(player, OasisColors.Ink, Modifier.fillMaxWidth())
         Row(verticalAlignment = Alignment.CenterVertically) {
-            Box(Modifier.weight(1f)) { DraftViewOnce(draft, actions, enabled) }
+            Spacer(Modifier.weight(1f))
             DraftRemove(draft, actions, enabled)
         }
-    }
-}
-
-@Composable
-private fun DraftViewOnce(draft: DraftAttachment, actions: AttachmentActions, enabled: Boolean) {
-    Row(
-        modifier = Modifier
-            .defaultMinSize(minHeight = 44.dp)
-            .toggleable(draft.viewOnce, enabled = enabled, role = Role.Checkbox) { actions.onViewOnce(draft.localId, it) }
-            .testTag("chat.composer.viewOnce"),
-        verticalAlignment = Alignment.CenterVertically
-    ) {
-        OasisCheckbox(draft.viewOnce, onCheckedChange = null, enabled = enabled)
-        Text("Einmal ansehen", style = OasisType.Caption, color = OasisColors.Ink)
     }
 }
 
