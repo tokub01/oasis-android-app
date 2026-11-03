@@ -3,6 +3,7 @@ package de.velwebsolutions.oasis.staff
 import androidx.compose.runtime.Composable
 import de.velwebsolutions.oasis.design.navigation.StaffRoute
 import de.velwebsolutions.oasis.staff.ui.admin.AdminDashboardScreen
+import de.velwebsolutions.oasis.staff.ui.admin.AdminIdeasScreen
 import de.velwebsolutions.oasis.staff.ui.admin.AdminPaymentsScreen
 import de.velwebsolutions.oasis.staff.ui.admin.AdminVotesScreen
 import de.velwebsolutions.oasis.staff.ui.admin.DataBreachesScreen
@@ -34,6 +35,8 @@ fun StaffScreen(route: StaffRoute) {
         StaffRoute.AdminDashboard -> AdminDashboardScreen()
 
         StaffRoute.AdminVotes -> AdminVotesScreen()
+
+        StaffRoute.AdminIdeas -> AdminIdeasScreen()
 
         StaffRoute.AdminPayments -> AdminPaymentsScreen()
 

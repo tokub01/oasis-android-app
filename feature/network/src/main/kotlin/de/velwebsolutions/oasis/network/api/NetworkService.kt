@@ -79,6 +79,36 @@ internal interface NetworkService {
     @DELETE("network/time-capsules/{id}")
     suspend fun deleteTimeCapsule(@Path("id") id: Int): MessageResponse
 
+    /** The last 12 Oasen-Wochenbriefe, newest first. */
+    @GET("network/weekly-letters")
+    suspend fun weeklyLetters(): DataEnvelope<List<WeeklyLetterSummary>>
+
+    /** The newest Wochenbrief, none before the first. */
+    @GET("network/weekly-letters/latest")
+    suspend fun latestWeeklyLetter(): LatestWeeklyLetter
+
+    @GET("network/weekly-letters/{id}")
+    suspend fun weeklyLetter(@Path("id") id: Int): DataEnvelope<WeeklyLetter>
+
+    /** „Ideen für Oasis“: 20 per page, `sort` popular|new, `status` one of [Idea.statuses]. */
+    @GET("ideas")
+    suspend fun ideas(@Query("sort") sort: String, @Query("status") status: String?, @Query("page") page: Int): Page<Idea>
+
+    @GET("ideas/{id}")
+    suspend fun idea(@Path("id") id: Int): DataEnvelope<Idea>
+
+    @POST("ideas")
+    suspend fun suggestIdea(@Body input: IdeaInput): Confirmed<Idea>
+
+    @DELETE("ideas/{id}")
+    suspend fun deleteIdea(@Path("id") id: Int): MessageResponse
+
+    @POST("ideas/{id}/vote")
+    suspend fun voteIdea(@Path("id") id: Int): Confirmed<Idea>
+
+    @DELETE("ideas/{id}/vote")
+    suspend fun unvoteIdea(@Path("id") id: Int): Confirmed<Idea>
+
     @GET("network/yearbook")
     suspend fun yearbook(): DataEnvelope<Yearbook>
 

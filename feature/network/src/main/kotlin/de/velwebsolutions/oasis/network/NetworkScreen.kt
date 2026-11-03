@@ -4,10 +4,12 @@ import androidx.compose.runtime.Composable
 import de.velwebsolutions.oasis.design.navigation.NetworkRoute
 import de.velwebsolutions.oasis.network.ui.feeds.BookmarksScreen
 import de.velwebsolutions.oasis.network.ui.feeds.DiscoverScreen
+import de.velwebsolutions.oasis.network.ui.feeds.IdeasScreen
 import de.velwebsolutions.oasis.network.ui.feeds.SearchScreen
 import de.velwebsolutions.oasis.network.ui.feeds.SourceScreen
 import de.velwebsolutions.oasis.network.ui.feeds.SwipeScreen
 import de.velwebsolutions.oasis.network.ui.feeds.TagScreen
+import de.velwebsolutions.oasis.network.ui.feeds.WeeklyLetterScreen
 import de.velwebsolutions.oasis.network.ui.oases.CloseOasisScreen
 import de.velwebsolutions.oasis.network.ui.oases.CollectPostScreen
 import de.velwebsolutions.oasis.network.ui.oases.OasesScreen
@@ -80,6 +82,10 @@ fun NetworkScreen(route: NetworkRoute) {
         is NetworkRoute.Search -> SearchScreen(route.query.orEmpty())
 
         is NetworkRoute.Tag -> TagScreen(route.tag)
+
+        is NetworkRoute.WeeklyLetter -> WeeklyLetterScreen(route.id)
+
+        is NetworkRoute.Ideas -> IdeasScreen(route.id)
 
         // The last route (Merkliste) without a comparison: an exhaustive `when` would add an unreachable throw.
         else -> BookmarksScreen()

@@ -207,6 +207,10 @@ object DeepLink {
 
         "gemerkt" -> NetworkRoute.Bookmarks
 
+        "wochenbrief" -> NetworkRoute.WeeklyLetter(rest.firstOrNull()?.toIntOrNull())
+
+        "ideen" -> NetworkRoute.Ideas(rest.firstOrNull()?.toIntOrNull())
+
         "nachrichten" -> (query["c"]?.toIntOrNull() ?: query["conversation"]?.toIntOrNull())
             ?.let { ChatRoute.Conversation(it) } ?: ChatRoute.Conversations
 

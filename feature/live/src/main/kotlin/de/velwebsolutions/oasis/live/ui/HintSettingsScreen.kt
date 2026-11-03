@@ -213,6 +213,19 @@ private fun Switches(settings: HintSettings, ui: HintSettingsUiState, actions: H
                     "Ab 18 Uhr, außerhalb deiner Ruhezeit. Nur wenn es neue ungelesene Hinweise gibt. Die E-Mail enthält eine Summe und einen Link, keine Tropfen-Texte.",
                 enabled = enabled
             )
+            settings.weeklyLetterEmail?.let { weekly ->
+                SettingToggle(
+                    "Wochenbrief auch per E-Mail",
+                    weekly,
+                    onCheckedChange = { on -> actions.toggle { it.copy(weeklyLetterEmail = on) } },
+                    modifier = Modifier.testTag("weeklyLetterEmail"),
+                    detail =
+                        "Sonntags ab 18 Uhr, außerhalb deiner Ruhezeit: was in deinen Oasen los war, mit Zahlen, Treffen und neuen " +
+                            "Sammlungen – ohne Tropfen-Texte. In der App kommt der Wochenbrief immer, solange „Dein Oasen-Wochenbrief“ " +
+                            "oben an ist.",
+                    enabled = enabled
+                )
+            }
         }
         Group("Ruhezeiten") {
             SettingToggle(

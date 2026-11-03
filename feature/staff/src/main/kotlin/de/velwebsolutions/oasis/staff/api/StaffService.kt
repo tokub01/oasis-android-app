@@ -124,6 +124,13 @@ interface StaffService {
     @POST("staff/admin/votes")
     suspend fun createVote(@Body vote: NewVote): Confirmed<AdminVote>
 
+    /** The ideas through the member API (20 per page); `sort` popular|new. */
+    @GET("ideas")
+    suspend fun ideas(@Query("sort") sort: String, @Query("page") page: Int): Page<AdminIdea>
+
+    @PUT("staff/admin/ideas/{id}/status")
+    suspend fun setIdeaStatus(@Path("id") id: Int, @Body input: IdeaStatusInput): Confirmed<AdminIdea>
+
     @GET("staff/admin/payments")
     suspend fun payments(@Query("suche") search: String?, @Query("status") status: String?, @Query("page") page: Int): PaymentPage
 

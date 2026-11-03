@@ -69,6 +69,8 @@ data class QuietMode(val active: Boolean = false, val until: OasisInstant? = nul
 data class HintSettings(
     val kinds: List<HintKindSetting> = emptyList(),
     val digest: Boolean = false,
+    /** „Wochenbrief auch per E-Mail“; null from a server without it (the switch is not shown, the PUT leaves it out). */
+    val weeklyLetterEmail: Boolean? = null,
     val quietEnabled: Boolean = false,
     val quietFrom: String = "22:00",
     val quietUntil: String = "07:00",

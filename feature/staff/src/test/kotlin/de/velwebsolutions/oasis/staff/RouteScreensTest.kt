@@ -23,6 +23,7 @@ import de.velwebsolutions.oasis.design.navigation.StaffRoute
 import de.velwebsolutions.oasis.design.theme.OasisTheme
 import de.velwebsolutions.oasis.staff.data.StaffFiles
 import de.velwebsolutions.oasis.staff.ui.admin.AdminDashboardViewModel
+import de.velwebsolutions.oasis.staff.ui.admin.AdminIdeasViewModel
 import de.velwebsolutions.oasis.staff.ui.admin.AdminPaymentsViewModel
 import de.velwebsolutions.oasis.staff.ui.admin.AdminVotesViewModel
 import de.velwebsolutions.oasis.staff.ui.admin.DataBreachesViewModel
@@ -77,6 +78,7 @@ class RouteScreensTest {
             SuspensionsViewModel::class -> SuspensionsViewModel(repository)
             AdminDashboardViewModel::class -> AdminDashboardViewModel(repository)
             AdminVotesViewModel::class -> AdminVotesViewModel(repository)
+            AdminIdeasViewModel::class -> AdminIdeasViewModel(repository)
             AdminPaymentsViewModel::class -> AdminPaymentsViewModel(repository)
             DataBreachesViewModel::class -> DataBreachesViewModel(repository)
             else -> SystemViewModel(repository)
@@ -93,6 +95,7 @@ class RouteScreensTest {
             get(SuspensionsViewModel::class)
             get(AdminDashboardViewModel::class)
             get(AdminVotesViewModel::class)
+            get(AdminIdeasViewModel::class)
             get(AdminPaymentsViewModel::class)
             get(DataBreachesViewModel::class)
             get(SystemViewModel::class)
@@ -120,6 +123,8 @@ class RouteScreensTest {
         compose.onNodeWithTag("revenue.amount").assertExists()
         route = StaffRoute.AdminVotes
         compose.onNodeWithText("Neue Abstimmung").assertExists()
+        route = StaffRoute.AdminIdeas
+        compose.onNodeWithText("Dunkler Modus für die App").assertExists()
         route = StaffRoute.AdminPayments
         compose.onNodeWithText("Belege in Oasis", substring = true).assertExists()
         route = StaffRoute.AdminBreaches

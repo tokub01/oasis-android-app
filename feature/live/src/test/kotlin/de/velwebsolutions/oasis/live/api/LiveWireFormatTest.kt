@@ -3,6 +3,7 @@ package de.velwebsolutions.oasis.live.api
 import de.velwebsolutions.oasis.live.assertWireFormat
 import java.time.Instant
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertFalse
 import org.junit.Test
 
 /** Every model and request body of the Live API reads back what it writes, with and without defaults. */
@@ -61,7 +62,7 @@ class LiveWireFormatTest {
         assertWireFormat(LiveCountsData.serializer(), LiveCountsData(), LiveCountsData(chats = 2, hints = 3), required = false)
         assertWireFormat(LiveAppConfig.serializer(), LiveAppConfig(), LiveAppConfig(LiveAppConfig.Push(available = true)), required = false)
         assertWireFormat(LiveAppConfig.Push.serializer(), LiveAppConfig.Push(), LiveAppConfig.Push(true), required = false)
-        assertWireFormat(HintSettingsBody.serializer(), HintSettingsBody(mapOf("follow" to true), true, false, "22:00", "07:00"))
+        assertWireFormat(HintSettingsBody.serializer(), HintSettingsBody(mapOf("follow" to true), true, true, false, "22:00", "07:00"))
         assertWireFormat(PauseBody.serializer(), PauseBody(3))
         assertWireFormat(SwitchBody.serializer(), SwitchBody(true))
         assertWireFormat(FcmRegistrationBody.serializer(), FcmRegistrationBody("token", "android"))
@@ -69,10 +70,22 @@ class LiveWireFormatTest {
 
     @Test
     fun requestBodiesCarryWhatTheScreensSet() {
-        val body = HintSettingsBody(mapOf("follow" to true), digest = true, quietEnabled = false, quietFrom = "22:00", quietUntil = "07:00")
+        val body = HintSettingsBody(
+            mapOf("follow" to true),
+            digest = true,
+            weeklyLetterEmail = null,
+            quietEnabled = false,
+            quietFrom = "22:00",
+            quietUntil = "07:00"
+        )
         assertEquals(
-            listOf(mapOf("follow" to true), true, false, "22:00", "07:00"),
-            listOf(body.kinds, body.digest, body.quietEnabled, body.quietFrom, body.quietUntil)
+            listOf(mapOf("follow" to true), true, null, false, "22:00", "07:00"),
+            listOf(body.kinds, body.digest, body.weeklyLetterEmail, body.quietEnabled, body.quietFrom, body.quietUntil)
+        )
+        assertFalse(
+            "a server without the switch keeps its choice",
+            "weekly_letter_email" in
+                de.velwebsolutions.oasis.core.network.OasisJson.snake.encodeToString(HintSettingsBody.serializer(), body)
         )
         assertEquals(3, PauseBody(3).days)
         assertEquals(true, SwitchBody(true).value)

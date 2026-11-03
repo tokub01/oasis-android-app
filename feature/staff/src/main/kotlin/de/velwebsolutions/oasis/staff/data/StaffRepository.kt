@@ -4,6 +4,7 @@ import de.velwebsolutions.oasis.core.network.ApiClient
 import de.velwebsolutions.oasis.core.network.Confirmed
 import de.velwebsolutions.oasis.core.network.Page
 import de.velwebsolutions.oasis.staff.api.AdminDashboard
+import de.velwebsolutions.oasis.staff.api.AdminIdea
 import de.velwebsolutions.oasis.staff.api.AdminVote
 import de.velwebsolutions.oasis.staff.api.AssignBody
 import de.velwebsolutions.oasis.staff.api.BreachRegister
@@ -11,6 +12,7 @@ import de.velwebsolutions.oasis.staff.api.CaseSummary
 import de.velwebsolutions.oasis.staff.api.ComplaintDetail
 import de.velwebsolutions.oasis.staff.api.ComplaintReview
 import de.velwebsolutions.oasis.staff.api.DataBreach
+import de.velwebsolutions.oasis.staff.api.IdeaStatusInput
 import de.velwebsolutions.oasis.staff.api.ModerationCaseDetail
 import de.velwebsolutions.oasis.staff.api.ModerationOverview
 import de.velwebsolutions.oasis.staff.api.MollieLookup
@@ -90,6 +92,12 @@ interface StaffRepository {
     suspend fun votes(): List<AdminVote>
 
     suspend fun createVote(vote: NewVote): Confirmed<AdminVote>
+
+    /** A page of members' ideas in [sort] order (popular|new). */
+    suspend fun ideas(sort: String, page: Int): Page<AdminIdea>
+
+    /** „Stand speichern“: the author gets a hint. */
+    suspend fun setIdeaStatus(id: Int, input: IdeaStatusInput): Confirmed<AdminIdea>
 
     suspend fun payments(search: String, status: String, page: Int): PaymentPage
 
@@ -176,6 +184,10 @@ class DefaultStaffRepository @Inject constructor(private val client: ApiClient) 
     override suspend fun votes() = service.votes().data
 
     override suspend fun createVote(vote: NewVote) = service.createVote(vote)
+
+    override suspend fun ideas(sort: String, page: Int) = service.ideas(sort, page)
+
+    override suspend fun setIdeaStatus(id: Int, input: IdeaStatusInput) = service.setIdeaStatus(id, input)
 
     override suspend fun payments(search: String, status: String, page: Int) =
         service.payments(search.ifEmpty { null }, status.ifEmpty { null }, page)

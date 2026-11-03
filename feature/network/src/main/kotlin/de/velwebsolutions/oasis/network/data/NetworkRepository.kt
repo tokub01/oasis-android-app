@@ -15,6 +15,8 @@ import de.velwebsolutions.oasis.network.api.ContributionBody
 import de.velwebsolutions.oasis.network.api.DiscoverContext
 import de.velwebsolutions.oasis.network.api.FeedPage
 import de.velwebsolutions.oasis.network.api.FriendLists
+import de.velwebsolutions.oasis.network.api.Idea
+import de.velwebsolutions.oasis.network.api.IdeaInput
 import de.velwebsolutions.oasis.network.api.ImageUpload
 import de.velwebsolutions.oasis.network.api.InvitationLanding
 import de.velwebsolutions.oasis.network.api.InvitationOverview
@@ -54,6 +56,8 @@ import de.velwebsolutions.oasis.network.api.SwipeDeck
 import de.velwebsolutions.oasis.network.api.TagContext
 import de.velwebsolutions.oasis.network.api.TimeCapsuleInput
 import de.velwebsolutions.oasis.network.api.TimeCapsules
+import de.velwebsolutions.oasis.network.api.WeeklyLetter
+import de.velwebsolutions.oasis.network.api.WeeklyLetterSummary
 import de.velwebsolutions.oasis.network.api.WelcomeVolunteer
 import de.velwebsolutions.oasis.network.api.Yearbook
 import javax.inject.Inject
@@ -93,6 +97,24 @@ interface NetworkRepository {
 
     /** The Jahrbuch of [year], the current year when null. */
     suspend fun yearbook(year: Int?): Yearbook
+
+    /** The last 12 Wochenbriefe, newest first. */
+    suspend fun weeklyLetters(): List<WeeklyLetterSummary>
+
+    /** Wochenbrief [id], or the newest without one (null before the first). */
+    suspend fun weeklyLetter(id: Int?): WeeklyLetter?
+
+    /** A page of „Ideen für Oasis“ in [sort] order, of one [status] or all. */
+    suspend fun ideas(sort: String, status: String?, page: Int): Page<Idea>
+
+    suspend fun idea(id: Int): Idea
+
+    suspend fun suggestIdea(input: IdeaInput): Confirmed<Idea>
+
+    suspend fun deleteIdea(id: Int): String
+
+    /** Gives ([on]) or takes back the own vote. */
+    suspend fun voteIdea(id: Int, on: Boolean): Confirmed<Idea>
 
     suspend fun search(query: String, cursor: String?): FeedPage<SearchContext>
 
@@ -297,6 +319,20 @@ class DefaultNetworkRepository @Inject constructor(client: ApiClient) : NetworkR
     override suspend fun deleteTimeCapsule(id: Int) = service.deleteTimeCapsule(id).message
 
     override suspend fun yearbook(year: Int?) = (if (year == null) service.yearbook() else service.yearbook(year)).data
+
+    override suspend fun weeklyLetters() = service.weeklyLetters().data
+
+    override suspend fun weeklyLetter(id: Int?) = if (id == null) service.latestWeeklyLetter().data else service.weeklyLetter(id).data
+
+    override suspend fun ideas(sort: String, status: String?, page: Int) = service.ideas(sort, status, page)
+
+    override suspend fun idea(id: Int) = service.idea(id).data
+
+    override suspend fun suggestIdea(input: IdeaInput) = service.suggestIdea(input)
+
+    override suspend fun deleteIdea(id: Int) = service.deleteIdea(id).message
+
+    override suspend fun voteIdea(id: Int, on: Boolean) = if (on) service.voteIdea(id) else service.unvoteIdea(id)
 
     override suspend fun search(query: String, cursor: String?) = service.search(query, cursor)
 

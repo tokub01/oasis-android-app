@@ -74,6 +74,7 @@ class DefaultLiveRepository @Inject constructor(client: ApiClient) : LiveReposit
         HintSettingsBody(
             kinds = settings.kinds.associate { it.key to it.enabled },
             digest = settings.digest,
+            weeklyLetterEmail = settings.weeklyLetterEmail,
             quietEnabled = settings.quietEnabled,
             quietFrom = settings.quietFrom,
             quietUntil = settings.quietUntil

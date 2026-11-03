@@ -39,6 +39,10 @@ class NavigationTest {
         "/oasen/garten?sammlung=4#sammlungen" to NetworkRoute.Oasis("garten", collection = 4),
         "/app/zeitkapseln#einladungen" to NetworkRoute.CapsuleInvitations,
         "/app/zeitkapseln#anderes" to NetworkRoute.TimeCapsules,
+        "/app/wochenbrief" to NetworkRoute.WeeklyLetter(),
+        "/app/wochenbrief/5" to NetworkRoute.WeeklyLetter(5),
+        "/app/ideen" to NetworkRoute.Ideas(),
+        "/app/ideen/3" to NetworkRoute.Ideas(3),
         "/oasen/garten/bearbeiten" to NetworkRoute.EditOasis("garten"),
         "/oasen/garten/schliessen" to NetworkRoute.CloseOasis("garten"),
         "/oasen/garten/statistik" to NetworkRoute.OasisStatistics("garten"),
@@ -128,6 +132,7 @@ class NavigationTest {
             WebRoute("https://get-oasis.com/impressum"),
             NetworkRoute.Compose("garten", 4),
             NetworkRoute.CollectPost(3, "garten"),
+            StaffRoute.AdminIdeas,
             ChatRoute.Settings,
             ChatRoute.Devices,
             ChatRoute.Share

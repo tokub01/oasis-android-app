@@ -79,6 +79,43 @@ data class AdminVote(
     data class Result(val label: String, val votes: Int)
 }
 
+/** A member's idea as admins see it (the member API `GET ideas`, docs/oasis-admin.md „Ideen für Oasis“). */
+@Serializable
+data class AdminIdea(
+    val id: Int,
+    val title: String,
+    val description: String? = null,
+    /** `open`, `planned`, `in_progress`, `done` or `declined`. */
+    val status: String = "open",
+    val statusLabel: String = "Offen",
+    val statusReply: String? = null,
+    val votes: Int = 0,
+    val author: Author? = null,
+    /** The linked member vote („Zur Abstimmung“). */
+    val vote: VoteRef? = null
+) {
+    @Serializable
+    data class Author(val displayName: String)
+
+    @Serializable
+    data class VoteRef(val id: Int, val title: String)
+
+    companion object {
+        /** The statuses with the web's labels (`Idea::STATUSES`). */
+        val statuses = listOf(
+            Labelled("open", "Offen"),
+            Labelled("planned", "Geplant"),
+            Labelled("in_progress", "In Arbeit"),
+            Labelled("done", "Umgesetzt"),
+            Labelled("declined", "Abgelehnt")
+        )
+    }
+}
+
+/** „Stand setzen“: status, an optional reply (≤ 1000) and an optional linked vote. */
+@Serializable
+data class IdeaStatusInput(val status: String, val reply: String = "", val voteId: Int? = null)
+
 /** A new vote as the form sends it (times as the web's `datetime-local` values). */
 @Serializable
 data class NewVote(val title: String, val description: String, val startsAt: String, val endsAt: String, val options: List<String>)

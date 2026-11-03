@@ -25,6 +25,7 @@ import androidx.compose.material.icons.outlined.Euro
 import androidx.compose.material.icons.outlined.ExpandLess
 import androidx.compose.material.icons.outlined.ExpandMore
 import androidx.compose.material.icons.outlined.GppMaybe
+import androidx.compose.material.icons.outlined.Lightbulb
 import androidx.compose.material.icons.outlined.Lock
 import androidx.compose.material.icons.outlined.ManageAccounts
 import androidx.compose.material.icons.outlined.PanTool
@@ -132,6 +133,7 @@ enum class StaffArea(val key: String, val title: String, val icon: ImageVector, 
     Roles("roles", "Rollen", Icons.Outlined.ManageAccounts, StaffRoute.Roles),
     Admin("admin", "Statistik", Icons.Outlined.BarChart, StaffRoute.AdminDashboard),
     Votes("votes", "Abstimmungen", Icons.Outlined.Verified, StaffRoute.AdminVotes),
+    Ideas("ideas", "Ideen", Icons.Outlined.Lightbulb, StaffRoute.AdminIdeas),
     Payments("payments", "Zahlungen", Icons.Outlined.Euro, StaffRoute.AdminPayments),
     Breaches("breaches", "Datenpannen", Icons.Outlined.GppMaybe, StaffRoute.AdminBreaches),
     System("system", "System", Icons.Outlined.Dns, StaffRoute.AdminSystem)
@@ -139,7 +141,7 @@ enum class StaffArea(val key: String, val title: String, val icon: ImageVector, 
 
     companion object {
         /** The admin pages, listed on the moderation start page and on the statistics. */
-        val adminPages = listOf(Votes, Payments, Breaches, System)
+        val adminPages = listOf(Votes, Ideas, Payments, Breaches, System)
     }
 }
 

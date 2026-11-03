@@ -4,6 +4,7 @@ import de.velwebsolutions.oasis.core.network.OasisJson
 import de.velwebsolutions.oasis.staff.Fixtures.lastObject
 import de.velwebsolutions.oasis.staff.Fixtures.lastQuery
 import de.velwebsolutions.oasis.staff.api.ComplaintReview
+import de.velwebsolutions.oasis.staff.api.IdeaStatusInput
 import de.velwebsolutions.oasis.staff.api.NewBreach
 import de.velwebsolutions.oasis.staff.api.NewVote
 import de.velwebsolutions.oasis.staff.api.QueueFilter
@@ -102,6 +103,8 @@ class StaffRepositoryCallsTest {
         val (repository, transport) = Fixtures.repository(
             Stub("GET", "staff/admin/votes", json = Fixtures.votes),
             Stub("POST", "staff/admin/votes", json = confirmedFirst(Fixtures.votes, "Angelegt.")),
+            Stub("GET", "ideas", json = Fixtures.ideas),
+            Stub("PUT", "staff/admin/ideas/7/status", json = confirmedFirst(Fixtures.ideas, "Gespeichert.")),
             Stub("GET", "staff/admin/payments", json = Fixtures.payments),
             Stub("POST", "staff/admin/payments/2/check-payment", json = mollie),
             Stub("POST", "staff/admin/payments/2/check-customer", json = mollie),
@@ -110,6 +113,11 @@ class StaffRepositoryCallsTest {
             Stub("POST", "staff/admin/payments/2/refund", json = payment)
         )
         repository.votes()
+        assertEquals(listOf(7, 8), repository.ideas("new", 2).data.map { it.id })
+        assertEquals(mapOf("sort" to "new", "page" to "2"), transport.lastQuery())
+        assertEquals("Gespeichert.", repository.setIdeaStatus(7, IdeaStatusInput("planned", "Bald.", 1)).message)
+        assertEquals("planned", field(transport.lastObject("staff/admin/ideas/7/status"), "status"))
+        assertEquals("1", field(transport.lastObject("staff/admin/ideas/7/status"), "vote_id"))
         assertEquals(
             "Angelegt.",
             repository.createVote(NewVote("Frage?", "", "2026-11-01T10:00", "2026-11-08T10:00", listOf("Ja", "Nein"))).message

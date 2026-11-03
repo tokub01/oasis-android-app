@@ -18,6 +18,8 @@ import retrofit2.http.Query
 internal data class HintSettingsBody(
     val kinds: Map<String, Boolean>,
     val digest: Boolean,
+    /** Left out when null: the stored choice stays. */
+    val weeklyLetterEmail: Boolean?,
     val quietEnabled: Boolean,
     val quietFrom: String,
     val quietUntil: String

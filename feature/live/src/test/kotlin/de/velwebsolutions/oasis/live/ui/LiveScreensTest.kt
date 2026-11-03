@@ -62,6 +62,8 @@ import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.cancel
+import kotlinx.serialization.json.JsonObject
+import kotlinx.serialization.json.JsonPrimitive
 import org.junit.After
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
@@ -280,6 +282,24 @@ class LiveScreensTest {
         )
         compose.waitUntil(5_000) { system.answers == listOf(false) }
         compose.waitUntil(5_000) { model.ui.value.error == PushRegistrar.DENIED_TEXT }
+    }
+
+    @Test
+    fun theWeeklyLetterMailIsSwitchedOnWhereTheServerKnowsIt() {
+        val transport = StubTransport(
+            StubTransport.Stub(
+                "GET",
+                "hints/settings",
+                json = LiveJson.SETTINGS.replace("\"digest\":false", "\"digest\":false,\"weekly_letter_email\":false")
+            ),
+            StubTransport.Stub("PUT", "hints/settings", json = LiveJson.saved("Gespeichert."))
+        )
+        val model = HintSettingsViewModel(repository(transport), registrar())
+        show { HintSettingsScreen(model) }
+        compose.waitUntil(5_000) { model.ui.value.settings != null }
+        compose.onNodeWithContentDescription("Wochenbrief auch per E-Mail").tap()
+        compose.waitUntil(5_000) { transport.requests.any { it.request.method == "PUT" && it.path == "hints/settings" } }
+        assertEquals(JsonPrimitive(true), (transport.lastBody("hints/settings") as JsonObject)["weekly_letter_email"])
     }
 
     @Test

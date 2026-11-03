@@ -94,6 +94,12 @@ sealed interface NetworkRoute : AppRoute {
 
     /** Gemerkt (/app/gemerkt). */
     @Serializable data object Bookmarks : NetworkRoute
+
+    /** Dein Oasen-Wochenbrief (/app/wochenbrief/{id?}): letter [id], the newest without one. */
+    @Serializable data class WeeklyLetter(val id: Int? = null) : NetworkRoute
+
+    /** Ideen für Oasis (/app/ideen/{id?}): the wish list, idea [id] in front when its link was opened. */
+    @Serializable data class Ideas(val id: Int? = null) : NetworkRoute
 }
 
 /** Screens of the end-to-end encrypted chat. Owned by `:feature:chat`. Web: /app/nachrichten (one JS app). */
@@ -234,6 +240,9 @@ sealed interface StaffRoute : AppRoute {
 
     /** Abstimmungen verwalten (/admin/abstimmungen). */
     @Serializable data object AdminVotes : StaffRoute
+
+    /** Ideen: set the status of members' ideas (on the web the status form on /app/ideen). */
+    @Serializable data object AdminIdeas : StaffRoute
 
     /** Zahlungen (/admin/zahlungen). */
     @Serializable data object AdminPayments : StaffRoute
