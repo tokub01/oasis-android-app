@@ -30,7 +30,6 @@ import de.velwebsolutions.oasis.chat.core.describeChatError
 import de.velwebsolutions.oasis.chat.core.formatDate
 import de.velwebsolutions.oasis.chat.core.lifetimeLabel
 import de.velwebsolutions.oasis.chat.data.ChatRepository
-import de.velwebsolutions.oasis.chatcrypto.ChatCrypto
 import de.velwebsolutions.oasis.chatcrypto.MessageAttachment
 import de.velwebsolutions.oasis.chatcrypto.MessageContent
 import de.velwebsolutions.oasis.chatcrypto.MessageEnvelope
@@ -154,7 +153,10 @@ data class ConversationState(
     val loadFailed: String? = null,
     /** The member's access ended (403/404): the screen goes back to the list. */
     val closed: Boolean = false,
+    /** What is typed, exactly as typed (the field keeps it; only sending trims). */
     val draft: String = "",
+    /** Counts the view model's own changes of [draft] (sent, shared in, left): only those are written into the field. */
+    val draftRevision: Int = 0,
     val composerError: String? = null,
     val hint: String? = null,
     /** Read out by TalkBack only ("Gesendet.", "Neue Nachricht von …"): the bubble itself is the visible feedback. */
@@ -172,9 +174,13 @@ data class ConversationState(
      * screen shows [ChatKeyring.UNTRUSTED_OWNER] instead of the composer.
      */
     val untrustedOwner: Boolean = false,
-    /** "12 / 4000" or "Zu lang". */
-    val counter: String = "0 / ${ChatCrypto.MAX_MESSAGE_LENGTH}",
+    /** „3120 / 4000“ from 75 % of the maximum, „Höchstens 4000 Zeichen“ at it; "" below ([DraftLimit.counter]). */
+    val counter: String = "",
+    /** The draft is at or over the limit: the counter in the warning colour. */
+    val atLimit: Boolean = false,
     val tooLong: Boolean = false,
+    /** What the field may take with the files, effect and quote of the next message. */
+    val limit: DraftLimit = DraftLimit(),
     /** Message request banner title, while this member has not accepted the chat. */
     val requestTitle: String? = null,
     val isOwner: Boolean = false,
@@ -362,7 +368,8 @@ class ConversationViewModel @AssistedInject constructor(
         val current = conversation
         val trusted = current != null && ChatKeyring.ownerTrusted(vault, current)
         val changed = change(mutableState.value)
-        val measured = ChatMessages.measure(changed.draft, changed.drafts, sentEffect(changed), reply)
+        val limit = DraftLimit(changed.drafts, sentEffect(changed), reply)
+        val measured = limit.measure(changed.draft)
         // Also with a key this app session still holds: nothing is sealed for an untrusted owner (assertSealable).
         val canSend = current != null && trusted && context.canParticipate && !current.ended && !current.rotationRequired &&
             vault.conversationKey(current.id, current.keyVersion) != null
@@ -386,8 +393,10 @@ class ConversationViewModel @AssistedInject constructor(
             canPin = current != null && (current.type == "direct" || current.createdBy == myId),
             polls = derived.polls,
             untrustedOwner = current != null && !current.ended && !trusted,
-            counter = if (measured.tooLong) "Zu lang" else "${measured.characters} / ${ChatCrypto.MAX_MESSAGE_LENGTH}",
+            counter = DraftLimit.counter(measured),
+            atLimit = DraftLimit.atLimit(measured),
             tooLong = measured.tooLong,
+            limit = limit,
             requestTitle = requestTitle(current, myId),
             isOwner = current?.createdBy == myId,
             headerStatus = headerStatus(current, myId),
@@ -473,6 +482,7 @@ class ConversationViewModel @AssistedInject constructor(
         render {
             it.copy(
                 draft = "",
+                draftRevision = it.draftRevision + 1,
                 replyBar = null,
                 pollForm = null,
                 hint = null,
@@ -699,6 +709,12 @@ class ConversationViewModel @AssistedInject constructor(
         render()
     }
 
+    /** The view model's own change of the draft: the field shows it ([ConversationState.draftRevision]). */
+    private fun replaceDraft(value: String) {
+        setDraft(value)
+        render { it.copy(draftRevision = it.draftRevision + 1) }
+    }
+
     /**
      * "Senden". Sensitive data needs a second press with the same text. Text typed while the message is sealed and sent
      * stays in the composer.
@@ -744,7 +760,7 @@ class ConversationViewModel @AssistedInject constructor(
             // The quote went along: the bar closes. „Einmal ansehen“ was for this message only.
             reply = null
             render { it.copy(replyBar = null, viewOnceNext = false) }
-            setDraft(remainder(state.value.draft, typed))
+            replaceDraft(remainder(state.value.draft, typed))
             receive(envelope, stored.attachments)
             // Replying accepts a message request.
             if (current.request == true) acceptLocally()
@@ -872,7 +888,7 @@ class ConversationViewModel @AssistedInject constructor(
         }
         if (waits) return
         render { state -> state.copy(drafts = state.drafts + taken.map { it.withViewOnce(state.viewOnceNext) }) }
-        share.text?.let(::setDraft)
+        share.text?.let(::replaceDraft)
         val rest = if (left.size == 1) "Den übrigen" else "Die übrigen ${left.size}"
         val waiting = left.takeIf { it.isNotEmpty() }?.let {
             "Du kannst höchstens ${ChatAttachments.MAX_PER_MESSAGE} Anhänge an eine Nachricht hängen. $rest bietet dir Oasis wieder " +

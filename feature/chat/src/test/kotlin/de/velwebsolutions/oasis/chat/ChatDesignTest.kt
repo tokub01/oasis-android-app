@@ -117,8 +117,16 @@ class ChatDesignTest {
         assertEquals("Freitag", ChatLayout.activityLabel(Instant.parse("2026-10-30T10:00:00Z"), now))
         assertEquals("27.10.26", ChatLayout.activityLabel(Instant.parse("2026-10-27T10:00:00Z"), now))
         assertEquals(
-            "Gesendet Heute, 13:00 · löscht sich 10.11.2026, 14:00",
+            "Gesendet heute, 13:00 · löscht sich am 10.11.2026 um 14:00",
             ChatLayout.infoLine(Instant.parse("2026-11-03T12:00:00Z"), Instant.parse("2026-11-10T13:00:00Z"), now)
+        )
+        assertEquals(
+            "Gesendet gestern, 18:34 · löscht sich am 9.11.2026 um 18:34",
+            ChatLayout.infoLine(Instant.parse("2026-11-02T17:34:00Z"), Instant.parse("2026-11-09T17:34:00Z"), now)
+        )
+        assertEquals(
+            "Gesendet 1.11.2026, 09:05 · löscht sich am 8.11.2026 um 09:05",
+            ChatLayout.infoLine(Instant.parse("2026-11-01T08:05:00Z"), Instant.parse("2026-11-08T08:05:00Z"), now)
         )
         assertEquals("", ChatLayout.infoLine(null, null, now))
         assertEquals("Nach unten", ChatLayout.scrollDownLabel(0))

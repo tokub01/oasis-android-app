@@ -97,11 +97,21 @@ object ChatLayout {
         else -> "Nach unten, $count neue Nachrichten"
     }
 
-    /** The long-press bar's info line: „Gesendet Heute, 14:05 · löscht sich 12.10.2026, 14:05“. */
+    /**
+     * The long-press bar's info line and a message's text for screen readers: „Gesendet heute, 18:34 · löscht sich am
+     * 10.11.2026 um 18:34“, before yesterday „Gesendet 2.11.2026, 09:05 · …“.
+     */
     fun infoLine(sent: Instant?, expires: Instant?, now: Instant): String = listOfNotNull(
-        sent?.let { "Gesendet ${dayLabel(it, now)}, ${clockTime(it)}" },
-        expires?.let { "löscht sich ${GermanTime.format(it, "dd.MM.yyyy, HH:mm")}" }
+        sent?.let { "Gesendet ${sentDay(it, now)}, ${clockTime(it)}" },
+        expires?.let { "löscht sich am ${GermanTime.format(it, "d.M.yyyy")} um ${clockTime(it)}" }
     ).joinToString(" · ")
+
+    /** The day in the info line: „heute“, „gestern“, else „2.11.2026“. */
+    private fun sentDay(instant: Instant, now: Instant): String = when (daysBetween(instant, now)) {
+        0L -> "heute"
+        1L -> "gestern"
+        else -> GermanTime.format(instant, "d.M.yyyy")
+    }
 }
 
 /** One row of the message list: a day pill, the „Neue Nachrichten“ divider or a bubble with its place in its run. */

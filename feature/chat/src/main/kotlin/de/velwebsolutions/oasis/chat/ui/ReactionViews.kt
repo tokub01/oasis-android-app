@@ -217,7 +217,7 @@ internal fun ReactionBar(expanded: Boolean, extras: BubbleExtras, info: String, 
         }
         if (extras.canAct) {
             DropdownMenuItem(
-                text = { Text("Antworten", style = OasisType.Body, color = OasisColors.Ink) },
+                text = { BarLabel("Antworten") },
                 onClick = {
                     onDismiss()
                     extras.onReply()
@@ -227,7 +227,7 @@ internal fun ReactionBar(expanded: Boolean, extras: BubbleExtras, info: String, 
         }
         onReport?.let { report ->
             DropdownMenuItem(
-                text = { Text("Melden", style = OasisType.Body, color = OasisColors.Ink) },
+                text = { BarLabel("Melden") },
                 onClick = {
                     onDismiss()
                     report()
@@ -237,7 +237,7 @@ internal fun ReactionBar(expanded: Boolean, extras: BubbleExtras, info: String, 
         }
         extras.pinLabel?.takeIf { extras.canAct }?.let { label ->
             DropdownMenuItem(
-                text = { Text(label, style = OasisType.Body, color = OasisColors.Ink) },
+                text = { BarLabel(label) },
                 onClick = {
                     onDismiss()
                     extras.onPin()
@@ -247,6 +247,13 @@ internal fun ReactionBar(expanded: Boolean, extras: BubbleExtras, info: String, 
         }
     }
 }
+
+/**
+ * A step's label in the long-press bar on one line: the menu is as wide as its widest label, so a word is never broken
+ * („Ant worten“), also with large text.
+ */
+@Composable
+private fun BarLabel(text: String) = Text(text, style = OasisType.Body, color = OasisColors.Ink, maxLines = 1, softWrap = false)
 
 /** The quote bar above the composer: „Antwort an …“, the excerpt and „✕“ („Antwort abbrechen“). */
 @Composable

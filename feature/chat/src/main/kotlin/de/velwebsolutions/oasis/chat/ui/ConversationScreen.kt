@@ -42,6 +42,10 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.BasicTextField
 import androidx.compose.foundation.text.KeyboardOptions
+import androidx.compose.foundation.text.input.InputTransformation
+import androidx.compose.foundation.text.input.TextFieldLineLimits
+import androidx.compose.foundation.text.input.rememberTextFieldState
+import androidx.compose.foundation.text.input.setTextAndPlaceCursorAtEnd
 import androidx.compose.foundation.text.selection.SelectionContainer
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.Send
@@ -73,6 +77,7 @@ import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.runtime.setValue
 import androidx.compose.runtime.snapshotFlow
 import androidx.compose.ui.Alignment
@@ -106,6 +111,7 @@ import androidx.compose.ui.text.style.TextDecoration
 import androidx.compose.ui.unit.Density
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.max
 import androidx.compose.ui.unit.sp
 import androidx.core.content.ContextCompat
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
@@ -138,6 +144,7 @@ import de.velwebsolutions.oasis.design.theme.OasisRadius
 import de.velwebsolutions.oasis.design.theme.OasisType
 import java.time.Instant
 import kotlinx.coroutines.delay
+import kotlinx.coroutines.flow.drop
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
 
@@ -388,6 +395,15 @@ internal object ChatCompositions {
     var bubbles = 0
 }
 
+/** The composer field's greatest height in a chat area of [area]: a third of it (at least one line), without a limit before it is measured. */
+internal fun fieldMax(area: Dp): Dp = if (area > 0.dp) max(area / 3, ROUND_BUTTON) else Dp.Unspecified
+
+/**
+ * „Nach unten“ shows: scrolled [away] from the newest message, and the button (44 and its gap of 12) fits between the
+ * composer and the top of the chat area with as much room above it, so it never covers the topmost message.
+ */
+internal fun showsScrollDown(away: Boolean, area: Dp, composerSpace: Dp): Boolean = away && area - composerSpace >= (44.dp + 12.dp) * 2
+
 /** How far from the newest message „Nach unten“ shows. */
 private val SCROLL_DOWN_DISTANCE = 160.dp
 
@@ -478,8 +494,10 @@ private fun ConversationColumn(
     LaunchedEffect(awayFromBottom) { if (!awayFromBottom) arrived = 0 }
     var composerHeight by remember { mutableIntStateOf(0) }
     val composerSpace = with(density) { composerHeight.toDp() } + 24.dp
+    // The room above the keyboard: a long draft takes at most a third of it (the field scrolls), so messages stay in view.
+    var area by remember { mutableStateOf(0.dp) }
 
-    Box(Modifier.fillMaxSize().imePadding()) {
+    Box(Modifier.fillMaxSize().imePadding().onSizeChanged { area = (it.height / density.density).dp }) {
         LazyColumn(
             state = listState,
             reverseLayout = true,
@@ -587,12 +605,13 @@ private fun ConversationColumn(
                 )
             } else {
                 WithSwipeHint(state.swipeHint, hint.onDismiss) {
-                    ConversationComposer(state, onDraftChange, onSend, attachments, effects, reactions.onCancelReply, polls)
+                    ConversationComposer(state, onDraftChange, onSend, attachments, effects, reactions.onCancelReply, polls, fieldMax(area))
                 }
             }
         }
-        // Outside the measured composer, so its showing does not change the list's room.
-        if (awayFromBottom && rows.isNotEmpty()) {
+        // Outside the measured composer, so its showing does not change the list's room; only where the list above the
+        // composer has room for it, so it never covers the topmost message.
+        if (rows.isNotEmpty() && showsScrollDown(awayFromBottom, area, composerSpace)) {
             ScrollDownButton(
                 arrived,
                 onClick = {
@@ -689,7 +708,9 @@ private fun ConversationComposer(
     attachments: AttachmentActions,
     effects: EffectActions,
     onCancelReply: () -> Unit,
-    polls: PollFormActions
+    polls: PollFormActions,
+    /** The field's greatest height ([fieldMax]). */
+    fieldMax: Dp
 ) {
     var effectMenu by remember { mutableStateOf(false) }
     val shape = RoundedCornerShape(FIELD_RADIUS)
@@ -791,7 +812,7 @@ private fun ConversationComposer(
                         onEffect = { effectMenu = true },
                         onPoll = polls.onOpen
                     )
-                    ComposerField(state, onDraftChange, shape, focus)
+                    ComposerField(state, onDraftChange, shape, focus, fieldMax)
                     if (state.showsSend) {
                         // Holding „Senden“ opens the effect menu.
                         SendButton(state.canSubmit, onSend, onLongPress = { effectMenu = true })
@@ -812,12 +833,14 @@ private fun ConversationComposer(
                 }
             }
         }
-        Text(
-            state.counter,
-            style = OasisType.Caption,
-            color = if (state.tooLong) OasisColors.SunText else OasisColors.Muted,
-            modifier = Modifier.padding(horizontal = 12.dp)
-        )
+        if (state.counter.isNotEmpty()) {
+            Text(
+                state.counter,
+                style = OasisType.Caption,
+                color = if (state.atLimit) OasisColors.SunText else OasisColors.Muted,
+                modifier = Modifier.padding(horizontal = 12.dp).testTag("chat.composer.counter")
+            )
+        }
     }
     if (explainMicrophone) {
         AlertDialog(
@@ -846,29 +869,40 @@ private fun ConversationComposer(
     }
 }
 
-/** The text field and "Senden". */
+/**
+ * The text field. It holds what is typed itself, so every key press – also a held key repeating, several spaces – lands
+ * at once and is never written back from the view model; the view model hears of each change and writes only its own
+ * changes (sent, shared in, left) into it ([ConversationState.draftRevision]). It takes at most the limit ([DraftLimit]).
+ */
 @Composable
 private fun RowScope.ComposerField(
     state: ConversationState,
     onDraftChange: (String) -> Unit,
     shape: RoundedCornerShape,
-    focus: FocusRequester
+    focus: FocusRequester,
+    maxHeight: Dp
 ) {
+    val field = rememberTextFieldState(state.draft)
+    val limit by rememberUpdatedState(state.limit)
+    val draftChange by rememberUpdatedState(onDraftChange)
+    LaunchedEffect(state.draftRevision) { if (field.text.toString() != state.draft) field.setTextAndPlaceCursorAtEnd(state.draft) }
+    LaunchedEffect(field) { snapshotFlow { field.text.toString() }.drop(1).collect { draftChange(it) } }
+    val keepWithinLimit = remember { InputTransformation { limit.applyTo(this) } }
     BasicTextField(
-        value = state.draft,
-        onValueChange = onDraftChange,
+        state = field,
         enabled = state.canSend,
+        inputTransformation = keepWithinLimit,
         textStyle = OasisType.Body.copy(color = OasisColors.Ink),
         cursorBrush = SolidColor(OasisColors.Night),
         keyboardOptions = KeyboardOptions(capitalization = KeyboardCapitalization.Sentences),
-        minLines = 1,
-        maxLines = 6,
+        lineLimits = TextFieldLineLimits.MultiLine(minHeightInLines = 1, maxHeightInLines = 6),
         modifier = Modifier
             .weight(1f)
+            .heightIn(max = maxHeight)
             .focusRequester(focus)
             .semantics { contentDescription = "Nachricht" }
             .testTag("chat.composer.field"),
-        decorationBox = { inner ->
+        decorator = { inner ->
             Box(
                 Modifier
                     .fillMaxWidth()
@@ -877,7 +911,7 @@ private fun RowScope.ComposerField(
                     .padding(horizontal = 14.dp, vertical = 10.dp),
                 contentAlignment = Alignment.CenterStart
             ) {
-                if (state.draft.isEmpty()) Text("Nachricht", style = OasisType.Body, color = OasisColors.Muted)
+                if (field.text.isEmpty()) Text("Nachricht", style = OasisType.Body, color = OasisColors.Muted)
                 inner()
             }
         }

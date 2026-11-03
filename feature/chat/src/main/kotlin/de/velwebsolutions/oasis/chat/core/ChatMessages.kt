@@ -56,7 +56,27 @@ data class ChatMessageItem(
 }
 
 /** How much of the limits a draft uses (`measureDraft`). */
-data class DraftMeasure(val characters: Int, val bytes: Int, val tooLong: Boolean)
+data class DraftMeasure(
+    val characters: Int,
+    val bytes: Int,
+    val tooLong: Boolean,
+    /** Code points of the whole plaintext (with files, effect and quote it is JSON, which counts too: [MessagePayload.fits]). */
+    val plaintextCharacters: Int = characters
+) {
+    /**
+     * The most characters this draft can have (docs/oasis-chat-client.md, „Composer limit and draft“): what is still free
+     * if the rest were plain letters, so files, a quote or an effect leave less room.
+     */
+    val max: Int
+        get() = maxOf(
+            0,
+            minOf(
+                ChatCrypto.MAX_MESSAGE_LENGTH,
+                characters + (ChatCrypto.MAX_MESSAGE_BYTES - bytes),
+                characters + (ChatCrypto.MAX_MESSAGE_LENGTH - plaintextCharacters)
+            )
+        )
+}
 
 /** Encrypt, verify and keep messages in order. */
 object ChatMessages {
@@ -90,7 +110,8 @@ object ChatMessages {
         val characters = text.codePointCount(0, text.length)
         val plaintext = MessagePayload.plaintext(MessageContent(text, attachments.map(::entry), effect, reply))
         val bytes = plaintext.toByteArray(Charsets.UTF_8).size
-        return DraftMeasure(characters, bytes, characters > ChatCrypto.MAX_MESSAGE_LENGTH || !MessagePayload.fits(plaintext))
+        val tooLong = characters > ChatCrypto.MAX_MESSAGE_LENGTH || !MessagePayload.fits(plaintext)
+        return DraftMeasure(characters, bytes, tooLong, plaintext.codePointCount(0, plaintext.length))
     }
 
     /**
