@@ -115,6 +115,9 @@ class FakeChatServer : Interceptor {
     /** Requests being answered right now (tests wait for 0). */
     val inFlight = java.util.concurrent.atomic.AtomicInteger()
 
+    /** Requests that reached the server so far (also those still being answered). */
+    val started = java.util.concurrent.atomic.AtomicInteger()
+
     /** Called for every request before it is answered ("METHOD path"), e.g. to lock a vault mid-flight. */
     var onRequest: (String) -> Unit = {}
 
@@ -211,6 +214,7 @@ class FakeChatServer : Interceptor {
     private fun data(value: JsonElement) = buildJsonObject { put("data", value) }
 
     override fun intercept(chain: Interceptor.Chain): Response {
+        started.incrementAndGet()
         inFlight.incrementAndGet()
         try {
             return answer(chain)

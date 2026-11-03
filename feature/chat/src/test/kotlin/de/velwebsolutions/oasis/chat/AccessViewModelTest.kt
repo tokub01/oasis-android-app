@@ -58,16 +58,22 @@ class AccessViewModelTest {
     /**
      * One polling round of the view model: its delay passes in virtual time, the request in real time. Waits (at most a
      * few seconds) until [done] holds and no request is open, running what the answers resumed on the test dispatcher.
+     * The round's delay only starts once the previous answer resumed on the test dispatcher, which can be after the
+     * server counted it as answered, so the virtual clock moves on until this round's request reached the server.
      */
     private suspend fun poll(done: () -> Boolean) {
         val scheduler = mainRule.dispatcher.scheduler
-        scheduler.advanceTimeBy(15)
-        scheduler.runCurrent()
+        val before = server.started.get()
         withContext(Dispatchers.Default) {
             withTimeout(5_000) {
                 while (!(done() && server.inFlight.get() == 0)) {
+                    withContext(Dispatchers.Main) {
+                        if (server.started.get() == before) {
+                            scheduler.advanceTimeBy(15)
+                        }
+                        scheduler.runCurrent()
+                    }
                     delay(10)
-                    withContext(Dispatchers.Main) { scheduler.runCurrent() }
                 }
             }
         }
