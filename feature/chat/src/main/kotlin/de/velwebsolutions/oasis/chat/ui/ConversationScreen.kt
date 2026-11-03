@@ -138,7 +138,6 @@ import de.velwebsolutions.oasis.design.components.OasisTextButton
 import de.velwebsolutions.oasis.design.components.Panel
 import de.velwebsolutions.oasis.design.components.PanelTone
 import de.velwebsolutions.oasis.design.components.pressable
-import de.velwebsolutions.oasis.design.navigation.ChatRoute
 import de.velwebsolutions.oasis.design.navigation.LocalNavigator
 import de.velwebsolutions.oasis.design.theme.OasisColors
 import de.velwebsolutions.oasis.design.theme.OasisRadius
@@ -151,10 +150,11 @@ import kotlinx.coroutines.launch
 
 /**
  * Screen "conversation" (partials/conversation.blade.php; iOS `ConversationView`): notices, request banner, safety
- * banner, messages with "Melden", and the composer with counter, tone hint and the sensitive-data warning.
+ * banner, messages with "Melden", and the composer with counter, tone hint and the sensitive-data warning. While its
+ * details stand beside it ([detailsOpen], wide screens), „Details“ closes them again.
  */
 @Composable
-internal fun ConversationScreen(conversationId: Int) {
+internal fun ConversationScreen(conversationId: Int, detailsOpen: Boolean = false) {
     val model = hiltViewModel<ConversationViewModel, ConversationViewModel.Factory>(
         key = "conversation-$conversationId",
         creationCallback = { it.create(conversationId.toString()) }
@@ -177,6 +177,9 @@ internal fun ConversationScreen(conversationId: Int) {
     val chrome = LocalScreenChrome.current
     // Made once per screen: new action objects on every keystroke would compose every bubble again.
     val actions = remember(model) { ScreenActions(model) }
+    // The header's „Details“ opens and closes the details pane; a quiet line only opens it.
+    val openDetails = { navigator.openDetails(conversationId, detailsOpen) }
+    val toggleDetails = { navigator.toggleDetails(conversationId, detailsOpen) }
     OasisScreen(
         title = state.title,
         topBar = {
@@ -186,7 +189,7 @@ internal fun ConversationScreen(conversationId: Int) {
                 state.title,
                 state.headerStatus,
                 onBack = chrome.onBack,
-                onDetails = { navigator.open(ChatRoute.Details(conversationId)) }
+                onDetails = toggleDetails
             )
         },
         message = state.status,
@@ -211,7 +214,7 @@ internal fun ConversationScreen(conversationId: Int) {
             onNoticeSpoken = model::noticeSpoken,
             attachments = actions.attachments,
             hint = SwipeHintActions(onDismiss = model::dismissSwipeHint, onNudged = model::nudged),
-            onOpenDetails = { navigator.open(ChatRoute.Details(conversationId)) },
+            onOpenDetails = openDetails,
             effects = actions.effects,
             reactions = actions.reactions,
             polls = actions.polls
@@ -390,8 +393,11 @@ private fun TimelineRowView(
     }
 }
 
-/** The timeline's inset left and right: 12 on phones, 16 from a width of 640. */
-internal fun timelineInset(width: Dp): Dp = if (width >= 640.dp) 16.dp else 12.dp
+/** The timeline's inset left and right: 12 on phones, 16 from a width of 640; beside other panes the [pane]'s own inset. */
+internal fun timelineInset(width: Dp, pane: Dp? = null): Dp = pane ?: if (width >= 640.dp) 16.dp else 12.dp
+
+/** The floating composer's distance to the left and right edge: 12, beside other panes the [pane]'s own inset. */
+internal fun composerInset(pane: Dp?): Dp = pane ?: 12.dp
 
 /** How often bubbles were composed – read by the tests that keep scrolling and typing cheap. */
 internal object ChatCompositions {
@@ -502,8 +508,10 @@ private fun ConversationColumn(
     var area by remember { mutableStateOf(0.dp) }
 
     BoxWithConstraints(Modifier.fillMaxSize().imePadding().onSizeChanged { area = (it.height / density.density).dp }) {
-        // The same inset for own and others' bubbles: 12 on phones, 16 from 640 (docs/oasis-chat-client.md, „Spacing“).
-        val inset = timelineInset(maxWidth)
+        // The same inset for own and others' bubbles: 12 on phones, 16 from 640, a pane's own inset beside other panes
+        // (docs/oasis-chat-client.md, „Spacing“).
+        val paneInset = LocalPaneInset.current
+        val inset = timelineInset(maxWidth, paneInset)
         LazyColumn(
             state = listState,
             reverseLayout = true,
@@ -597,7 +605,7 @@ private fun ConversationColumn(
             Modifier
                 .align(Alignment.BottomCenter)
                 .fillMaxWidth()
-                .padding(12.dp)
+                .padding(horizontal = composerInset(paneInset), vertical = 12.dp)
                 .onSizeChanged { composerHeight = it.height }
         ) {
             if (state.untrustedOwner) {

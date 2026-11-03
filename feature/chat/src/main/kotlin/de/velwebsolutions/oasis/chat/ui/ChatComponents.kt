@@ -33,14 +33,14 @@ import de.velwebsolutions.oasis.design.components.pressable
 import de.velwebsolutions.oasis.design.theme.OasisColors
 import de.velwebsolutions.oasis.design.theme.OasisType
 
-/** A scrolling page with the iOS padding (20) and spacing between its sections. */
+/** A scrolling page with the iOS padding (20), or a pane's own inset beside other panes, and spacing between its sections. */
 @Composable
 internal fun ChatPage(modifier: Modifier = Modifier, spacing: Int = 20, content: @Composable ColumnScope.() -> Unit) {
     Column(
         modifier = modifier
             .fillMaxSize()
             .verticalScroll(rememberScrollState())
-            .padding(PaddingValues(20.dp)),
+            .padding(PaddingValues(LocalPaneInset.current ?: 20.dp)),
         verticalArrangement = Arrangement.spacedBy(spacing.dp),
         content = content
     )

@@ -20,13 +20,16 @@ import androidx.compose.foundation.selection.toggleable
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.selection.SelectionContainer
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.outlined.Close
 import androidx.compose.material.icons.outlined.ExpandMore
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -50,6 +53,7 @@ import de.velwebsolutions.oasis.chat.core.lifetimeChoices
 import de.velwebsolutions.oasis.design.components.AsyncOasisButton
 import de.velwebsolutions.oasis.design.components.Banner
 import de.velwebsolutions.oasis.design.components.LoadingView
+import de.velwebsolutions.oasis.design.components.LocalScreenChrome
 import de.velwebsolutions.oasis.design.components.OasisButton
 import de.velwebsolutions.oasis.design.components.OasisButtonKind
 import de.velwebsolutions.oasis.design.components.OasisCheckbox
@@ -58,6 +62,7 @@ import de.velwebsolutions.oasis.design.components.OasisScreen
 import de.velwebsolutions.oasis.design.components.OasisTextField
 import de.velwebsolutions.oasis.design.components.PageHeader
 import de.velwebsolutions.oasis.design.components.Panel
+import de.velwebsolutions.oasis.design.components.ScreenChrome
 import de.velwebsolutions.oasis.design.components.pressable
 import de.velwebsolutions.oasis.design.navigation.LocalNavigator
 import de.velwebsolutions.oasis.design.theme.OasisColors
@@ -67,10 +72,11 @@ import kotlinx.coroutines.launch
 
 /**
  * Screen "details" (partials/details.blade.php; iOS `ConversationDetailsView`): notifications (mute), lifetime, group
- * name, safety numbers, members, leaving.
+ * name, safety numbers, members, leaving. As a pane beside the conversation (wide screens) it has [onClose] instead of
+ * a way back.
  */
 @Composable
-internal fun ConversationDetailsScreen(conversationId: Int) {
+internal fun ConversationDetailsScreen(conversationId: Int, onClose: (() -> Unit)? = null) {
     val model = hiltViewModel<ConversationDetailsViewModel, ConversationDetailsViewModel.Factory>(
         key = "details-$conversationId",
         creationCallback = { it.create(conversationId.toString()) }
@@ -86,8 +92,8 @@ internal fun ConversationDetailsScreen(conversationId: Int) {
     val photoPicker = rememberLauncherForActivityResult(ActivityResultContracts.PickVisualMedia()) { uri ->
         if (uri != null) scope.launch { model.choosePhoto(uri) }
     }
-    OasisScreen(
-        title = "Details",
+    ConversationDetailsFrame(
+        onClose = onClose,
         message = state.status,
         error = state.error,
         onDismissMessage = model::dismissStatus,
@@ -124,6 +130,39 @@ internal fun ConversationDetailsScreen(conversationId: Int) {
                 onRemovePhoto = model::removePhoto,
                 onEffects = model::setEffects
             )
+        )
+    }
+}
+
+/**
+ * The frame of the details: a pushed screen with its way back, or as a pane beside the conversation (wide screens) a
+ * bar with a close button ([onClose]) and no back arrow, since the conversation stays beside it.
+ */
+@Composable
+internal fun ConversationDetailsFrame(
+    onClose: (() -> Unit)?,
+    message: String? = null,
+    error: String? = null,
+    onDismissMessage: () -> Unit = {},
+    onDismissError: () -> Unit = {},
+    content: @Composable () -> Unit
+) {
+    val chrome = if (onClose != null) ScreenChrome() else LocalScreenChrome.current
+    CompositionLocalProvider(LocalScreenChrome provides chrome) {
+        OasisScreen(
+            title = "Details",
+            actions = {
+                if (onClose != null) {
+                    IconButton(onClick = onClose, modifier = Modifier.testTag("chat.details.close")) {
+                        Icon(Icons.Outlined.Close, contentDescription = "Details schließen", tint = OasisColors.Night)
+                    }
+                }
+            },
+            message = message,
+            error = error,
+            onDismissMessage = onDismissMessage,
+            onDismissError = onDismissError,
+            content = content
         )
     }
 }

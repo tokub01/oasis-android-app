@@ -9,9 +9,11 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.test.assertWidthIsEqualTo
 import androidx.compose.ui.test.isRoot
 import androidx.compose.ui.test.junit4.createComposeRule
 import androidx.compose.ui.test.onNodeWithTag
+import androidx.compose.ui.test.performClick
 import androidx.compose.ui.test.performScrollToIndex
 import androidx.compose.ui.unit.dp
 import com.github.takahirom.roborazzi.captureRoboImage
@@ -26,21 +28,35 @@ import de.velwebsolutions.oasis.chat.ui.ChatPanes
 import de.velwebsolutions.oasis.chat.ui.ChatSetupContent
 import de.velwebsolutions.oasis.chat.ui.ChatUnlockContent
 import de.velwebsolutions.oasis.chat.ui.ConversationContent
+import de.velwebsolutions.oasis.chat.ui.ConversationDetailsContent
+import de.velwebsolutions.oasis.chat.ui.ConversationDetailsFrame
+import de.velwebsolutions.oasis.chat.ui.ConversationDetailsState
 import de.velwebsolutions.oasis.chat.ui.ConversationListContent
 import de.velwebsolutions.oasis.chat.ui.ConversationListState
 import de.velwebsolutions.oasis.chat.ui.ConversationRowActions
 import de.velwebsolutions.oasis.chat.ui.ConversationState
+import de.velwebsolutions.oasis.chat.ui.DETAILS_PANE
+import de.velwebsolutions.oasis.chat.ui.LIST_PANE
+import de.velwebsolutions.oasis.chat.ui.MemberRow
+import de.velwebsolutions.oasis.chat.ui.NARROW_LIST_PANE
 import de.velwebsolutions.oasis.chat.ui.PinBar
 import de.velwebsolutions.oasis.chat.ui.PollAnswer
 import de.velwebsolutions.oasis.chat.ui.PollView
 import de.velwebsolutions.oasis.chat.ui.ReactionChip
 import de.velwebsolutions.oasis.chat.ui.ReplyBar
 import de.velwebsolutions.oasis.chat.ui.ReplyQuote
+import de.velwebsolutions.oasis.chat.ui.closeDetails
+import de.velwebsolutions.oasis.chat.ui.composerInset
+import de.velwebsolutions.oasis.chat.ui.openDetails
+import de.velwebsolutions.oasis.chat.ui.paneInset
 import de.velwebsolutions.oasis.chat.ui.timelineInset
+import de.velwebsolutions.oasis.chat.ui.toggleDetails
 import de.velwebsolutions.oasis.chatcrypto.MessageAttachment
 import de.velwebsolutions.oasis.chatcrypto.MessageContent
 import de.velwebsolutions.oasis.chatcrypto.MessageEnvelope
+import de.velwebsolutions.oasis.design.navigation.ChatRoute
 import de.velwebsolutions.oasis.design.navigation.LocalNavigator
+import de.velwebsolutions.oasis.design.navigation.MainTab
 import de.velwebsolutions.oasis.design.navigation.Navigator
 import de.velwebsolutions.oasis.design.theme.Appearance
 import de.velwebsolutions.oasis.design.theme.AppearanceChoice
@@ -276,6 +292,98 @@ class ChatSpacingTest {
         Appearance.show(AppearanceChoice.Dark)
         show2 { ChatPanes(7, list = { List() }) { Chat() } }
         capture("900-panes-dark")
+    }
+
+    private val details = ConversationDetailsState(
+        conversation = group,
+        title = "Gartenrunde am Fluss",
+        members = listOf(
+            MemberRow("1", "Mira – du", "mira", true, null, null, false),
+            MemberRow("2", "Jonas Weber", "jonas", false, "12345 67890 12345 67890", null, false, ChatAvatar("J", "spring")),
+            MemberRow("3", "Aylin", "aylin", false, "54321 09876 54321 09876", null, false, ChatAvatar("A", "sun"))
+        )
+    )
+
+    @Composable
+    private fun Details(onClose: (() -> Unit)?) = ConversationDetailsFrame(onClose) {
+        ConversationDetailsContent(details, true, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {})
+    }
+
+    private var closed = 0
+
+    @Composable
+    private fun ThreePanes(details: Int? = 7) = ChatPanes(
+        7,
+        list = { List() },
+        details = details,
+        onCloseDetails = { closed++ },
+        detailsPane = { _, onClose -> Details(onClose) }
+    ) { Chat() }
+
+    @Test
+    fun theDetailsAreAScreenOfTheirOwnOnPhones() {
+        show { ThreePanes() }
+        compose.onNodeWithTag("chat.panes").assertDoesNotExist()
+        compose.onNodeWithTag("chat.messages").assertDoesNotExist()
+        compose.onNodeWithTag("chat.details.mute").assertExists()
+        // On phones the details keep the way back of a pushed screen; there is nothing to close beside.
+        compose.onNodeWithTag("chat.details.close").assertDoesNotExist()
+    }
+
+    @Test
+    @Config(qualifiers = "w900dp-h700dp")
+    fun theDetailsStandBesideTheConversationOnWideScreens() {
+        show { ThreePanes() }
+        compose.onNodeWithTag("chat.list").assertExists()
+        compose.onNodeWithTag("chat.messages").assertExists()
+        compose.onNodeWithTag("chat.panes.details").assertWidthIsEqualTo(DETAILS_PANE)
+        // The list takes its narrowest width so the conversation keeps room.
+        compose.onNodeWithTag("chat.panes.list").assertWidthIsEqualTo(NARROW_LIST_PANE)
+        capture("900-details")
+        compose.onNodeWithTag("chat.details.close").performClick()
+        assertEquals(1, closed)
+        Appearance.show(AppearanceChoice.Dark)
+        show2 { ThreePanes() }
+        capture("900-details-dark")
+        // Closed again: two panes, nothing beside the conversation.
+        show2 { ThreePanes(details = null) }
+        compose.onNodeWithTag("chat.panes.details").assertDoesNotExist()
+        compose.onNodeWithTag("chat.panes.list").assertWidthIsEqualTo(LIST_PANE)
+    }
+
+    @Test
+    @Config(qualifiers = "w1280dp-h800dp")
+    fun everyPaneKeepsTheWiderInsetFrom1024() {
+        assertEquals(16.dp, paneInset(1023.dp))
+        assertEquals(24.dp, paneInset(1024.dp))
+        // Beside other panes the conversation keeps the pane's inset, for the timeline and the composer alike.
+        assertEquals(24.dp, timelineInset(600.dp, 24.dp))
+        assertEquals(24.dp, composerInset(24.dp))
+        assertEquals(12.dp, composerInset(null))
+        show { ThreePanes() }
+        compose.onNodeWithTag("chat.panes.list").assertWidthIsEqualTo(LIST_PANE)
+        capture("1280-details")
+        Appearance.show(AppearanceChoice.Dark)
+        show2 { ThreePanes() }
+        capture("1280-details-dark")
+    }
+
+    @Test
+    fun closingTheDetailsReturnsToTheConversation() {
+        // Opened from the conversation: one step back.
+        val navigator = Navigator()
+        navigator.select(MainTab.Chats)
+        navigator.open(ChatRoute.Conversation(7))
+        navigator.toggleDetails(7, isOpen = false)
+        // A quiet line while the details are open leaves them as they are.
+        navigator.openDetails(7, isOpen = true)
+        assertEquals(listOf(ChatRoute.Conversation(7), ChatRoute.Details(7)), navigator.stack(MainTab.Chats).toList())
+        navigator.toggleDetails(7, isOpen = true)
+        assertEquals(listOf(ChatRoute.Conversation(7)), navigator.stack(MainTab.Chats).toList())
+        // Opened by a link (nothing below): the conversation takes their place.
+        navigator.handle(ChatRoute.Details(7))
+        navigator.closeDetails(7)
+        assertEquals(listOf(ChatRoute.Conversation(7)), navigator.stack(MainTab.Chats).toList())
     }
 
     @Test

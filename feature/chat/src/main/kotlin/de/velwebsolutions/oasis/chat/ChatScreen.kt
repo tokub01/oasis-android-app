@@ -19,12 +19,14 @@ import de.velwebsolutions.oasis.chat.ui.ConversationListScreen
 import de.velwebsolutions.oasis.chat.ui.ConversationScreen
 import de.velwebsolutions.oasis.chat.ui.NewConversationScreen
 import de.velwebsolutions.oasis.chat.ui.ShareTargetScreen
+import de.velwebsolutions.oasis.chat.ui.closeDetails
 import de.velwebsolutions.oasis.core.auth.Session
 import de.velwebsolutions.oasis.core.auth.SessionState
 import de.velwebsolutions.oasis.core.model.Me
 import de.velwebsolutions.oasis.design.components.LoadingView
 import de.velwebsolutions.oasis.design.components.OasisScreen
 import de.velwebsolutions.oasis.design.navigation.ChatRoute
+import de.velwebsolutions.oasis.design.navigation.LocalNavigator
 import javax.inject.Inject
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
@@ -39,6 +41,7 @@ import kotlinx.coroutines.flow.stateIn
 fun ChatScreen(route: ChatRoute) {
     val root: ChatRootViewModel = hiltViewModel()
     val me by root.me.collectAsStateWithLifecycle()
+    val navigator = LocalNavigator.current
     // The biometric prompt needs the activity; previews have none.
     val activity = LocalActivity.current
     DisposableEffect(activity) {
@@ -62,7 +65,14 @@ fun ChatScreen(route: ChatRoute) {
 
                 is ChatRoute.NewConversationWith -> NewConversationScreen(username = route.username)
 
-                is ChatRoute.Details -> ConversationDetailsScreen(route.conversationId)
+                // From 840 dp the details open as a third pane beside the conversation; closing them leaves two.
+                is ChatRoute.Details -> ChatPanes(
+                    route.conversationId,
+                    list = { ConversationListScreen() },
+                    details = route.conversationId,
+                    onCloseDetails = { navigator.closeDetails(route.conversationId) },
+                    detailsPane = { id, onClose -> ConversationDetailsScreen(id, onClose) }
+                ) { ConversationScreen(it, detailsOpen = true) }
 
                 ChatRoute.Share -> ShareTargetScreen()
 

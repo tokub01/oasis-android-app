@@ -8,6 +8,7 @@ import androidx.compose.ui.test.hasText
 import androidx.compose.ui.test.junit4.createEmptyComposeRule
 import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.performClick
+import androidx.test.espresso.Espresso
 import dagger.hilt.android.testing.HiltAndroidRule
 import dagger.hilt.android.testing.HiltAndroidTest
 import dagger.hilt.android.testing.HiltTestApplication
@@ -133,5 +134,48 @@ class ChatScreenWiringTest {
         }
         compose.onNodeWithTag("chat.settings.hints").performClick()
         assertEquals(de.velwebsolutions.oasis.design.navigation.LiveRoute.Settings, navigator.stack(navigator.selectedTab).last())
+    }
+
+    @Test
+    @Config(application = HiltTestApplication::class, qualifiers = "w900dp-h900dp")
+    fun onWideScreensTheDetailsOpenBesideTheConversationAndClose() {
+        val mira = support.member(1)
+        support.member(2)
+        val id = runBlocking { mira.repository.createConversation("direct", null, listOf("2"), 7).id }.toInt()
+        signIn(mira)
+        val stack = navigator.stack(navigator.selectedTab)
+
+        // From the conversation: „Details“ opens the third pane …
+        stack += ChatRoute.Conversation(id)
+        show(ChatRoute.Conversation(id))
+        waitForTag("chat.conversation.title")
+        compose.onNodeWithTag("chat.details").performClick()
+        assertEquals(listOf(ChatRoute.Conversation(id), ChatRoute.Details(id)), stack.toList())
+        show(ChatRoute.Details(id))
+        waitForTag("chat.details.mute")
+        compose.onNodeWithTag("chat.list").assertExists()
+        compose.onNodeWithTag("chat.conversation.title").assertExists()
+        compose.onNodeWithTag("chat.panes.details").assertExists()
+        // … and „Details“ again closes it: two panes.
+        compose.onNodeWithTag("chat.details").performClick()
+        assertEquals(listOf(ChatRoute.Conversation(id)), stack.toList())
+
+        // Opened by a link: the close button and system back both leave the conversation beside the list.
+        navigator.handle(ChatRoute.Details(id))
+        show(ChatRoute.Details(id))
+        waitForTag("chat.details.close")
+        compose.onNodeWithTag("chat.details.close").performClick()
+        assertEquals(listOf(ChatRoute.Conversation(id)), stack.toList())
+        navigator.handle(ChatRoute.Details(id))
+        Espresso.pressBack()
+        compose.waitForIdle()
+        assertEquals(listOf(ChatRoute.Conversation(id)), stack.toList())
+
+        // The chat gate stands in front of all three panes while the chat is locked.
+        mira.vault.lock()
+        navigator.handle(ChatRoute.Details(id))
+        show(ChatRoute.Details(id))
+        waitFor("Deine Chats sind gesperrt")
+        compose.onNodeWithTag("chat.panes").assertDoesNotExist()
     }
 }

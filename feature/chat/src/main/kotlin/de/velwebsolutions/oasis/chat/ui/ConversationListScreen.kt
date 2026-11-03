@@ -167,6 +167,7 @@ internal fun ConversationListContent(
     var refreshing by remember { mutableStateOf(false) }
     // The one row whose actions are open (a swipe left); a tap elsewhere or a swipe right closes it.
     var openRow by remember { mutableStateOf<String?>(null) }
+    val gutter = LocalPaneInset.current ?: 16.dp
     PullToRefreshBox(
         isRefreshing = refreshing,
         onRefresh = {
@@ -181,8 +182,9 @@ internal fun ConversationListContent(
         LazyColumn(
             modifier = Modifier.fillMaxSize().testTag("chat.list"),
             // Room below the last panel for the floating "Neuer Chat" button.
-            // Page gutter 16; rows 8 apart and 24 between the page head, notices, the requests and the list (8 + 16).
-            contentPadding = PaddingValues(start = 16.dp, top = 16.dp, end = 16.dp, bottom = if (canParticipate) 96.dp else 16.dp),
+            // Page gutter 16 (a pane's own inset beside the conversation); rows 8 apart and 24 between the page head,
+            // notices, the requests and the list (8 + 16).
+            contentPadding = PaddingValues(start = gutter, top = 16.dp, end = gutter, bottom = if (canParticipate) 96.dp else 16.dp),
             verticalArrangement = Arrangement.spacedBy(8.dp)
         ) {
             item { Section { PageHeader(eyebrow = "Ende-zu-Ende verschlüsselt", title = "Nachrichten") } }
@@ -245,7 +247,7 @@ internal fun ConversationListContent(
                 contentColor = OasisColors.OnNight,
                 modifier = Modifier
                     .align(Alignment.BottomEnd)
-                    .padding(16.dp)
+                    .padding(gutter)
                     .testTag("chat.new")
             )
         }
