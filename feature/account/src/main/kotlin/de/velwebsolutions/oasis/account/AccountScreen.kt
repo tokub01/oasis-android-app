@@ -16,6 +16,8 @@ import de.velwebsolutions.oasis.account.ui.privacy.HiddenWordsScreen
 import de.velwebsolutions.oasis.account.ui.privacy.PrivacyCenterScreen
 import de.velwebsolutions.oasis.account.ui.privacy.PrivacyCheckupScreen
 import de.velwebsolutions.oasis.account.ui.privacy.ScreenTimeScreen
+import de.velwebsolutions.oasis.account.ui.releases.ReleasesScreen
+import de.velwebsolutions.oasis.account.ui.releases.UpdateNotesDialog
 import de.velwebsolutions.oasis.account.ui.safety.DevicesScreen
 import de.velwebsolutions.oasis.account.ui.safety.ReportScreen
 import de.velwebsolutions.oasis.account.ui.safety.SafetyScreen
@@ -51,11 +53,19 @@ fun AccountScreen(route: AccountRoute) {
 
         AccountRoute.Glossary -> GlossaryScreen()
 
+        AccountRoute.Releases -> ReleasesScreen()
+
         is AccountRoute.Complaint -> ComplaintScreen(route.decisionId)
 
         // The remaining route: Gesperrt.
         else -> SuspendedScreen()
     }
+}
+
+/** „Neu in Oasis …“ once after an update (placed by the app over the tabs). */
+@Composable
+fun UpdateNotesPrompt() {
+    UpdateNotesDialog()
 }
 
 /** Sign-in, registration and password reset while nobody is signed in. */

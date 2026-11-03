@@ -169,6 +169,9 @@ sealed interface AccountRoute : AppRoute {
     /** Begriffe erklärt (/app/begriffe). */
     @Serializable data object Glossary : AccountRoute
 
+    /** Was ist neu: the versions of Oasis and how it is built (/neuigkeiten). */
+    @Serializable data object Releases : AccountRoute
+
     /** Gesperrt (/app/gesperrt). */
     @Serializable data object Suspended : AccountRoute
 

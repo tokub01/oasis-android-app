@@ -1,7 +1,10 @@
 package de.velwebsolutions.oasis.account.api
 
 import de.velwebsolutions.oasis.core.model.Me
+import de.velwebsolutions.oasis.core.network.OasisDay
 import de.velwebsolutions.oasis.core.network.OasisInstant
+import java.time.format.DateTimeFormatter
+import java.util.Locale
 import kotlinx.serialization.KSerializer
 import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
@@ -294,3 +297,61 @@ data class OasisJoined(val joined: Boolean)
 
 @Serializable
 data class GlossaryTerm(val term: String, val slug: String, val explanation: String)
+
+// Was ist neu (GET /api/v1/releases, public).
+
+/** Every version of Oasis, newest first; [current] is the newest, [about] tells how Oasis is built (with AI). */
+@Serializable
+data class ReleaseList(val current: String, val about: String = "", val data: List<Release> = emptyList())
+
+/** One product version: the same number on web, iOS and Android, with a section per platform. */
+@Serializable
+data class Release(
+    val version: String,
+    val date: OasisDay,
+    val title: String,
+    val summary: String = "",
+    val sections: List<ReleaseSection> = emptyList()
+) {
+    /** „3. November 2026“. */
+    val day: String get() = DayFormat.format(date)
+
+    /**
+     * The notes for this app: the sections for all platforms and for [platform], grouped by kind in the order „Neu“,
+     * „Verbessert“, „Behoben“, „Sicherheit“, „Entfernt“ (unknown kinds after them, as sent). Other platforms are left out.
+     */
+    fun notesFor(platform: String = ANDROID): List<ReleaseNoteGroup> {
+        val texts = sections
+            .filter { it.platform == ALL || it.platform == platform }
+            .flatMap { it.items }
+            .groupBy({ it.type }, { it.text })
+        return texts.keys
+            .sortedBy { type -> KINDS.indexOf(type).takeIf { it >= 0 } ?: KINDS.size }
+            .map { type -> ReleaseNoteGroup(LABELS[type] ?: (type.take(1).uppercase() + type.drop(1)), texts.getValue(type)) }
+    }
+
+    companion object {
+        const val ALL = "alle"
+        const val ANDROID = "android"
+        private val KINDS = listOf("neu", "verbessert", "behoben", "sicherheit", "entfernt")
+        private val LABELS = mapOf(
+            "neu" to "Neu",
+            "verbessert" to "Verbessert",
+            "behoben" to "Behoben",
+            "sicherheit" to "Sicherheit",
+            "entfernt" to "Entfernt"
+        )
+        private val DayFormat = DateTimeFormatter.ofPattern("d. MMMM yyyy", Locale.GERMAN)
+    }
+}
+
+/** The changes of one version for one platform („alle“, „web“, „ios“ or „android“). */
+@Serializable
+data class ReleaseSection(val platform: String, val items: List<ReleaseItem> = emptyList())
+
+/** One change; [type] is „neu“, „verbessert“, „behoben“, „sicherheit“ or „entfernt“. */
+@Serializable
+data class ReleaseItem(val type: String, val text: String)
+
+/** The changes of one kind, as the app shows them („Neu“ with its lines). */
+data class ReleaseNoteGroup(val label: String, val texts: List<String>)

@@ -21,6 +21,7 @@ object Fixtures {
     val onboarding get() = json("onboarding")
     val glossary get() = json("glossary")
     val report get() = json("report")
+    val releases get() = json("releases")
 
     /** A starter oasis of the welcome tour. */
     val starterOasis = de.velwebsolutions.oasis.account.api.StarterOasis(id = 1, slug = "korn-licht", name = "Korn & Licht")

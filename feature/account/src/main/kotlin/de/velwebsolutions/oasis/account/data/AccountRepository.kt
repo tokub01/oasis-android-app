@@ -22,6 +22,7 @@ import de.velwebsolutions.oasis.account.api.PrivacyValue
 import de.velwebsolutions.oasis.account.api.ProfileBody
 import de.velwebsolutions.oasis.account.api.ProfileChange
 import de.velwebsolutions.oasis.account.api.ReasonBody
+import de.velwebsolutions.oasis.account.api.ReleaseList
 import de.velwebsolutions.oasis.account.api.ReportBody
 import de.velwebsolutions.oasis.account.api.ReportForm
 import de.velwebsolutions.oasis.account.api.SafetyList
@@ -52,7 +53,7 @@ import kotlinx.serialization.json.JsonPrimitive
 val ApiError.needsPasswordConfirmation: Boolean
     get() = this is ApiError.Server && status == 423
 
-/** The account area: settings, lock and complaints, privacy, devices, safety, the welcome tour and glossary. */
+/** The account area: settings, lock and complaints, privacy, devices, safety, the welcome tour, glossary and Was ist neu. */
 interface AccountRepository {
     suspend fun settings(): AccountSettings
 
@@ -141,6 +142,9 @@ interface AccountRepository {
     suspend fun profileTone(text: String): ToneHint
 
     suspend fun glossary(): List<GlossaryTerm>
+
+    /** Was ist neu: every version of Oasis, newest first, and how Oasis is built. */
+    suspend fun releases(): ReleaseList
 
     /** The account's passkeys, newest first. */
     suspend fun passkeys(): List<Passkey>
@@ -264,6 +268,8 @@ class DefaultAccountRepository @Inject constructor(private val client: ApiClient
     override suspend fun profileTone(text: String) = common.toneHint(text, "profile")
 
     override suspend fun glossary() = service.glossary().data
+
+    override suspend fun releases() = service.releases()
 
     override suspend fun passkeys(): List<Passkey> {
         val answer = service.passkeys()

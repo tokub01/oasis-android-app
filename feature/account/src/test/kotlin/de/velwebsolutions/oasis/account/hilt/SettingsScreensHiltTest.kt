@@ -267,12 +267,16 @@ class SettingsScreensHiltTest : HiltScreenTest() {
         waitForTag("help.hilfe")
         compose.onNodeWithText("Neu hier? Einstieg noch einmal ansehen").tap()
         compose.onNodeWithTag("help.begriffe").tap()
+        compose.onNodeWithTag("help.neuigkeiten").tap()
         listOf(
             "hilfe", "community-regeln", "sicherheit", "datenschutz", "agb", "widerrufsbelehrung", "barrierefreiheit", "impressum",
             "inhalte-melden", "vertraege-kuendigen", "vertrag-widerrufen"
         ).forEach { compose.onNodeWithTag("help.$it").tap() }
         assertEquals(11, web.size)
-        assertEquals(listOf(AccountRoute.Welcome, AccountRoute.Glossary), navigator.stack(MainTab.Profile).toList())
+        assertEquals(
+            listOf(AccountRoute.Welcome, AccountRoute.Glossary, AccountRoute.Releases),
+            navigator.stack(MainTab.Profile).toList()
+        )
         compose.onNodeWithTag("settings.signout").tap()
         waitForRequest("POST", "auth/logout")
     }

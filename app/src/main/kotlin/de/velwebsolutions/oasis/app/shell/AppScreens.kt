@@ -4,6 +4,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.staticCompositionLocalOf
 import de.velwebsolutions.oasis.account.ConfirmPhoneScreen
 import de.velwebsolutions.oasis.account.SignedOutScreen
+import de.velwebsolutions.oasis.account.UpdateNotesPrompt
 import de.velwebsolutions.oasis.account.VerifyEmailScreen
 import de.velwebsolutions.oasis.app.ui.AppDestination
 import de.velwebsolutions.oasis.design.navigation.AppRoute
@@ -41,6 +42,10 @@ interface AppScreens {
     /** The calm banner of the Ruhemodus above every tab's screens. */
     @Composable
     fun QuietBanner()
+
+    /** „Neu in Oasis …“ once after an update. */
+    @Composable
+    fun UpdateNotes()
 }
 
 /** The feature modules' screens. */
@@ -68,6 +73,9 @@ object FeatureScreens : AppScreens {
 
     @Composable
     override fun QuietBanner() = QuietModeBanner()
+
+    @Composable
+    override fun UpdateNotes() = UpdateNotesPrompt()
 }
 
 /** The screens of the running app. */

@@ -104,6 +104,7 @@ object DeepLink {
                 "mitglied-werden" -> MembershipRoute.Checkout
                 "mitgliedschaft" -> MembershipRoute.Overview
                 "transparenz" -> MembershipRoute.Transparency
+                "neuigkeiten" -> AccountRoute.Releases
                 else -> null
             }
         }

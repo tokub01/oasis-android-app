@@ -57,5 +57,6 @@ class FormattingTest {
         assertEquals(de.velwebsolutions.oasis.core.network.Confirmed(3, "Gespeichert."), confirmed)
         assertEquals(de.velwebsolutions.oasis.core.di.DeviceName("Pixel 9"), de.velwebsolutions.oasis.core.di.DeviceName("Pixel 9"))
         assertEquals(null, de.velwebsolutions.oasis.core.network.RealtimeConfig().hostOverride)
+        assertEquals("0.23.0", de.velwebsolutions.oasis.core.di.AppVersion("0.23.0", freshInstall = false).name)
     }
 }

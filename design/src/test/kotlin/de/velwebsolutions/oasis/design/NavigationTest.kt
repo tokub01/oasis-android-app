@@ -41,6 +41,7 @@ class NavigationTest {
         "/app/zeitkapseln#anderes" to NetworkRoute.TimeCapsules,
         "/app/wochenbrief" to NetworkRoute.WeeklyLetter(),
         "/transparenz" to MembershipRoute.Transparency,
+        "/neuigkeiten" to AccountRoute.Releases,
         "/app/oasen/karte" to NetworkRoute.OasisMap(),
         "/app/oasen/karte?region=BY" to NetworkRoute.OasisMap("BY"),
         "/app/oasen/karte?region=" to NetworkRoute.OasisMap(),

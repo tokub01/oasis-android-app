@@ -117,4 +117,7 @@ object FakeScreens : AppScreens {
 
     @Composable
     override fun QuietBanner() = Text("Ruhemodus-Banner")
+
+    @Composable
+    override fun UpdateNotes() = Text("Update-Hinweis")
 }

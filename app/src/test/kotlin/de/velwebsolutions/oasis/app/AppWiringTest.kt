@@ -114,6 +114,7 @@ class AppWiringTest {
                         FeatureScreens.Bell()
                         FeatureScreens.ChatNotice()
                         FeatureScreens.QuietBanner()
+                        FeatureScreens.UpdateNotes()
                         Column(Modifier.height(80.dp)) { FeatureScreens.Destination(NetworkRoute.Oases) }
                         Column(Modifier.height(80.dp)) { FeatureScreens.VerifyEmail() }
                         Column(Modifier.height(80.dp)) { FeatureScreens.ConfirmPhone() }

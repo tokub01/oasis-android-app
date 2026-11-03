@@ -67,7 +67,7 @@ internal data class PhoneBody(val phoneNumber: String)
 /**
  * The account area's endpoints (`routes/api/v1/members/account.php`: `api.v1.account.*`, `api.v1.suspension.*`,
  * `api.v1.complaints.*`, `api.v1.privacy.*`, `api.v1.safety.*`, `api.v1.report.*`, `api.v1.onboarding.*`,
- * `api.v1.glossary`, the passkeys and the mobile number) and the guest step of the two-factor
+ * `api.v1.glossary`, the public releases (Was ist neu), the passkeys and the mobile number) and the guest step of the two-factor
  * recovery.
  */
 internal interface AccountService {
@@ -213,4 +213,7 @@ internal interface AccountService {
 
     @GET("glossary")
     suspend fun glossary(): DataEnvelope<List<GlossaryTerm>>
+
+    @GET("releases")
+    suspend fun releases(): ReleaseList
 }

@@ -494,12 +494,13 @@ private fun DeleteSection(ui: SettingsUiState, viewModel: SettingsViewModel, ope
     }
 }
 
-/** „Hilfe & Rechtliches“: the glossary and the website's help, legal and contract pages. */
+/** „Hilfe & Rechtliches“: the glossary, Was ist neu and the website's help, legal and contract pages. */
 @Composable
 private fun HelpAndLegalSection(open: (AppRoute) -> Unit) {
     val pages: List<Triple<String, String, AppRoute>> = listOf(
         Triple("Hilfe", "hilfe", WebRoute(webUrl("hilfe"))),
         Triple("Begriffe erklärt", "begriffe", AccountRoute.Glossary),
+        Triple("Was ist neu", "neuigkeiten", AccountRoute.Releases),
         Triple("Community-Regeln", "community-regeln", WebRoute(webUrl("community-regeln"))),
         Triple("Datenschutz & Sicherheit", "sicherheit", WebRoute(webUrl("sicherheit"))),
         Triple("Datenschutzerklärung", "datenschutz", WebRoute(webUrl("datenschutz"))),

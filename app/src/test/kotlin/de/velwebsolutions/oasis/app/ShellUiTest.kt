@@ -158,7 +158,8 @@ class ShellUiTest {
             "Menschen einladen" to NetworkRoute.Invitations,
             "Privatsphäre" to AccountRoute.Privacy, "Blockiert & stumm" to AccountRoute.Safety,
             "Ideen für Oasis" to NetworkRoute.Ideas(), "Wohin dein Beitrag geht" to MembershipRoute.Transparency,
-            "Begriffe erklärt" to AccountRoute.Glossary, "Moderation" to StaffRoute.Moderation, "Verwaltung" to StaffRoute.AdminDashboard
+            "Begriffe erklärt" to AccountRoute.Glossary, "Was ist neu" to AccountRoute.Releases,
+            "Moderation" to StaffRoute.Moderation, "Verwaltung" to StaffRoute.AdminDashboard
         )
         pages.forEach { (title, route) ->
             compose.onNodeWithTag("more.menu").performClick()

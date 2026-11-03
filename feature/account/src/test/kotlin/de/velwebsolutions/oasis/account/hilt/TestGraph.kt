@@ -17,6 +17,7 @@ import de.velwebsolutions.oasis.core.auth.RemoteAuthApi
 import de.velwebsolutions.oasis.core.auth.Session
 import de.velwebsolutions.oasis.core.auth.SessionState
 import de.velwebsolutions.oasis.core.di.AppScope
+import de.velwebsolutions.oasis.core.di.AppVersion
 import de.velwebsolutions.oasis.core.di.CoreModule
 import de.velwebsolutions.oasis.core.di.DeviceName
 import de.velwebsolutions.oasis.core.network.ApiClient
@@ -68,6 +69,9 @@ object TestCoreModule {
 
     @Provides
     fun deviceName(): DeviceName = DeviceName("Pixel 9")
+
+    @Provides
+    fun appVersion(): AppVersion = AppVersion("0.24.0", freshInstall = false)
 
     @Provides
     @Singleton

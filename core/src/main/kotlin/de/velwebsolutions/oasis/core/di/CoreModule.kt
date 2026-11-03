@@ -32,12 +32,18 @@ import okhttp3.OkHttpClient
 /** The device name sent with sign-ins and shown in Privatsphäre › Geräte. */
 data class DeviceName(val value: String)
 
+/**
+ * The installed version of the app: [name] is the shared product version („Oasis 0.23.0“, the same on web, iOS and
+ * Android); [freshInstall] is true when the app was installed and never updated since.
+ */
+data class AppVersion(val name: String, val freshInstall: Boolean)
+
 /** The app-wide coroutine scope (outlives screens: sign-out, push registration, live counters). */
 @Qualifier
 @Retention(AnnotationRetention.BINARY)
 annotation class AppScope
 
-/** The shared objects of `:core`. The app module provides [ApiConfig] and [DeviceName]. */
+/** The shared objects of `:core`. The app module provides [ApiConfig], [DeviceName] and [AppVersion]. */
 @Module
 @InstallIn(SingletonComponent::class)
 object CoreModule {

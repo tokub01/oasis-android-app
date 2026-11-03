@@ -169,6 +169,7 @@ fun MainTabs(me: Me, viewModel: RootViewModel) {
             screens.ChatNotice()
         }
     }
+    screens.UpdateNotes()
 
     val sheet = navigator.sheet
     if (sheet != null) {
@@ -325,7 +326,8 @@ private val MorePages: List<Pair<String, AppRoute>> = listOf(
     "Blockiert & stumm" to AccountRoute.Safety,
     "Ideen für Oasis" to NetworkRoute.Ideas(),
     "Wohin dein Beitrag geht" to MembershipRoute.Transparency,
-    "Begriffe erklärt" to AccountRoute.Glossary
+    "Begriffe erklärt" to AccountRoute.Glossary,
+    "Was ist neu" to AccountRoute.Releases
 )
 
 @Composable
