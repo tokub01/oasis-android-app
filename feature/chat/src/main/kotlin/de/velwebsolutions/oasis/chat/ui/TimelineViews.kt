@@ -14,7 +14,7 @@ import java.time.Instant
  * What the timeline shows besides its bubbles, for the member [myId] at [now] (docs/oasis-chat-client.md, "Reactions
  * and replies", "Pinned message and polls"): the reaction chips, the quotes of replies, the pin bar and the polls.
  */
-internal class TimelineViews(private val myId: String, private val senderName: (String) -> String, private val now: Instant) {
+internal class TimelineViews(val myId: String, private val senderName: (String) -> String, val now: Instant) {
     /** The chips of every target: in the order of the set, the own one marked, the names with „Du“ last. */
     fun reactions(items: List<ChatMessageItem>): Map<String, List<ReactionChip>> = ChatReactions.byTarget(items).mapValues { (_, senders) ->
         MessagePayload.REACTIONS.mapNotNull { emoji ->
@@ -73,4 +73,40 @@ internal fun quoteOf(item: ChatMessageItem): MessageReply? = item.expiresAt?.let
         item.content.attachments,
         viewOnce = item.attachmentStates.values.any { it.viewOnce }
     )
+}
+
+/** What the timeline shows besides its bubbles: the reactions, quotes, pin bar, polls and the rows of the list. */
+internal class DerivedTimeline(
+    val reactions: Map<String, List<ReactionChip>>,
+    val quotes: Map<String, ReplyQuote>,
+    val pinBar: PinBar?,
+    val polls: Map<String, PollView>,
+    val rows: List<TimelineRow>
+) {
+    companion object {
+        /** All of it for [items]; [rows] lays out the bubbles (every item but the control messages). */
+        fun of(views: TimelineViews, items: List<ChatMessageItem>, conversation: ChatConversation?, canWrite: Boolean, readAt: Instant?) =
+            DerivedTimeline(
+                views.reactions(items),
+                views.quotes(items),
+                views.pinBar(items, conversation),
+                views.polls(items, canWrite),
+                timelineRows(items.filter { !it.content.control }, conversation?.lifetimeDays ?: 0, readAt, views.myId, views.now)
+            )
+    }
+}
+
+/** The last value of [get], made again only when one of its inputs (always the same number) is another object than before. */
+internal class IdentityCache<T : Any> {
+    private var inputs: Array<out Any?> = emptyArray()
+    private var value: T? = null
+
+    fun get(vararg key: Any?, compute: () -> T): T {
+        val cached = value
+        if (cached != null && key.indices.all { key[it] === inputs[it] }) return cached
+        return compute().also {
+            inputs = key
+            value = it
+        }
+    }
 }

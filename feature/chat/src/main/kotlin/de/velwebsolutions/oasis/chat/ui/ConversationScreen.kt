@@ -12,6 +12,7 @@ import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.gestures.detectTapGestures
+import androidx.compose.foundation.gestures.scrollBy
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.BoxWithConstraints
@@ -30,6 +31,8 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.LazyListScope
+import androidx.compose.foundation.lazy.LazyListState
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.foundation.lazy.rememberLazyListState
@@ -58,6 +61,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.Stable
 import androidx.compose.runtime.derivedStateOf
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableIntStateOf
@@ -65,6 +69,7 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
+import androidx.compose.runtime.snapshotFlow
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -73,6 +78,7 @@ import androidx.compose.ui.focus.FocusRequester
 import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.SolidColor
+import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.layout.onSizeChanged
@@ -92,6 +98,7 @@ import androidx.compose.ui.text.font.FontStyle
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardCapitalization
 import androidx.compose.ui.text.style.TextDecoration
+import androidx.compose.ui.unit.Density
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -101,6 +108,7 @@ import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.compose.LifecycleEventEffect
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import de.velwebsolutions.oasis.chat.api.ChatAvatar
+import de.velwebsolutions.oasis.chat.core.AttachmentView
 import de.velwebsolutions.oasis.chat.core.ChatKeyring
 import de.velwebsolutions.oasis.chat.core.ChatMessageItem
 import de.velwebsolutions.oasis.chat.core.formatDateTime
@@ -124,6 +132,7 @@ import de.velwebsolutions.oasis.design.theme.OasisRadius
 import de.velwebsolutions.oasis.design.theme.OasisType
 import java.time.Instant
 import kotlinx.coroutines.delay
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
 
 /**
@@ -152,6 +161,8 @@ internal fun ConversationScreen(conversationId: Int) {
     LifecycleEventEffect(Lifecycle.Event.ON_RESUME) { model.context.vault.cameToForeground() }
 
     val chrome = LocalScreenChrome.current
+    // Made once per screen: new action objects on every keystroke would compose every bubble again.
+    val actions = remember(model) { ScreenActions(model) }
     OasisScreen(
         title = state.title,
         topBar = {
@@ -184,26 +195,34 @@ internal fun ConversationScreen(conversationId: Int) {
             onBlockFlagged = { senderId -> scope.launch { if (model.blockAndLeave(senderId)) navigator.back() } },
             onDismissFlagged = model::dismissFlagged,
             onNoticeSpoken = model::noticeSpoken,
-            attachments = model.attachmentActions(),
-            effects = EffectActions(onChoose = model::chooseEffect, onClear = model::clearEffect, onDone = model::effectDone),
-            reactions = ReactionActions(
-                onReact = model::react,
-                onReply = model::startReply,
-                onCancelReply = model::cancelReply,
-                onQuote = model::quoteTarget,
-                onPin = model::togglePin,
-                onVote = model::vote,
-                onClosePoll = model::closePoll
-            ),
-            polls = PollFormActions(
-                onOpen = { model.showPollForm(PollForm()) },
-                onEdit = model::editPoll,
-                onCancel = { model.showPollForm(null) },
-                onSend = model::sendPoll
-            )
+            attachments = actions.attachments,
+            effects = actions.effects,
+            reactions = actions.reactions,
+            polls = actions.polls
         )
     }
     report?.let { ReportSheet(it, onDismiss = { report = null }) }
+}
+
+/** The steps of the conversation screen, made once per view model. */
+private class ScreenActions(model: ConversationViewModel) {
+    val attachments = model.attachmentActions()
+    val effects = EffectActions(onChoose = model::chooseEffect, onClear = model::clearEffect, onDone = model::effectDone)
+    val reactions = ReactionActions(
+        onReact = model::react,
+        onReply = model::startReply,
+        onCancelReply = model::cancelReply,
+        onQuote = model::quoteTarget,
+        onPin = model::togglePin,
+        onVote = model::vote,
+        onClosePoll = model::closePoll
+    )
+    val polls = PollFormActions(
+        onOpen = { model.showPollForm(PollForm()) },
+        onEdit = model::editPoll,
+        onCancel = { model.showPollForm(null) },
+        onSend = model::sendPoll
+    )
 }
 
 /** The view model's attachment steps for the screen. */
@@ -264,78 +283,75 @@ class EffectActions(val onChoose: suspend (String) -> Unit, val onClear: () -> U
     }
 }
 
+/** What a bubble can do, made once per screen so rows that did not change skip composing. */
+@Stable
+internal class RowActions(val reactions: ReactionActions, val onReport: (ChatMessageItem) -> Unit)
+
 /** One row of the message list: a day pill, the „Neue Nachrichten“ divider or a message with its gap above. */
 @Composable
-@Suppress("LongParameterList")
 private fun TimelineRowView(
-    row: TimelineRow,
-    state: ConversationState,
-    myId: String,
-    now: Instant,
-    senderName: (String) -> String,
-    onReport: (ChatMessageItem) -> Unit,
+    row: RowModel,
+    attachmentViews: Map<String, AttachmentView>,
+    transcription: TranscriptionView,
     attachments: AttachmentActions,
-    senderAvatar: (String) -> ChatAvatar,
-    senderProfile: (String) -> ProfileLink?,
-    reactions: ReactionActions,
+    actions: RowActions,
     onJump: (Int) -> Unit
 ) {
-    val scope = rememberCoroutineScope()
     when (row) {
-        is TimelineRow.Day -> DayPill(row.label)
+        is RowModel.Day -> DayPill(row.label)
 
-        is TimelineRow.Unread -> UnreadDivider()
+        is RowModel.Unread -> UnreadDivider()
 
         // A message (the last kind of row).
         else -> {
-            row as TimelineRow.Message
-            val item = row.item
-            val mine = item.senderId == myId
-            Box(Modifier.padding(top = rowGap(row.run))) {
+            val model = (row as RowModel.Bubble).model
+            val item = model.item
+            val scope = rememberCoroutineScope()
+            val reactions = actions.reactions
+            val extras = remember(model, actions) {
+                BubbleExtras(
+                    quote = model.quote,
+                    chips = model.chips,
+                    own = model.own,
+                    canAct = model.canAct,
+                    onReact = { emoji -> scope.launch { reactions.onReact(item, emoji) } },
+                    onReply = { reactions.onReply(item) },
+                    onQuote = { to -> reactions.onQuote(to)?.let(onJump) },
+                    pinLabel = model.pinLabel,
+                    onPin = { scope.launch { reactions.onPin(item) } },
+                    poll = model.poll,
+                    pollActions = PollActions(
+                        onVote = { index -> scope.launch { reactions.onVote(item, index) } },
+                        onClose = { scope.launch { reactions.onClosePoll(item) } }
+                    )
+                )
+            }
+            Box(Modifier.padding(top = rowGap(model.run))) {
                 MessageBubble(
                     item,
-                    mine = mine,
-                    senderName = senderName(item.senderId),
-                    onReport = { onReport(item) },
+                    mine = model.mine,
+                    senderName = model.senderName,
+                    onReport = { actions.onReport(item) },
                     // Beside someone else's messages: the avatar at the last bubble of each of their runs.
-                    avatar = if (mine) null else senderAvatar(item.senderId),
-                    profile = if (mine) null else senderProfile(item.senderId),
-                    run = row.run,
-                    showName = !mine && state.conversation?.isGroup == true &&
-                        (row.run == ChatLayout.Run.First || row.run == ChatLayout.Run.Single),
-                    time = row.sent?.let(ChatLayout::clockTime),
-                    info = ChatLayout.infoLine(row.sent, item.expiresAt, now),
-                    extras = BubbleExtras(
-                        quote = state.quotes[item.signature],
-                        chips = state.reactions[item.signature].orEmpty(),
-                        own = state.ownReaction(item.signature),
-                        canAct = state.canAct(item),
-                        onReact = { emoji -> scope.launch { reactions.onReact(item, emoji) } },
-                        onReply = { reactions.onReply(item) },
-                        onQuote = { to ->
-                            reactions.onQuote(to)?.let(onJump)
-                        },
-                        pinLabel = state.pinLabel(item.signature),
-                        onPin = { scope.launch { reactions.onPin(item) } },
-                        poll = state.polls[item.signature],
-                        pollActions = PollActions(
-                            onVote = { index -> scope.launch { reactions.onVote(item, index) } },
-                            onClose = { scope.launch { reactions.onClosePoll(item) } }
-                        )
-                    )
+                    avatar = model.avatar,
+                    profile = model.profile,
+                    run = model.run,
+                    showName = model.showName,
+                    time = model.time,
+                    info = model.info,
+                    extras = extras
                 ) {
-                    MessageAttachments(
-                        item,
-                        mine,
-                        senderName(item.senderId),
-                        state.attachmentViews,
-                        attachments,
-                        TranscriptionView(state.canTranscribe, state.transcripts)
-                    )
+                    MessageAttachments(item, model.mine, model.senderName, attachmentViews, attachments, transcription)
                 }
             }
         }
     }
+}
+
+/** How often bubbles were composed – read by the tests that keep scrolling and typing cheap. */
+internal object ChatCompositions {
+    @Volatile
+    var bubbles = 0
 }
 
 /** How far from the newest message „Nach unten“ shows. */
@@ -367,15 +383,32 @@ private fun ConversationColumn(
     polls: PollFormActions
 ) {
     val look = LocalChatLook.current
-    val now = Instant.now()
     val photo = rememberLookPhoto(state.look.photo)
-    val listState = rememberLazyListState()
     val scope = rememberCoroutineScope()
-    // Reactions are no bubbles: they show as chips under their target.
-    val items = state.bubbles
     var confirmDecline by remember { mutableStateOf(false) }
     var confirmBlockRequest by remember { mutableStateOf(false) }
     var confirmBlockFlagged by remember { mutableStateOf(false) }
+
+    // The rows with everything a bubble shows, made once per change of the timeline and what belongs to it – not on
+    // every keystroke, so typing composes no bubble again.
+    val rows =
+        remember(
+            state.shownRows,
+            state.reactions,
+            state.quotes,
+            state.polls,
+            state.canSend,
+            state.pinBar,
+            state.canPin,
+            state.conversation
+        ) {
+            rowModels(state, myId, senderName, senderAvatar, senderProfile, Instant.now())
+        }
+    val transcription = remember(state.canTranscribe, state.transcripts) { TranscriptionView(state.canTranscribe, state.transcripts) }
+    val rowActions = remember(reactions, onReport) { RowActions(reactions, onReport) }
+    // The newest message is the list's first item, drawn at the bottom: a chat opens there without a jump, older
+    // messages load above without moving what is shown, and the keyboard keeps the newest message in view.
+    val listState = rememberLazyListState()
 
     LaunchedEffect(state.spokenNotice) {
         if (state.spokenNotice != null) {
@@ -384,67 +417,70 @@ private fun ConversationColumn(
         }
     }
 
-    // „Nach unten“: shown while scrolled up more than 160 from the newest message; counts others' messages that came meanwhile.
     val density = LocalDensity.current
     val away = with(density) { SCROLL_DOWN_DISTANCE.toPx() }
+    // „Nach unten“: shown while scrolled up more than 160 from the newest message; counts others' messages that came meanwhile.
     val awayFromBottom by remember {
-        derivedStateOf {
-            val info = listState.layoutInfo
-            awayFromBottom(
-                info.visibleItemsInfo.map {
-                    it.index to it.offset + it.size
-                },
-                info.totalItemsCount,
-                info.viewportEndOffset,
-                away
-            )
-        }
+        derivedStateOf { awayFromBottom(listState.firstVisibleItemIndex, listState.firstVisibleItemScrollOffset, away) }
     }
     var arrived by remember { mutableIntStateOf(0) }
-    // The newest message stays in view: on opening (without motion), on sending and on receiving – unless the member
-    // scrolled up to read: then others' new messages are counted on „Nach unten“. Older messages loaded above keep the
-    // last id, so they appear in place.
+    val newestMessage = rows.lastOrNull { it is RowModel.Bubble } as RowModel.Bubble?
+    // A new newest message: followed only at the bottom (and always the own one); scrolled up, others' are counted.
     var shownLastId by remember { mutableStateOf<String?>(null) }
-    LaunchedEffect(items.lastOrNull()?.id) {
-        val last = items.lastOrNull() ?: return@LaunchedEffect
-        val bottom = listState.layoutInfo.totalItemsCount.coerceAtLeast(1) - 1
-        when (newest(first = shownLastId == null, away = awayFromBottom, fromOthers = last.senderId != myId)) {
-            Newest.Jump -> listState.scrollToItem(bottom)
+    var placed by remember { mutableStateOf(false) }
+    LaunchedEffect(newestMessage?.model?.item?.id) {
+        val last = newestMessage?.model ?: return@LaunchedEffect
+        when (newest(first = shownLastId == null, away = awayFromBottom, fromOthers = !last.mine)) {
+            Newest.Jump -> placeAtUnread(listState, rows)
             Newest.Count -> arrived += 1
-            Newest.Follow -> listState.animateScrollToItem(bottom)
+            Newest.Follow -> listState.animateScrollToItem(0)
         }
-        shownLastId = last.id
+        shownLastId = last.item.id
+        placed = true
     }
     LaunchedEffect(awayFromBottom) { if (!awayFromBottom) arrived = 0 }
     var composerHeight by remember { mutableIntStateOf(0) }
     val composerSpace = with(density) { composerHeight.toDp() } + 24.dp
-    // The composer grew (measured, more lines, a reply bar): at the newest message, the list keeps it in view above it.
-    LaunchedEffect(composerHeight) {
-        val info = listState.layoutInfo
-        if (atNewest(info.visibleItemsInfo.map { it.index }, info.totalItemsCount)) listState.scrollToItem(info.totalItemsCount - 1)
-    }
 
     Box(Modifier.fillMaxSize().imePadding()) {
         LazyColumn(
             state = listState,
+            reverseLayout = true,
             // The personal background fills the whole message area, also under the floating composer.
-            modifier = Modifier.fillMaxSize().chatBackground(state.look.background, photo).testTag("chat.messages"),
+            modifier = Modifier
+                .fillMaxSize()
+                .chatBackground(state.look.background, photo)
+                // Until the first message is placed (at the newest one or the divider) nothing is drawn: no jump.
+                .graphicsLayer { alpha = if (placed || rows.none { it is RowModel.Bubble }) 1f else 0f }
+                .testTag("chat.messages"),
             contentPadding = PaddingValues(start = 12.dp, end = 12.dp, top = 8.dp, bottom = composerSpace)
         ) {
-            items(state.notices) { Box(Modifier.padding(top = 12.dp)) { Banner(it, kind = BannerKind.Info) } }
-            state.pinBar?.let { pin ->
-                item {
-                    Box(Modifier.padding(top = 12.dp)) {
-                        PinBarView(pin) {
-                            reactions.onQuote(pin.to)?.let { target ->
-                                scope.launch { listState.animateScrollToItem(state.leadingRows + target) }
-                            }
-                        }
+            items(rows.asReversed(), key = { it.key }, contentType = { it.contentType }) { row ->
+                // Only a row with files gets the files' views, so loading one composes no other row again.
+                val views = if (row.hasFiles) state.attachmentViews else emptyMap()
+                TimelineRowView(row, views, transcription, attachments, rowActions) { target ->
+                    scope.launch { listState.animateScrollToItem(rows.size - 1 - target) }
+                }
+            }
+            emptyNote(state, rows.isEmpty(), look)
+            state.flagged?.let { flagged ->
+                item(key = "flagged", contentType = "banner") {
+                    Panel(tone = PanelTone.Warning, modifier = Modifier.padding(top = 12.dp).testTag("chat.safety.banner")) {
+                        Text(flagged.title, style = OasisType.BodyBold, color = OasisColors.Night)
+                        Text(flagged.text, style = OasisType.Small, color = OasisColors.Ink2)
+                        OasisButton("Blockieren und Chat löschen", { confirmBlockFlagged = true }, fullWidth = false)
+                        OasisButton("Nachricht melden", { onReport(flagged.item) }, kind = OasisButtonKind.Secondary, fullWidth = false)
+                        SmallAction("Ist in Ordnung", onDismissFlagged, underline = true)
+                        Text(
+                            "Diese Prüfung läuft nur auf deinem Gerät. Oasis liest deine Chats nicht; gemeldet wird nur, was du meldest.",
+                            style = OasisType.Caption,
+                            color = OasisColors.Muted
+                        )
                     }
                 }
             }
             state.requestTitle?.let { title ->
-                item {
+                item(key = "request", contentType = "banner") {
                     Panel(tone = PanelTone.Dune, modifier = Modifier.padding(top = 12.dp).testTag("chat.request.banner")) {
                         Text(title, style = OasisType.BodyBold, color = OasisColors.Night)
                         Text(
@@ -466,24 +502,22 @@ private fun ConversationColumn(
                     }
                 }
             }
-            state.flagged?.let { flagged ->
-                item {
-                    Panel(tone = PanelTone.Warning, modifier = Modifier.padding(top = 12.dp).testTag("chat.safety.banner")) {
-                        Text(flagged.title, style = OasisType.BodyBold, color = OasisColors.Night)
-                        Text(flagged.text, style = OasisType.Small, color = OasisColors.Ink2)
-                        OasisButton("Blockieren und Chat löschen", { confirmBlockFlagged = true }, fullWidth = false)
-                        OasisButton("Nachricht melden", { onReport(flagged.item) }, kind = OasisButtonKind.Secondary, fullWidth = false)
-                        SmallAction("Ist in Ordnung", onDismissFlagged, underline = true)
-                        Text(
-                            "Diese Prüfung läuft nur auf deinem Gerät. Oasis liest deine Chats nicht; gemeldet wird nur, was du meldest.",
-                            style = OasisType.Caption,
-                            color = OasisColors.Muted
-                        )
+            state.pinBar?.let { pin ->
+                item(key = "pin", contentType = "pin") {
+                    Box(Modifier.padding(top = 12.dp)) {
+                        PinBarView(pin) {
+                            reactions.onQuote(pin.to)?.let { target ->
+                                scope.launch { listState.animateScrollToItem(rows.size - 1 - target) }
+                            }
+                        }
                     }
                 }
             }
+            items(state.notices.asReversed(), contentType = {
+                "notice"
+            }) { Box(Modifier.padding(top = 12.dp)) { Banner(it, kind = BannerKind.Info) } }
             if (state.nextBeforeId != null) {
-                item {
+                item(key = "older", contentType = "older") {
                     Box(Modifier.fillMaxWidth().padding(top = 12.dp), contentAlignment = Alignment.Center) {
                         AsyncOasisButton(
                             "Ältere Nachrichten laden",
@@ -495,44 +529,15 @@ private fun ConversationColumn(
                     }
                 }
             }
-            when {
-                state.loadFailed != null -> item { Box(Modifier.padding(top = 12.dp)) { Banner(state.loadFailed) } }
-
-                state.conversation == null -> item { Box(Modifier.fillMaxWidth().padding(vertical = 24.dp)) { LoadingView() } }
-
-                items.isEmpty() -> item {
-                    Text(
-                        "Noch keine Nachrichten. Schreib die erste.",
-                        style = OasisType.Body,
-                        color = OasisColors.Ink2,
-                        modifier = Modifier.padding(top = 12.dp).lookPill(look).testTag("chat.messages.empty")
-                    )
-                }
-            }
-            items(state.shownRows, key = { it.key }) { row ->
-                TimelineRowView(
-                    row, state, myId, now, senderName, onReport, attachments, senderAvatar, senderProfile, reactions,
-                    onJump = { target -> scope.launch { listState.animateScrollToItem(state.leadingRows + target) } }
-                )
-            }
         }
-        Column(
+        // The floating composer; its height is the list's room at the bottom.
+        Box(
             Modifier
                 .align(Alignment.BottomCenter)
                 .fillMaxWidth()
                 .padding(12.dp)
                 .onSizeChanged { composerHeight = it.height }
         ) {
-            if (awayFromBottom && items.isNotEmpty()) {
-                ScrollDownButton(
-                    arrived,
-                    onClick = {
-                        arrived = 0
-                        scope.launch { listState.animateScrollToItem((listState.layoutInfo.totalItemsCount - 1).coerceAtLeast(0)) }
-                    },
-                    modifier = Modifier.align(Alignment.End).padding(bottom = 12.dp)
-                )
-            }
             if (state.untrustedOwner) {
                 // Nothing can be sealed for this chat (ChatKeyring.assertSealable): the reason stands where the composer was.
                 Banner(
@@ -546,6 +551,17 @@ private fun ConversationColumn(
             } else {
                 ConversationComposer(state, onDraftChange, onSend, attachments, effects, reactions.onCancelReply, polls)
             }
+        }
+        // Outside the measured composer, so its showing does not change the list's room.
+        if (awayFromBottom && rows.isNotEmpty()) {
+            ScrollDownButton(
+                arrived,
+                onClick = {
+                    arrived = 0
+                    scope.launch { listState.animateScrollToItem(0) }
+                },
+                modifier = Modifier.align(Alignment.BottomEnd).padding(end = 12.dp, bottom = composerSpace)
+            )
         }
         state.viewOnce?.let { ViewOnceViewer(it, attachments, onReport) }
         state.spokenNotice?.let { notice ->
@@ -576,6 +592,42 @@ private fun ConversationColumn(
         )
     }
 }
+
+/** In place of messages: why they cannot load, the loading spinner, or „Noch keine Nachrichten“. */
+private fun LazyListScope.emptyNote(state: ConversationState, empty: Boolean, look: LookStyle) {
+    when {
+        state.loadFailed != null -> item(contentType = "note") { Box(Modifier.padding(top = 12.dp)) { Banner(state.loadFailed) } }
+
+        state.conversation == null -> item(contentType = "note") {
+            Box(Modifier.fillMaxWidth().padding(vertical = 24.dp)) { LoadingView() }
+        }
+
+        empty -> item(contentType = "note") {
+            Text(
+                "Noch keine Nachrichten. Schreib die erste.",
+                style = OasisType.Body,
+                color = OasisColors.Ink2,
+                modifier = Modifier.padding(top = 12.dp).lookPill(look).testTag("chat.messages.empty")
+            )
+        }
+    }
+}
+
+/**
+ * Opening: with a „Neue Nachrichten“ divider the list shows it at the top (the new messages below it); otherwise the
+ * list already starts at the newest message.
+ */
+private suspend fun placeAtUnread(listState: LazyListState, rows: List<RowModel>) {
+    val divider = rows.indexOf(RowModel.Unread).takeIf { it >= 0 } ?: return
+    // Once the list knows its height: the divider first at the bottom, then three quarters of the height towards the
+    // newest message, so the divider stands near the top with the new messages below it.
+    val height = snapshotFlow { listState.layoutInfo.viewportSize.height }.first { it > 0 }
+    listState.scrollToItem(rows.size - 1 - divider)
+    listState.scrollBy(-height * DIVIDER_PLACE)
+}
+
+/** How far up the „Neue Nachrichten“ divider stands when a chat opens (of the list's height). */
+private const val DIVIDER_PLACE = 0.75f
 
 /**
  * The composer with counter, tone hint and the sensitive-data warning; photos and videos from the photo picker, voice
@@ -1018,6 +1070,7 @@ private fun BubbleColumn(
     attachments: @Composable () -> Unit,
     modifier: Modifier = Modifier
 ) {
+    ChatCompositions.bubbles++
     var bar by remember { mutableStateOf(false) }
     val shape = bubbleShape(mine, run)
     val fill = if (mine) OasisColors.Night else OasisColors.Paper

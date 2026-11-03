@@ -122,4 +122,32 @@ class ChatDesignViewModelTest {
         assertEquals("Chat verlassen.", list.state.value.status)
         assertEquals(listOf(group), list.state.value.conversations.map { it.id })
     }
+
+    @Test
+    fun aPageDecryptedWhileTheChatClosesIsDropped() = runTest {
+        val mira = support.member(1)
+        support.member(2)
+        val id = chat(mira, 2)
+        val owner = model(mira, id)
+        owner.open()
+        owner.setDraft("Hallo")
+        owner.send()
+        clear(owner)
+        lateinit var reader: ConversationViewModel
+        var armed = false
+        val closing = support.context(1, vault = mira.vault, cryptoDispatcher = HookedDispatcher { if (armed) reader.close() })
+        reader = model(closing, id)
+        reader.open()
+        assertEquals(
+            reader.state.value.let {
+                "${it.loadFailed} ${it.notices} ${it.timeline.items.size}"
+            },
+            1,
+            reader.state.value.bubbles.size
+        )
+        armed = true
+        reader.loadOlder()
+        assertTrue("a page decrypted while the chat closed is dropped", reader.state.value.bubbles.isEmpty())
+        clear(reader)
+    }
 }

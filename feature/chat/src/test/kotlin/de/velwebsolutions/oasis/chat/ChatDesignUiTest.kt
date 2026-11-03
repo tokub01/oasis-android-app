@@ -12,6 +12,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.semantics.SemanticsActions
+import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.hasContentDescription
 import androidx.compose.ui.test.hasTestTag
 import androidx.compose.ui.test.isRoot
@@ -258,7 +259,8 @@ class ChatDesignUiTest {
         var shown by mutableStateOf(many)
         show { Chat(crowded(shown)) }
         compose.waitForIdle()
-        compose.onNodeWithTag("chat.messages").performScrollToIndex(0)
+        // The oldest messages: the list is laid out newest first.
+        compose.onNodeWithTag("chat.messages").performScrollToIndex(28)
         compose.waitForIdle()
         compose.onNodeWithTag("chat.scrollDown").assertExists()
         shown = ChatTimeline(many.items + item("new", "2", "2026-11-03T09:00:00Z", "Neu da"))
@@ -268,6 +270,37 @@ class ChatDesignUiTest {
         compose.onNodeWithTag("chat.scrollDown").performClick()
         compose.waitForIdle()
         compose.onNodeWithTag("chat.scrollDown").assertDoesNotExist()
+    }
+
+    @Test
+    fun aChatOpensAtTheDividerAndOlderMessagesLoadWithoutMovingTheShownOnes() {
+        val many = ChatTimeline(
+            (0 until 40).map { item("m$it", if (it % 2 == 0) "2" else "1", "2026-11-03T0${it / 10}:${10 + it % 10}:00Z", "Nachricht $it") }
+        )
+        fun opened(items: ChatTimeline) = state().copy(
+            timeline = items,
+            reactions = emptyMap(),
+            quotes = emptyMap(),
+            rows = de.velwebsolutions.oasis.chat.ui.timelineRows(
+                items.items,
+                7,
+                Instant.parse("2026-11-03T01:14:30Z"),
+                "1",
+                Instant.parse("2026-11-03T12:00:00Z")
+            )
+        )
+        var shown by mutableStateOf(opened(many))
+        show { Chat(shown) }
+        compose.waitForIdle()
+        // The divider is in view (the new messages below it), not the newest message far below.
+        compose.onNodeWithTag("chat.unread").assertIsDisplayed()
+        capture("opened-at-divider")
+        fun top() = compose.onNodeWithTag("chat.message.m15").fetchSemanticsNode().boundsInRoot.top
+        val before = top()
+        val older = (0 until 10).map { item("o$it", "2", "2026-11-02T10:0$it:00Z", "Älter $it") }
+        shown = opened(ChatTimeline(older + many.items))
+        compose.waitForIdle()
+        assertEquals("older messages load above without moving the shown ones", before, top())
     }
 
     private fun row(

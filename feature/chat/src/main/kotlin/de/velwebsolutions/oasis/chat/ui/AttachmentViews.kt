@@ -417,8 +417,9 @@ private fun Shown(
                 contentDescription = "Foto, zum Vergrößern tippen",
                 contentScale = ContentScale.Fit,
                 modifier = Modifier
-                    .widthIn(max = 280.dp)
-                    .aspectRatio(view.image.width.toFloat() / view.image.height)
+                    .widthIn(max = PHOTO_WIDTH)
+                    .fillMaxWidth()
+                    .aspectRatio(photoRatio(attachment) ?: (view.image.width.toFloat() / view.image.height))
                     .clickable(role = Role.Button) { fullScreen = true }
                     .testTag("chat.attachment.photo")
             )
@@ -450,9 +451,36 @@ private fun Shown(
             if (fullScreen) MediaDialog(secure = false, onClose = { fullScreen = false }) { FullMedia(view, kind) }
         }
 
-        // Not loaded yet, or loading.
-        else -> Text("$label · wird entschlüsselt …", style = OasisType.Small, color = color)
+        // Not loaded yet, or loading: a photo keeps its size from the start, so the chat does not jump once it shows.
+        else -> {
+            val ratio = photoRatio(attachment)?.takeIf { kind == AttachmentKind.Image }
+            if (ratio == null) {
+                Text("$label · wird entschlüsselt …", style = OasisType.Small, color = color)
+            } else {
+                Box(
+                    Modifier
+                        .widthIn(max = PHOTO_WIDTH)
+                        .fillMaxWidth()
+                        .aspectRatio(ratio)
+                        .background(color.copy(alpha = 0.08f), RoundedCornerShape(OasisRadius.CHIP.dp))
+                        .testTag("chat.attachment.placeholder"),
+                    contentAlignment = Alignment.Center
+                ) {
+                    Text("$label · wird entschlüsselt …", style = OasisType.Small, color = color)
+                }
+            }
+        }
     }
+}
+
+/** How wide a photo shows in a bubble. */
+private val PHOTO_WIDTH = 280.dp
+
+/** A photo's width to height from the sender's message, or null when it names none. */
+internal fun photoRatio(attachment: MessageAttachment): Float? {
+    val width = attachment.width ?: return null
+    val height = attachment.height ?: return null
+    return if (width > 0 && height > 0) width.toFloat() / height else null
 }
 
 /** A voice message in a bubble or the view-once viewer: the player, or the error text when the file cannot be played. */

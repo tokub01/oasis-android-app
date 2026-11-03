@@ -57,6 +57,7 @@ import kotlinx.coroutines.flow.filter
 import kotlinx.coroutines.flow.launchIn
 import kotlinx.coroutines.flow.onEach
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 import kotlinx.serialization.json.Json
 
 /** The safety banner: the flagged message and the texts about it. */
@@ -134,7 +135,6 @@ object QuoteTexts {
 data class ConversationState(
     val conversation: ChatConversation? = null,
     val title: String = "",
-    val lifetimeLine: String = "",
     val timeline: ChatTimeline = ChatTimeline(),
     val notices: List<String> = emptyList(),
     val nextBeforeId: String? = null,
@@ -346,39 +346,39 @@ class ConversationViewModel @AssistedInject constructor(
         val changed = change(mutableState.value)
         val measured = ChatMessages.measure(changed.draft, changed.drafts, sentEffect(changed), reply)
         // Also with a key this app session still holds: nothing is sealed for an untrusted owner (assertSealable).
-        val views = TimelineViews(myId, ::senderName, vault.clock.now())
         val canSend = current != null && trusted && context.canParticipate && !current.ended && !current.rotationRequired &&
             vault.conversationKey(current.id, current.keyVersion) != null
+        // Once per change of the timeline, the chat, the right to write, `last_read_at` or the directory – not per keystroke.
+        val views = TimelineViews(myId, ::senderName, vault.clock.now())
+        val derived = derived.get(timeline, current, canSend, readAt, users) {
+            DerivedTimeline.of(views, timeline.items, current, canSend, readAt)
+        }
         mutableState.value = changed.copy(
-            reactions = views.reactions(timeline.items),
-            quotes = views.quotes(timeline.items),
+            reactions = derived.reactions,
+            quotes = derived.quotes,
             conversation = current,
             title = current?.displayTitle(myId).orEmpty(),
-            lifetimeLine = current?.let {
-                "Ende-zu-Ende verschlüsselt · Nachrichten löschen sich nach ${lifetimeLabel(it.lifetimeDays)}"
-            }.orEmpty(),
             timeline = timeline,
             notices = notices,
             nextBeforeId = nextBeforeId,
             flagged = flagged,
             canSend = canSend,
-            pinBar = views.pinBar(timeline.items, current),
+            pinBar = derived.pinBar,
             canPin = current != null && (current.type == "direct" || current.createdBy == myId),
-            polls = views.polls(timeline.items, canSend),
+            polls = derived.polls,
             untrustedOwner = current != null && !current.ended && !trusted,
             counter = if (measured.tooLong) "Zu lang" else "${measured.characters} / ${ChatCrypto.MAX_MESSAGE_LENGTH}",
             tooLong = measured.tooLong,
-            requestTitle = current?.takeIf { it.request == true }?.let { conversation ->
-                val others = conversation.members.filter { it.userId != myId }
-                "Nachrichtenanfrage von ${if (others.size == 1) others[0].name else "Jemand"}"
-            },
+            requestTitle = requestTitle(current, myId),
             isOwner = current?.createdBy == myId,
             headerStatus = headerStatus(current, myId),
-            rows = timelineRows(timeline.items.filter { !it.content.control }, current?.lifetimeDays ?: 0, readAt, myId, vault.clock.now())
+            rows = derived.rows
         )
         // The list's line 2 of this chat, kept only in memory (forgotten on every lock).
         current?.let { chat -> latestPreview(mutableState.value.bubbles, myId)?.let { vault.previews[chat.id] = it } }
     }
+
+    private val derived = IdentityCache<DerivedTimeline>()
 
     // region Lifecycle
 
@@ -573,9 +573,11 @@ class ConversationViewModel @AssistedInject constructor(
         val token = openCount
         val page = context.repository.messages(conversationId, nextBeforeId)
         if (!isCurrent(token)) return
-        val items = page.data.reversed().map {
-            ChatMessages.open(it.envelope, conversationId, vault, context.crypto, keptViewed(it.attachments))
+        // Verifying and decrypting a page is no work for the main thread; a chat closed meanwhile keeps none of it.
+        val items = withContext(context.cryptoDispatcher) {
+            page.data.reversed().map { ChatMessages.open(it.envelope, conversationId, vault, context.crypto, keptViewed(it.attachments)) }
         }
+        if (!isCurrent(token)) return
         timeline = timeline.prepending(items)
         nextBeforeId = page.nextBeforeId
         checkSafety()
@@ -1223,9 +1225,8 @@ class ConversationViewModel @AssistedInject constructor(
      * Tapping a quote: the position of the original among the bubbles while it is loaded; otherwise null and the note
      * that it is not loaded.
      */
-    fun quoteTarget(signature: String): Int? =
-        state.value.rows.indexOfFirst { (it as? TimelineRow.Message)?.item?.signature == signature }.takeIf { it >= 0 }
-            ?: null.also { render { it.copy(status = QuoteTexts.NOT_LOADED) } }
+    fun quoteTarget(signature: String): Int? = state.value.rows.indexOfMessage(signature)
+        ?: null.also { render { it.copy(status = QuoteTexts.NOT_LOADED) } }
 
     // endregion
 

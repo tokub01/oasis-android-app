@@ -80,7 +80,7 @@ class ConversationViewModelTest {
         owner.open()
         assertTrue(owner.state.value.canSend)
         assertTrue(owner.state.value.isOwner)
-        assertEquals("Ende-zu-Ende verschlüsselt · Nachrichten löschen sich nach 7 Tagen", owner.state.value.lifetimeLine)
+        assertEquals("Ende-zu-Ende verschlüsselt · löschen sich nach 7 Tagen", owner.state.value.headerStatus)
         owner.send()
         owner.setDraft("   ")
         owner.send()

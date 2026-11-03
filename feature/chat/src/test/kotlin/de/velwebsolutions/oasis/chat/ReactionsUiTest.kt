@@ -188,7 +188,8 @@ class ReactionsUiTest {
         capture("reply-bar")
         compose.onNodeWithContentDescription("Antwort abbrechen").performClick()
         assertEquals("cancel", calls.last())
-        assertEquals(listOf("reply a", "react a $heart", "reply b", "reply a"), calls.dropLast(1))
+        // The first bubble with the long-press action is the newest one (the list is laid out newest first).
+        assertEquals(listOf("reply a", "react a $heart", "reply b", "reply b"), calls.dropLast(1))
     }
 
     /** Runs the TalkBack action [label] of the node with [tag]. */

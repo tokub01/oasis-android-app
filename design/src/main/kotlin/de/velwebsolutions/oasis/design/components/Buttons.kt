@@ -14,6 +14,7 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -61,6 +62,12 @@ private fun OasisButtonKind.border(): BorderStroke? = when (this) {
     else -> null
 }
 
+/**
+ * A pill at one line (48 high, radius 24) that keeps its corners when larger text wraps the label onto more lines, so the
+ * text never runs into round ends.
+ */
+private val PillShape = RoundedCornerShape(24.dp)
+
 /** The Oasis pill button. While [loading] it shows a spinner and ignores taps (AsyncButton on iOS). */
 @Composable
 fun OasisButton(
@@ -81,9 +88,9 @@ fun OasisButton(
             .defaultMinSize(minHeight = 48.dp)
             .pressEffect(interaction)
             .alpha(if (enabled) 1f else 0.45f)
-            .clip(CircleShape)
-            .background(kind.background(), CircleShape)
-            .then(if (border != null) Modifier.border(border, CircleShape) else Modifier)
+            .clip(PillShape)
+            .background(kind.background(), PillShape)
+            .then(if (border != null) Modifier.border(border, PillShape) else Modifier)
             .clickable(interaction, indication = null, enabled = enabled && !loading, role = Role.Button, onClick = onClick)
             .padding(horizontal = 20.dp, vertical = 12.dp),
         contentAlignment = Alignment.Center

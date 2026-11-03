@@ -1,7 +1,7 @@
 package de.velwebsolutions.oasis.chat.ui
 
 import androidx.compose.animation.animateContentSize
-import androidx.compose.animation.core.Animatable
+import androidx.compose.animation.core.animate
 import androidx.compose.animation.core.tween
 import androidx.compose.foundation.background
 import androidx.compose.foundation.gestures.awaitEachGesture
@@ -43,7 +43,9 @@ import androidx.compose.material3.Text
 import androidx.compose.material3.pulltorefresh.PullToRefreshBox
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.derivedStateOf
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableFloatStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
@@ -52,6 +54,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.input.pointer.positionChange
 import androidx.compose.ui.platform.LocalContext
@@ -407,31 +410,44 @@ private fun SwipeRow(
     val unread = conversation.unread == true
     val moves = motionAllowed(LocalContext.current)
     val scope = rememberCoroutineScope()
-    val drag = remember { Animatable(0f) }
+    // Read only in layout and drawing (offset { }, graphicsLayer { }): a swipe composes the row once, not per pixel.
+    val drag = remember { mutableFloatStateOf(0f) }
+    val leftward by remember { derivedStateOf { drag.floatValue < 0f } }
     var confirmLeave by remember { mutableStateOf(false) }
+    fun settle(target: Float) {
+        scope.launch {
+            if (moves) {
+                animate(drag.floatValue, target, animationSpec = tween(SETTLE_MS)) { value, _ -> drag.floatValue = value }
+            } else {
+                drag.floatValue =
+                    target
+            }
+        }
+    }
     // A swipe starts where the row is: open by 160, or in place.
     val start = if (open) -ChatSwipe.ROW_ACTIONS else 0f
-    val onMove: (SwipeTracker) -> Unit = { tracker -> scope.launch { drag.snapTo(ChatSwipe.rowOffset(start + tracker.dx, unread)) } }
+    val onMove: (SwipeTracker) -> Unit = { tracker -> drag.floatValue = ChatSwipe.rowOffset(start + tracker.dx, unread) }
     val onEnd: (SwipeTracker) -> Unit = { tracker ->
         val release = ChatSwipe.release(start + tracker.dx, unread)
         onOpenChange(release == RowRelease.Open)
-        scope.launch { drag.animateTo(if (release == RowRelease.Open) -ChatSwipe.ROW_ACTIONS else 0f, tween(SETTLE_MS)) }
+        settle(if (release == RowRelease.Open) -ChatSwipe.ROW_ACTIONS else 0f)
         if (release == RowRelease.Read) scope.launch { rows.onMarkRead(conversation) }
     }
-    LaunchedEffect(open) {
-        val target = if (open) -ChatSwipe.ROW_ACTIONS else 0f
-        if (moves) drag.animateTo(target, tween(SETTLE_MS)) else drag.snapTo(target)
-    }
+    LaunchedEffect(open) { settle(if (open) -ChatSwipe.ROW_ACTIONS else 0f) }
     Box(Modifier.fillMaxWidth().height(IntrinsicSize.Min).clip(RoundedCornerShape(OasisRadius.S.dp))) {
-        if (drag.value > 0f) {
+        if (unread) {
             Box(
-                Modifier.matchParentSize().background(OasisColors.Spring).padding(horizontal = 16.dp),
+                Modifier
+                    .matchParentSize()
+                    .graphicsLayer { alpha = if (drag.floatValue > 0f) 1f else 0f }
+                    .background(OasisColors.Spring)
+                    .padding(horizontal = 16.dp),
                 contentAlignment = Alignment.CenterStart
             ) {
                 Text("Als gelesen markieren", style = OasisType.SmallBold, color = OasisColors.SunInk)
             }
         }
-        if (drag.value < 0f || open) {
+        if (open || leftward) {
             Row(Modifier.align(Alignment.CenterEnd).fillMaxHeight()) {
                 RowAction(
                     if (conversation.muted == true) "Ton an" else "Stummschalten",
@@ -451,7 +467,7 @@ private fun SwipeRow(
         }
         Box(
             Modifier
-                .offset { rowOffset(if (moves || open) drag.value else 0f, density) }
+                .offset { rowOffset(if (moves || open) drag.floatValue else 0f, density) }
                 .pointerInput(conversation.id, unread, open) { swipes({ true }, onMove, onEnd) }
         ) {
             content()

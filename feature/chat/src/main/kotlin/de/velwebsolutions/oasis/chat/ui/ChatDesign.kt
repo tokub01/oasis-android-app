@@ -1,5 +1,7 @@
 package de.velwebsolutions.oasis.chat.ui
 
+import androidx.compose.runtime.Immutable
+import de.velwebsolutions.oasis.chat.api.ChatAvatar
 import de.velwebsolutions.oasis.chat.api.ChatConversation
 import de.velwebsolutions.oasis.chat.core.ChatMessageItem
 import de.velwebsolutions.oasis.chat.core.lifetimeLabel
@@ -119,6 +121,16 @@ internal fun headerStatus(conversation: ChatConversation?, myId: String): String
 /** The list's line 2 for the newest readable of [bubbles], or null without one. */
 internal fun latestPreview(bubbles: List<ChatMessageItem>, myId: String): String? =
     bubbles.lastOrNull { it.state == ChatMessageItem.State.Readable }?.let { previewOf(it, it.senderId == myId) }
+
+/** The row of the message with [signature] among these rows, or null while it is not loaded. */
+internal fun List<TimelineRow>.indexOfMessage(signature: String): Int? =
+    indexOfFirst { (it as? TimelineRow.Message)?.item?.signature == signature }.takeIf { it >= 0 }
+
+/** „Nachrichtenanfrage von Jonas“ above a request ([conversation] the member has not accepted); null otherwise. */
+internal fun requestTitle(conversation: ChatConversation?, myId: String): String? = conversation?.takeIf { it.request == true }?.let {
+    val others = it.members.filter { member -> member.userId != myId }
+    "Nachrichtenanfrage von ${if (others.size == 1) others[0].name else "Jemand"}"
+}
 
 /** The rows of [bubbles] (time order) for the member [myId]: day pills, the divider after [readAt], the bubbles. */
 internal fun timelineRows(
@@ -240,14 +252,11 @@ internal class SwipeTracker(private val allowed: (dx: Float) -> Boolean = { true
     }
 }
 
-/** Whether the newest of the visible rows ([ends]: index to bottom edge in px) lies more than [distance] below the view. */
-internal fun awayFromBottom(ends: List<Pair<Int, Int>>, total: Int, viewportEnd: Int, distance: Float): Boolean {
-    val last = ends.lastOrNull() ?: return true
-    return last.first < total - 1 || last.second - viewportEnd > distance
-}
-
-/** Whether the newest row is in view ([indices] of the visible rows). */
-internal fun atNewest(indices: List<Int>, total: Int): Boolean = total > 0 && indices.lastOrNull() == total - 1
+/**
+ * Whether the list (newest first, drawn from the bottom) is scrolled up more than [distance] px from the newest
+ * message: another row is the first one shown, or the newest one is scrolled off by more than that.
+ */
+internal fun awayFromBottom(firstIndex: Int, firstOffset: Int, distance: Float): Boolean = firstIndex > 0 || firstOffset > distance
 
 /** What a new newest message does: the first one jumps there, others' while scrolled up count, the rest scroll down. */
 internal enum class Newest { Jump, Count, Follow }
@@ -260,3 +269,104 @@ internal fun newest(first: Boolean, away: Boolean, fromOthers: Boolean): Newest 
 
 /** The end of a row's swipe: its actions shown, the chat marked read, or back in place. */
 internal enum class RowRelease { Open, Read, Close }
+
+/** Everything a bubble shows, made once per change of the timeline (compared by value, so unchanged rows skip). */
+@Immutable
+data class BubbleModel(
+    val item: ChatMessageItem,
+    val mine: Boolean,
+    val run: ChatLayout.Run,
+    /** „14:05“ inside the bubble; null without a send time. */
+    val time: String?,
+    /** The long-press bar's line with send time and expiry. */
+    val info: String,
+    val showName: Boolean,
+    val senderName: String,
+    val avatar: ChatAvatar?,
+    val profile: ProfileLink?,
+    val quote: ReplyQuote?,
+    val chips: List<ReactionChip>,
+    val own: String,
+    val canAct: Boolean,
+    val pinLabel: String?,
+    val poll: PollView?
+)
+
+/** One row of the message list as it is drawn. */
+@Immutable
+sealed interface RowModel {
+    val key: String
+
+    /** Rows of one kind share their composition in the list. */
+    val contentType: String
+
+    /** Whether the row shows files (only those rows get the files' views). */
+    val hasFiles: Boolean get() = false
+
+    data class Day(val label: String, override val key: String) : RowModel {
+        override val contentType: String get() = "day"
+    }
+
+    data object Unread : RowModel {
+        override val key: String get() = "unread"
+        override val contentType: String get() = "unread"
+    }
+
+    data class Bubble(val model: BubbleModel) : RowModel {
+        override val key: String get() = model.item.id
+        override val contentType: String get() = if (model.mine) "mine" else "theirs"
+        override val hasFiles: Boolean get() = model.item.content.attachments.isNotEmpty()
+    }
+}
+
+/** The rows of [state] with everything each bubble shows, for the member [myId] at [now]. */
+internal fun rowModels(
+    state: ConversationState,
+    myId: String,
+    senderName: (String) -> String,
+    senderAvatar: (String) -> ChatAvatar,
+    senderProfile: (String) -> ProfileLink?,
+    now: Instant
+): List<RowModel> = state.shownRows.map { row ->
+    if (row is TimelineRow.Day) {
+        RowModel.Day(row.label, row.key)
+    } else if (row is TimelineRow.Unread) {
+        RowModel.Unread
+    } else {
+        bubbleModel(row as TimelineRow.Message, state, myId, senderName, senderAvatar, senderProfile, now)
+    }
+}
+
+private fun bubbleModel(
+    row: TimelineRow.Message,
+    state: ConversationState,
+    myId: String,
+    senderName: (String) -> String,
+    senderAvatar: (String) -> ChatAvatar,
+    senderProfile: (String) -> ProfileLink?,
+    now: Instant
+): RowModel.Bubble {
+    val item = row.item
+    val mine = item.senderId == myId
+    return RowModel.Bubble(
+        BubbleModel(
+            item = item,
+            mine = mine,
+            run = row.run,
+            time = row.sent?.let(ChatLayout::clockTime),
+            info = ChatLayout.infoLine(row.sent, item.expiresAt, now),
+            // Others' names in groups, on the first bubble of each of their runs.
+            showName = !mine && state.conversation?.isGroup == true &&
+                (row.run == ChatLayout.Run.First || row.run == ChatLayout.Run.Single),
+            senderName = senderName(item.senderId),
+            avatar = senderAvatar(item.senderId).takeUnless { mine },
+            profile = senderProfile(item.senderId).takeUnless { mine },
+            quote = state.quotes[item.signature],
+            chips = state.reactions[item.signature].orEmpty(),
+            own = state.ownReaction(item.signature),
+            canAct = state.canAct(item),
+            pinLabel = state.pinLabel(item.signature),
+            poll = state.polls[item.signature]
+        )
+    )
+}

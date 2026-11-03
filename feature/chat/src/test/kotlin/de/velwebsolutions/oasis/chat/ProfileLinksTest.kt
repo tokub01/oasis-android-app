@@ -122,11 +122,12 @@ class ProfileLinksTest {
         navigator.back()
 
         // Beside Jonas' message: his profile, read out as a button.
+        // The list is laid out newest first (drawn from the bottom): the unknown sender's message comes first.
         val avatars = compose.onAllNodesWithTag("chat.message.avatar")
-        avatars[0].assert(button).performClick()
+        avatars[1].assert(button).performClick()
         assertEquals(NetworkRoute.Profile("jonas"), top)
         // Someone no longer in the chat: the „?“ opens nothing.
-        avatars[1].assertHasNoClickAction()
+        avatars[0].assertHasNoClickAction()
         assertEquals(
             "header and bubble, read out alike",
             2,

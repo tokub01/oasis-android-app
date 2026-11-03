@@ -2,6 +2,7 @@ package de.velwebsolutions.oasis.chat
 
 import androidx.compose.foundation.shape.CornerSize
 import androidx.compose.ui.unit.dp
+import de.velwebsolutions.oasis.chat.api.ChatAvatar
 import de.velwebsolutions.oasis.chat.api.ChatConversation
 import de.velwebsolutions.oasis.chat.api.ConversationMember
 import de.velwebsolutions.oasis.chat.core.ChatMessageItem
@@ -14,7 +15,6 @@ import de.velwebsolutions.oasis.chat.ui.QuoteTexts
 import de.velwebsolutions.oasis.chat.ui.RowRelease
 import de.velwebsolutions.oasis.chat.ui.SwipeTracker
 import de.velwebsolutions.oasis.chat.ui.TimelineRow
-import de.velwebsolutions.oasis.chat.ui.atNewest
 import de.velwebsolutions.oasis.chat.ui.awayFromBottom
 import de.velwebsolutions.oasis.chat.ui.bubbleShape
 import de.velwebsolutions.oasis.chat.ui.hasTail
@@ -211,14 +211,10 @@ class ChatDesignTest {
 
     @Test
     fun theButtonDownAndTheNewestMessage() {
-        assertTrue("nothing laid out yet", awayFromBottom(emptyList(), 0, 0, 160f))
-        assertTrue("the newest row is not in view", awayFromBottom(listOf(3 to 900), 10, 1_000, 160f))
-        assertFalse(awayFromBottom(listOf(9 to 1_100), 10, 1_000, 160f))
-        assertTrue("more than 160 below", awayFromBottom(listOf(9 to 1_200), 10, 1_000, 160f))
-        assertTrue(atNewest(listOf(8, 9), 10))
-        assertFalse(atNewest(listOf(7, 8), 10))
-        assertFalse(atNewest(emptyList(), 0))
-        assertFalse("rows not laid out yet", atNewest(emptyList(), 5))
+        assertFalse("at the newest message", awayFromBottom(0, 0, 160f))
+        assertFalse(awayFromBottom(0, 150, 160f))
+        assertTrue("more than 160 above it", awayFromBottom(0, 170, 160f))
+        assertTrue("another row first", awayFromBottom(3, 0, 160f))
         assertEquals(Newest.Jump, newest(first = true, away = true, fromOthers = true))
         assertEquals(Newest.Count, newest(first = false, away = true, fromOthers = true))
         assertEquals("the own message scrolls down", Newest.Follow, newest(first = false, away = true, fromOthers = false))
@@ -235,5 +231,28 @@ class ChatDesignTest {
         val unreadable = item("x", "2", null).copy(state = ChatMessageItem.State.NoKey)
         assertEquals("Du: Hallo", latestPreview(listOf(item("a", "1", null), unreadable), "1"))
         assertEquals(null, latestPreview(listOf(unreadable), "1"))
+    }
+
+    @Test
+    fun aPhotoKeepsTheSizeItsMessageNames() {
+        val photo = MessageAttachment("1", "image", "image/jpeg", 3, "k", "n", width = 1200, height = 900)
+        assertEquals(4f / 3f, de.velwebsolutions.oasis.chat.ui.photoRatio(photo)!!, 0.001f)
+        assertEquals(null, de.velwebsolutions.oasis.chat.ui.photoRatio(photo.copy(width = null)))
+        assertEquals(null, de.velwebsolutions.oasis.chat.ui.photoRatio(photo.copy(height = null)))
+        assertEquals(null, de.velwebsolutions.oasis.chat.ui.photoRatio(photo.copy(width = 0)))
+        assertEquals(null, de.velwebsolutions.oasis.chat.ui.photoRatio(photo.copy(height = 0)))
+    }
+
+    @Test
+    fun aBubbleWithoutItsChatShowsNoName() {
+        val state = de.velwebsolutions.oasis.chat.ui.ConversationState(
+            timeline = de.velwebsolutions.oasis.chat.core.ChatTimeline(listOf(item("a", "2", null)))
+        )
+        val rows = de.velwebsolutions.oasis.chat.ui.rowModels(state, "1", { "Jonas" }, { ChatAvatar.Unknown }, { null }, now)
+        val bubble = (rows.single() as de.velwebsolutions.oasis.chat.ui.RowModel.Bubble).model
+        assertFalse(bubble.showName)
+        assertEquals("theirs", rows.single().contentType)
+        assertTrue(rows.single().hasFiles.not())
+        assertEquals("unread", de.velwebsolutions.oasis.chat.ui.RowModel.Unread.contentType)
     }
 }

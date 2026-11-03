@@ -9,6 +9,7 @@ import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.RowScope
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.WindowInsets
+import androidx.compose.foundation.layout.consumeWindowInsets
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
@@ -150,7 +151,8 @@ fun MainTabs(me: Me, viewModel: RootViewModel) {
         },
         contentWindowInsets = WindowInsets(0)
     ) { padding ->
-        Box(Modifier.fillMaxSize().padding(padding)) {
+        // The tab bar's room counts as used: a screen's imePadding then adds only what the keyboard covers above it.
+        Box(Modifier.fillMaxSize().padding(padding).consumeWindowInsets(padding)) {
             Column(Modifier.fillMaxSize()) {
                 screens.QuietBanner()
                 Box(Modifier.weight(1f)) {
