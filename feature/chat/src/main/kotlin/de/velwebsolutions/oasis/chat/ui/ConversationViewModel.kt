@@ -21,7 +21,6 @@ import de.velwebsolutions.oasis.chat.core.ChatKeyring
 import de.velwebsolutions.oasis.chat.core.ChatKeyringException
 import de.velwebsolutions.oasis.chat.core.ChatMessageItem
 import de.velwebsolutions.oasis.chat.core.ChatMessages
-import de.velwebsolutions.oasis.chat.core.ChatReactions
 import de.velwebsolutions.oasis.chat.core.ChatSafety
 import de.velwebsolutions.oasis.chat.core.ChatTimeline
 import de.velwebsolutions.oasis.chat.core.DraftAttachment
@@ -30,6 +29,7 @@ import de.velwebsolutions.oasis.chat.core.TranscriptionProblem
 import de.velwebsolutions.oasis.chat.core.describeChatError
 import de.velwebsolutions.oasis.chat.core.formatDate
 import de.velwebsolutions.oasis.chat.core.lifetimeLabel
+import de.velwebsolutions.oasis.chat.data.ChatRepository
 import de.velwebsolutions.oasis.chatcrypto.ChatCrypto
 import de.velwebsolutions.oasis.chatcrypto.MessageAttachment
 import de.velwebsolutions.oasis.chatcrypto.MessageContent
@@ -42,7 +42,6 @@ import de.velwebsolutions.oasis.core.realtime.RealtimeService
 import de.velwebsolutions.oasis.core.share.PendingShare
 import de.velwebsolutions.oasis.core.share.Share
 import de.velwebsolutions.oasis.core.share.SharedFile
-import java.time.Instant
 import kotlin.time.Duration
 import kotlin.time.Duration.Companion.seconds
 import kotlinx.coroutines.CancellationException
@@ -189,7 +188,15 @@ data class ConversationState(
     /** The quotes of replies by the reply's signature. */
     val quotes: Map<String, ReplyQuote> = emptyMap(),
     /** The quote bar above the composer while answering a message. */
-    val replyBar: ReplyBar? = null
+    val replyBar: ReplyBar? = null,
+    /** „Angeheftet: …“ at the top of the chat. */
+    val pinBar: PinBar? = null,
+    /** „Anheften“ is offered: both members of a 1:1 chat, a group's owner. */
+    val canPin: Boolean = false,
+    /** The polls as they stand, by the poll's signature. */
+    val polls: Map<String, PollView> = emptyMap(),
+    /** The poll form above the field („Umfrage“). */
+    val pollForm: PollForm? = null
 ) {
     /** The chip text of [pendingEffect]. */
     val effectChip: String? get() = pendingEffect?.let { "Effekt: ${EffectNames.of(it)}" }
@@ -203,15 +210,22 @@ data class ConversationState(
         get() = draft.isNotBlank() || drafts.isNotEmpty()
 
     /** The messages shown as bubbles: every item except reactions (they show as chips under their target). */
-    val bubbles: List<ChatMessageItem> get() = timeline.items.filter { it.content.reaction == null }
+    val bubbles: List<ChatMessageItem> get() = timeline.items.filter { !it.content.control }
 
     /** The rows of the message list above the first bubble (header, notices, banners, „Ältere Nachrichten laden“, a note). */
     val leadingRows: Int
-        get() = 1 + notices.size + listOfNotNull(requestTitle, flagged, nextBeforeId).size +
+        get() = 1 + notices.size + listOfNotNull(pinBar, requestTitle, flagged, nextBeforeId).size +
             if (loadFailed != null || conversation == null || bubbles.isEmpty()) 1 else 0
 
     /** Reacting to and answering [item]: a readable message, while this account may write here. */
     fun canAct(item: ChatMessageItem): Boolean = canSend && item.state == ChatMessageItem.State.Readable
+
+    /** „Anheften“, or „Lösen“ for the pinned message, in the reaction bar of those who may pin; null for the others. */
+    fun pinLabel(signature: String): String? = when {
+        !canPin -> null
+        pinBar?.to == signature -> "Lösen"
+        else -> "Anheften"
+    }
 
     /** The own reaction to the message with [signature], or "". */
     fun ownReaction(signature: String): String = reactions[signature]?.firstOrNull { it.mine }?.emoji.orEmpty()
@@ -314,9 +328,13 @@ class ConversationViewModel @AssistedInject constructor(
         val trusted = current != null && ChatKeyring.ownerTrusted(vault, current)
         val changed = change(mutableState.value)
         val measured = ChatMessages.measure(changed.draft, changed.drafts, sentEffect(changed), reply)
+        // Also with a key this app session still holds: nothing is sealed for an untrusted owner (assertSealable).
+        val views = TimelineViews(myId, ::senderName, vault.clock.now())
+        val canSend = current != null && trusted && context.canParticipate && !current.ended && !current.rotationRequired &&
+            vault.conversationKey(current.id, current.keyVersion) != null
         mutableState.value = changed.copy(
-            reactions = reactionChips(),
-            quotes = timeline.items.mapNotNull { item -> item.content.reply?.let { item.signature to quote(it) } }.toMap(),
+            reactions = views.reactions(timeline.items),
+            quotes = views.quotes(timeline.items),
             conversation = current,
             title = current?.displayTitle(myId).orEmpty(),
             lifetimeLine = current?.let {
@@ -326,9 +344,10 @@ class ConversationViewModel @AssistedInject constructor(
             notices = notices,
             nextBeforeId = nextBeforeId,
             flagged = flagged,
-            // Also with a key this app session still holds: nothing is sealed for an untrusted owner (assertSealable).
-            canSend = current != null && trusted && context.canParticipate && !current.ended && !current.rotationRequired &&
-                vault.conversationKey(current.id, current.keyVersion) != null,
+            canSend = canSend,
+            pinBar = views.pinBar(timeline.items, current),
+            canPin = current != null && (current.type == "direct" || current.createdBy == myId),
+            polls = views.polls(timeline.items, canSend),
             untrustedOwner = current != null && !current.ended && !trusted,
             counter = if (measured.tooLong) "Zu lang" else "${measured.characters} / ${ChatCrypto.MAX_MESSAGE_LENGTH}",
             tooLong = measured.tooLong,
@@ -339,24 +358,6 @@ class ConversationViewModel @AssistedInject constructor(
             isOwner = current?.createdBy == myId
         )
     }
-
-    /** The chips of every target: in the order of the set, the own one marked, the names with „Du“ last. */
-    private fun reactionChips(): Map<String, List<ReactionChip>> = ChatReactions.byTarget(timeline.items).mapValues { (_, senders) ->
-        MessagePayload.REACTIONS.mapNotNull { emoji ->
-            val who = senders.filterValues { it == emoji }.keys
-            if (who.isEmpty()) return@mapNotNull null
-            val names = who.filter { it != myId }.map(::senderName) + listOfNotNull("Du".takeIf { myId in who })
-            ReactionChip(emoji, who.size, myId in who, "$emoji ${names.joinToString(", ")}")
-        }
-    }
-
-    /** A reply's quote as shown: the original sender's name and the text, or gone once the original expired. */
-    private fun quote(reply: MessageReply): ReplyQuote = ReplyQuote(
-        to = reply.to,
-        name = if (reply.sender == myId) "Du" else senderName(reply.sender),
-        text = QuoteTexts.of(reply),
-        gone = !Instant.parse(reply.expiresAt).isAfter(vault.clock.now())
-    )
 
     // region Lifecycle
 
@@ -430,6 +431,7 @@ class ConversationViewModel @AssistedInject constructor(
             it.copy(
                 draft = "",
                 replyBar = null,
+                pollForm = null,
                 hint = null,
                 // A failure of the last opening (or of work cut off by the close) is no news for the next one.
                 loadFailed = null,
@@ -621,7 +623,7 @@ class ConversationViewModel @AssistedInject constructor(
         // Live only, once: a message from someone else with an effect plays it – after its files' states said none is
         // view once (realtime brings no states, they come with the reload).
         // A reaction only changes the chips of its target: no announcement, no effect, not read (conversation-view.js).
-        val fromOthers = item.senderId != myId && item.content.reaction == null
+        val fromOthers = item.senderId != myId && !item.content.control
         val effect = item.content.effect
         if (live && effect != null && fromOthers) {
             if (item.content.attachments.isEmpty()) play(effect) else awaitingEffects[item.signature] = effect
@@ -1119,29 +1121,70 @@ class ConversationViewModel @AssistedInject constructor(
      * (`"kind":"reaction"`), shown at once as a chip.
      */
     suspend fun react(item: ChatMessageItem, emoji: String) = inScope {
-        val current = conversation ?: return@inScope
+        val chosen = if (state.value.ownReaction(item.signature) == emoji) "" else emoji
+        sendControl(ChatRepository.REACTION) { MessagePayload.reaction(item.signature, chosen) }
+    }
+
+    /** „Anheften“ / „Lösen“: an encrypted pin (the message's quote) or unpin, quiet on the server. */
+    suspend fun togglePin(item: ChatMessageItem) = inScope {
+        val quote = quoteOf(item) ?: return@inScope
+        sendControl(ChatRepository.PIN) { MessagePayload.pin(quote.takeIf { state.value.pinBar?.to != item.signature }) }
+    }
+
+    /** A vote: single choice replaces (the chosen answer again takes it back), multiple choice toggles. */
+    suspend fun vote(item: ChatMessageItem, index: Int) = inScope {
+        val chosen = state.value.polls[item.signature]?.choosing(index) ?: return@inScope
+        sendControl(ChatRepository.VOTE) { MessagePayload.vote(item.signature, chosen) }
+    }
+
+    /** „Umfrage beenden“ (its creator, after confirming): nobody can vote any more. */
+    suspend fun closePoll(item: ChatMessageItem) = inScope { sendControl(ChatRepository.VOTE) { MessagePayload.pollClose(item.signature) } }
+
+    /** A quiet control message (reaction, pin, vote); a failure is explained. */
+    private suspend fun sendControl(kind: String, plaintext: () -> String) =
+        sendSealed(kind, plaintext)?.let { problem -> render { it.copy(actionError = problem) } }
+
+    /**
+     * Seal [plaintext], send it as [kind] and show it at once: null once sent (also when the chat was left meanwhile, or
+     * there is none), else why it failed.
+     */
+    private suspend fun sendSealed(kind: String, plaintext: () -> String): String? {
+        val current = conversation ?: return null
         val token = openCount
-        try {
-            val chosen = if (state.value.ownReaction(item.signature) == emoji) "" else emoji
-            val envelope = ChatMessages.seal(MessagePayload.reaction(item.signature, chosen), current, vault, context.crypto)
-            context.repository.sendMessage(current.id, envelope, reaction = true)
-            if (isCurrent(token)) receive(envelope, emptyList())
+        return try {
+            val envelope = ChatMessages.seal(plaintext(), current, vault, context.crypto)
+            val stored = context.repository.sendMessage(current.id, envelope, kind = kind)
+            if (isCurrent(token)) receive(envelope, stored.attachments)
+            null
         } catch (error: Exception) {
-            if (isCurrent(token)) render { it.copy(actionError = describeChatError(error)) }
+            describeChatError(error).takeIf { isCurrent(token) }
+        }
+    }
+
+    /** „Umfrage“ opens the form (a new one), „Abbrechen“ closes it (null). */
+    fun showPollForm(form: PollForm?) = render { it.copy(pollForm = form) }
+
+    /** Typing in the form, adding or removing an answer, „Mehrere Antworten erlaubt“. */
+    fun editPoll(change: (PollForm) -> PollForm) = render { state -> state.copy(pollForm = state.pollForm?.let(change)) }
+
+    /** „Umfrage senden“: checked against the limits, then sent as an ordinary (notifying) encrypted message. */
+    suspend fun sendPoll() = inScope {
+        val form = state.value.pollForm ?: return@inScope
+        val problem = form.problem ?: sendSealed(ChatRepository.MESSAGE) { MessagePayload.poll(form.question, form.answers, form.multiple) }
+        render {
+            if (problem ==
+                null
+            ) {
+                it.copy(pollForm = null, spokenNotice = "Umfrage gesendet.")
+            } else {
+                it.copy(pollForm = form.copy(error = problem))
+            }
         }
     }
 
     /** „Antworten“: the quote bar above the composer („Antwort an {Name}“, „Antwort an dich“). */
     fun startReply(item: ChatMessageItem) {
-        val expiry = item.expiresAt ?: return
-        val quoted = MessagePayload.replyTo(
-            item.signature,
-            item.senderId,
-            expiry,
-            item.content.text,
-            item.content.attachments,
-            viewOnce = item.attachmentStates.values.any { it.viewOnce }
-        )
+        val quoted = quoteOf(item) ?: return
         reply = quoted
         val name = if (item.senderId == myId) "dich" else senderName(item.senderId)
         render { it.copy(replyBar = ReplyBar("Antwort an $name", QuoteTexts.of(quoted))) }
@@ -1157,14 +1200,8 @@ class ConversationViewModel @AssistedInject constructor(
      * Tapping a quote: the position of the original among the bubbles while it is loaded; otherwise null and the note
      * that it is not loaded.
      */
-    fun quoteTarget(signature: String): Int? {
-        val index = state.value.bubbles.indexOfFirst { it.signature == signature }
-        if (index < 0) {
-            render { it.copy(status = QuoteTexts.NOT_LOADED) }
-            return null
-        }
-        return index
-    }
+    fun quoteTarget(signature: String): Int? = state.value.bubbles.indexOfFirst { it.signature == signature }.takeIf { it >= 0 }
+        ?: null.also { render { it.copy(status = QuoteTexts.NOT_LOADED) } }
 
     // endregion
 
@@ -1173,7 +1210,7 @@ class ConversationViewModel @AssistedInject constructor(
     private fun checkSafety() {
         val incoming = timeline.items.filter {
             it.senderId != myId && it.state == ChatMessageItem.State.Readable &&
-                it.content.reaction == null
+                !it.content.control
         }
         for (item in incoming.reversed()) {
             if (item.signature in dismissed) continue

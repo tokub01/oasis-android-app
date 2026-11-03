@@ -45,6 +45,7 @@ import androidx.compose.material.icons.outlined.AutoAwesome
 import androidx.compose.material.icons.outlined.Close
 import androidx.compose.material.icons.outlined.Info
 import androidx.compose.material.icons.outlined.Mic
+import androidx.compose.material.icons.outlined.Poll
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
@@ -171,7 +172,16 @@ internal fun ConversationScreen(conversationId: Int) {
                 onReact = model::react,
                 onReply = model::startReply,
                 onCancelReply = model::cancelReply,
-                onQuote = model::quoteTarget
+                onQuote = model::quoteTarget,
+                onPin = model::togglePin,
+                onVote = model::vote,
+                onClosePoll = model::closePoll
+            ),
+            polls = PollFormActions(
+                onOpen = { model.showPollForm(PollForm()) },
+                onEdit = model::editPoll,
+                onCancel = { model.showPollForm(null) },
+                onSend = model::sendPoll
             )
         )
     }
@@ -212,14 +222,15 @@ internal fun ConversationContent(
     senderAvatar: (String) -> ChatAvatar = { ChatAvatar.Unknown },
     senderProfile: (String) -> ProfileLink? = { null },
     effects: EffectActions = EffectActions.None,
-    reactions: ReactionActions = ReactionActions.None
+    reactions: ReactionActions = ReactionActions.None,
+    polls: PollFormActions = PollFormActions.None
 ) {
     val look = LookStyle.of(state.look)
     CompositionLocalProvider(LocalChatLook provides look) {
         Box(Modifier.fillMaxSize()) {
             ConversationColumn(
                 state, myId, senderName, onLoadOlder, onDraftChange, onSend, onReport, onAccept, onDecline, onBlockFlagged,
-                onDismissFlagged, onNoticeSpoken, attachments, senderAvatar, senderProfile, effects, reactions
+                onDismissFlagged, onNoticeSpoken, attachments, senderAvatar, senderProfile, effects, reactions, polls
             )
             // Over everything, never in the way of a tap.
             state.playing?.let { EffectOverlay(it, effects.onDone) }
@@ -254,7 +265,8 @@ private fun ConversationColumn(
     senderAvatar: (String) -> ChatAvatar,
     senderProfile: (String) -> ProfileLink?,
     effects: EffectActions,
-    reactions: ReactionActions
+    reactions: ReactionActions,
+    polls: PollFormActions
 ) {
     val look = LocalChatLook.current
     val photo = rememberLookPhoto(state.look.photo)
@@ -325,6 +337,15 @@ private fun ConversationColumn(
                 }
             }
             items(state.notices) { Banner(it, kind = BannerKind.Info) }
+            state.pinBar?.let { pin ->
+                item {
+                    PinBarView(pin) {
+                        reactions.onQuote(pin.to)?.let { target ->
+                            scope.launch { listState.animateScrollToItem(state.leadingRows + target) }
+                        }
+                    }
+                }
+            }
             state.requestTitle?.let { title ->
                 item {
                     Panel(tone = PanelTone.Dune, modifier = Modifier.testTag("chat.request.banner")) {
@@ -413,7 +434,14 @@ private fun ConversationColumn(
                             reactions.onQuote(to)?.let { target ->
                                 scope.launch { listState.animateScrollToItem(state.leadingRows + target) }
                             }
-                        }
+                        },
+                        pinLabel = state.pinLabel(item.signature),
+                        onPin = { scope.launch { reactions.onPin(item) } },
+                        poll = state.polls[item.signature],
+                        pollActions = PollActions(
+                            onVote = { index -> scope.launch { reactions.onVote(item, index) } },
+                            onClose = { scope.launch { reactions.onClosePoll(item) } }
+                        )
                     )
                 ) {
                     MessageAttachments(
@@ -434,7 +462,7 @@ private fun ConversationColumn(
                 Modifier.background(OasisColors.Paper).padding(horizontal = 16.dp, vertical = 10.dp).testTag("chat.composer.untrustedOwner")
             )
         } else {
-            ConversationComposer(state, onDraftChange, onSend, attachments, effects, reactions.onCancelReply)
+            ConversationComposer(state, onDraftChange, onSend, attachments, effects, reactions.onCancelReply, polls)
         }
         state.viewOnce?.let { ViewOnceViewer(it, attachments, onReport) }
         state.spokenNotice?.let { notice ->
@@ -477,7 +505,8 @@ private fun ConversationComposer(
     onSend: suspend () -> Unit,
     attachments: AttachmentActions,
     effects: EffectActions,
-    onCancelReply: () -> Unit
+    onCancelReply: () -> Unit,
+    polls: PollFormActions
 ) {
     var effectMenu by remember { mutableStateOf(false) }
     val shape = RoundedCornerShape(OasisRadius.XS.dp)
@@ -526,6 +555,7 @@ private fun ConversationComposer(
                 modifier = Modifier.testTag("chat.composer.microphoneDenied")
             )
         }
+        state.pollForm?.let { PollFormView(it, polls) }
         state.replyBar?.let { ReplyBarView(it, onCancelReply) }
         DraftAttachments(state, attachments)
         state.effectChip?.let { chip -> EffectChip(chip, effects.onClear) }
@@ -555,7 +585,8 @@ private fun ConversationComposer(
                                 true
                             }
                         },
-                        onEffect = { effectMenu = true }
+                        onEffect = { effectMenu = true },
+                        onPoll = polls.onOpen
                     )
                     ComposerField(state, onDraftChange, shape)
                     if (state.showsSend) {
@@ -648,7 +679,7 @@ private val ADD_BUTTON = 40.dp
 
 /** „+“: a small menu with the attachment actions (photo or video, file). */
 @Composable
-private fun AttachMenu(enabled: Boolean, onMedia: () -> Unit, onFile: () -> Unit, onEffect: () -> Unit) {
+private fun AttachMenu(enabled: Boolean, onMedia: () -> Unit, onFile: () -> Unit, onEffect: () -> Unit, onPoll: () -> Unit) {
     var open by remember { mutableStateOf(false) }
     Box {
         RoundAction(
@@ -679,6 +710,15 @@ private fun AttachMenu(enabled: Boolean, onMedia: () -> Unit, onFile: () -> Unit
                     onFile()
                 },
                 modifier = Modifier.testTag("chat.composer.file")
+            )
+            DropdownMenuItem(
+                text = { Text("Umfrage", style = OasisType.Body, color = OasisColors.Ink) },
+                leadingIcon = { Icon(Icons.Outlined.Poll, contentDescription = null, tint = OasisColors.Night) },
+                onClick = {
+                    open = false
+                    onPoll()
+                },
+                modifier = Modifier.testTag("chat.composer.poll")
             )
             DropdownMenuItem(
                 text = { Text("Mit Effekt senden …", style = OasisType.Body, color = OasisColors.Ink) },
@@ -888,7 +928,9 @@ private fun BubbleColumn(
                     ChatMessageItem.State.NoKey -> "Für diese Nachricht hast du keinen Schlüssel." to true
                     ChatMessageItem.State.Unverifiable -> "Diese Nachricht ließ sich nicht prüfen und wird nicht angezeigt." to true
                 }
-                if (text.isNotEmpty()) {
+                if (extras.poll != null) {
+                    PollBubble(extras.poll, mine, extras.pollActions)
+                } else if (text.isNotEmpty()) {
                     SelectionContainer {
                         Text(
                             text,
@@ -900,7 +942,7 @@ private fun BubbleColumn(
                 }
                 attachments()
             }
-            ReactionBar(bar, extras.own, onDismiss = { bar = false }, onReact = extras.onReact, onReply = extras.onReply)
+            ReactionBar(bar, extras, onDismiss = { bar = false })
         }
         if (extras.chips.isNotEmpty()) ReactionChips(extras.chips)
         val reportable = !mine && item.state == ChatMessageItem.State.Readable

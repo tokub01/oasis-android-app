@@ -1,5 +1,5 @@
 {
-  "comment": "Plaintexts of chat messages with the optional send effect, reply and reaction (docs/oasis-chat-client.md, \"Backgrounds and effects\", \"Reactions and replies\"). Every client must build exactly the `plaintext` of `build`, `reactions.build` and `replies.build` (field order included) and read the `parse` cases as given; anything not well-formed is ignored and the message still shows. Checked by tests/js/chat/attachments.test.mjs.",
+  "comment": "Plaintexts of chat messages with the optional send effect, reply and reaction (docs/oasis-chat-client.md, \"Backgrounds and effects\", \"Reactions and replies\", \"Pinned message and polls\"). Every client must build exactly the `plaintext` of `build`, `reactions.build`, `replies.build`, `pins.build` and `polls.build` (field order included) and read the `parse` cases as given; anything not well-formed is ignored and the message still shows. Checked by tests/js/chat/attachments.test.mjs.",
   "effects": [
     "konfetti",
     "herzen",
@@ -233,6 +233,144 @@
       {
         "plaintext": "{\"t\":\"oasis-message\",\"v\":2,\"text\":\"Ja\",\"attachments\":[],\"reply\":{\"to\":\"AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAABBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBB\",\"sender\":\"12\",\"kind\":\"text\",\"excerpt\":\"Wollen wir morgen wandern?\",\"expires_at\":\"2026-11-10 12:00\"}}",
         "reply": null
+      }
+    ]
+  },
+  "pins": {
+    "build": [
+      {
+        "quote": {
+          "to": "AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAABBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBB",
+          "sender": "12",
+          "kind": "text",
+          "excerpt": "Treffpunkt: Bahnhof, 9 Uhr",
+          "expires_at": "2026-11-10T12:00:00Z"
+        },
+        "plaintext": "{\"t\":\"oasis-message\",\"v\":2,\"text\":\"\",\"attachments\":[],\"pin\":{\"to\":\"AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAABBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBB\",\"sender\":\"12\",\"kind\":\"text\",\"excerpt\":\"Treffpunkt: Bahnhof, 9 Uhr\",\"expires_at\":\"2026-11-10T12:00:00Z\"}}"
+      },
+      {
+        "quote": null,
+        "plaintext": "{\"t\":\"oasis-message\",\"v\":2,\"text\":\"\",\"attachments\":[],\"pin\":{\"to\":\"\"}}"
+      }
+    ],
+    "parse": [
+      {
+        "plaintext": "{\"t\":\"oasis-message\",\"v\":2,\"text\":\"\",\"attachments\":[],\"pin\":{\"to\":\"AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAABBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBB\",\"sender\":\"12\",\"kind\":\"text\",\"excerpt\":\"Treffpunkt: Bahnhof, 9 Uhr\",\"expires_at\":\"2026-11-10T12:00:00Z\"}}",
+        "pin": {
+          "to": "AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAABBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBB",
+          "sender": "12",
+          "kind": "text",
+          "excerpt": "Treffpunkt: Bahnhof, 9 Uhr",
+          "expires_at": "2026-11-10T12:00:00Z"
+        }
+      },
+      {
+        "plaintext": "{\"t\":\"oasis-message\",\"v\":2,\"text\":\"\",\"attachments\":[],\"pin\":{\"to\":\"\"}}",
+        "pin": {
+          "to": ""
+        }
+      },
+      {
+        "plaintext": "{\"t\":\"oasis-message\",\"v\":2,\"text\":\"\",\"attachments\":[],\"pin\":{\"to\":\"AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAABBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBB\"}}",
+        "pin": null
+      }
+    ]
+  },
+  "polls": {
+    "build": [
+      {
+        "question": "  Wann wandern wir?  ",
+        "options": [
+          " Samstag",
+          "Sonntag "
+        ],
+        "multiple": false,
+        "plaintext": "{\"t\":\"oasis-message\",\"v\":2,\"text\":\"Wann wandern wir?\",\"attachments\":[],\"poll\":{\"question\":\"Wann wandern wir?\",\"options\":[\"Samstag\",\"Sonntag\"],\"multiple\":false}}"
+      },
+      {
+        "vote": {
+          "poll": "AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAABBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBB",
+          "options": [
+            2,
+            0
+          ]
+        },
+        "plaintext": "{\"t\":\"oasis-message\",\"v\":2,\"text\":\"\",\"attachments\":[],\"vote\":{\"poll\":\"AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAABBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBB\",\"options\":[0,2]}}"
+      },
+      {
+        "vote": {
+          "poll": "AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAABBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBB",
+          "options": []
+        },
+        "plaintext": "{\"t\":\"oasis-message\",\"v\":2,\"text\":\"\",\"attachments\":[],\"vote\":{\"poll\":\"AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAABBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBB\",\"options\":[]}}"
+      },
+      {
+        "close": "AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAABBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBB",
+        "plaintext": "{\"t\":\"oasis-message\",\"v\":2,\"text\":\"\",\"attachments\":[],\"poll_close\":{\"poll\":\"AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAABBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBB\"}}"
+      }
+    ],
+    "parse": [
+      {
+        "plaintext": "{\"t\":\"oasis-message\",\"v\":2,\"text\":\"Wann wandern wir?\",\"attachments\":[],\"poll\":{\"question\":\"Wann wandern wir?\",\"options\":[\"Samstag\",\"Sonntag\"],\"multiple\":false}}",
+        "poll": {
+          "question": "Wann wandern wir?",
+          "options": [
+            "Samstag",
+            "Sonntag"
+          ],
+          "multiple": false
+        },
+        "vote": null,
+        "poll_close": null
+      },
+      {
+        "plaintext": "{\"t\":\"oasis-message\",\"v\":2,\"text\":\"Q\",\"attachments\":[],\"poll\":{\"question\":\"Wann wandern wir?\",\"options\":[\"nur eine\"],\"multiple\":false}}",
+        "poll": null,
+        "vote": null,
+        "poll_close": null
+      },
+      {
+        "plaintext": "{\"t\":\"oasis-message\",\"v\":2,\"text\":\"Q\",\"attachments\":[],\"poll\":{\"question\":\"xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\",\"options\":[\"Samstag\",\"Sonntag\"],\"multiple\":false}}",
+        "poll": null,
+        "vote": null,
+        "poll_close": null
+      },
+      {
+        "plaintext": "{\"t\":\"oasis-message\",\"v\":2,\"text\":\"Q\",\"attachments\":[],\"poll\":{\"question\":\"Wann wandern wir?\",\"options\":[\"a\",\"yyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyy\"],\"multiple\":false}}",
+        "poll": null,
+        "vote": null,
+        "poll_close": null
+      },
+      {
+        "plaintext": "{\"t\":\"oasis-message\",\"v\":2,\"text\":\"\",\"attachments\":[],\"vote\":{\"poll\":\"AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAABBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBB\",\"options\":[1]}}",
+        "poll": null,
+        "vote": {
+          "poll": "AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAABBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBB",
+          "options": [
+            1
+          ]
+        },
+        "poll_close": null
+      },
+      {
+        "plaintext": "{\"t\":\"oasis-message\",\"v\":2,\"text\":\"\",\"attachments\":[],\"vote\":{\"poll\":\"AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAABBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBB\",\"options\":[2,1]}}",
+        "poll": null,
+        "vote": null,
+        "poll_close": null
+      },
+      {
+        "plaintext": "{\"t\":\"oasis-message\",\"v\":2,\"text\":\"\",\"attachments\":[],\"vote\":{\"poll\":\"AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAABBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBB\",\"options\":[6]}}",
+        "poll": null,
+        "vote": null,
+        "poll_close": null
+      },
+      {
+        "plaintext": "{\"t\":\"oasis-message\",\"v\":2,\"text\":\"\",\"attachments\":[],\"poll_close\":{\"poll\":\"AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAABBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBB\"}}",
+        "poll": null,
+        "vote": null,
+        "poll_close": {
+          "poll": "AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAABBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBB"
+        }
       }
     ]
   }

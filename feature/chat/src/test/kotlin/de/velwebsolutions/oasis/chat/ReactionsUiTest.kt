@@ -75,7 +75,10 @@ class ReactionsUiTest {
         onQuote = {
             calls += "quote $it"
             target
-        }
+        },
+        onPin = { calls += "pin ${it.signature}" },
+        onVote = { item, index -> calls += "vote ${item.signature} $index" },
+        onClosePoll = { calls += "close ${it.signature}" }
     )
 
     @Composable

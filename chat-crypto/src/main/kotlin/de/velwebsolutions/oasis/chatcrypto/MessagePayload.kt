@@ -12,7 +12,9 @@ import kotlinx.serialization.json.JsonArray
 import kotlinx.serialization.json.JsonElement
 import kotlinx.serialization.json.JsonObject
 import kotlinx.serialization.json.JsonPrimitive
+import kotlinx.serialization.json.booleanOrNull
 import kotlinx.serialization.json.buildJsonObject
+import kotlinx.serialization.json.intOrNull
 import kotlinx.serialization.json.longOrNull
 import kotlinx.serialization.json.put
 
@@ -48,6 +50,15 @@ data class MessageReply(val to: String, val sender: String, val kind: String, va
 /** A reaction to the message with the envelope signature [to]: one of [MessagePayload.REACTIONS], or "" to remove it. */
 data class MessageReaction(val to: String, val emoji: String)
 
+/** A poll: the question, 2–6 answers and whether several may be chosen. */
+data class MessagePoll(val question: String, val options: List<String>, val multiple: Boolean)
+
+/** A vote in the poll with the signature [poll]: the chosen answers (indices, ascending, distinct; empty takes it back). */
+data class MessageVote(val poll: String, val options: List<Int>)
+
+/** A pin: the [quote] of the pinned message (the reply format), or null to unpin. */
+data class MessagePin(val quote: MessageReply?)
+
 /**
  * What a message says: its text, its files (none for a plain text message), the optional send effect (one of
  * [MessagePayload.EFFECTS]) and the quote of a reply; [reaction] when the message is a reaction (then it is never shown
@@ -58,8 +69,16 @@ data class MessageContent(
     val attachments: List<MessageAttachment> = emptyList(),
     val effect: String? = null,
     val reply: MessageReply? = null,
-    val reaction: MessageReaction? = null
-)
+    val reaction: MessageReaction? = null,
+    val poll: MessagePoll? = null,
+    val vote: MessageVote? = null,
+    /** The signature of the poll this message ends („Umfrage beenden“). */
+    val pollClose: String? = null,
+    val pin: MessagePin? = null
+) {
+    /** A control message (reaction, pin, vote, end of a poll): never shown as a bubble. */
+    val control: Boolean get() = reaction != null || pin != null || vote != null || pollClose != null
+}
 
 /**
  * The plaintext of a message, the same on every platform (resources/js/chat/attachments.js,
@@ -95,6 +114,12 @@ object MessagePayload {
 
     /** The longest quote: 100 code points of text, and „…“ when it was cut. */
     const val REPLY_EXCERPT_LENGTH = 100
+
+    /** Polls: 2–6 answers, the question at most 200 and every answer at most 80 code points. */
+    const val POLL_MIN_OPTIONS = 2
+    const val POLL_MAX_OPTIONS = 6
+    const val POLL_QUESTION_LENGTH = 200
+    const val POLL_OPTION_LENGTH = 80
 
     /** The kind of any other file (PDF, ZIP, documents …). */
     const val FILE = "file"
@@ -139,18 +164,7 @@ object MessagePayload {
                 put("text", content.text)
                 put("attachments", JsonArray(content.attachments.map { json.encodeToJsonElement(MessageAttachment.serializer(), it) }))
                 if (effect != null) put("effect", effect)
-                if (reply != null) {
-                    put(
-                        "reply",
-                        buildJsonObject {
-                            put("to", reply.to)
-                            put("sender", reply.sender)
-                            put("kind", reply.kind)
-                            put("excerpt", reply.excerpt)
-                            put("expires_at", reply.expiresAt)
-                        }
-                    )
-                }
+                if (reply != null) put("reply", replyObject(reply))
             }.toString()
         }
     }
@@ -162,19 +176,82 @@ object MessagePayload {
      */
     fun reaction(to: String, emoji: String): String {
         if (!wellFormed(MessageReaction(to, emoji))) throw ChatCryptoException.InvalidInput("Malformed reaction.")
-        return buildJsonObject {
-            put("t", TYPE)
-            put("v", VERSION)
-            put("text", "")
-            put("attachments", JsonArray(emptyList()))
-            put(
-                "reaction",
-                buildJsonObject {
-                    put("to", to)
-                    put("emoji", emoji)
-                }
-            )
-        }.toString()
+        return control(
+            "reaction",
+            buildJsonObject {
+                put("to", to)
+                put("emoji", emoji)
+            }
+        )
+    }
+
+    /**
+     * A poll (`buildPollPayload`): question and answers trimmed; the question is also the text, for clients without polls.
+     * @throws ChatCryptoException.InvalidInput for a missing or too long question or answers outside the limits.
+     */
+    fun poll(question: String, options: List<String>, multiple: Boolean): String {
+        val poll = MessagePoll(question.trim(), options.map(String::trim), multiple)
+        if (!wellFormed(poll)) throw ChatCryptoException.InvalidInput("Malformed poll.")
+        return control(
+            "poll",
+            buildJsonObject {
+                put("question", poll.question)
+                put("options", JsonArray(poll.options.map(::JsonPrimitive)))
+                put("multiple", poll.multiple)
+            },
+            text = poll.question
+        )
+    }
+
+    /**
+     * A vote (`buildVotePayload`): the chosen answers in ascending order; none takes the vote back.
+     * @throws ChatCryptoException.InvalidInput for a malformed poll signature or indices.
+     */
+    fun vote(poll: String, options: List<Int>): String {
+        val vote = MessageVote(poll, options.sorted())
+        if (!wellFormed(vote)) throw ChatCryptoException.InvalidInput("Malformed vote.")
+        return control(
+            "vote",
+            buildJsonObject {
+                put("poll", vote.poll)
+                put("options", JsonArray(vote.options.map(::JsonPrimitive)))
+            }
+        )
+    }
+
+    /**
+     * „Umfrage beenden“ (`buildPollClosePayload`); only the poll's creator counts.
+     * @throws ChatCryptoException.InvalidInput for a malformed poll signature.
+     */
+    fun pollClose(poll: String): String {
+        if (!SIGNATURE.matches(poll)) throw ChatCryptoException.InvalidInput("Malformed poll.")
+        return control("poll_close", buildJsonObject { put("poll", poll) })
+    }
+
+    /**
+     * A pin of the message [quote] describes (the reply format, [replyTo]), or null to unpin (`buildPinPayload`).
+     * @throws ChatCryptoException.InvalidInput for a malformed quote.
+     */
+    fun pin(quote: MessageReply?): String {
+        if (quote != null && !wellFormed(quote)) throw ChatCryptoException.InvalidInput("Malformed pin.")
+        return control("pin", if (quote == null) buildJsonObject { put("to", "") } else replyObject(quote))
+    }
+
+    /** A control message or poll: the payload around one field, without attachments or anything else. */
+    private fun control(field: String, value: JsonObject, text: String = ""): String = buildJsonObject {
+        put("t", TYPE)
+        put("v", VERSION)
+        put("text", text)
+        put("attachments", JsonArray(emptyList()))
+        put(field, value)
+    }.toString()
+
+    private fun replyObject(reply: MessageReply): JsonObject = buildJsonObject {
+        put("to", reply.to)
+        put("sender", reply.sender)
+        put("kind", reply.kind)
+        put("excerpt", reply.excerpt)
+        put("expires_at", reply.expiresAt)
     }
 
     /**
@@ -234,8 +311,40 @@ object MessagePayload {
             listed.take(MAX_ATTACHMENTS).mapNotNull(::checked),
             effect,
             reply(payload["reply"]),
-            reaction(payload["reaction"])
+            reaction(payload["reaction"]),
+            poll(payload["poll"]),
+            vote(payload["vote"]),
+            string((payload["poll_close"] as? JsonObject)?.get("poll"))?.takeIf(SIGNATURE::matches),
+            pin(payload["pin"])
         )
+    }
+
+    /** A string field, or null for anything else. */
+    private fun string(element: JsonElement?): String? = (element as? JsonPrimitive)?.takeIf { it.isString }?.content
+
+    /** A well-formed poll (`checkPoll`), or null. */
+    private fun poll(element: JsonElement?): MessagePoll? {
+        val fields = element as? JsonObject ?: return null
+        val question = string(fields["question"]) ?: return null
+        val listed = fields["options"] as? JsonArray ?: return null
+        val options = listed.mapNotNull(::string)
+        val multiple = (fields["multiple"] as? JsonPrimitive)?.takeIf { !it.isString }?.booleanOrNull ?: return null
+        return MessagePoll(question, options, multiple).takeIf { options.size == listed.size && wellFormed(it) }
+    }
+
+    /** A well-formed vote (`checkVote`: indices 0–5, ascending, distinct), or null. */
+    private fun vote(element: JsonElement?): MessageVote? {
+        val fields = element as? JsonObject ?: return null
+        val poll = string(fields["poll"]) ?: return null
+        val listed = fields["options"] as? JsonArray ?: return null
+        val options = listed.mapNotNull { (it as? JsonPrimitive)?.takeIf { index -> !index.isString }?.intOrNull }
+        return MessageVote(poll, options).takeIf { options.size == listed.size && wellFormed(it) }
+    }
+
+    /** A pin (a quote like a reply's) or an unpin (`to` ""), or null (`checkPin`). */
+    private fun pin(element: JsonElement?): MessagePin? {
+        if (string((element as? JsonObject)?.get("to")) == "") return MessagePin(null)
+        return reply(element)?.let(::MessagePin)
     }
 
     /** A well-formed reply of a payload, or null (`checkReply`). */
@@ -257,6 +366,15 @@ object MessagePayload {
     private fun wellFormed(reply: MessageReply): Boolean = SIGNATURE.matches(reply.to) && ID.matches(reply.sender) &&
         reply.kind in REPLY_KINDS && reply.excerpt.codePointCount(0, reply.excerpt.length) <= REPLY_EXCERPT_LENGTH + 1 &&
         (reply.kind == "text" || reply.excerpt.isEmpty()) && EXPIRY.matches(reply.expiresAt)
+
+    private fun wellFormed(poll: MessagePoll): Boolean = fits(poll.question, POLL_QUESTION_LENGTH) &&
+        poll.options.size in POLL_MIN_OPTIONS..POLL_MAX_OPTIONS && poll.options.all { fits(it, POLL_OPTION_LENGTH) }
+
+    private fun wellFormed(vote: MessageVote): Boolean = SIGNATURE.matches(vote.poll) &&
+        vote.options.all { it in 0 until POLL_MAX_OPTIONS } && vote.options.zipWithNext().all { (first, second) -> second > first }
+
+    /** Not empty and at most [limit] code points. */
+    private fun fits(text: String, limit: Int): Boolean = text.isNotEmpty() && text.codePointCount(0, text.length) <= limit
 
     private fun wellFormed(reaction: MessageReaction): Boolean =
         SIGNATURE.matches(reaction.to) && (reaction.emoji.isEmpty() || reaction.emoji in REACTIONS)

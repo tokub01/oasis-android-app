@@ -47,6 +47,14 @@ sealed interface SettingValue {
  * every crypto object; the server's integer ids are sent as numbers where it expects them (`user_id`, `member_ids`).
  */
 interface ChatRepository {
+    companion object {
+        /** The kinds of a sent message (docs/oasis-chat.md, "Reactions and replies (server)"). */
+        const val MESSAGE = "message"
+        const val REACTION = "reaction"
+        const val PIN = "pin"
+        const val VOTE = "vote"
+    }
+
     /** The stored identity, or null before the chat is set up. */
     suspend fun identity(): StoredIdentity?
 
@@ -132,14 +140,14 @@ interface ChatRepository {
 
     /**
      * Sends one encrypted envelope, with the ids of the completed uploads it carries (at most 4); returns the stored
-     * message with the attachments' states. A [reaction] goes with `"kind":"reaction"` and no files: quiet on the server
-     * (no push, never unread).
+     * message with the attachments' states. The control [kind]s `reaction`, `pin` and `vote` go without files and are
+     * quiet on the server (no push, never unread); what a message is, the clients decide by its decrypted payload only.
      */
     suspend fun sendMessage(
         conversationId: String,
         envelope: MessageEnvelope,
         attachmentIds: List<String> = emptyList(),
-        reaction: Boolean = false
+        kind: String = MESSAGE
     ): MessageRecord
 
     /** Reserves an upload of [size] ciphertext bytes; [viewOnce] deletes it for good once every recipient viewed it. */
@@ -290,13 +298,13 @@ class DefaultChatRepository(client: ApiClient) : ChatRepository {
 
     override suspend fun messages(conversationId: String, beforeId: String?) = service.messages(conversationId, beforeId)
 
-    override suspend fun sendMessage(conversationId: String, envelope: MessageEnvelope, attachmentIds: List<String>, reaction: Boolean) =
+    override suspend fun sendMessage(conversationId: String, envelope: MessageEnvelope, attachmentIds: List<String>, kind: String) =
         service.sendMessage(
             conversationId,
             buildJsonObject {
                 put("envelope", envelope.toJsonObject())
                 if (attachmentIds.isNotEmpty()) put("attachment_ids", JsonArray(attachmentIds.map(::JsonPrimitive)))
-                if (reaction) put("kind", "reaction")
+                if (kind != ChatRepository.MESSAGE) put("kind", kind)
             }
         ).data
 

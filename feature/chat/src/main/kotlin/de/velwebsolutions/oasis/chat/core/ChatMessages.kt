@@ -8,6 +8,7 @@ import de.velwebsolutions.oasis.chatcrypto.MessageAttachment
 import de.velwebsolutions.oasis.chatcrypto.MessageContent
 import de.velwebsolutions.oasis.chatcrypto.MessageEnvelope
 import de.velwebsolutions.oasis.chatcrypto.MessagePayload
+import de.velwebsolutions.oasis.chatcrypto.MessagePoll
 import de.velwebsolutions.oasis.chatcrypto.MessageReply
 import de.velwebsolutions.oasis.chatcrypto.decryptMessage
 import de.velwebsolutions.oasis.chatcrypto.encryptMessage
@@ -163,6 +164,57 @@ object ChatReactions {
             targets.getOrPut(reaction.to) { mutableMapOf() }[item.senderId] = reaction.emoji
         }
         return targets.mapValues { (_, senders) -> senders.filterValues { it.isNotEmpty() } }.filterValues { it.isNotEmpty() }
+    }
+}
+
+/**
+ * The pinned message (`pinnedMessage`): the newest valid pin counts, `{"to":""}` removes it. In a 1:1 chat both members may
+ * pin, in a group only its owner; pins from anyone else are ignored.
+ */
+object ChatPins {
+    /** The quote of the pinned message, or null. [items] oldest first. */
+    fun pinned(items: List<ChatMessageItem>, conversation: ChatConversation): MessageReply? {
+        var pinned: MessageReply? = null
+        for (item in items) {
+            val pin = item.content.pin ?: continue
+            if (conversation.type == "direct" || item.senderId == conversation.createdBy) pinned = pin.quote
+        }
+        return pinned
+    }
+}
+
+/** A poll as it stands: its creator, whether it was ended, and the counting vote (answer indices) per person. */
+data class PollState(val poll: MessagePoll, val creator: String, val closed: Boolean, val votes: Map<String, List<Int>>)
+
+/**
+ * Every poll of the timeline (`pollStates`): the newest valid vote per person counts (`[]` takes it back; single choice
+ * at most one answer; no index beyond the answers); only its creator can end it, and votes after that do not count.
+ */
+object ChatPolls {
+    /** The polls by signature. [items] oldest first. */
+    fun states(items: List<ChatMessageItem>): Map<String, PollState> {
+        val polls = mutableMapOf<String, PollState>()
+        for (item in items) {
+            val content = item.content
+            content.poll?.let { polls[item.signature] = PollState(it, item.senderId, closed = false, votes = emptyMap()) }
+            content.pollClose?.let { signature ->
+                polls[signature]?.takeIf { it.creator == item.senderId }?.let { polls[signature] = it.copy(closed = true) }
+            }
+            val vote = content.vote ?: continue
+            val state = polls[vote.poll]?.takeIf { !it.closed } ?: continue
+            val valid = vote.options.all { it < state.poll.options.size } && (state.poll.multiple || vote.options.size <= 1)
+            if (!valid) continue
+            polls[vote.poll] =
+                state.copy(
+                    votes = if (vote.options.isEmpty()) {
+                        state.votes - item.senderId
+                    } else {
+                        state.votes +
+                            (item.senderId to vote.options)
+                    }
+                )
+        }
+        return polls
     }
 }
 

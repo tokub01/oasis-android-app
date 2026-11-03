@@ -57,11 +57,17 @@ class ReactionActions(
     val onReact: suspend (ChatMessageItem, String) -> Unit,
     val onReply: (ChatMessageItem) -> Unit,
     val onCancelReply: () -> Unit,
-    val onQuote: (String) -> Int?
+    val onQuote: (String) -> Int?,
+    /** „Anheften“ / „Lösen“. */
+    val onPin: suspend (ChatMessageItem) -> Unit,
+    /** A vote for the answer with the index in the poll. */
+    val onVote: suspend (ChatMessageItem, Int) -> Unit,
+    /** „Umfrage beenden“. */
+    val onClosePoll: suspend (ChatMessageItem) -> Unit
 ) {
     companion object {
         /** Screens without reactions (previews). */
-        val None = ReactionActions({ _, _ -> }, {}, {}, { null })
+        val None = ReactionActions({ _, _ -> }, {}, {}, { null }, {}, { _, _ -> }, {})
     }
 }
 
@@ -76,13 +82,14 @@ class BubbleExtras(
     val canAct: Boolean,
     val onReact: (String) -> Unit,
     val onReply: () -> Unit,
-    val onQuote: (String) -> Unit
-) {
-    companion object {
-        /** A bubble without any of it. */
-        val None = BubbleExtras(null, emptyList(), "", false, {}, {}, {})
-    }
-}
+    val onQuote: (String) -> Unit,
+    /** „Anheften“ or „Lösen“ in the reaction bar for those who may pin, else null. */
+    val pinLabel: String?,
+    val onPin: () -> Unit,
+    /** The poll this bubble shows instead of its text. */
+    val poll: PollView?,
+    val pollActions: PollActions
+)
 
 /** The quote of a reply above the text: who and what, tappable to the original; past its expiry only a note. */
 @Composable
@@ -155,7 +162,8 @@ internal fun ReactionChips(chips: List<ReactionChip>) {
 
 /** „Reaktion wählen“: the six emoji (the own one pressed; tapping it again removes it) and „Antworten“. */
 @Composable
-internal fun ReactionBar(expanded: Boolean, own: String, onDismiss: () -> Unit, onReact: (String) -> Unit, onReply: () -> Unit) {
+internal fun ReactionBar(expanded: Boolean, extras: BubbleExtras, onDismiss: () -> Unit) {
+    val own = extras.own
     DropdownMenu(expanded = expanded, onDismissRequest = onDismiss, containerColor = OasisColors.Paper) {
         Row(
             modifier = Modifier
@@ -172,7 +180,7 @@ internal fun ReactionBar(expanded: Boolean, own: String, onDismiss: () -> Unit, 
                         .border(1.dp, if (emoji == own) OasisColors.Night else Color.Transparent, CircleShape)
                         .pressable({
                             onDismiss()
-                            onReact(emoji)
+                            extras.onReact(emoji)
                         })
                         .semantics {
                             role = Role.Button
@@ -190,10 +198,20 @@ internal fun ReactionBar(expanded: Boolean, own: String, onDismiss: () -> Unit, 
             text = { Text("Antworten", style = OasisType.Body, color = OasisColors.Ink) },
             onClick = {
                 onDismiss()
-                onReply()
+                extras.onReply()
             },
             modifier = Modifier.testTag("chat.reactionBar.reply")
         )
+        extras.pinLabel?.let { label ->
+            DropdownMenuItem(
+                text = { Text(label, style = OasisType.Body, color = OasisColors.Ink) },
+                onClick = {
+                    onDismiss()
+                    extras.onPin()
+                },
+                modifier = Modifier.testTag("chat.reactionBar.pin")
+            )
+        }
     }
 }
 
