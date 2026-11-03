@@ -21,6 +21,7 @@ import de.velwebsolutions.oasis.chat.core.ChatKeyring
 import de.velwebsolutions.oasis.chat.core.ChatKeyringException
 import de.velwebsolutions.oasis.chat.core.ChatMessageItem
 import de.velwebsolutions.oasis.chat.core.ChatMessages
+import de.velwebsolutions.oasis.chat.core.ChatReactions
 import de.velwebsolutions.oasis.chat.core.ChatSafety
 import de.velwebsolutions.oasis.chat.core.ChatTimeline
 import de.velwebsolutions.oasis.chat.core.DraftAttachment
@@ -34,12 +35,14 @@ import de.velwebsolutions.oasis.chatcrypto.MessageAttachment
 import de.velwebsolutions.oasis.chatcrypto.MessageContent
 import de.velwebsolutions.oasis.chatcrypto.MessageEnvelope
 import de.velwebsolutions.oasis.chatcrypto.MessagePayload
+import de.velwebsolutions.oasis.chatcrypto.MessageReply
 import de.velwebsolutions.oasis.core.network.ApiError
 import de.velwebsolutions.oasis.core.realtime.RealtimeEvent
 import de.velwebsolutions.oasis.core.realtime.RealtimeService
 import de.velwebsolutions.oasis.core.share.PendingShare
 import de.velwebsolutions.oasis.core.share.Share
 import de.velwebsolutions.oasis.core.share.SharedFile
+import java.time.Instant
 import kotlin.time.Duration
 import kotlin.time.Duration.Companion.seconds
 import kotlinx.coroutines.CancellationException
@@ -86,6 +89,41 @@ object EffectNames {
     )
 
     fun of(key: String): String = all.first { it.first == key }.second
+}
+
+/**
+ * One reaction chip under a bubble: „{emoji} {count}“, whether the own reaction is among them, and who reacted
+ * („Mira, Du“: names as in the chat, „Du“ last).
+ */
+data class ReactionChip(val emoji: String, val count: Int, val mine: Boolean, val names: String) {
+    /** „👍, 2 Reaktionen“. */
+    val description: String get() = "$emoji, $count ${if (count == 1) "Reaktion" else "Reaktionen"}"
+}
+
+/**
+ * The quote of a reply inside its bubble: whose message ([name], „Du“ for one's own) and what it said; [gone] once the
+ * original's expiry passed (then only „Nachricht nicht mehr verfügbar“, not tappable).
+ */
+data class ReplyQuote(val to: String, val name: String, val text: String, val gone: Boolean)
+
+/** The quote bar above the composer while a reply is being written. */
+data class ReplyBar(val title: String, val text: String)
+
+/** The texts of a reply's quote by kind (conversation-view.js `QUOTE_LABELS`). */
+object QuoteTexts {
+    private val labels = mapOf(
+        "image" to "Foto",
+        "audio" to "Sprachnachricht",
+        "video" to "Video",
+        "file" to "Datei",
+        "once" to "Einmal ansehen"
+    )
+
+    /** The excerpt of a text, or what the message held. */
+    fun of(reply: MessageReply): String = if (reply.kind == "text") reply.excerpt else labels.getValue(reply.kind)
+
+    const val GONE = "Nachricht nicht mehr verfügbar"
+    const val NOT_LOADED = "Die Nachricht ist nicht geladen. Ältere Nachrichten laden, um sie zu sehen."
 }
 
 /** What the conversation screen shows. */
@@ -145,7 +183,13 @@ data class ConversationState(
     /** An effect chosen with nothing to send yet: the chip „Effekt: …“ above the field, for the next message. */
     val pendingEffect: String? = null,
     /** The effect playing over the chat right now. */
-    val playing: EffectPlay? = null
+    val playing: EffectPlay? = null,
+    /** The reaction chips by target signature, in the order of [MessagePayload.REACTIONS]. */
+    val reactions: Map<String, List<ReactionChip>> = emptyMap(),
+    /** The quotes of replies by the reply's signature. */
+    val quotes: Map<String, ReplyQuote> = emptyMap(),
+    /** The quote bar above the composer while answering a message. */
+    val replyBar: ReplyBar? = null
 ) {
     /** The chip text of [pendingEffect]. */
     val effectChip: String? get() = pendingEffect?.let { "Effekt: ${EffectNames.of(it)}" }
@@ -157,6 +201,20 @@ data class ConversationState(
     /** The round button says „Senden“ (something is written or attached); otherwise it records a voice message. */
     val showsSend: Boolean
         get() = draft.isNotBlank() || drafts.isNotEmpty()
+
+    /** The messages shown as bubbles: every item except reactions (they show as chips under their target). */
+    val bubbles: List<ChatMessageItem> get() = timeline.items.filter { it.content.reaction == null }
+
+    /** The rows of the message list above the first bubble (header, notices, banners, „Ältere Nachrichten laden“, a note). */
+    val leadingRows: Int
+        get() = 1 + notices.size + listOfNotNull(requestTitle, flagged, nextBeforeId).size +
+            if (loadFailed != null || conversation == null || bubbles.isEmpty()) 1 else 0
+
+    /** Reacting to and answering [item]: a readable message, while this account may write here. */
+    fun canAct(item: ChatMessageItem): Boolean = canSend && item.state == ChatMessageItem.State.Readable
+
+    /** The own reaction to the message with [signature], or "". */
+    fun ownReaction(signature: String): String = reactions[signature]?.firstOrNull { it.mine }?.emoji.orEmpty()
 
     /** "Senden" is possible: text or files, within the limits, not while recording or uploading. */
     val canSubmit: Boolean
@@ -199,6 +257,9 @@ class ConversationViewModel @AssistedInject constructor(
 
     /** Counts the playings, so the same effect plays again. */
     private var effectPlays = 0
+
+    /** What the message being written answers („Antworten“), until it is sent, cancelled or the chat closes. */
+    private var reply: MessageReply? = null
     private var timeline = ChatTimeline()
     private var notices: List<String> = emptyList()
     private var nextBeforeId: String? = null
@@ -252,8 +313,10 @@ class ConversationViewModel @AssistedInject constructor(
         val current = conversation
         val trusted = current != null && ChatKeyring.ownerTrusted(vault, current)
         val changed = change(mutableState.value)
-        val measured = ChatMessages.measure(changed.draft, changed.drafts, sentEffect(changed))
+        val measured = ChatMessages.measure(changed.draft, changed.drafts, sentEffect(changed), reply)
         mutableState.value = changed.copy(
+            reactions = reactionChips(),
+            quotes = timeline.items.mapNotNull { item -> item.content.reply?.let { item.signature to quote(it) } }.toMap(),
             conversation = current,
             title = current?.displayTitle(myId).orEmpty(),
             lifetimeLine = current?.let {
@@ -276,6 +339,24 @@ class ConversationViewModel @AssistedInject constructor(
             isOwner = current?.createdBy == myId
         )
     }
+
+    /** The chips of every target: in the order of the set, the own one marked, the names with „Du“ last. */
+    private fun reactionChips(): Map<String, List<ReactionChip>> = ChatReactions.byTarget(timeline.items).mapValues { (_, senders) ->
+        MessagePayload.REACTIONS.mapNotNull { emoji ->
+            val who = senders.filterValues { it == emoji }.keys
+            if (who.isEmpty()) return@mapNotNull null
+            val names = who.filter { it != myId }.map(::senderName) + listOfNotNull("Du".takeIf { myId in who })
+            ReactionChip(emoji, who.size, myId in who, "$emoji ${names.joinToString(", ")}")
+        }
+    }
+
+    /** A reply's quote as shown: the original sender's name and the text, or gone once the original expired. */
+    private fun quote(reply: MessageReply): ReplyQuote = ReplyQuote(
+        to = reply.to,
+        name = if (reply.sender == myId) "Du" else senderName(reply.sender),
+        text = QuoteTexts.of(reply),
+        gone = !Instant.parse(reply.expiresAt).isAfter(vault.clock.now())
+    )
 
     // region Lifecycle
 
@@ -344,9 +425,11 @@ class ConversationViewModel @AssistedInject constructor(
         dismissed.clear()
         confirmedDraft = null
         unseen = false
+        reply = null
         render {
             it.copy(
                 draft = "",
+                replyBar = null,
                 hint = null,
                 // A failure of the last opening (or of work cut off by the close) is no news for the next one.
                 loadFailed = null,
@@ -537,13 +620,15 @@ class ConversationViewModel @AssistedInject constructor(
         if (states == null && item.content.attachments.isNotEmpty()) viewModelScope.launch { reloadStates() }
         // Live only, once: a message from someone else with an effect plays it – after its files' states said none is
         // view once (realtime brings no states, they come with the reload).
+        // A reaction only changes the chips of its target: no announcement, no effect, not read (conversation-view.js).
+        val fromOthers = item.senderId != myId && item.content.reaction == null
         val effect = item.content.effect
-        if (live && effect != null && item.senderId != myId) {
+        if (live && effect != null && fromOthers) {
             if (item.content.attachments.isEmpty()) play(effect) else awaitingEffects[item.signature] = effect
         }
         checkSafety()
         render()
-        if (item.senderId != myId) {
+        if (fromOthers) {
             render { it.copy(spokenNotice = "Neue Nachricht von ${senderName(item.senderId)}.") }
             // Read means seen: not while another app is in front or the screen is off.
             if (visible) {
@@ -629,7 +714,8 @@ class ConversationViewModel @AssistedInject constructor(
             // No effect with a view-once file: the chosen one waits for the next message.
             val effect = sentEffect(state.value)
             val references = upload(current.id, drafts)
-            val plaintext = MessagePayload.encode(MessageContent(text, references, effect))
+            val answered = reply
+            val plaintext = MessagePayload.encode(MessageContent(text, references, effect, answered))
             val envelope = ChatMessages.seal(plaintext, current, vault, context.crypto)
             val stored = context.repository.sendMessage(current.id, envelope, references.map { it.id })
             // Left or locked meanwhile: sent, but nothing of it is kept or written to the device any more (conversation-view.js).
@@ -642,6 +728,9 @@ class ConversationViewModel @AssistedInject constructor(
                 runCatching { media.present(draft.kind, draft.data, draft.mime, draft.name) }.getOrNull()?.let { reference.id to it }
             }.toMap()
             render { it.copy(drafts = it.drafts - drafts.toSet(), uploadProgress = null, attachmentViews = it.attachmentViews + shown) }
+            // The quote went along: the bar closes.
+            reply = null
+            render { it.copy(replyBar = null) }
             setDraft(remainder(state.value.draft, typed))
             receive(envelope, stored.attachments)
             // Replying accepts a message request.
@@ -1023,10 +1112,69 @@ class ConversationViewModel @AssistedInject constructor(
 
     // endregion
 
+    // region Reactions and replies
+
+    /**
+     * React to [item] with [emoji] – the own reaction again removes it: an encrypted reaction message, quiet on the server
+     * (`"kind":"reaction"`), shown at once as a chip.
+     */
+    suspend fun react(item: ChatMessageItem, emoji: String) = inScope {
+        val current = conversation ?: return@inScope
+        val token = openCount
+        try {
+            val chosen = if (state.value.ownReaction(item.signature) == emoji) "" else emoji
+            val envelope = ChatMessages.seal(MessagePayload.reaction(item.signature, chosen), current, vault, context.crypto)
+            context.repository.sendMessage(current.id, envelope, reaction = true)
+            if (isCurrent(token)) receive(envelope, emptyList())
+        } catch (error: Exception) {
+            if (isCurrent(token)) render { it.copy(actionError = describeChatError(error)) }
+        }
+    }
+
+    /** „Antworten“: the quote bar above the composer („Antwort an {Name}“, „Antwort an dich“). */
+    fun startReply(item: ChatMessageItem) {
+        val expiry = item.expiresAt ?: return
+        val quoted = MessagePayload.replyTo(
+            item.signature,
+            item.senderId,
+            expiry,
+            item.content.text,
+            item.content.attachments,
+            viewOnce = item.attachmentStates.values.any { it.viewOnce }
+        )
+        reply = quoted
+        val name = if (item.senderId == myId) "dich" else senderName(item.senderId)
+        render { it.copy(replyBar = ReplyBar("Antwort an $name", QuoteTexts.of(quoted))) }
+    }
+
+    /** „Antwort abbrechen“. */
+    fun cancelReply() {
+        reply = null
+        render { it.copy(replyBar = null) }
+    }
+
+    /**
+     * Tapping a quote: the position of the original among the bubbles while it is loaded; otherwise null and the note
+     * that it is not loaded.
+     */
+    fun quoteTarget(signature: String): Int? {
+        val index = state.value.bubbles.indexOfFirst { it.signature == signature }
+        if (index < 0) {
+            render { it.copy(status = QuoteTexts.NOT_LOADED) }
+            return null
+        }
+        return index
+    }
+
+    // endregion
+
     // region Safety banner, requests, blocking
 
     private fun checkSafety() {
-        val incoming = timeline.items.filter { it.senderId != myId && it.state == ChatMessageItem.State.Readable }
+        val incoming = timeline.items.filter {
+            it.senderId != myId && it.state == ChatMessageItem.State.Readable &&
+                it.content.reaction == null
+        }
         for (item in incoming.reversed()) {
             if (item.signature in dismissed) continue
             val finding = ChatSafety.scanIncoming(item.content.text, vault.safety.lists) ?: continue

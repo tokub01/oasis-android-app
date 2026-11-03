@@ -132,9 +132,15 @@ interface ChatRepository {
 
     /**
      * Sends one encrypted envelope, with the ids of the completed uploads it carries (at most 4); returns the stored
-     * message with the attachments' states.
+     * message with the attachments' states. A [reaction] goes with `"kind":"reaction"` and no files: quiet on the server
+     * (no push, never unread).
      */
-    suspend fun sendMessage(conversationId: String, envelope: MessageEnvelope, attachmentIds: List<String> = emptyList()): MessageRecord
+    suspend fun sendMessage(
+        conversationId: String,
+        envelope: MessageEnvelope,
+        attachmentIds: List<String> = emptyList(),
+        reaction: Boolean = false
+    ): MessageRecord
 
     /** Reserves an upload of [size] ciphertext bytes; [viewOnce] deletes it for good once every recipient viewed it. */
     suspend fun startAttachment(conversationId: String, size: Int, viewOnce: Boolean): AttachmentUpload
@@ -284,13 +290,15 @@ class DefaultChatRepository(client: ApiClient) : ChatRepository {
 
     override suspend fun messages(conversationId: String, beforeId: String?) = service.messages(conversationId, beforeId)
 
-    override suspend fun sendMessage(conversationId: String, envelope: MessageEnvelope, attachmentIds: List<String>) = service.sendMessage(
-        conversationId,
-        buildJsonObject {
-            put("envelope", envelope.toJsonObject())
-            if (attachmentIds.isNotEmpty()) put("attachment_ids", JsonArray(attachmentIds.map(::JsonPrimitive)))
-        }
-    ).data
+    override suspend fun sendMessage(conversationId: String, envelope: MessageEnvelope, attachmentIds: List<String>, reaction: Boolean) =
+        service.sendMessage(
+            conversationId,
+            buildJsonObject {
+                put("envelope", envelope.toJsonObject())
+                if (attachmentIds.isNotEmpty()) put("attachment_ids", JsonArray(attachmentIds.map(::JsonPrimitive)))
+                if (reaction) put("kind", "reaction")
+            }
+        ).data
 
     override suspend fun startAttachment(conversationId: String, size: Int, viewOnce: Boolean) = service.startAttachment(
         conversationId,

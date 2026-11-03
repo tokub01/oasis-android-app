@@ -11,6 +11,7 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.combinedClickable
+import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -65,12 +66,14 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.SolidColor
 import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.semantics.LiveRegionMode
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.liveRegion
+import androidx.compose.ui.semantics.onLongClick
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.font.FontStyle
 import androidx.compose.ui.text.font.FontWeight
@@ -163,7 +166,13 @@ internal fun ConversationScreen(conversationId: Int) {
             onDismissFlagged = model::dismissFlagged,
             onNoticeSpoken = model::noticeSpoken,
             attachments = model.attachmentActions(),
-            effects = EffectActions(onChoose = model::chooseEffect, onClear = model::clearEffect, onDone = model::effectDone)
+            effects = EffectActions(onChoose = model::chooseEffect, onClear = model::clearEffect, onDone = model::effectDone),
+            reactions = ReactionActions(
+                onReact = model::react,
+                onReply = model::startReply,
+                onCancelReply = model::cancelReply,
+                onQuote = model::quoteTarget
+            )
         )
     }
     report?.let { ReportSheet(it, onDismiss = { report = null }) }
@@ -202,14 +211,15 @@ internal fun ConversationContent(
     /** The avatar beside someone else's messages. */
     senderAvatar: (String) -> ChatAvatar = { ChatAvatar.Unknown },
     senderProfile: (String) -> ProfileLink? = { null },
-    effects: EffectActions = EffectActions.None
+    effects: EffectActions = EffectActions.None,
+    reactions: ReactionActions = ReactionActions.None
 ) {
     val look = LookStyle.of(state.look)
     CompositionLocalProvider(LocalChatLook provides look) {
         Box(Modifier.fillMaxSize()) {
             ConversationColumn(
                 state, myId, senderName, onLoadOlder, onDraftChange, onSend, onReport, onAccept, onDecline, onBlockFlagged,
-                onDismissFlagged, onNoticeSpoken, attachments, senderAvatar, senderProfile, effects
+                onDismissFlagged, onNoticeSpoken, attachments, senderAvatar, senderProfile, effects, reactions
             )
             // Over everything, never in the way of a tap.
             state.playing?.let { EffectOverlay(it, effects.onDone) }
@@ -243,12 +253,15 @@ private fun ConversationColumn(
     attachments: AttachmentActions,
     senderAvatar: (String) -> ChatAvatar,
     senderProfile: (String) -> ProfileLink?,
-    effects: EffectActions
+    effects: EffectActions,
+    reactions: ReactionActions
 ) {
     val look = LocalChatLook.current
     val photo = rememberLookPhoto(state.look.photo)
     val listState = rememberLazyListState()
-    val items = state.timeline.items
+    val scope = rememberCoroutineScope()
+    // Reactions are no bubbles: they show as chips under their target.
+    val items = state.bubbles
     var confirmDecline by remember { mutableStateOf(false) }
     var confirmBlockRequest by remember { mutableStateOf(false) }
     var confirmBlockFlagged by remember { mutableStateOf(false) }
@@ -388,7 +401,20 @@ private fun ConversationColumn(
                     // Beside someone else's messages: the avatar at the start of each of their runs, room for it below.
                     avatar = if (mine) null else senderAvatar(item.senderId),
                     profile = if (mine) null else senderProfile(item.senderId),
-                    startsRun = index == 0 || items[index - 1].senderId != item.senderId
+                    startsRun = index == 0 || items[index - 1].senderId != item.senderId,
+                    extras = BubbleExtras(
+                        quote = state.quotes[item.signature],
+                        chips = state.reactions[item.signature].orEmpty(),
+                        own = state.ownReaction(item.signature),
+                        canAct = state.canAct(item),
+                        onReact = { emoji -> scope.launch { reactions.onReact(item, emoji) } },
+                        onReply = { reactions.onReply(item) },
+                        onQuote = { to ->
+                            reactions.onQuote(to)?.let { target ->
+                                scope.launch { listState.animateScrollToItem(state.leadingRows + target) }
+                            }
+                        }
+                    )
                 ) {
                     MessageAttachments(
                         item,
@@ -408,7 +434,7 @@ private fun ConversationColumn(
                 Modifier.background(OasisColors.Paper).padding(horizontal = 16.dp, vertical = 10.dp).testTag("chat.composer.untrustedOwner")
             )
         } else {
-            ConversationComposer(state, onDraftChange, onSend, attachments, effects)
+            ConversationComposer(state, onDraftChange, onSend, attachments, effects, reactions.onCancelReply)
         }
         state.viewOnce?.let { ViewOnceViewer(it, attachments, onReport) }
         state.spokenNotice?.let { notice ->
@@ -450,7 +476,8 @@ private fun ConversationComposer(
     onDraftChange: (String) -> Unit,
     onSend: suspend () -> Unit,
     attachments: AttachmentActions,
-    effects: EffectActions
+    effects: EffectActions,
+    onCancelReply: () -> Unit
 ) {
     var effectMenu by remember { mutableStateOf(false) }
     val shape = RoundedCornerShape(OasisRadius.XS.dp)
@@ -499,6 +526,7 @@ private fun ConversationComposer(
                 modifier = Modifier.testTag("chat.composer.microphoneDenied")
             )
         }
+        state.replyBar?.let { ReplyBarView(it, onCancelReply) }
         DraftAttachments(state, attachments)
         state.effectChip?.let { chip -> EffectChip(chip, effects.onClear) }
         val seconds = state.recordingSeconds
@@ -790,10 +818,11 @@ internal fun MessageBubble(
     avatar: ChatAvatar? = null,
     startsRun: Boolean = true,
     profile: ProfileLink? = null,
+    extras: BubbleExtras,
     attachments: @Composable () -> Unit
 ) {
     if (avatar == null) {
-        BubbleColumn(item, mine, senderName, onReport, attachments)
+        BubbleColumn(item, mine, senderName, onReport, extras, attachments)
         return
     }
     Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
@@ -806,7 +835,7 @@ internal fun MessageBubble(
         } else {
             Spacer(Modifier.size(MESSAGE_AVATAR_SIZE))
         }
-        BubbleColumn(item, mine, senderName, onReport, attachments, Modifier.weight(1f))
+        BubbleColumn(item, mine, senderName, onReport, extras, attachments, Modifier.weight(1f))
     }
 }
 
@@ -819,55 +848,69 @@ private fun BubbleColumn(
     mine: Boolean,
     senderName: String,
     onReport: () -> Unit,
+    extras: BubbleExtras,
     attachments: @Composable () -> Unit,
     modifier: Modifier = Modifier
 ) {
+    var bar by remember { mutableStateOf(false) }
     Column(
         modifier = modifier.fillMaxWidth(),
         horizontalAlignment = if (mine) Alignment.End else Alignment.Start,
         verticalArrangement = Arrangement.spacedBy(4.dp)
     ) {
-        Column(
-            modifier = Modifier
-                .widthIn(max = 520.dp)
-                .background(if (mine) OasisColors.Night else OasisColors.Paper, RoundedCornerShape(OasisRadius.S.dp))
-                // On „Nachtwasser“ the own (night) bubbles get an outline, so they stand out.
-                .then(
-                    if (mine && LocalChatLook.current.dark) {
-                        Modifier.border(1.dp, LookColors.NightLine, RoundedCornerShape(OasisRadius.S.dp)).testTag("chat.message.outlined")
-                    } else {
-                        Modifier
-                    }
-                )
-                .padding(horizontal = 16.dp, vertical = 12.dp),
-            verticalArrangement = Arrangement.spacedBy(4.dp)
-        ) {
-            val color = if (mine) OasisColors.OnNight else OasisColors.Ink
-            Text(if (mine) "Du" else senderName, style = OasisType.SmallBold, color = color)
-            val (text, italic) = when (item.state) {
-                ChatMessageItem.State.Readable -> item.content.text to false
-                ChatMessageItem.State.NoKey -> "Für diese Nachricht hast du keinen Schlüssel." to true
-                ChatMessageItem.State.Unverifiable -> "Diese Nachricht ließ sich nicht prüfen und wird nicht angezeigt." to true
-            }
-            if (text.isNotEmpty()) {
-                SelectionContainer {
-                    Text(
-                        text,
-                        style = OasisType.Body.copy(fontStyle = if (italic) FontStyle.Italic else FontStyle.Normal),
-                        color = color,
-                        modifier = Modifier.testTag("chat.message.text")
+        Box {
+            Column(
+                modifier = Modifier
+                    .widthIn(max = 520.dp)
+                    // Holding the bubble opens the reaction bar; TalkBack offers it as the long-press action.
+                    .then(if (extras.canAct) Modifier.holdOpens { bar = true } else Modifier)
+                    .background(if (mine) OasisColors.Night else OasisColors.Paper, RoundedCornerShape(OasisRadius.S.dp))
+                    // On „Nachtwasser“ the own (night) bubbles get an outline, so they stand out.
+                    .then(
+                        if (mine && LocalChatLook.current.dark) {
+                            Modifier.border(
+                                1.dp,
+                                LookColors.NightLine,
+                                RoundedCornerShape(OasisRadius.S.dp)
+                            ).testTag("chat.message.outlined")
+                        } else {
+                            Modifier
+                        }
                     )
+                    .padding(horizontal = 16.dp, vertical = 12.dp),
+                verticalArrangement = Arrangement.spacedBy(4.dp)
+            ) {
+                val color = if (mine) OasisColors.OnNight else OasisColors.Ink
+                Text(if (mine) "Du" else senderName, style = OasisType.SmallBold, color = color)
+                extras.quote?.let { ReplyQuoteView(it, mine) { extras.onQuote(it.to) } }
+                val (text, italic) = when (item.state) {
+                    ChatMessageItem.State.Readable -> item.content.text to false
+                    ChatMessageItem.State.NoKey -> "Für diese Nachricht hast du keinen Schlüssel." to true
+                    ChatMessageItem.State.Unverifiable -> "Diese Nachricht ließ sich nicht prüfen und wird nicht angezeigt." to true
                 }
+                if (text.isNotEmpty()) {
+                    SelectionContainer {
+                        Text(
+                            text,
+                            style = OasisType.Body.copy(fontStyle = if (italic) FontStyle.Italic else FontStyle.Normal),
+                            color = color,
+                            modifier = Modifier.testTag("chat.message.text")
+                        )
+                    }
+                }
+                attachments()
             }
-            attachments()
+            ReactionBar(bar, extras.own, onDismiss = { bar = false }, onReact = extras.onReact, onReply = extras.onReply)
         }
+        if (extras.chips.isNotEmpty()) ReactionChips(extras.chips)
         val reportable = !mine && item.state == ChatMessageItem.State.Readable
         // Only a line with something in it, so no empty paper pill shows on a chosen background.
-        if (item.expiresAt != null || reportable) {
-            Row(
+        if (item.expiresAt != null || reportable || extras.canAct) {
+            // Wraps on a narrow screen: the date, „Melden“, „Reagieren“ and „Antworten“ never run off the edge.
+            FlowRow(
                 modifier = Modifier.padding(horizontal = 8.dp).lookPill(LocalChatLook.current),
-                horizontalArrangement = Arrangement.spacedBy(12.dp),
-                verticalAlignment = Alignment.CenterVertically
+                horizontalArrangement = Arrangement.spacedBy(12.dp, if (mine) Alignment.End else Alignment.Start),
+                itemVerticalAlignment = Alignment.CenterVertically
             ) {
                 item.expiresAt?.let { Text("löscht sich ${formatDateTime(it)}", style = OasisType.Caption, color = OasisColors.Muted) }
                 if (reportable) {
@@ -882,7 +925,31 @@ private fun BubbleColumn(
                             .testTag("chat.message.report")
                     )
                 }
+                if (extras.canAct) {
+                    MetaAction("Reagieren", "chat.message.react") { bar = true }
+                    MetaAction("Antworten", "chat.message.reply", extras.onReply)
+                }
             }
         }
     }
 }
+
+/** „Reagieren“ and „Antworten“ in the line under a bubble (always shown on a touch screen). */
+@Composable
+private fun MetaAction(text: String, tag: String, onClick: () -> Unit) {
+    Text(
+        text,
+        style = OasisType.Caption.copy(textDecoration = TextDecoration.Underline),
+        color = OasisColors.Muted,
+        modifier = Modifier.pressable(onClick).padding(vertical = 12.dp).testTag(tag)
+    )
+}
+
+/** A long-press – by touch, or TalkBack's action „Reaktion wählen“ – runs [onHold]; the bubble's content stays as it is. */
+private fun Modifier.holdOpens(onHold: () -> Unit): Modifier = pointerInput(Unit) { detectTapGestures(onLongPress = { onHold() }) }
+    .semantics {
+        onLongClick("Reaktion wählen") {
+            onHold()
+            true
+        }
+    }

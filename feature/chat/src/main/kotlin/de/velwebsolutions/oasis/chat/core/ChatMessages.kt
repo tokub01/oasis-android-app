@@ -8,6 +8,7 @@ import de.velwebsolutions.oasis.chatcrypto.MessageAttachment
 import de.velwebsolutions.oasis.chatcrypto.MessageContent
 import de.velwebsolutions.oasis.chatcrypto.MessageEnvelope
 import de.velwebsolutions.oasis.chatcrypto.MessagePayload
+import de.velwebsolutions.oasis.chatcrypto.MessageReply
 import de.velwebsolutions.oasis.chatcrypto.decryptMessage
 import de.velwebsolutions.oasis.chatcrypto.encryptMessage
 import de.velwebsolutions.oasis.core.format.GermanTime
@@ -79,9 +80,14 @@ object ChatMessages {
      * Characters (code points) of the text, and UTF-8 bytes of the whole plaintext with the entries of [attachments],
      * against the message limits.
      */
-    fun measure(text: String, attachments: List<DraftAttachment> = emptyList(), effect: String? = null): DraftMeasure {
+    fun measure(
+        text: String,
+        attachments: List<DraftAttachment> = emptyList(),
+        effect: String? = null,
+        reply: MessageReply? = null
+    ): DraftMeasure {
         val characters = text.codePointCount(0, text.length)
-        val plaintext = MessagePayload.plaintext(MessageContent(text, attachments.map(::entry), effect))
+        val plaintext = MessagePayload.plaintext(MessageContent(text, attachments.map(::entry), effect, reply))
         val bytes = plaintext.toByteArray(Charsets.UTF_8).size
         return DraftMeasure(characters, bytes, characters > ChatCrypto.MAX_MESSAGE_LENGTH || !MessagePayload.fits(plaintext))
     }
@@ -141,6 +147,22 @@ object ChatMessages {
         } catch (_: ChatCryptoException) {
             item
         }
+    }
+}
+
+/**
+ * The reactions per target message (`reactionsByTarget`): for each sender their newest reaction counts, an empty emoji
+ * removes it. Only the decrypted payload decides what a reaction is, never the server's `kind`.
+ */
+object ChatReactions {
+    /** Target signature → sender id → emoji, from [items] oldest first. */
+    fun byTarget(items: List<ChatMessageItem>): Map<String, Map<String, String>> {
+        val targets = mutableMapOf<String, MutableMap<String, String>>()
+        for (item in items) {
+            val reaction = item.content.reaction ?: continue
+            targets.getOrPut(reaction.to) { mutableMapOf() }[item.senderId] = reaction.emoji
+        }
+        return targets.mapValues { (_, senders) -> senders.filterValues { it.isNotEmpty() } }.filterValues { it.isNotEmpty() }
     }
 }
 

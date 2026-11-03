@@ -2,6 +2,9 @@ package de.velwebsolutions.oasis.chatcrypto
 
 import de.velwebsolutions.oasis.chatcrypto.ChatCrypto.Companion.MAX_MESSAGE_BYTES
 import de.velwebsolutions.oasis.chatcrypto.ChatCrypto.Companion.MAX_MESSAGE_LENGTH
+import java.time.Instant
+import java.time.format.DateTimeFormatter
+import java.time.temporal.ChronoUnit
 import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.json.Json
@@ -36,10 +39,27 @@ data class MessageAttachment(
 )
 
 /**
- * What a message says: its text, its files (none for a plain text message) and the optional send effect (one of
- * [MessagePayload.EFFECTS]; it travels only inside the encrypted payload).
+ * What a reply quotes (docs/oasis-chat-client.md, "Reactions and replies"): the original's envelope signature [to], its
+ * sender's id, [kind] (`text`, `image`, `audio`, `video`, `file` or `once`), the [excerpt] of a text and the original's
+ * expiry (`YYYY-MM-DDTHH:MM:SSZ`; the quote shows no longer than the original lives).
  */
-data class MessageContent(val text: String, val attachments: List<MessageAttachment> = emptyList(), val effect: String? = null)
+data class MessageReply(val to: String, val sender: String, val kind: String, val excerpt: String, val expiresAt: String)
+
+/** A reaction to the message with the envelope signature [to]: one of [MessagePayload.REACTIONS], or "" to remove it. */
+data class MessageReaction(val to: String, val emoji: String)
+
+/**
+ * What a message says: its text, its files (none for a plain text message), the optional send effect (one of
+ * [MessagePayload.EFFECTS]) and the quote of a reply; [reaction] when the message is a reaction (then it is never shown
+ * as a message). All of it travels only inside the encrypted payload.
+ */
+data class MessageContent(
+    val text: String,
+    val attachments: List<MessageAttachment> = emptyList(),
+    val effect: String? = null,
+    val reply: MessageReply? = null,
+    val reaction: MessageReaction? = null
+)
 
 /**
  * The plaintext of a message, the same on every platform (resources/js/chat/attachments.js,
@@ -67,6 +87,15 @@ object MessagePayload {
     /** The send effects (docs/oasis-chat-client.md, "Backgrounds and effects"); any other value is ignored when read. */
     val EFFECTS = listOf("konfetti", "herzen", "ballons", "feuerwerk")
 
+    /** The reactions, in the order the bar and the chips show them. */
+    val REACTIONS = listOf("\uD83D\uDC4D", "\u2764\uFE0F", "\uD83D\uDE02", "\uD83D\uDE2E", "\uD83D\uDE22", "\uD83D\uDE4F")
+
+    /** What a reply quotes: text, the first file's kind, or `once` (a view-once original: never its content). */
+    val REPLY_KINDS = listOf("text", "image", "audio", "video", "file", "once")
+
+    /** The longest quote: 100 code points of text, and „…“ when it was cut. */
+    const val REPLY_EXCERPT_LENGTH = 100
+
     /** The kind of any other file (PDF, ZIP, documents …). */
     const val FILE = "file"
 
@@ -79,6 +108,10 @@ object MessagePayload {
     private val NAME_UNSAFE = Regex("[\\u0000-\\u001F\\u007F/\\\\]+")
 
     private val ID = Regex("^[1-9][0-9]{0,18}$")
+    private val REPLY_FIELDS = listOf("to", "sender", "kind", "excerpt", "expires_at")
+    private val SIGNATURE = Regex("^[A-Za-z0-9_-]{86}$")
+    private val EXPIRY = Regex("^\\d{4}-\\d\\d-\\d\\dT\\d\\d:\\d\\d:\\d\\dZ$")
+    private val WHITESPACE = Regex("(?U)[\\s\\uFEFF]+")
     private val KEY = Regex("^[A-Za-z0-9_-]{43}$")
     private val NONCE = Regex("^[A-Za-z0-9_-]{32}$")
 
@@ -94,8 +127,10 @@ object MessagePayload {
      */
     fun plaintext(content: MessageContent): String {
         val effect = content.effect
+        val reply = content.reply
         if (effect != null && effect !in EFFECTS) throw ChatCryptoException.InvalidInput("Unknown effect.")
-        return if (content.attachments.isEmpty() && effect == null && parse(content.text) == null) {
+        if (reply != null && !wellFormed(reply)) throw ChatCryptoException.InvalidInput("Malformed reply.")
+        return if (content.attachments.isEmpty() && effect == null && reply == null && parse(content.text) == null) {
             content.text
         } else {
             buildJsonObject {
@@ -104,8 +139,71 @@ object MessagePayload {
                 put("text", content.text)
                 put("attachments", JsonArray(content.attachments.map { json.encodeToJsonElement(MessageAttachment.serializer(), it) }))
                 if (effect != null) put("effect", effect)
+                if (reply != null) {
+                    put(
+                        "reply",
+                        buildJsonObject {
+                            put("to", reply.to)
+                            put("sender", reply.sender)
+                            put("kind", reply.kind)
+                            put("excerpt", reply.excerpt)
+                            put("expires_at", reply.expiresAt)
+                        }
+                    )
+                }
             }.toString()
         }
+    }
+
+    /**
+     * The plaintext of a reaction to the message with the envelope signature [to] (`buildReactionPayload`); an empty
+     * [emoji] removes the own reaction.
+     * @throws ChatCryptoException.InvalidInput for a malformed target or an emoji outside [REACTIONS].
+     */
+    fun reaction(to: String, emoji: String): String {
+        if (!wellFormed(MessageReaction(to, emoji))) throw ChatCryptoException.InvalidInput("Malformed reaction.")
+        return buildJsonObject {
+            put("t", TYPE)
+            put("v", VERSION)
+            put("text", "")
+            put("attachments", JsonArray(emptyList()))
+            put(
+                "reaction",
+                buildJsonObject {
+                    put("to", to)
+                    put("emoji", emoji)
+                }
+            )
+        }.toString()
+    }
+
+    /**
+     * What a reply quotes of a message (`replyTo`): `once` for a view-once original (never its content), else `text`
+     * with the excerpt when it has text, else the first file's kind; the excerpt is the text with its whitespace runs
+     * collapsed, trimmed, at most [REPLY_EXCERPT_LENGTH] code points and „…“ when cut.
+     */
+    fun replyTo(
+        signature: String,
+        senderId: String,
+        expiresAt: Instant,
+        text: String,
+        attachments: List<MessageAttachment>,
+        viewOnce: Boolean
+    ): MessageReply {
+        val collapsed = text.replace(WHITESPACE, " ").trim()
+        val kind = when {
+            viewOnce -> "once"
+            collapsed.isEmpty() -> attachments.firstOrNull()?.kind ?: "text"
+            else -> "text"
+        }
+        val points = collapsed.codePointCount(0, collapsed.length)
+        val excerpt = when {
+            kind != "text" -> ""
+            points > REPLY_EXCERPT_LENGTH -> collapsed.substring(0, collapsed.offsetByCodePoints(0, REPLY_EXCERPT_LENGTH)) + "…"
+            else -> collapsed
+        }
+        val expiry = DateTimeFormatter.ISO_INSTANT.format(expiresAt.truncatedTo(ChronoUnit.SECONDS))
+        return MessageReply(signature, senderId, kind, excerpt, expiry)
     }
 
     /** Whether a plaintext stays within the message limits (UTF-8 bytes and code points). */
@@ -131,8 +229,37 @@ object MessagePayload {
         val text = (payload["text"] as? JsonPrimitive)?.takeIf { it.isString }?.content.orEmpty()
         val listed = (payload["attachments"] as? JsonArray)?.takeIf { payload["v"].integer() == VERSION.toLong() }.orEmpty()
         val effect = (payload["effect"] as? JsonPrimitive)?.takeIf { it.isString && it.content in EFFECTS }?.content
-        return MessageContent(text, listed.take(MAX_ATTACHMENTS).mapNotNull(::checked), effect)
+        return MessageContent(
+            text,
+            listed.take(MAX_ATTACHMENTS).mapNotNull(::checked),
+            effect,
+            reply(payload["reply"]),
+            reaction(payload["reaction"])
+        )
     }
+
+    /** A well-formed reply of a payload, or null (`checkReply`). */
+    private fun reply(element: JsonElement?): MessageReply? {
+        val fields = element as? JsonObject ?: return null
+        val values = REPLY_FIELDS.mapNotNull { (fields[it] as? JsonPrimitive)?.takeIf { value -> value.isString }?.content }
+        if (values.size != REPLY_FIELDS.size) return null
+        return MessageReply(values[0], values[1], values[2], values[3], values[4]).takeIf(::wellFormed)
+    }
+
+    /** A well-formed reaction of a payload, or null (`checkReaction`). */
+    private fun reaction(element: JsonElement?): MessageReaction? {
+        val fields = element as? JsonObject ?: return null
+        val to = (fields["to"] as? JsonPrimitive)?.takeIf { it.isString }?.content ?: return null
+        val emoji = (fields["emoji"] as? JsonPrimitive)?.takeIf { it.isString }?.content ?: return null
+        return MessageReaction(to, emoji).takeIf(::wellFormed)
+    }
+
+    private fun wellFormed(reply: MessageReply): Boolean = SIGNATURE.matches(reply.to) && ID.matches(reply.sender) &&
+        reply.kind in REPLY_KINDS && reply.excerpt.codePointCount(0, reply.excerpt.length) <= REPLY_EXCERPT_LENGTH + 1 &&
+        (reply.kind == "text" || reply.excerpt.isEmpty()) && EXPIRY.matches(reply.expiresAt)
+
+    private fun wellFormed(reaction: MessageReaction): Boolean =
+        SIGNATURE.matches(reaction.to) && (reaction.emoji.isEmpty() || reaction.emoji in REACTIONS)
 
     /** The payload object of a plaintext, or null for plain text. */
     private fun parse(plaintext: String): JsonObject? {

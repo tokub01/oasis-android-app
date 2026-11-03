@@ -64,6 +64,9 @@ class FakeChatServer : Interceptor {
     val conversations = mutableMapOf<Int, Conversation>()
     val grants = mutableMapOf<Int, MutableList<JsonObject>>()
     val messages = mutableMapOf<Int, MutableList<Pair<Int, JsonObject>>>()
+
+    /** `message` or `reaction` by message id, as the client sent it (`"kind"`). */
+    val kinds = mutableMapOf<Int, String>()
     val deviceUnlocks = mutableListOf<Pair<Int, JsonObject>>()
     val deviceLinks = mutableMapOf<Int, MutableMap<String, JsonElement>>()
     val reports = mutableListOf<JsonObject>()
@@ -515,6 +518,7 @@ class FakeChatServer : Interceptor {
                 val page = messages[id].orEmpty().reversed().map { (messageId, envelope) ->
                     buildJsonObject {
                         put("id", messageId.toString())
+                        put("kind", kinds[messageId] ?: "message")
                         put("envelope", envelope)
                         put("created_at", "2026-10-22T12:00:00.000000Z")
                         put("expires_at", envelope.getValue("expires_at"))
@@ -536,7 +540,9 @@ class FakeChatServer : Interceptor {
                 } else {
                     val ids = body["attachment_ids"]?.jsonArray?.map { it.jsonPrimitive.content.toInt() }.orEmpty()
                     val linked = ids.mapNotNull { uploads[it] }.filter { it.uploader == user && it.completed && it.messageId == null }
-                    if (linked.size != ids.size) {
+                    val kind = body["kind"]?.jsonPrimitive?.content ?: "message"
+                    // A reaction carries no files (docs/oasis-chat.md, "Reactions and replies (server)").
+                    if (linked.size != ids.size || (kind == "reaction" && ids.isNotEmpty())) {
                         return 422 to buildJsonObject {
                             put("message", "x")
                             put(
@@ -555,10 +561,12 @@ class FakeChatServer : Interceptor {
                     val messageId = newId()
                     linked.forEach { it.messageId = messageId }
                     messages.getOrPut(id) { mutableListOf() } += messageId to envelope
+                    kinds[messageId] = kind
                     conversation.accepted += user
                     201 to data(
                         buildJsonObject {
                             put("id", messageId.toString())
+                            put("kind", kind)
                             put("envelope", envelope)
                             put("created_at", serverTime)
                             put("expires_at", envelope.getValue("expires_at"))

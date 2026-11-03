@@ -1,5 +1,5 @@
 {
-  "comment": "Plaintexts of chat messages with the optional send effect (docs/oasis-chat-client.md, \"Backgrounds and effects\"). Every client must build exactly `build[].plaintext` and read `parse[]` as given: `effect` is one of `effects` or null; anything else is ignored and the message still shows. Checked by tests/js/chat/attachments.test.mjs.",
+  "comment": "Plaintexts of chat messages with the optional send effect, reply and reaction (docs/oasis-chat-client.md, \"Backgrounds and effects\", \"Reactions and replies\"). Every client must build exactly the `plaintext` of `build`, `reactions.build` and `replies.build` (field order included) and read the `parse` cases as given; anything not well-formed is ignored and the message still shows. Checked by tests/js/chat/attachments.test.mjs.",
   "effects": [
     "konfetti",
     "herzen",
@@ -78,5 +78,162 @@
       "attachments": 0,
       "effect": null
     }
-  ]
+  ],
+  "reactions": {
+    "set": [
+      "👍",
+      "❤️",
+      "😂",
+      "😮",
+      "😢",
+      "🙏"
+    ],
+    "build": [
+      {
+        "to": "AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAABBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBB",
+        "emoji": "👍",
+        "plaintext": "{\"t\":\"oasis-message\",\"v\":2,\"text\":\"\",\"attachments\":[],\"reaction\":{\"to\":\"AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAABBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBB\",\"emoji\":\"👍\"}}"
+      },
+      {
+        "to": "AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAABBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBB",
+        "emoji": "❤️",
+        "plaintext": "{\"t\":\"oasis-message\",\"v\":2,\"text\":\"\",\"attachments\":[],\"reaction\":{\"to\":\"AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAABBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBB\",\"emoji\":\"❤️\"}}"
+      },
+      {
+        "to": "AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAABBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBB",
+        "emoji": "",
+        "plaintext": "{\"t\":\"oasis-message\",\"v\":2,\"text\":\"\",\"attachments\":[],\"reaction\":{\"to\":\"AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAABBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBB\",\"emoji\":\"\"}}"
+      }
+    ],
+    "parse": [
+      {
+        "plaintext": "{\"t\":\"oasis-message\",\"v\":2,\"text\":\"\",\"attachments\":[],\"reaction\":{\"to\":\"AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAABBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBB\",\"emoji\":\"🙏\"}}",
+        "reaction": {
+          "to": "AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAABBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBB",
+          "emoji": "🙏"
+        }
+      },
+      {
+        "plaintext": "{\"t\":\"oasis-message\",\"v\":2,\"text\":\"\",\"attachments\":[],\"reaction\":{\"to\":\"AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAABBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBB\",\"emoji\":\"🔥\"}}",
+        "reaction": null
+      },
+      {
+        "plaintext": "{\"t\":\"oasis-message\",\"v\":2,\"text\":\"\",\"attachments\":[],\"reaction\":{\"to\":\"kurz\",\"emoji\":\"👍\"}}",
+        "reaction": null
+      },
+      {
+        "plaintext": "{\"t\":\"oasis-message\",\"v\":2,\"text\":\"\",\"attachments\":[],\"reaction\":{\"to\":\"AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAABBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBB\",\"emoji\":\"❤\"}}",
+        "reaction": null
+      },
+      {
+        "plaintext": "{\"t\":\"oasis-message\",\"v\":2,\"text\":\"\",\"attachments\":[],\"reaction\":\"👍\"}",
+        "reaction": null
+      }
+    ]
+  },
+  "replies": {
+    "build": [
+      {
+        "text": "Ja, gern!",
+        "effect": null,
+        "reply": {
+          "to": "AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAABBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBB",
+          "sender": "12",
+          "kind": "text",
+          "excerpt": "Wollen wir morgen wandern?",
+          "expires_at": "2026-11-10T12:00:00Z"
+        },
+        "plaintext": "{\"t\":\"oasis-message\",\"v\":2,\"text\":\"Ja, gern!\",\"attachments\":[],\"reply\":{\"to\":\"AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAABBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBB\",\"sender\":\"12\",\"kind\":\"text\",\"excerpt\":\"Wollen wir morgen wandern?\",\"expires_at\":\"2026-11-10T12:00:00Z\"}}"
+      },
+      {
+        "text": "Danke 🎉",
+        "effect": "konfetti",
+        "reply": {
+          "to": "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc",
+          "sender": "11",
+          "kind": "once",
+          "excerpt": "",
+          "expires_at": "2026-11-10T12:00:00Z"
+        },
+        "plaintext": "{\"t\":\"oasis-message\",\"v\":2,\"text\":\"Danke 🎉\",\"attachments\":[],\"effect\":\"konfetti\",\"reply\":{\"to\":\"cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc\",\"sender\":\"11\",\"kind\":\"once\",\"excerpt\":\"\",\"expires_at\":\"2026-11-10T12:00:00Z\"}}"
+      }
+    ],
+    "excerpt": [
+      {
+        "text": "  Erste Zeile\n\n zweite   Zeile  ",
+        "attachments": [],
+        "view_once": false,
+        "kind": "text",
+        "excerpt": "Erste Zeile zweite Zeile"
+      },
+      {
+        "text": "xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx🌴",
+        "attachments": [],
+        "view_once": false,
+        "kind": "text",
+        "excerpt": "xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx…"
+      },
+      {
+        "text": "🌴🌴🌴🌴🌴🌴🌴🌴🌴🌴🌴🌴🌴🌴🌴🌴🌴🌴🌴🌴🌴🌴🌴🌴🌴🌴🌴🌴🌴🌴🌴🌴🌴🌴🌴🌴🌴🌴🌴🌴🌴🌴🌴🌴🌴🌴🌴🌴🌴🌴🌴🌴🌴🌴🌴🌴🌴🌴🌴🌴🌴🌴🌴🌴🌴🌴🌴🌴🌴🌴🌴🌴🌴🌴🌴🌴🌴🌴🌴🌴🌴🌴🌴🌴🌴🌴🌴🌴🌴🌴🌴🌴🌴🌴🌴🌴🌴🌴🌴🌴",
+        "attachments": [],
+        "view_once": false,
+        "kind": "text",
+        "excerpt": "🌴🌴🌴🌴🌴🌴🌴🌴🌴🌴🌴🌴🌴🌴🌴🌴🌴🌴🌴🌴🌴🌴🌴🌴🌴🌴🌴🌴🌴🌴🌴🌴🌴🌴🌴🌴🌴🌴🌴🌴🌴🌴🌴🌴🌴🌴🌴🌴🌴🌴🌴🌴🌴🌴🌴🌴🌴🌴🌴🌴🌴🌴🌴🌴🌴🌴🌴🌴🌴🌴🌴🌴🌴🌴🌴🌴🌴🌴🌴🌴🌴🌴🌴🌴🌴🌴🌴🌴🌴🌴🌴🌴🌴🌴🌴🌴🌴🌴🌴🌴"
+      },
+      {
+        "text": "",
+        "attachments": [
+          {
+            "kind": "audio"
+          }
+        ],
+        "view_once": false,
+        "kind": "audio",
+        "excerpt": ""
+      },
+      {
+        "text": "Schau mal",
+        "attachments": [
+          {
+            "kind": "image"
+          }
+        ],
+        "view_once": true,
+        "kind": "once",
+        "excerpt": ""
+      }
+    ],
+    "parse": [
+      {
+        "plaintext": "{\"t\":\"oasis-message\",\"v\":2,\"text\":\"Ja\",\"attachments\":[],\"reply\":{\"to\":\"AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAABBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBB\",\"sender\":\"12\",\"kind\":\"text\",\"excerpt\":\"Wollen wir morgen wandern?\",\"expires_at\":\"2026-11-10T12:00:00Z\"}}",
+        "reply": {
+          "to": "AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAABBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBB",
+          "sender": "12",
+          "kind": "text",
+          "excerpt": "Wollen wir morgen wandern?",
+          "expires_at": "2026-11-10T12:00:00Z"
+        }
+      },
+      {
+        "plaintext": "{\"t\":\"oasis-message\",\"v\":2,\"text\":\"Ja\",\"attachments\":[],\"reply\":{\"to\":\"cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc\",\"sender\":\"11\",\"kind\":\"once\",\"excerpt\":\"Geheim\",\"expires_at\":\"2026-11-10T12:00:00Z\"}}",
+        "reply": null
+      },
+      {
+        "plaintext": "{\"t\":\"oasis-message\",\"v\":2,\"text\":\"Ja\",\"attachments\":[],\"reply\":{\"to\":\"AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAABBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBB\",\"sender\":\"12\",\"kind\":\"poll\",\"excerpt\":\"Wollen wir morgen wandern?\",\"expires_at\":\"2026-11-10T12:00:00Z\"}}",
+        "reply": null
+      },
+      {
+        "plaintext": "{\"t\":\"oasis-message\",\"v\":2,\"text\":\"Ja\",\"attachments\":[],\"reply\":{\"to\":\"AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAABBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBB\",\"sender\":\"012\",\"kind\":\"text\",\"excerpt\":\"Wollen wir morgen wandern?\",\"expires_at\":\"2026-11-10T12:00:00Z\"}}",
+        "reply": null
+      },
+      {
+        "plaintext": "{\"t\":\"oasis-message\",\"v\":2,\"text\":\"Ja\",\"attachments\":[],\"reply\":{\"to\":\"AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAABBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBB\",\"sender\":\"12\",\"kind\":\"text\",\"excerpt\":\"yyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyy\",\"expires_at\":\"2026-11-10T12:00:00Z\"}}",
+        "reply": null
+      },
+      {
+        "plaintext": "{\"t\":\"oasis-message\",\"v\":2,\"text\":\"Ja\",\"attachments\":[],\"reply\":{\"to\":\"AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAABBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBB\",\"sender\":\"12\",\"kind\":\"text\",\"excerpt\":\"Wollen wir morgen wandern?\",\"expires_at\":\"2026-11-10 12:00\"}}",
+        "reply": null
+      }
+    ]
+  }
 }
