@@ -1,24 +1,40 @@
 package de.velwebsolutions.oasis.chat.ui
 
 import androidx.compose.animation.animateContentSize
+import androidx.compose.animation.core.Animatable
+import androidx.compose.animation.core.tween
 import androidx.compose.foundation.background
+import androidx.compose.foundation.gestures.awaitEachGesture
+import androidx.compose.foundation.gestures.awaitFirstDown
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.FlowRow
+import androidx.compose.foundation.layout.IntrinsicSize
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.heightIn
+import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.outlined.KeyboardArrowRight
 import androidx.compose.material.icons.outlined.Edit
 import androidx.compose.material.icons.outlined.Lock
+import androidx.compose.material.icons.outlined.MoreHoriz
+import androidx.compose.material.icons.outlined.NotificationsOff
 import androidx.compose.material.icons.outlined.Settings
+import androidx.compose.material3.DropdownMenu
+import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.ExtendedFloatingActionButton
 import androidx.compose.material3.Icon
@@ -34,8 +50,20 @@ import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.input.pointer.pointerInput
+import androidx.compose.ui.input.pointer.positionChange
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.testTag
+import androidx.compose.ui.semantics.CustomAccessibilityAction
+import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.customActions
+import androidx.compose.ui.semantics.semantics
+import androidx.compose.ui.semantics.stateDescription
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
@@ -86,6 +114,14 @@ internal fun ConversationListScreen() {
             canParticipate = model.canParticipate,
             title = model::title,
             meta = model::meta,
+            rows = ConversationRowActions(
+                preview = model::preview,
+                activity = model::activity,
+                canLeave = model::canLeave,
+                onMarkRead = model::markRead,
+                onToggleMute = model::toggleMute,
+                onLeave = model::leave
+            ),
             onRefresh = model::load,
             onLoadMore = model::loadMore,
             onOpen = { conversation -> navigator.open(ChatRoute.Conversation(conversation.id.toInt())) },
@@ -104,6 +140,7 @@ internal fun ConversationListContent(
     canParticipate: Boolean,
     title: (ChatConversation) -> String,
     meta: (ChatConversation) -> String,
+    rows: ConversationRowActions = ConversationRowActions.None,
     onRefresh: suspend () -> Unit,
     onLoadMore: suspend () -> Unit,
     onOpen: (ChatConversation) -> Unit,
@@ -115,6 +152,8 @@ internal fun ConversationListContent(
 ) {
     val scope = rememberCoroutineScope()
     var refreshing by remember { mutableStateOf(false) }
+    // The one row whose actions are open (a swipe left); a tap elsewhere or a swipe right closes it.
+    var openRow by remember { mutableStateOf<String?>(null) }
     PullToRefreshBox(
         isRefreshing = refreshing,
         onRefresh = {
@@ -144,12 +183,20 @@ internal fun ConversationListContent(
                             style = OasisType.Small,
                             color = OasisColors.Ink2
                         )
-                        state.requests.forEach { ConversationRow(it, myId, title(it), meta(it), onOpen) }
+                        state.requests.forEach { ConversationRow(it, myId, title(it), meta(it), rows, hasActions = false) { onOpen(it) } }
                     }
                 }
             }
             items(state.conversations, key = { it.id }) { conversation ->
-                ConversationRow(conversation, myId, title(conversation), meta(conversation), onOpen)
+                SwipeRow(conversation, rows, openRow == conversation.id, onOpenChange = { open ->
+                    openRow =
+                        if (open) conversation.id else null
+                }) {
+                    // A tap closes open actions (of this or another row) instead of opening the chat.
+                    ConversationRow(conversation, myId, title(conversation), meta(conversation), rows, hasActions = true) {
+                        if (openRow != null) openRow = null else onOpen(conversation)
+                    }
+                }
             }
             if (state.loaded && state.conversations.isEmpty()) {
                 item {
@@ -211,36 +258,261 @@ internal fun ConversationListActions(onLock: () -> Unit, onSettings: () -> Unit)
     }
 }
 
+/**
+ * One chat in the list (docs/oasis-chat-client.md, „Conversation list“): avatar 48, name and last activity, line 2 with
+ * what this device decrypted (else „Verschlüsselte Nachricht“) and the markers; a „⋯“ menu and TalkBack actions do what
+ * the swipes do. Requests have no actions ([hasActions] false).
+ */
 @Composable
-private fun ConversationRow(conversation: ChatConversation, myId: String, title: String, meta: String, onOpen: (ChatConversation) -> Unit) {
+private fun ConversationRow(
+    conversation: ChatConversation,
+    myId: String,
+    title: String,
+    meta: String,
+    rows: ConversationRowActions,
+    hasActions: Boolean,
+    onTap: () -> Unit
+) {
+    val unread = conversation.unread == true
+    val muted = conversation.muted == true
+    var menu by remember { mutableStateOf(false) }
+    var confirmLeave by remember { mutableStateOf(false) }
+    val scope = rememberCoroutineScope()
+    val steps = if (!hasActions) {
+        emptyList()
+    } else {
+        rowSteps(conversation, rows, onLeave = {
+            confirmLeave = true
+        }) { step -> scope.launch { step() } }
+    }
     Row(
         modifier = Modifier
             .fillMaxWidth()
+            .heightIn(min = 72.dp)
             .background(OasisColors.Paper, RoundedCornerShape(OasisRadius.S.dp))
-            .pressable({ onOpen(conversation) })
-            .padding(horizontal = 16.dp, vertical = 16.dp)
-            .testTag("chat.conversation.${conversation.id}")
-            .animateContentSize(),
+            .pressable(onTap)
+            .semantics {
+                // The former meta line stays for screen readers („Gruppe · 3 Menschen · löscht nach 7 Tagen“).
+                stateDescription = meta
+                customActions = steps.map { (label, run) ->
+                    CustomAccessibilityAction(label) {
+                        run()
+                        true
+                    }
+                }
+            }
+            .padding(start = 16.dp, top = 12.dp, bottom = 12.dp, end = if (hasActions) 4.dp else 16.dp)
+            .testTag("chat.conversation.${conversation.id}"),
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.spacedBy(12.dp)
     ) {
-        ConversationAvatar(conversation, myId)
-        Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(4.dp)) {
+        ConversationAvatar(conversation, myId, size = 48.dp)
+        Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(2.dp)) {
             Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                Text(title, style = OasisType.BodyBold, color = OasisColors.Night, modifier = Modifier.weight(1f, fill = false))
-                if (conversation.unread == true) Pill("Neu", tone = PillTone.Sun)
-                if (conversation.muted == true) {
+                Text(
+                    title,
+                    style = OasisType.Body.copy(fontSize = 16.sp, fontWeight = FontWeight.ExtraBold),
+                    color = OasisColors.Night,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis,
+                    modifier = Modifier.weight(1f)
+                )
+                if (unread) Pill("Neu", tone = PillTone.Sun)
+                Text(
+                    rows.activity(conversation),
+                    style = OasisType.Caption.copy(fontSize = 12.sp, fontWeight = if (unread) FontWeight.ExtraBold else FontWeight.Normal),
+                    color = if (unread) OasisColors.SunText else OasisColors.Muted,
+                    modifier = Modifier.testTag("chat.list.activity")
+                )
+            }
+            Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                Text(
+                    rows.preview(conversation),
+                    style = OasisType.Small.copy(fontSize = 14.sp),
+                    color = OasisColors.Ink2,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis,
+                    modifier = Modifier.weight(1f).testTag("chat.list.preview")
+                )
+                if (conversation.ended) {
                     Text(
-                        "Stumm",
-                        style = OasisType.Caption.copy(fontWeight = FontWeight.Bold),
-                        color = OasisColors.Muted,
-                        modifier = Modifier.testTag("chat.list.muted")
+                        "Beendet",
+                        style = OasisType.Caption.copy(fontSize = 12.sp, fontWeight = FontWeight.Bold),
+                        color = OasisColors.Ink2,
+                        modifier = Modifier.background(OasisColors.Dune, CircleShape).padding(horizontal = 8.dp, vertical = 2.dp)
+                    )
+                }
+                if (muted) {
+                    Icon(
+                        Icons.Outlined.NotificationsOff,
+                        contentDescription = "stumm",
+                        tint = OasisColors.Muted,
+                        modifier = Modifier.size(16.dp).testTag("chat.list.muted")
+                    )
+                }
+                if (unread) {
+                    Box(
+                        Modifier
+                            .size(10.dp)
+                            .background(OasisColors.Sun, CircleShape)
+                            .semantics { contentDescription = "ungelesen" }
+                            .testTag("chat.list.unread")
                     )
                 }
             }
-            Text(meta, style = OasisType.Small, color = OasisColors.Muted)
         }
-        Icon(Icons.AutoMirrored.Outlined.KeyboardArrowRight, contentDescription = null, tint = OasisColors.Muted)
+        if (hasActions) {
+            Box {
+                IconButton(onClick = { menu = true }, modifier = Modifier.size(CHAT_TARGET).testTag("chat.list.menu.${conversation.id}")) {
+                    Icon(Icons.Outlined.MoreHoriz, contentDescription = "Aktionen für $title", tint = OasisColors.Night)
+                }
+                DropdownMenu(expanded = menu, onDismissRequest = { menu = false }, containerColor = OasisColors.Paper) {
+                    steps.forEach { (label, run) ->
+                        DropdownMenuItem(
+                            text = { Text(label, style = OasisType.Body, color = OasisColors.Ink) },
+                            onClick = {
+                                menu = false
+                                run()
+                            },
+                            modifier = Modifier.testTag("chat.list.action.$label")
+                        )
+                    }
+                }
+            }
+        }
+    }
+    if (confirmLeave) {
+        ConfirmDialog(
+            "Chat verlassen? Er verschwindet aus deiner Liste.",
+            "Chat verlassen",
+            { scope.launch { rows.onLeave(conversation) } },
+            { confirmLeave = false }
+        )
+    }
+}
+
+/**
+ * A list row with its swipes (docs/oasis-chat-client.md, „Gestures“): left past 64 it snaps open by 160 and shows
+ * „Stummschalten“/„Ton an“ and „Chat verlassen“; right past 64 (at most 96) on spring marks an unread chat read. Only
+ * clearly horizontal drags count; without motion the row does not follow the finger, the actions still happen.
+ */
+@Composable
+private fun SwipeRow(
+    conversation: ChatConversation,
+    rows: ConversationRowActions,
+    open: Boolean,
+    onOpenChange: (Boolean) -> Unit,
+    content: @Composable () -> Unit
+) {
+    val unread = conversation.unread == true
+    val moves = motionAllowed(LocalContext.current)
+    val scope = rememberCoroutineScope()
+    val drag = remember { Animatable(0f) }
+    var confirmLeave by remember { mutableStateOf(false) }
+    // A swipe starts where the row is: open by 160, or in place.
+    val start = if (open) -ChatSwipe.ROW_ACTIONS else 0f
+    val onMove: (SwipeTracker) -> Unit = { tracker -> scope.launch { drag.snapTo(ChatSwipe.rowOffset(start + tracker.dx, unread)) } }
+    val onEnd: (SwipeTracker) -> Unit = { tracker ->
+        val release = ChatSwipe.release(start + tracker.dx, unread)
+        onOpenChange(release == RowRelease.Open)
+        scope.launch { drag.animateTo(if (release == RowRelease.Open) -ChatSwipe.ROW_ACTIONS else 0f, tween(SETTLE_MS)) }
+        if (release == RowRelease.Read) scope.launch { rows.onMarkRead(conversation) }
+    }
+    LaunchedEffect(open) {
+        val target = if (open) -ChatSwipe.ROW_ACTIONS else 0f
+        if (moves) drag.animateTo(target, tween(SETTLE_MS)) else drag.snapTo(target)
+    }
+    Box(Modifier.fillMaxWidth().height(IntrinsicSize.Min).clip(RoundedCornerShape(OasisRadius.S.dp))) {
+        if (drag.value > 0f) {
+            Box(
+                Modifier.matchParentSize().background(OasisColors.Spring).padding(horizontal = 16.dp),
+                contentAlignment = Alignment.CenterStart
+            ) {
+                Text("Als gelesen markieren", style = OasisType.SmallBold, color = OasisColors.SunInk)
+            }
+        }
+        if (drag.value < 0f || open) {
+            Row(Modifier.align(Alignment.CenterEnd).fillMaxHeight()) {
+                RowAction(
+                    if (conversation.muted == true) "Ton an" else "Stummschalten",
+                    OasisColors.Dune,
+                    OasisColors.Night
+                ) {
+                    onOpenChange(false)
+                    scope.launch { rows.onToggleMute(conversation) }
+                }
+                if (rows.canLeave(conversation)) {
+                    RowAction("Chat verlassen", OasisColors.Danger, OasisColors.OnDanger) {
+                        onOpenChange(false)
+                        confirmLeave = true
+                    }
+                }
+            }
+        }
+        Box(
+            Modifier
+                .offset { rowOffset(if (moves || open) drag.value else 0f, density) }
+                .pointerInput(conversation.id, unread, open) { swipes({ true }, onMove, onEnd) }
+        ) {
+            content()
+        }
+    }
+    if (confirmLeave) {
+        ConfirmDialog(
+            "Chat verlassen? Er verschwindet aus deiner Liste.",
+            "Chat verlassen",
+            { scope.launch { rows.onLeave(conversation) } },
+            { confirmLeave = false }
+        )
+    }
+}
+
+/** One of the two 80 wide buttons behind a row opened by a swipe left. */
+@Composable
+private fun RowAction(label: String, background: Color, foreground: Color, onClick: () -> Unit) {
+    Box(
+        Modifier
+            .width(80.dp)
+            .fillMaxHeight()
+            .background(background)
+            .pressable(onClick)
+            .padding(horizontal = 6.dp)
+            .testTag("chat.list.swipe.$label"),
+        contentAlignment = Alignment.Center
+    ) {
+        Text(
+            label,
+            style = OasisType.Caption.copy(fontSize = 12.sp, fontWeight = FontWeight.Bold),
+            color = foreground,
+            textAlign = TextAlign.Center
+        )
+    }
+}
+
+/** The steps of a row in the order of its menu: „Als gelesen markieren“ while unread, „Stummschalten“/„Ton an“, leave. */
+internal fun rowSteps(
+    conversation: ChatConversation,
+    rows: ConversationRowActions,
+    onLeave: () -> Unit,
+    launch: (suspend () -> Unit) -> Unit
+): List<Pair<String, () -> Unit>> = buildList {
+    if (conversation.unread == true) add("Als gelesen markieren" to { launch { rows.onMarkRead(conversation) } })
+    add((if (conversation.muted == true) "Ton an" else "Stummschalten") to { launch { rows.onToggleMute(conversation) } })
+    if (rows.canLeave(conversation)) add("Chat verlassen" to onLeave)
+}
+
+/** What the list's rows show and do besides opening a chat. */
+class ConversationRowActions(
+    val preview: (ChatConversation) -> String,
+    val activity: (ChatConversation) -> String,
+    val canLeave: (ChatConversation) -> Boolean,
+    val onMarkRead: suspend (ChatConversation) -> Unit,
+    val onToggleMute: suspend (ChatConversation) -> Unit,
+    val onLeave: suspend (ChatConversation) -> Unit
+) {
+    companion object {
+        /** Previews without a view model. */
+        val None = ConversationRowActions({ ENCRYPTED_PREVIEW }, { "" }, { true }, {}, {}, {})
     }
 }
 

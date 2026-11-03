@@ -14,6 +14,7 @@ import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.PaddingValues
@@ -24,6 +25,7 @@ import androidx.compose.foundation.layout.defaultMinSize
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.imePadding
+import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.widthIn
@@ -56,7 +58,9 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.derivedStateOf
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
@@ -64,24 +68,33 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.shadow
+import androidx.compose.ui.focus.FocusRequester
+import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.SolidColor
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.input.pointer.pointerInput
+import androidx.compose.ui.layout.onSizeChanged
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.platform.testTag
+import androidx.compose.ui.semantics.CustomAccessibilityAction
 import androidx.compose.ui.semantics.LiveRegionMode
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.customActions
 import androidx.compose.ui.semantics.liveRegion
 import androidx.compose.ui.semantics.onLongClick
 import androidx.compose.ui.semantics.semantics
+import androidx.compose.ui.semantics.stateDescription
 import androidx.compose.ui.text.font.FontStyle
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardCapitalization
 import androidx.compose.ui.text.style.TextDecoration
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import androidx.core.content.ContextCompat
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import androidx.lifecycle.Lifecycle
@@ -96,6 +109,7 @@ import de.velwebsolutions.oasis.design.components.Banner
 import de.velwebsolutions.oasis.design.components.BannerKind
 import de.velwebsolutions.oasis.design.components.FieldError
 import de.velwebsolutions.oasis.design.components.LoadingView
+import de.velwebsolutions.oasis.design.components.LocalScreenChrome
 import de.velwebsolutions.oasis.design.components.OasisButton
 import de.velwebsolutions.oasis.design.components.OasisButtonKind
 import de.velwebsolutions.oasis.design.components.OasisScreen
@@ -108,6 +122,7 @@ import de.velwebsolutions.oasis.design.navigation.LocalNavigator
 import de.velwebsolutions.oasis.design.theme.OasisColors
 import de.velwebsolutions.oasis.design.theme.OasisRadius
 import de.velwebsolutions.oasis.design.theme.OasisType
+import java.time.Instant
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 
@@ -136,15 +151,18 @@ internal fun ConversationScreen(conversationId: Int) {
     // back): without this, the next trip to the background would wait for them instead of locking at once.
     LifecycleEventEffect(Lifecycle.Event.ON_RESUME) { model.context.vault.cameToForeground() }
 
+    val chrome = LocalScreenChrome.current
     OasisScreen(
         title = state.title,
-        actions = {
-            IconButton(
-                onClick = { conversationId.let { navigator.open(ChatRoute.Details(it)) } },
-                modifier = Modifier.testTag("chat.details")
-            ) {
-                Icon(Icons.Outlined.Info, contentDescription = "Details & Sicherheitsnummern", tint = OasisColors.Night)
-            }
+        topBar = {
+            ChatHeaderBar(
+                state.conversation,
+                model.context.userId,
+                state.title,
+                state.headerStatus,
+                onBack = chrome.onBack,
+                onDetails = { navigator.open(ChatRoute.Details(conversationId)) }
+            )
         },
         message = state.status,
         error = state.actionError,
@@ -246,6 +264,86 @@ class EffectActions(val onChoose: suspend (String) -> Unit, val onClear: () -> U
     }
 }
 
+/** One row of the message list: a day pill, the „Neue Nachrichten“ divider or a message with its gap above. */
+@Composable
+@Suppress("LongParameterList")
+private fun TimelineRowView(
+    row: TimelineRow,
+    state: ConversationState,
+    myId: String,
+    now: Instant,
+    senderName: (String) -> String,
+    onReport: (ChatMessageItem) -> Unit,
+    attachments: AttachmentActions,
+    senderAvatar: (String) -> ChatAvatar,
+    senderProfile: (String) -> ProfileLink?,
+    reactions: ReactionActions,
+    onJump: (Int) -> Unit
+) {
+    val scope = rememberCoroutineScope()
+    when (row) {
+        is TimelineRow.Day -> DayPill(row.label)
+
+        is TimelineRow.Unread -> UnreadDivider()
+
+        // A message (the last kind of row).
+        else -> {
+            row as TimelineRow.Message
+            val item = row.item
+            val mine = item.senderId == myId
+            Box(Modifier.padding(top = rowGap(row.run))) {
+                MessageBubble(
+                    item,
+                    mine = mine,
+                    senderName = senderName(item.senderId),
+                    onReport = { onReport(item) },
+                    // Beside someone else's messages: the avatar at the last bubble of each of their runs.
+                    avatar = if (mine) null else senderAvatar(item.senderId),
+                    profile = if (mine) null else senderProfile(item.senderId),
+                    run = row.run,
+                    showName = !mine && state.conversation?.isGroup == true &&
+                        (row.run == ChatLayout.Run.First || row.run == ChatLayout.Run.Single),
+                    time = row.sent?.let(ChatLayout::clockTime),
+                    info = ChatLayout.infoLine(row.sent, item.expiresAt, now),
+                    extras = BubbleExtras(
+                        quote = state.quotes[item.signature],
+                        chips = state.reactions[item.signature].orEmpty(),
+                        own = state.ownReaction(item.signature),
+                        canAct = state.canAct(item),
+                        onReact = { emoji -> scope.launch { reactions.onReact(item, emoji) } },
+                        onReply = { reactions.onReply(item) },
+                        onQuote = { to ->
+                            reactions.onQuote(to)?.let(onJump)
+                        },
+                        pinLabel = state.pinLabel(item.signature),
+                        onPin = { scope.launch { reactions.onPin(item) } },
+                        poll = state.polls[item.signature],
+                        pollActions = PollActions(
+                            onVote = { index -> scope.launch { reactions.onVote(item, index) } },
+                            onClose = { scope.launch { reactions.onClosePoll(item) } }
+                        )
+                    )
+                ) {
+                    MessageAttachments(
+                        item,
+                        mine,
+                        senderName(item.senderId),
+                        state.attachmentViews,
+                        attachments,
+                        TranscriptionView(state.canTranscribe, state.transcripts)
+                    )
+                }
+            }
+        }
+    }
+}
+
+/** How far from the newest message „Nach unten“ shows. */
+private val SCROLL_DOWN_DISTANCE = 160.dp
+
+/** The floating composer's corner radius. */
+private val COMPOSER_RADIUS = 28.dp
+
 @Composable
 @Suppress("LongParameterList")
 private fun ConversationColumn(
@@ -269,6 +367,7 @@ private fun ConversationColumn(
     polls: PollFormActions
 ) {
     val look = LocalChatLook.current
+    val now = Instant.now()
     val photo = rememberLookPhoto(state.look.photo)
     val listState = rememberLazyListState()
     val scope = rememberCoroutineScope()
@@ -278,15 +377,6 @@ private fun ConversationColumn(
     var confirmBlockRequest by remember { mutableStateOf(false) }
     var confirmBlockFlagged by remember { mutableStateOf(false) }
 
-    // The newest message stays in view: on opening (without motion), on sending and on receiving. Older messages loaded
-    // above keep the last id, so they appear in place.
-    var shownLastId by remember { mutableStateOf<String?>(null) }
-    LaunchedEffect(items.lastOrNull()?.id) {
-        val lastId = items.lastOrNull()?.id ?: return@LaunchedEffect
-        val bottom = listState.layoutInfo.totalItemsCount.coerceAtLeast(1) - 1
-        if (shownLastId == null) listState.scrollToItem(bottom) else listState.animateScrollToItem(bottom)
-        shownLastId = lastId
-    }
     LaunchedEffect(state.spokenNotice) {
         if (state.spokenNotice != null) {
             delay(1_500)
@@ -294,61 +384,68 @@ private fun ConversationColumn(
         }
     }
 
-    Column(Modifier.fillMaxSize().imePadding()) {
+    // „Nach unten“: shown while scrolled up more than 160 from the newest message; counts others' messages that came meanwhile.
+    val density = LocalDensity.current
+    val away = with(density) { SCROLL_DOWN_DISTANCE.toPx() }
+    val awayFromBottom by remember {
+        derivedStateOf {
+            val info = listState.layoutInfo
+            awayFromBottom(
+                info.visibleItemsInfo.map {
+                    it.index to it.offset + it.size
+                },
+                info.totalItemsCount,
+                info.viewportEndOffset,
+                away
+            )
+        }
+    }
+    var arrived by remember { mutableIntStateOf(0) }
+    // The newest message stays in view: on opening (without motion), on sending and on receiving – unless the member
+    // scrolled up to read: then others' new messages are counted on „Nach unten“. Older messages loaded above keep the
+    // last id, so they appear in place.
+    var shownLastId by remember { mutableStateOf<String?>(null) }
+    LaunchedEffect(items.lastOrNull()?.id) {
+        val last = items.lastOrNull() ?: return@LaunchedEffect
+        val bottom = listState.layoutInfo.totalItemsCount.coerceAtLeast(1) - 1
+        when (newest(first = shownLastId == null, away = awayFromBottom, fromOthers = last.senderId != myId)) {
+            Newest.Jump -> listState.scrollToItem(bottom)
+            Newest.Count -> arrived += 1
+            Newest.Follow -> listState.animateScrollToItem(bottom)
+        }
+        shownLastId = last.id
+    }
+    LaunchedEffect(awayFromBottom) { if (!awayFromBottom) arrived = 0 }
+    var composerHeight by remember { mutableIntStateOf(0) }
+    val composerSpace = with(density) { composerHeight.toDp() } + 24.dp
+    // The composer grew (measured, more lines, a reply bar): at the newest message, the list keeps it in view above it.
+    LaunchedEffect(composerHeight) {
+        val info = listState.layoutInfo
+        if (atNewest(info.visibleItemsInfo.map { it.index }, info.totalItemsCount)) listState.scrollToItem(info.totalItemsCount - 1)
+    }
+
+    Box(Modifier.fillMaxSize().imePadding()) {
         LazyColumn(
             state = listState,
-            // The personal background fills only the message area.
-            modifier = Modifier.weight(1f).fillMaxWidth().chatBackground(state.look.background, photo).testTag("chat.messages"),
-            contentPadding = PaddingValues(20.dp),
-            verticalArrangement = Arrangement.spacedBy(12.dp)
+            // The personal background fills the whole message area, also under the floating composer.
+            modifier = Modifier.fillMaxSize().chatBackground(state.look.background, photo).testTag("chat.messages"),
+            contentPadding = PaddingValues(start = 12.dp, end = 12.dp, top = 8.dp, bottom = composerSpace)
         ) {
-            item {
-                Row(
-                    modifier = Modifier.lookPill(look),
-                    horizontalArrangement = Arrangement.spacedBy(14.dp),
-                    verticalAlignment = Alignment.CenterVertically
-                ) {
-                    state.conversation?.let {
-                        ConversationAvatar(
-                            it,
-                            myId,
-                            it.directProfile(myId).let { link -> Modifier.opensProfile(link, profileOpener(link)) }
-                                .testTag("chat.conversation.avatar"),
-                            size = 52.dp
-                        )
-                    }
-                    Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(6.dp)) {
-                        Text(
-                            state.title,
-                            style = OasisType.display(26),
-                            color = OasisColors.Night,
-                            modifier = Modifier.testTag("chat.conversation.title")
-                        )
-                        state.conversation?.directStatus(myId)?.let { status ->
-                            Text(
-                                status,
-                                style = OasisType.Body.copy(fontWeight = FontWeight.SemiBold),
-                                color = OasisColors.Ink2,
-                                modifier = Modifier.testTag("chat.conversation.status")
-                            )
-                        }
-                        Text(state.lifetimeLine, style = OasisType.Small, color = OasisColors.Muted)
-                    }
-                }
-            }
-            items(state.notices) { Banner(it, kind = BannerKind.Info) }
+            items(state.notices) { Box(Modifier.padding(top = 12.dp)) { Banner(it, kind = BannerKind.Info) } }
             state.pinBar?.let { pin ->
                 item {
-                    PinBarView(pin) {
-                        reactions.onQuote(pin.to)?.let { target ->
-                            scope.launch { listState.animateScrollToItem(state.leadingRows + target) }
+                    Box(Modifier.padding(top = 12.dp)) {
+                        PinBarView(pin) {
+                            reactions.onQuote(pin.to)?.let { target ->
+                                scope.launch { listState.animateScrollToItem(state.leadingRows + target) }
+                            }
                         }
                     }
                 }
             }
             state.requestTitle?.let { title ->
                 item {
-                    Panel(tone = PanelTone.Dune, modifier = Modifier.testTag("chat.request.banner")) {
+                    Panel(tone = PanelTone.Dune, modifier = Modifier.padding(top = 12.dp).testTag("chat.request.banner")) {
                         Text(title, style = OasisType.BodyBold, color = OasisColors.Night)
                         Text(
                             "Du folgst dieser Person nicht und ihr seid nicht befreundet. Solange du die Anfrage nicht annimmst, bekommst du dazu keine Benachrichtigung, und sie sieht nicht, ob du ihre Nachricht gelesen hast. Antworten nimmt die Anfrage an.",
@@ -371,7 +468,7 @@ private fun ConversationColumn(
             }
             state.flagged?.let { flagged ->
                 item {
-                    Panel(tone = PanelTone.Warning, modifier = Modifier.testTag("chat.safety.banner")) {
+                    Panel(tone = PanelTone.Warning, modifier = Modifier.padding(top = 12.dp).testTag("chat.safety.banner")) {
                         Text(flagged.title, style = OasisType.BodyBold, color = OasisColors.Night)
                         Text(flagged.text, style = OasisType.Small, color = OasisColors.Ink2)
                         OasisButton("Blockieren und Chat löschen", { confirmBlockFlagged = true }, fullWidth = false)
@@ -387,7 +484,7 @@ private fun ConversationColumn(
             }
             if (state.nextBeforeId != null) {
                 item {
-                    Box(Modifier.fillMaxWidth(), contentAlignment = Alignment.Center) {
+                    Box(Modifier.fillMaxWidth().padding(top = 12.dp), contentAlignment = Alignment.Center) {
                         AsyncOasisButton(
                             "Ältere Nachrichten laden",
                             onLoadOlder,
@@ -399,7 +496,7 @@ private fun ConversationColumn(
                 }
             }
             when {
-                state.loadFailed != null -> item { Banner(state.loadFailed) }
+                state.loadFailed != null -> item { Box(Modifier.padding(top = 12.dp)) { Banner(state.loadFailed) } }
 
                 state.conversation == null -> item { Box(Modifier.fillMaxWidth().padding(vertical = 24.dp)) { LoadingView() } }
 
@@ -408,61 +505,47 @@ private fun ConversationColumn(
                         "Noch keine Nachrichten. Schreib die erste.",
                         style = OasisType.Body,
                         color = OasisColors.Ink2,
-                        modifier = Modifier.lookPill(look).testTag("chat.messages.empty")
+                        modifier = Modifier.padding(top = 12.dp).lookPill(look).testTag("chat.messages.empty")
                     )
                 }
             }
-            itemsIndexed(items, key = { _, item -> item.id }) { index, item ->
-                val mine = item.senderId == myId
-                MessageBubble(
-                    item,
-                    mine = mine,
-                    senderName = senderName(item.senderId),
-                    onReport = { onReport(item) },
-                    // Beside someone else's messages: the avatar at the start of each of their runs, room for it below.
-                    avatar = if (mine) null else senderAvatar(item.senderId),
-                    profile = if (mine) null else senderProfile(item.senderId),
-                    startsRun = index == 0 || items[index - 1].senderId != item.senderId,
-                    extras = BubbleExtras(
-                        quote = state.quotes[item.signature],
-                        chips = state.reactions[item.signature].orEmpty(),
-                        own = state.ownReaction(item.signature),
-                        canAct = state.canAct(item),
-                        onReact = { emoji -> scope.launch { reactions.onReact(item, emoji) } },
-                        onReply = { reactions.onReply(item) },
-                        onQuote = { to ->
-                            reactions.onQuote(to)?.let { target ->
-                                scope.launch { listState.animateScrollToItem(state.leadingRows + target) }
-                            }
-                        },
-                        pinLabel = state.pinLabel(item.signature),
-                        onPin = { scope.launch { reactions.onPin(item) } },
-                        poll = state.polls[item.signature],
-                        pollActions = PollActions(
-                            onVote = { index -> scope.launch { reactions.onVote(item, index) } },
-                            onClose = { scope.launch { reactions.onClosePoll(item) } }
-                        )
-                    )
-                ) {
-                    MessageAttachments(
-                        item,
-                        mine,
-                        senderName(item.senderId),
-                        state.attachmentViews,
-                        attachments,
-                        TranscriptionView(state.canTranscribe, state.transcripts)
-                    )
-                }
+            items(state.shownRows, key = { it.key }) { row ->
+                TimelineRowView(
+                    row, state, myId, now, senderName, onReport, attachments, senderAvatar, senderProfile, reactions,
+                    onJump = { target -> scope.launch { listState.animateScrollToItem(state.leadingRows + target) } }
+                )
             }
         }
-        if (state.untrustedOwner) {
-            // Nothing can be sealed for this chat (ChatKeyring.assertSealable): the reason stands where the composer was.
-            Banner(
-                ChatKeyring.UNTRUSTED_OWNER,
-                Modifier.background(OasisColors.Paper).padding(horizontal = 16.dp, vertical = 10.dp).testTag("chat.composer.untrustedOwner")
-            )
-        } else {
-            ConversationComposer(state, onDraftChange, onSend, attachments, effects, reactions.onCancelReply, polls)
+        Column(
+            Modifier
+                .align(Alignment.BottomCenter)
+                .fillMaxWidth()
+                .padding(12.dp)
+                .onSizeChanged { composerHeight = it.height }
+        ) {
+            if (awayFromBottom && items.isNotEmpty()) {
+                ScrollDownButton(
+                    arrived,
+                    onClick = {
+                        arrived = 0
+                        scope.launch { listState.animateScrollToItem((listState.layoutInfo.totalItemsCount - 1).coerceAtLeast(0)) }
+                    },
+                    modifier = Modifier.align(Alignment.End).padding(bottom = 12.dp)
+                )
+            }
+            if (state.untrustedOwner) {
+                // Nothing can be sealed for this chat (ChatKeyring.assertSealable): the reason stands where the composer was.
+                Banner(
+                    ChatKeyring.UNTRUSTED_OWNER,
+                    Modifier
+                        .shadow(8.dp, RoundedCornerShape(COMPOSER_RADIUS))
+                        .background(OasisColors.Paper, RoundedCornerShape(COMPOSER_RADIUS))
+                        .padding(horizontal = 16.dp, vertical = 10.dp)
+                        .testTag("chat.composer.untrustedOwner")
+                )
+            } else {
+                ConversationComposer(state, onDraftChange, onSend, attachments, effects, reactions.onCancelReply, polls)
+            }
         }
         state.viewOnce?.let { ViewOnceViewer(it, attachments, onReport) }
         state.spokenNotice?.let { notice ->
@@ -509,7 +592,10 @@ private fun ConversationComposer(
     polls: PollFormActions
 ) {
     var effectMenu by remember { mutableStateOf(false) }
-    val shape = RoundedCornerShape(OasisRadius.XS.dp)
+    val shape = RoundedCornerShape(FIELD_RADIUS)
+    val focus = remember { FocusRequester() }
+    // „Antworten“ (also by swiping a message) puts the cursor into the field.
+    LaunchedEffect(state.replyBar != null) { if (state.replyBar != null) runCatching { focus.requestFocus() } }
     val context = LocalContext.current
     val scope = rememberCoroutineScope()
     var explainMicrophone by remember { mutableStateOf(false) }
@@ -526,12 +612,15 @@ private fun ConversationComposer(
         microphoneDenied = !granted
         if (granted) attachments.recording.onStart()
     }
+    // A floating rounded bar over the messages (radius 28, paper, shadow-float, padding 6).
     Column(
         modifier = Modifier
             .fillMaxWidth()
-            .background(OasisColors.Paper)
-            .padding(horizontal = 8.dp, vertical = 10.dp)
-            .animateContentSize(),
+            .shadow(12.dp, RoundedCornerShape(COMPOSER_RADIUS))
+            .background(OasisColors.Paper, RoundedCornerShape(COMPOSER_RADIUS))
+            .padding(6.dp)
+            .animateContentSize()
+            .testTag("chat.composer"),
         verticalArrangement = Arrangement.spacedBy(8.dp)
     ) {
         AnimatedVisibility(state.hint != null) {
@@ -588,7 +677,7 @@ private fun ConversationComposer(
                         onEffect = { effectMenu = true },
                         onPoll = polls.onOpen
                     )
-                    ComposerField(state, onDraftChange, shape)
+                    ComposerField(state, onDraftChange, shape, focus)
                     if (state.showsSend) {
                         // Holding „Senden“ opens the effect menu.
                         SendButton(state.canSubmit, onSend, onLongPress = { effectMenu = true })
@@ -597,7 +686,7 @@ private fun ConversationComposer(
                             Icons.Outlined.Mic,
                             "Sprachnachricht aufnehmen",
                             enabled = state.canAttach,
-                            filled = false,
+                            filled = true,
                             modifier = Modifier.testTag("chat.composer.record")
                         ) {
                             val granted =
@@ -609,7 +698,12 @@ private fun ConversationComposer(
                 }
             }
         }
-        Text(state.counter, style = OasisType.Caption, color = if (state.tooLong) OasisColors.SunText else OasisColors.Muted)
+        Text(
+            state.counter,
+            style = OasisType.Caption,
+            color = if (state.tooLong) OasisColors.SunText else OasisColors.Muted,
+            modifier = Modifier.padding(horizontal = 12.dp)
+        )
     }
     if (explainMicrophone) {
         AlertDialog(
@@ -640,7 +734,12 @@ private fun ConversationComposer(
 
 /** The text field and "Senden". */
 @Composable
-private fun RowScope.ComposerField(state: ConversationState, onDraftChange: (String) -> Unit, shape: RoundedCornerShape) {
+private fun RowScope.ComposerField(
+    state: ConversationState,
+    onDraftChange: (String) -> Unit,
+    shape: RoundedCornerShape,
+    focus: FocusRequester
+) {
     BasicTextField(
         value = state.draft,
         onValueChange = onDraftChange,
@@ -649,9 +748,10 @@ private fun RowScope.ComposerField(state: ConversationState, onDraftChange: (Str
         cursorBrush = SolidColor(OasisColors.Night),
         keyboardOptions = KeyboardOptions(capitalization = KeyboardCapitalization.Sentences),
         minLines = 1,
-        maxLines = 5,
+        maxLines = 6,
         modifier = Modifier
             .weight(1f)
+            .focusRequester(focus)
             .semantics { contentDescription = "Nachricht" }
             .testTag("chat.composer.field"),
         decorationBox = { inner ->
@@ -660,7 +760,6 @@ private fun RowScope.ComposerField(state: ConversationState, onDraftChange: (Str
                     .fillMaxWidth()
                     .defaultMinSize(minHeight = ROUND_BUTTON)
                     .background(OasisColors.Field, shape)
-                    .border(1.dp, OasisColors.FieldLine, shape)
                     .padding(horizontal = 14.dp, vertical = 10.dp),
                 contentAlignment = Alignment.CenterStart
             ) {
@@ -671,11 +770,14 @@ private fun RowScope.ComposerField(state: ConversationState, onDraftChange: (Str
     )
 }
 
-/** The size of the round microphone and send button and the field's least height (48 dp touch target). */
-private val ROUND_BUTTON = 48.dp
+/** The size of the round „+“, microphone and send buttons and the field's least height. */
+private val ROUND_BUTTON = 44.dp
 
-/** The smaller „+“, so the field keeps the width (40 dp, centred on the field's first line). */
-private val ADD_BUTTON = 40.dp
+/** „+“ as big as the other round buttons. */
+private val ADD_BUTTON = 44.dp
+
+/** The text field's corner radius. */
+private val FIELD_RADIUS = 22.dp
 
 /** „+“: a small menu with the attachment actions (photo or video, file). */
 @Composable
@@ -846,8 +948,10 @@ private fun RoundAction(
 }
 
 /**
- * One message bubble: own messages right on night, others left on paper; its files, expiry and "Melden" below. With an
- * [avatar], someone else's bubble has it beside it where their run of messages [startsRun], and room for it otherwise.
+ * One message (docs/oasis-chat-client.md, „Chat design and gestures“): own ones right on night, others left on paper
+ * with their avatar at the last bubble of a run; corners and tail by the place in the run ([run]), the time inside, the
+ * reactions overlapping the bottom edge. Swiping it right answers it; holding it opens the bar with the reactions,
+ * „Antworten“, „Anheften“, „Melden“ and the [info] line with send time and expiry.
  */
 @Composable
 internal fun MessageBubble(
@@ -856,31 +960,49 @@ internal fun MessageBubble(
     senderName: String,
     onReport: () -> Unit,
     avatar: ChatAvatar? = null,
-    startsRun: Boolean = true,
+    run: ChatLayout.Run = ChatLayout.Run.Single,
+    showName: Boolean = false,
+    time: String? = null,
+    info: String = "",
     profile: ProfileLink? = null,
     extras: BubbleExtras,
     attachments: @Composable () -> Unit
 ) {
-    if (avatar == null) {
-        BubbleColumn(item, mine, senderName, onReport, extras, attachments)
-        return
-    }
-    Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-        if (startsRun) {
-            ChatAvatarView(
-                avatar,
-                Modifier.opensProfile(profile, profileOpener(profile)).testTag("chat.message.avatar"),
-                size = MESSAGE_AVATAR_SIZE
-            )
-        } else {
-            Spacer(Modifier.size(MESSAGE_AVATAR_SIZE))
+    SwipeToReply(extras.canAct, extras.onReply) {
+        BoxWithConstraints(Modifier.fillMaxWidth()) {
+            val widest = minOf(maxWidth * 0.78f, 560.dp)
+            Row(
+                Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.spacedBy(8.dp, if (mine) Alignment.End else Alignment.Start),
+                verticalAlignment = Alignment.Bottom
+            ) {
+                if (avatar != null) {
+                    if (hasTail(run)) {
+                        ChatAvatarView(
+                            avatar,
+                            Modifier.opensProfile(profile, profileOpener(profile)).testTag("chat.message.avatar"),
+                            size = MESSAGE_AVATAR_SIZE
+                        )
+                    } else {
+                        Spacer(Modifier.size(MESSAGE_AVATAR_SIZE))
+                    }
+                }
+                BubbleColumn(
+                    item, mine, senderName, onReport, run, showName, time, info, extras, attachments,
+                    Modifier.widthIn(
+                        max = widest
+                    )
+                )
+            }
         }
-        BubbleColumn(item, mine, senderName, onReport, extras, attachments, Modifier.weight(1f))
     }
 }
 
 /** The avatar beside someone else's messages. */
 private val MESSAGE_AVATAR_SIZE = 32.dp
+
+/** Body text of a bubble: 16 with a line height of 1.45. */
+private val BubbleText = OasisType.Body.copy(fontSize = 16.sp, lineHeight = (16 * 1.45).sp)
 
 @Composable
 private fun BubbleColumn(
@@ -888,40 +1010,81 @@ private fun BubbleColumn(
     mine: Boolean,
     senderName: String,
     onReport: () -> Unit,
+    run: ChatLayout.Run,
+    showName: Boolean,
+    time: String?,
+    info: String,
     extras: BubbleExtras,
     attachments: @Composable () -> Unit,
     modifier: Modifier = Modifier
 ) {
     var bar by remember { mutableStateOf(false) }
-    Column(
-        modifier = modifier.fillMaxWidth(),
-        horizontalAlignment = if (mine) Alignment.End else Alignment.Start,
-        verticalArrangement = Arrangement.spacedBy(4.dp)
-    ) {
+    val shape = bubbleShape(mine, run)
+    val fill = if (mine) OasisColors.Night else OasisColors.Paper
+    val reportable = !mine && item.state == ChatMessageItem.State.Readable
+    Column(modifier = modifier, horizontalAlignment = if (mine) Alignment.End else Alignment.Start) {
         Box {
             Column(
                 modifier = Modifier
-                    .widthIn(max = 520.dp)
-                    // Holding the bubble opens the reaction bar; TalkBack offers it as the long-press action.
-                    .then(if (extras.canAct) Modifier.holdOpens { bar = true } else Modifier)
-                    .background(if (mine) OasisColors.Night else OasisColors.Paper, RoundedCornerShape(OasisRadius.S.dp))
-                    // On „Nachtwasser“ the own (night) bubbles get an outline, so they stand out.
+                    .bubbleTail(hasTail(run), mine, fill)
+                    // Holding the bubble opens the reaction bar; TalkBack offers it and the other steps as actions.
+                    .then(if (extras.canAct || reportable) Modifier.holdOpens { bar = true } else Modifier)
+                    .semantics {
+                        val steps = buildList {
+                            if (extras.canAct) {
+                                add(
+                                    CustomAccessibilityAction("Antworten") {
+                                        extras.onReply()
+                                        true
+                                    }
+                                )
+                                add(
+                                    CustomAccessibilityAction("Reagieren") {
+                                        bar = true
+                                        true
+                                    }
+                                )
+                            }
+                            if (reportable) {
+                                add(
+                                    CustomAccessibilityAction("Nachricht von $senderName melden") {
+                                        onReport()
+                                        true
+                                    }
+                                )
+                            }
+                        }
+                        customActions = steps
+                        if (info.isNotEmpty()) stateDescription = info
+                    }
+                    .background(fill, shape)
                     .then(
-                        if (mine && LocalChatLook.current.dark) {
-                            Modifier.border(
+                        when {
+                            // On „Nachtwasser“ the own (night) bubbles get an outline, so they stand out.
+                            mine && LocalChatLook.current.dark -> Modifier.border(
                                 1.dp,
                                 LookColors.NightLine,
-                                RoundedCornerShape(OasisRadius.S.dp)
+                                shape
                             ).testTag("chat.message.outlined")
-                        } else {
-                            Modifier
+
+                            !mine -> Modifier.border(1.dp, OasisColors.PaperLine, shape)
+
+                            else -> Modifier
                         }
                     )
-                    .padding(horizontal = 16.dp, vertical = 12.dp),
+                    .padding(start = 12.dp, end = 12.dp, top = 8.dp, bottom = 6.dp)
+                    .testTag("chat.message.${item.signature}"),
                 verticalArrangement = Arrangement.spacedBy(4.dp)
             ) {
                 val color = if (mine) OasisColors.OnNight else OasisColors.Ink
-                Text(if (mine) "Du" else senderName, style = OasisType.SmallBold, color = color)
+                if (showName) {
+                    Text(
+                        senderName,
+                        style = OasisType.Small.copy(fontSize = 13.sp, fontWeight = FontWeight.ExtraBold),
+                        color = OasisColors.SpringText,
+                        modifier = Modifier.testTag("chat.message.sender")
+                    )
+                }
                 extras.quote?.let { ReplyQuoteView(it, mine) { extras.onQuote(it.to) } }
                 val (text, italic) = when (item.state) {
                     ChatMessageItem.State.Readable -> item.content.text to false
@@ -934,57 +1097,29 @@ private fun BubbleColumn(
                     SelectionContainer {
                         Text(
                             text,
-                            style = OasisType.Body.copy(fontStyle = if (italic) FontStyle.Italic else FontStyle.Normal),
+                            style = BubbleText.copy(fontStyle = if (italic) FontStyle.Italic else FontStyle.Normal),
                             color = color,
                             modifier = Modifier.testTag("chat.message.text")
                         )
                     }
                 }
                 attachments()
-            }
-            ReactionBar(bar, extras, onDismiss = { bar = false })
-        }
-        if (extras.chips.isNotEmpty()) ReactionChips(extras.chips)
-        val reportable = !mine && item.state == ChatMessageItem.State.Readable
-        // Only a line with something in it, so no empty paper pill shows on a chosen background.
-        if (item.expiresAt != null || reportable || extras.canAct) {
-            // Wraps on a narrow screen: the date, „Melden“, „Reagieren“ and „Antworten“ never run off the edge.
-            FlowRow(
-                modifier = Modifier.padding(horizontal = 8.dp).lookPill(LocalChatLook.current),
-                horizontalArrangement = Arrangement.spacedBy(12.dp, if (mine) Alignment.End else Alignment.Start),
-                itemVerticalAlignment = Alignment.CenterVertically
-            ) {
-                item.expiresAt?.let { Text("löscht sich ${formatDateTime(it)}", style = OasisType.Caption, color = OasisColors.Muted) }
-                if (reportable) {
+                time?.let {
                     Text(
-                        "Melden",
-                        style = OasisType.Caption.copy(textDecoration = TextDecoration.Underline),
-                        color = OasisColors.Muted,
-                        modifier = Modifier
-                            .pressable(onReport)
-                            .padding(vertical = 12.dp)
-                            .semantics { contentDescription = "Nachricht von $senderName melden" }
-                            .testTag("chat.message.report")
+                        it,
+                        style = OasisType.Caption.copy(fontSize = 11.sp, fontFeatureSettings = "tnum"),
+                        color = if (mine) OasisColors.OnNightMuted else OasisColors.Muted,
+                        modifier = Modifier.align(Alignment.End).testTag("chat.message.time")
                     )
                 }
-                if (extras.canAct) {
-                    MetaAction("Reagieren", "chat.message.react") { bar = true }
-                    MetaAction("Antworten", "chat.message.reply", extras.onReply)
-                }
             }
+            ReactionBar(bar, extras, info, onReport.takeIf { reportable }, onDismiss = { bar = false })
+        }
+        if (extras.chips.isNotEmpty()) {
+            // The chips overlap the bubble's bottom edge by 10, 12 in from its inner edge.
+            ReactionChips(extras.chips, Modifier.offset(y = (-10).dp).padding(horizontal = 12.dp))
         }
     }
-}
-
-/** „Reagieren“ and „Antworten“ in the line under a bubble (always shown on a touch screen). */
-@Composable
-private fun MetaAction(text: String, tag: String, onClick: () -> Unit) {
-    Text(
-        text,
-        style = OasisType.Caption.copy(textDecoration = TextDecoration.Underline),
-        color = OasisColors.Muted,
-        modifier = Modifier.pressable(onClick).padding(vertical = 12.dp).testTag(tag)
-    )
 }
 
 /** A long-press – by touch, or TalkBack's action „Reaktion wählen“ – runs [onHold]; the bubble's content stays as it is. */

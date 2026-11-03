@@ -53,13 +53,22 @@ class FakeChatServer : Interceptor {
         /** A lying server: lists the owner with the role member. */
         var ownerRoleHidden: Boolean = false,
         /** Members who left or were removed: the directory still lists them (`GET public-keys`). */
-        val former: MutableSet<Int> = mutableSetOf()
+        val former: MutableSet<Int> = mutableSetOf(),
+        /** Per member: when they last had the chat open (`last_read_at`). */
+        val lastReadAt: MutableMap<Int, String> = mutableMapOf(),
+        /** The newest message's time (`last_activity_at`). */
+        var lastActivityAt: String? = null,
+        /** Members for whom the chat is unread. */
+        val unread: MutableSet<Int> = mutableSetOf()
     ) {
         /** The owner the server names. */
         val owner: Int get() = shownOwner ?: createdBy
     }
 
     val users = mapOf(1 to "mira", 2 to "jonas", 3 to "aylin")
+
+    /** Profile statuses shown under a 1:1 partner's name. */
+    val statuses = mutableMapOf<Int, String>()
     val identities = mutableMapOf<Int, JsonObject>()
     val conversations = mutableMapOf<Int, Conversation>()
     val grants = mutableMapOf<Int, MutableList<JsonObject>>()
@@ -157,6 +166,7 @@ class FakeChatServer : Interceptor {
                             put("display_name", name(member))
                             put("role", if (member == conversation.owner && !conversation.ownerRoleHidden) "owner" else "member")
                             put("joined_at", "2026-10-22T11:00:00.000000Z")
+                            statuses[member]?.let { put("status", it) }
                             // ChatAvatar: initials in the colour, a photo for Jonas (2).
                             put(
                                 "avatar",
@@ -173,7 +183,9 @@ class FakeChatServer : Interceptor {
         )
         put("server_time", serverTime)
         put("request", user !in conversation.accepted)
-        put("unread", false)
+        put("unread", user in conversation.unread)
+        put("last_read_at", conversation.lastReadAt[user])
+        put("last_activity_at", conversation.lastActivityAt)
         put("muted", conversation.mutedUntil[user] != null)
         put("muted_until", conversation.mutedUntil[user]?.takeIf { it.isNotEmpty() })
     }
@@ -591,7 +603,10 @@ class FakeChatServer : Interceptor {
                 200 to data(conversationData(conversation, user))
             }
 
-            "POST" to "read" -> 200 to buildJsonObject { put("count", 0) }
+            "POST" to "read" -> {
+                conversation.unread -= user
+                200 to buildJsonObject { put("count", 0) }
+            }
 
             "POST" to "accept" -> {
                 conversation.accepted += user

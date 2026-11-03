@@ -8,6 +8,7 @@ import de.velwebsolutions.oasis.chat.core.ChatContext
 import de.velwebsolutions.oasis.chat.core.describeChatError
 import de.velwebsolutions.oasis.chat.core.lifetimeLabel
 import de.velwebsolutions.oasis.chatcrypto.checkNumber
+import de.velwebsolutions.oasis.core.network.OasisJson
 import de.velwebsolutions.oasis.core.realtime.RealtimeService
 import javax.inject.Inject
 import kotlin.time.Duration.Companion.seconds
@@ -156,6 +157,71 @@ class ConversationListViewModel @Inject constructor(context: ChatContext, privat
 
     /** The error toast was shown. */
     fun dismissActionError() = mutableState.update { it.copy(actionError = null) }
+
+    // region Row actions (swipes, „⋯“ and TalkBack: docs/oasis-chat-client.md, „Gestures“)
+
+    /** Line 2: the last message this device decrypted in this session, else „Verschlüsselte Nachricht“. */
+    fun preview(conversation: ChatConversation): String = vault.previews[conversation.id] ?: ENCRYPTED_PREVIEW
+
+    /** The last activity: „14:05“, „Gestern“, „Montag“ or „02.11.26“; empty without one. */
+    fun activity(conversation: ChatConversation): String =
+        conversation.lastActivityAt?.let(OasisJson::parseInstant)?.let { ChatLayout.activityLabel(it, vault.clock.now()) }.orEmpty()
+
+    /** Whether one may leave: everyone except a group's owner (who removes members instead). */
+    fun canLeave(conversation: ChatConversation): Boolean = !(conversation.isGroup && conversation.createdBy == myId)
+
+    /** „Als gelesen markieren“. */
+    suspend fun markRead(conversation: ChatConversation) = act("Als gelesen markiert.") {
+        context.repository.markRead(conversation.id)
+        replace(conversation.copy(unread = false))
+    }
+
+    /** „Stummschalten“ (permanently, like „Dauerhaft“ in the details) or „Ton an“. */
+    suspend fun toggleMute(conversation: ChatConversation) =
+        act(if (conversation.muted == true) "Ton ist wieder an." else "Stummgeschaltet.") {
+            val changed = if (conversation.muted == true) {
+                context.repository.unmute(conversation.id)
+            } else {
+                context.repository.mute(conversation.id, "always")
+            }
+            replace(conversation.copy(muted = changed.muted, mutedUntil = changed.mutedUntil))
+        }
+
+    /** „Chat verlassen“ (after the confirmation): it leaves the list. */
+    suspend fun leave(conversation: ChatConversation) = act("Chat verlassen.") {
+        context.repository.leave(conversation.id)
+        mutableState.update {
+            it.copy(conversations = it.conversations.without(conversation), requests = it.requests.without(conversation))
+        }
+    }
+
+    private fun replace(conversation: ChatConversation) = mutableState.update {
+        it.copy(conversations = it.conversations.replacing(conversation), requests = it.requests.replacing(conversation))
+    }
+
+    private fun List<ChatConversation>.replacing(conversation: ChatConversation) = map {
+        if (it.id ==
+            conversation.id
+        ) {
+            conversation
+        } else {
+            it
+        }
+    }
+
+    private fun List<ChatConversation>.without(conversation: ChatConversation) = filter { it.id != conversation.id }
+
+    /** Runs a row action; its result is announced („Stummgeschaltet.“), a failure shows as the error. */
+    private suspend fun act(done: String, action: suspend () -> Unit) = inScope {
+        try {
+            action()
+            mutableState.update { it.copy(status = done) }
+        } catch (error: Exception) {
+            mutableState.update { it.copy(actionError = describeChatError(error)) }
+        }
+    }
+
+    // endregion
 
     // region Device links (approving side)
 

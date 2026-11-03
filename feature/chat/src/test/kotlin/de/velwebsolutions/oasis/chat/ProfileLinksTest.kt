@@ -17,6 +17,7 @@ import de.velwebsolutions.oasis.chat.api.ChatConversation
 import de.velwebsolutions.oasis.chat.api.ConversationMember
 import de.velwebsolutions.oasis.chat.core.ChatMessageItem
 import de.velwebsolutions.oasis.chat.core.ChatTimeline
+import de.velwebsolutions.oasis.chat.ui.ChatHeaderBar
 import de.velwebsolutions.oasis.chat.ui.ConversationContent
 import de.velwebsolutions.oasis.chat.ui.ConversationDetailsContent
 import de.velwebsolutions.oasis.chat.ui.ConversationDetailsState
@@ -92,23 +93,26 @@ class ProfileLinksTest {
         compose.setContent {
             OasisTheme {
                 CompositionLocalProvider(LocalNavigator provides navigator) {
-                    ConversationContent(
-                        state = state,
-                        myId = "1",
-                        senderName = { "Jemand" },
-                        onLoadOlder = {},
-                        onDraftChange = {},
-                        onSend = {},
-                        onReport = {},
-                        onAccept = {},
-                        onDecline = {},
-                        onBlockFlagged = {},
-                        onDismissFlagged = {},
-                        onNoticeSpoken = {},
-                        attachments = attachmentActions(mutableListOf()),
-                        senderAvatar = { ChatAvatar.Unknown },
-                        senderProfile = { id -> ProfileLink.of(members.firstOrNull { it.userId == id }) }
-                    )
+                    androidx.compose.foundation.layout.Column {
+                        ChatHeaderBar(state.conversation, "1", "Jonas", "", onBack = null, onDetails = {})
+                        ConversationContent(
+                            state = state,
+                            myId = "1",
+                            senderName = { "Jemand" },
+                            onLoadOlder = {},
+                            onDraftChange = {},
+                            onSend = {},
+                            onReport = {},
+                            onAccept = {},
+                            onDecline = {},
+                            onBlockFlagged = {},
+                            onDismissFlagged = {},
+                            onNoticeSpoken = {},
+                            attachments = attachmentActions(mutableListOf()),
+                            senderAvatar = { ChatAvatar.Unknown },
+                            senderProfile = { id -> ProfileLink.of(members.firstOrNull { it.userId == id }) }
+                        )
+                    }
                 }
             }
         }

@@ -116,7 +116,11 @@ data class ChatConversation(
      * A direct chat one of the two left (or deleted their account): readable, no composer, no new key
      * (`Conversation::isEnded`).
      */
-    val ended: Boolean = false
+    val ended: Boolean = false,
+    /** When the member last had the chat open (ISO 8601), for the „Neue Nachrichten“ divider; null: never. */
+    @SerialName("last_read_at") val lastReadAt: String? = null,
+    /** The newest message's time, else when the chat began (ISO 8601) – never a preview. */
+    @SerialName("last_activity_at") val lastActivityAt: String? = null
 ) {
     val isGroup: Boolean get() = type == "group"
 

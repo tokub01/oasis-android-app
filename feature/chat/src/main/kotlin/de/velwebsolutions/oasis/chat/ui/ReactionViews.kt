@@ -31,6 +31,8 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.semantics.Role
@@ -39,8 +41,10 @@ import androidx.compose.ui.semantics.role
 import androidx.compose.ui.semantics.selected
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.font.FontStyle
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import de.velwebsolutions.oasis.chat.core.ChatMessageItem
 import de.velwebsolutions.oasis.chatcrypto.MessagePayload
 import de.velwebsolutions.oasis.design.components.pressable
@@ -107,7 +111,8 @@ internal fun ReplyQuoteView(quote: ReplyQuote, mine: Boolean, onQuote: () -> Uni
     Row(
         modifier = Modifier
             .height(IntrinsicSize.Min)
-            .background(if (mine) Color.White.copy(alpha = 0.08f) else OasisColors.Sand, RoundedCornerShape(OasisRadius.XS.dp))
+            .clip(RoundedCornerShape(10.dp))
+            .background(color.copy(alpha = 0.08f))
             .pressable(onQuote)
             .semantics(mergeDescendants = true) {
                 role = Role.Button
@@ -115,36 +120,37 @@ internal fun ReplyQuoteView(quote: ReplyQuote, mine: Boolean, onQuote: () -> Uni
             }
             .testTag("chat.message.quote")
     ) {
-        Box(Modifier.width(3.dp).fillMaxHeight().background(OasisColors.Spring))
+        Box(Modifier.width(3.dp).fillMaxHeight().background(if (mine) OasisColors.Sun else OasisColors.Spring))
         Column(Modifier.padding(horizontal = 10.dp, vertical = 6.dp)) {
-            Text(quote.name, style = OasisType.SmallBold, color = color)
-            Text(quote.text, style = OasisType.Small, color = color, maxLines = 2, overflow = TextOverflow.Ellipsis)
+            Text(quote.name, style = OasisType.Small.copy(fontSize = 13.sp, fontWeight = FontWeight.Bold), color = color)
+            Text(quote.text, style = OasisType.Small.copy(fontSize = 13.sp), color = color, maxLines = 2, overflow = TextOverflow.Ellipsis)
         }
     }
 }
 
 /** The chips under a bubble, „{emoji} {count}“; tapping one shows who reacted under them (tapping it again hides it). */
 @Composable
-internal fun ReactionChips(chips: List<ReactionChip>) {
+internal fun ReactionChips(chips: List<ReactionChip>, modifier: Modifier = Modifier) {
     var shown by remember { mutableStateOf<String?>(null) }
-    Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
+    Column(modifier, verticalArrangement = Arrangement.spacedBy(4.dp)) {
         FlowRow(horizontalArrangement = Arrangement.spacedBy(6.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
             chips.forEach { chip ->
                 Text(
                     "${chip.emoji} ${chip.count}",
-                    style = OasisType.Small,
+                    style = OasisType.Small.copy(fontSize = 13.sp),
                     color = OasisColors.Ink,
                     modifier = Modifier
-                        .defaultMinSize(minHeight = 32.dp)
+                        .defaultMinSize(minHeight = 26.dp)
+                        .shadow(3.dp, CircleShape)
                         .background(OasisColors.Paper, CircleShape)
-                        .border(if (chip.mine) 2.dp else 1.dp, if (chip.mine) OasisColors.Night else OasisColors.DuneLine, CircleShape)
+                        .border(1.dp, if (chip.mine) OasisColors.Night else OasisColors.PaperLine, CircleShape)
                         .pressable({ shown = if (shown == chip.names) null else chip.names })
                         .semantics {
                             role = Role.Button
                             contentDescription = chip.description
                             selected = chip.mine
                         }
-                        .padding(horizontal = 10.dp, vertical = 6.dp)
+                        .padding(horizontal = 10.dp, vertical = 3.dp)
                         .testTag("chat.message.reaction.${chip.emoji}")
                 )
             }
@@ -160,49 +166,74 @@ internal fun ReactionChips(chips: List<ReactionChip>) {
     }
 }
 
-/** „Reaktion wählen“: the six emoji (the own one pressed; tapping it again removes it) and „Antworten“. */
+/**
+ * The long-press bar: the six emoji (the own one pressed; tapping it again removes it), „Antworten“, „Anheften“ /
+ * „Lösen“, „Melden“ for others' messages, and the [info] line with send time and expiry.
+ */
 @Composable
-internal fun ReactionBar(expanded: Boolean, extras: BubbleExtras, onDismiss: () -> Unit) {
+internal fun ReactionBar(expanded: Boolean, extras: BubbleExtras, info: String, onReport: (() -> Unit)?, onDismiss: () -> Unit) {
     val own = extras.own
     DropdownMenu(expanded = expanded, onDismissRequest = onDismiss, containerColor = OasisColors.Paper) {
-        Row(
-            modifier = Modifier
-                .padding(horizontal = 8.dp)
-                .semantics { contentDescription = "Reaktion wählen" }
-                .testTag("chat.reactionBar"),
-            horizontalArrangement = Arrangement.spacedBy(2.dp)
-        ) {
-            MessagePayload.REACTIONS.forEach { emoji ->
-                Box(
-                    modifier = Modifier
-                        .size(44.dp)
-                        .background(if (emoji == own) OasisColors.Dune else Color.Transparent, CircleShape)
-                        .border(1.dp, if (emoji == own) OasisColors.Night else Color.Transparent, CircleShape)
-                        .pressable({
-                            onDismiss()
-                            extras.onReact(emoji)
-                        })
-                        .semantics {
-                            role = Role.Button
-                            contentDescription = "Mit $emoji reagieren"
-                            selected = emoji == own
-                        }
-                        .testTag("chat.reactionBar.$emoji"),
-                    contentAlignment = Alignment.Center
-                ) {
-                    Text(emoji, style = OasisType.heading(20))
+        if (info.isNotEmpty()) {
+            Text(
+                info,
+                style = OasisType.Caption,
+                color = OasisColors.Muted,
+                modifier = Modifier.padding(horizontal = 12.dp, vertical = 6.dp).testTag("chat.reactionBar.info")
+            )
+        }
+        if (extras.canAct) {
+            Row(
+                modifier = Modifier
+                    .padding(horizontal = 8.dp)
+                    .semantics { contentDescription = "Reaktion wählen" }
+                    .testTag("chat.reactionBar"),
+                horizontalArrangement = Arrangement.spacedBy(2.dp)
+            ) {
+                MessagePayload.REACTIONS.forEach { emoji ->
+                    Box(
+                        modifier = Modifier
+                            .size(44.dp)
+                            .background(if (emoji == own) OasisColors.Dune else Color.Transparent, CircleShape)
+                            .border(1.dp, if (emoji == own) OasisColors.Night else Color.Transparent, CircleShape)
+                            .pressable({
+                                onDismiss()
+                                extras.onReact(emoji)
+                            })
+                            .semantics {
+                                role = Role.Button
+                                contentDescription = "Mit $emoji reagieren"
+                                selected = emoji == own
+                            }
+                            .testTag("chat.reactionBar.$emoji"),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        Text(emoji, style = OasisType.heading(20))
+                    }
                 }
             }
         }
-        DropdownMenuItem(
-            text = { Text("Antworten", style = OasisType.Body, color = OasisColors.Ink) },
-            onClick = {
-                onDismiss()
-                extras.onReply()
-            },
-            modifier = Modifier.testTag("chat.reactionBar.reply")
-        )
-        extras.pinLabel?.let { label ->
+        if (extras.canAct) {
+            DropdownMenuItem(
+                text = { Text("Antworten", style = OasisType.Body, color = OasisColors.Ink) },
+                onClick = {
+                    onDismiss()
+                    extras.onReply()
+                },
+                modifier = Modifier.testTag("chat.reactionBar.reply")
+            )
+        }
+        onReport?.let { report ->
+            DropdownMenuItem(
+                text = { Text("Melden", style = OasisType.Body, color = OasisColors.Ink) },
+                onClick = {
+                    onDismiss()
+                    report()
+                },
+                modifier = Modifier.testTag("chat.reactionBar.report")
+            )
+        }
+        extras.pinLabel?.takeIf { extras.canAct }?.let { label ->
             DropdownMenuItem(
                 text = { Text(label, style = OasisType.Body, color = OasisColors.Ink) },
                 onClick = {

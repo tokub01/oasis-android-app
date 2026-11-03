@@ -114,4 +114,23 @@ class AppearanceTest {
         compose.waitForIdle()
         assertEquals("light", preferences.getString(Appearance.STORAGE_KEY, null))
     }
+
+    @Test
+    fun aScreenMayBringItsOwnBar() {
+        compose.setContent {
+            OasisTheme {
+                androidx.compose.runtime.CompositionLocalProvider(
+                    de.velwebsolutions.oasis.design.components.LocalScreenChrome provides
+                        de.velwebsolutions.oasis.design.components.ScreenChrome(onBack = {})
+                ) {
+                    de.velwebsolutions.oasis.design.components.OasisScreen(
+                        "Jonas",
+                        topBar = { androidx.compose.material3.Text("Eigene Leiste") }
+                    ) {}
+                }
+            }
+        }
+        compose.onNode(androidx.compose.ui.test.hasText("Eigene Leiste")).assertExists()
+        compose.onNode(androidx.compose.ui.test.hasContentDescription("Zurück")).assertDoesNotExist()
+    }
 }

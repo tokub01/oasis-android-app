@@ -312,7 +312,7 @@ class ChatScreensTest {
         compose.onNodeWithTag("chat.composer.send").assertIsEnabled().performClick()
         waitFor(20_000) { model.state.value.timeline.items.isNotEmpty() }
         compose.onNodeWithText("Hallo Jonas 🌴").assertIsDisplayed()
-        compose.onNodeWithText("Du").assertIsDisplayed()
+        compose.onNodeWithTag("chat.message.time", useUnmergedTree = true).assertExists()
         assertEquals("", model.state.value.draft)
         val stored = support.server.messages.getValue(id.toInt()).single().second
         assertEquals(false, stored.toString().contains("Hallo"))

@@ -213,12 +213,12 @@ private fun Tile(region: MapRegion, active: Boolean, size: Dp, modifier: Modifie
             .background(fill, shape)
             .border(2.dp, if (filled || active) Color.Transparent else OasisColors.DuneLine, shape)
             .clickable(onClick = onClick)
+            .testTag("map.${region.code}")
             .clearAndSetSemantics {
                 contentDescription = region.accessibleName
                 role = Role.Button
                 selected = active
-            }
-            .testTag("map.${region.code}"),
+            },
         horizontalAlignment = Alignment.CenterHorizontally,
         verticalArrangement = Arrangement.Center
     ) {

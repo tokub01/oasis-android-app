@@ -219,10 +219,11 @@ class AttachmentUiTest {
         show()
         capture("composer-360dp-empty")
         compose.onNodeWithTag("chat.composer.record").assertIsEnabled()
-        // 360 dp minus the gutters (2 × 8), „+“ (40), the round button (48) and the gaps (2 × 8): 240 dp for the text.
+        // 360 dp minus the floating bar's margins (2 × 12) and padding (2 × 6), „+“ and the round button (2 × 44) and the
+        // gaps (2 × 8): 220 dp for the text.
         val field = compose.onNodeWithTag("chat.composer.field").fetchSemanticsNode().size.width
         val density = compose.onRoot().fetchSemanticsNode().layoutInfo.density.density
-        assertTrue("the field is ${field / density} dp wide", field / density >= 236f)
+        assertTrue("the field is ${field / density} dp wide", field / density >= 218f)
 
         // The view model measures every draft (ConversationViewModel.render); this state is set by hand, so it does too.
         val text = "Hallo Jonas, wie war dein Tag? Ich wollte dir noch etwas Längeres schreiben."

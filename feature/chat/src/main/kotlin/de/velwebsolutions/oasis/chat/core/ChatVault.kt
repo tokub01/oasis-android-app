@@ -93,6 +93,12 @@ class ChatVault(
 
     /** Conversation id → id of the owner first seen in this app session ([pinOwner]). */
     private val owners = mutableMapOf<String, String>()
+
+    /**
+     * The list's line 2 per chat: the last message this device decrypted in this session (docs/oasis-chat-client.md,
+     * „Conversation list“). Only in memory, forgotten on every lock; nothing of it goes to the server.
+     */
+    val previews = mutableMapOf<String, String>()
     private var idleTimer: Job? = null
 
     /** Oasis opened a screen of another app ([openExternalScreen]): the next trip to the background waits for its return. */
@@ -142,6 +148,7 @@ class ChatVault(
         unlockedState.value = false
         conversationKeys.values.forEach(ChatEncoding::wipe)
         conversationKeys.clear()
+        previews.clear()
         if (announce && wasUnlocked) {
             announcement.value = "Nachrichten gesperrt. Deine Schlüssel sind aus dem Speicher gelöscht."
         }

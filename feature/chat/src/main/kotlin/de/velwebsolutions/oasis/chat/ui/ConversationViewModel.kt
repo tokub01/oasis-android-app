@@ -37,11 +37,13 @@ import de.velwebsolutions.oasis.chatcrypto.MessageEnvelope
 import de.velwebsolutions.oasis.chatcrypto.MessagePayload
 import de.velwebsolutions.oasis.chatcrypto.MessageReply
 import de.velwebsolutions.oasis.core.network.ApiError
+import de.velwebsolutions.oasis.core.network.OasisJson
 import de.velwebsolutions.oasis.core.realtime.RealtimeEvent
 import de.velwebsolutions.oasis.core.realtime.RealtimeService
 import de.velwebsolutions.oasis.core.share.PendingShare
 import de.velwebsolutions.oasis.core.share.Share
 import de.velwebsolutions.oasis.core.share.SharedFile
+import java.time.Instant
 import kotlin.time.Duration
 import kotlin.time.Duration.Companion.seconds
 import kotlinx.coroutines.CancellationException
@@ -121,6 +123,9 @@ object QuoteTexts {
     /** The excerpt of a text, or what the message held. */
     fun of(reply: MessageReply): String = if (reply.kind == "text") reply.excerpt else labels.getValue(reply.kind)
 
+    /** What a file of [kind] is called („Foto“ …); empty for an unknown kind. */
+    fun label(kind: String): String = labels[kind].orEmpty()
+
     const val GONE = "Nachricht nicht mehr verfügbar"
     const val NOT_LOADED = "Die Nachricht ist nicht geladen. Ältere Nachrichten laden, um sie zu sehen."
 }
@@ -196,7 +201,11 @@ data class ConversationState(
     /** The polls as they stand, by the poll's signature. */
     val polls: Map<String, PollView> = emptyMap(),
     /** The poll form above the field („Umfrage“). */
-    val pollForm: PollForm? = null
+    val pollForm: PollForm? = null,
+    /** The header bar's line under the name: a 1:1 partner's status, else the encryption and the lifetime. */
+    val headerStatus: String = "",
+    /** The message list: day pills, the „Neue Nachrichten“ divider and the bubbles with their place in a run. */
+    val rows: List<TimelineRow> = emptyList()
 ) {
     /** The chip text of [pendingEffect]. */
     val effectChip: String? get() = pendingEffect?.let { "Effekt: ${EffectNames.of(it)}" }
@@ -212,9 +221,13 @@ data class ConversationState(
     /** The messages shown as bubbles: every item except reactions (they show as chips under their target). */
     val bubbles: List<ChatMessageItem> get() = timeline.items.filter { !it.content.control }
 
-    /** The rows of the message list above the first bubble (header, notices, banners, „Ältere Nachrichten laden“, a note). */
+    /** The rows shown: as the view model laid them out, else (a state built without it) laid out without a divider. */
+    val shownRows: List<TimelineRow>
+        get() = rows.ifEmpty { timelineRows(bubbles, conversation?.lifetimeDays ?: 0, null, "", Instant.now()) }
+
+    /** The rows of the message list above the first timeline row (notices, banners, „Ältere Nachrichten laden“, a note). */
     val leadingRows: Int
-        get() = 1 + notices.size + listOfNotNull(pinBar, requestTitle, flagged, nextBeforeId).size +
+        get() = notices.size + listOfNotNull(pinBar, requestTitle, flagged, nextBeforeId).size +
             if (loadFailed != null || conversation == null || bubbles.isEmpty()) 1 else 0
 
     /** Reacting to and answering [item]: a readable message, while this account may write here. */
@@ -282,6 +295,10 @@ class ConversationViewModel @AssistedInject constructor(
     private val dismissed = mutableSetOf<String>()
     private var confirmedDraft: String? = null
     private var flagged: SafetyFlag? = null
+
+    /** When the member last had the chat open, taken once per opening (the „Neue Nachrichten“ divider). */
+    private var readAt: Instant? = null
+    private var readAtTaken = false
 
     /** Increases on every open/close; results of older work are dropped. */
     private var openCount = 0
@@ -355,8 +372,12 @@ class ConversationViewModel @AssistedInject constructor(
                 val others = conversation.members.filter { it.userId != myId }
                 "Nachrichtenanfrage von ${if (others.size == 1) others[0].name else "Jemand"}"
             },
-            isOwner = current?.createdBy == myId
+            isOwner = current?.createdBy == myId,
+            headerStatus = headerStatus(current, myId),
+            rows = timelineRows(timeline.items.filter { !it.content.control }, current?.lifetimeDays ?: 0, readAt, myId, vault.clock.now())
         )
+        // The list's line 2 of this chat, kept only in memory (forgotten on every lock).
+        current?.let { chat -> latestPreview(mutableState.value.bubbles, myId)?.let { vault.previews[chat.id] = it } }
     }
 
     // region Lifecycle
@@ -367,6 +388,7 @@ class ConversationViewModel @AssistedInject constructor(
      */
     suspend fun open() = inScope {
         close()
+        readAtTaken = false
         val token = openCount
         try {
             refresh()
@@ -497,6 +519,7 @@ class ConversationViewModel @AssistedInject constructor(
         if (!isCurrent(token)) return
         warnings = newWarnings
         conversation = current
+        if (!readAtTaken) readAt = current.lastReadAt?.let(OasisJson::parseInstant).also { readAtTaken = true }
         renderNotices(current)
         redecrypt()
         render()
@@ -1200,8 +1223,9 @@ class ConversationViewModel @AssistedInject constructor(
      * Tapping a quote: the position of the original among the bubbles while it is loaded; otherwise null and the note
      * that it is not loaded.
      */
-    fun quoteTarget(signature: String): Int? = state.value.bubbles.indexOfFirst { it.signature == signature }.takeIf { it >= 0 }
-        ?: null.also { render { it.copy(status = QuoteTexts.NOT_LOADED) } }
+    fun quoteTarget(signature: String): Int? =
+        state.value.rows.indexOfFirst { (it as? TimelineRow.Message)?.item?.signature == signature }.takeIf { it >= 0 }
+            ?: null.also { render { it.copy(status = QuoteTexts.NOT_LOADED) } }
 
     // endregion
 

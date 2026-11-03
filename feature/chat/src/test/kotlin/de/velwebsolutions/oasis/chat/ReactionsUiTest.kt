@@ -123,11 +123,11 @@ class ReactionsUiTest {
     @Test
     fun theRowsAboveTheFirstBubble() {
         val loaded = shown()
-        assertEquals("the header only", 1, loaded.leadingRows)
-        assertEquals(4, loaded.copy(notices = listOf("Hinweis"), requestTitle = "Anfrage", nextBeforeId = "3").leadingRows)
-        assertEquals("and the note", 2, loaded.copy(timeline = ChatTimeline()).leadingRows)
-        assertEquals(2, loaded.copy(conversation = null).leadingRows)
-        assertEquals(2, loaded.copy(loadFailed = "Fehler").leadingRows)
+        assertEquals("nothing above the timeline", 0, loaded.leadingRows)
+        assertEquals(3, loaded.copy(notices = listOf("Hinweis"), requestTitle = "Anfrage", nextBeforeId = "3").leadingRows)
+        assertEquals("the note", 1, loaded.copy(timeline = ChatTimeline()).leadingRows)
+        assertEquals(1, loaded.copy(conversation = null).leadingRows)
+        assertEquals(1, loaded.copy(loadFailed = "Fehler").leadingRows)
     }
 
     @Test
@@ -154,23 +154,25 @@ class ReactionsUiTest {
         state = state.copy(quotes = mapOf("b" to ReplyQuote("a", "Jonas", "", true)))
         compose.onNodeWithText(QuoteTexts.GONE).assertExists()
         state = state.copy(canSend = false)
-        compose.onNodeWithTag("chat.message.react").assertDoesNotExist()
+        compose.onNodeWithTag("chat.message.a").performTouchInput { longClick(bottomRight - androidx.compose.ui.geometry.Offset(6f, 6f)) }
+        compose.onNodeWithContentDescription("Reaktion wählen").assertDoesNotExist()
     }
 
     @Test
     fun theBarByHoldingTheBubbleOrReagierenAndTheQuoteBar() {
         state = shown()
         compose.setContent { OasisTheme { CompositionLocalProvider(LocalNavigator provides Navigator()) { Chat() } } }
-        compose.onAllNodes(androidx.compose.ui.test.hasTestTag("chat.message.reply"))[0].performScrollTo().performClick()
-        // Held on the bubble (on the sender's name, outside the selectable text): the bar with the own reaction pressed.
-        compose.onAllNodes(hasText("Jonas"), useUnmergedTree = true)[0].performTouchInput { longClick() }
+        // TalkBack's „Antworten“ on the bubble.
+        customAction("chat.message.a", "Antworten")
+        // Held on the bubble (on its time, outside the selectable text): the bar with the own reaction pressed.
+        compose.onNodeWithTag("chat.message.a").performTouchInput { longClick(bottomRight - androidx.compose.ui.geometry.Offset(6f, 6f)) }
         compose.waitForIdle()
         compose.onNodeWithContentDescription("Reaktion wählen").assertExists()
         compose.onNodeWithContentDescription("Mit $thumb reagieren").assertIsSelected()
         capture("bar")
         compose.onNodeWithContentDescription("Mit $heart reagieren").performClick()
         compose.waitForIdle()
-        compose.onAllNodes(androidx.compose.ui.test.hasTestTag("chat.message.react"))[1].performClick()
+        customAction("chat.message.b", "Reagieren")
         compose.onNodeWithTag("chat.reactionBar.reply").performClick()
         compose.waitForIdle()
         assertEquals(listOf("reply a", "react a $heart", "reply b"), calls)
@@ -187,5 +189,11 @@ class ReactionsUiTest {
         compose.onNodeWithContentDescription("Antwort abbrechen").performClick()
         assertEquals("cancel", calls.last())
         assertEquals(listOf("reply a", "react a $heart", "reply b", "reply a"), calls.dropLast(1))
+    }
+
+    /** Runs the TalkBack action [label] of the node with [tag]. */
+    private fun customAction(tag: String, label: String) {
+        val node = compose.onNodeWithTag(tag).fetchSemanticsNode()
+        compose.runOnIdle { node.config[SemanticsActions.CustomActions].first { it.label == label }.action() }
     }
 }

@@ -163,7 +163,7 @@ class ReactionsAndRepliesTest {
             sent.content.reply
         )
         assertEquals(ReplyQuote(original.signature, "Mira", "Wollen wir morgen wandern?", false), reader.state.value.quotes[sent.signature])
-        assertEquals(0, reader.quoteTarget(original.signature))
+        assertEquals("after the day pill", 1, reader.quoteTarget(original.signature))
 
         // Mira sees the quote of her own message as „Du“; her own message answered: „Antwort an dich“.
         writer.live(id)

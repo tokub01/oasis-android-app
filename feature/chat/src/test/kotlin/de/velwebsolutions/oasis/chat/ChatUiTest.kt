@@ -13,6 +13,7 @@ import androidx.compose.ui.test.hasContentDescription
 import androidx.compose.ui.test.hasText
 import androidx.compose.ui.test.isRoot
 import androidx.compose.ui.test.junit4.createComposeRule
+import androidx.compose.ui.test.longClick
 import androidx.compose.ui.test.onAllNodesWithTag
 import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.onNodeWithText
@@ -31,6 +32,7 @@ import de.velwebsolutions.oasis.chat.core.ChatKeyring
 import de.velwebsolutions.oasis.chat.core.ChatMessageItem
 import de.velwebsolutions.oasis.chat.core.ChatTimeline
 import de.velwebsolutions.oasis.chat.ui.ChatAccessState
+import de.velwebsolutions.oasis.chat.ui.ChatHeaderBar
 import de.velwebsolutions.oasis.chat.ui.ChatSettingsContent
 import de.velwebsolutions.oasis.chat.ui.ChatSettingsState
 import de.velwebsolutions.oasis.chat.ui.ChatSetupContent
@@ -306,7 +308,10 @@ class ChatUiTest {
         tap("Nachricht melden")
         tap("Ist in Ordnung")
         tap("Ältere Nachrichten laden")
-        compose.onNode(hasContentDescription("Nachricht von Jonas melden")).performScrollTo().performClick()
+        compose.onNodeWithTag("chat.message.a").performScrollTo().performTouchInput {
+            longClick(bottomRight - androidx.compose.ui.geometry.Offset(6f, 6f))
+        }
+        compose.onNodeWithTag("chat.reactionBar.report").performClick()
         // Dialogs that are left without confirming.
         tapTag("chat.request.decline")
         tap("Abbrechen")
@@ -378,6 +383,9 @@ class ChatUiTest {
 
     private val jonasAvatar = ChatAvatar("J", "night", "/api/v1/network/profiles/jonas/photo/a.jpg")
 
+    /** One send time for a run of messages. */
+    private val sameTime = java.time.Instant.parse("2100-01-01T00:00:00Z")
+
     @Test
     fun avatarsBesideChatsAndTheStartOfEachRun() {
         val group = chat("9").copy(
@@ -387,8 +395,17 @@ class ChatUiTest {
         )
         val alone = chat("11").copy(members = members.take(1))
         val away = chat("12").copy(members = members.map { if (it.userId == "2") it.copy(status = "Im Urlaub bis Sonntag") else it })
-        show { Conversation(ConversationState(conversation = away, title = "Jonas")) }
+        show {
+            ChatHeaderBar(away, "1", "Jonas", away.directStatus("1").orEmpty(), onBack = { calls += "back" }, onDetails = {
+                calls +=
+                    "details"
+            })
+        }
         compose.onNodeWithTag("chat.conversation.status").assertExists()
+        capture("header")
+        compose.onNodeWithTag("chat.header.back").performClick()
+        compose.onNodeWithTag("chat.details").performClick()
+        assertTrue(calls.containsAll(listOf("back", "details")))
         switchTo { List(ConversationListState(conversations = listOf(chat("3"), group, alone), loaded = true)) }
         capture("list-avatars")
         switchTo {
@@ -398,17 +415,16 @@ class ChatUiTest {
                     title = "Garten",
                     timeline = ChatTimeline(
                         listOf(
-                            item("a", ChatMessageItem.State.Readable, text = "Hallo"),
-                            item("b", ChatMessageItem.State.Readable, text = "Bist du da?"),
-                            item("c", ChatMessageItem.State.Readable, sender = "1", text = "Ja."),
-                            item("d", ChatMessageItem.State.Readable, sender = "3", text = "Ich auch.")
+                            item("a", ChatMessageItem.State.Readable, text = "Hallo").copy(expiresAt = sameTime),
+                            item("b", ChatMessageItem.State.Readable, text = "Bist du da?").copy(expiresAt = sameTime),
+                            item("c", ChatMessageItem.State.Readable, sender = "1", text = "Ja.").copy(expiresAt = sameTime),
+                            item("d", ChatMessageItem.State.Readable, sender = "3", text = "Ich auch.").copy(expiresAt = sameTime)
                         )
                     )
                 )
             )
         }
         capture("conversation-avatars")
-        compose.onNodeWithTag("chat.conversation.avatar", useUnmergedTree = true).assertExists()
         // Jonas' run of two and Aylin's message: one avatar each, none beside my own.
         compose.onAllNodesWithTag("chat.message.avatar", useUnmergedTree = true).assertCountEquals(2)
     }

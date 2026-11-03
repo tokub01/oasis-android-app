@@ -11,12 +11,14 @@ import androidx.compose.ui.test.hasSetTextAction
 import androidx.compose.ui.test.hasTestTag
 import androidx.compose.ui.test.hasText
 import androidx.compose.ui.test.junit4.createEmptyComposeRule
+import androidx.compose.ui.test.longClick
 import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
 import androidx.compose.ui.test.performImeAction
 import androidx.compose.ui.test.performScrollTo
 import androidx.compose.ui.test.performTextInput
+import androidx.compose.ui.test.performTouchInput
 import androidx.test.espresso.Espresso
 import dagger.hilt.android.testing.HiltAndroidRule
 import dagger.hilt.android.testing.HiltAndroidTest
@@ -215,7 +217,8 @@ class ChatScreenFlowsTest {
         waitForTag("chat.safety.banner")
         compose.onNodeWithTag("chat.details").performClick()
         assertEquals(ChatRoute.Details(id), stack().last())
-        compose.onNodeWithTag("chat.message.report").tap()
+        compose.onAllNodes(hasTestTag("chat.message.time"), useUnmergedTree = true)[0].performTouchInput { longClick() }
+        compose.onNodeWithTag("chat.reactionBar.report").performClick()
         waitForTag("chat.report.submit")
         tap("Abbrechen")
         compose.waitUntil(10_000) { compose.onAllNodes(hasTestTag("chat.report.submit")).fetchSemanticsNodes().isEmpty() }

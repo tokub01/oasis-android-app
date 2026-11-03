@@ -66,6 +66,8 @@ fun OasisScreen(
     closesItself: Boolean = false,
     /** The leading bar button of a screen that closes itself (the composer's close icon, which asks before discarding). */
     navigationAction: (@Composable () -> Unit)? = null,
+    /** A screen's own bar in place of the title bar of a pushed screen (the chat's header with avatar and status). */
+    topBar: (@Composable () -> Unit)? = null,
     content: @Composable () -> Unit
 ) {
     val chrome = LocalScreenChrome.current
@@ -77,7 +79,9 @@ fun OasisScreen(
             Column {
                 val header = chrome.rootHeader
                 val bare = header == null && title == null && chrome.onBack == null && chrome.onClose == null && navigationAction == null
-                if (bare) {
+                if (topBar != null && header == null) {
+                    topBar()
+                } else if (bare) {
                     // A screen without title or way back (sign-in): no empty bar, only the status bar's room.
                     Spacer(Modifier.windowInsetsTopHeight(WindowInsets.statusBars))
                 } else if (header != null) {

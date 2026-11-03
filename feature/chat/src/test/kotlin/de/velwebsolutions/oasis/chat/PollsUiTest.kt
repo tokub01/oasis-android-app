@@ -183,7 +183,9 @@ class PollsUiTest {
         compose.waitForIdle()
 
         // Pinning from the reaction bar: „Lösen“ for the pinned message.
-        compose.onAllNodes(hasText("Jonas"), useUnmergedTree = true)[0].performTouchInput { longClick() }
+        compose.onNodeWithTag("chat.message.a").performScrollTo().performTouchInput {
+            longClick(bottomRight - androidx.compose.ui.geometry.Offset(6f, 6f))
+        }
         compose.onNodeWithText("Lösen").performClick()
         compose.waitForIdle()
         assertEquals(listOf("jump a", "jump a", "vote p 0", "close p", "pin a"), calls)
