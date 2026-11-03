@@ -16,7 +16,7 @@ Ab 11. Oktober 2026: Oasis entsteht mit KI-Werkzeugen. Der Arbeitsplan von damal
 
 Ab 22. Oktober 2026: Seitdem trägt jede Änderung in allen drei Projekten den Vermerk, dass sie gemeinsam mit Claude entstanden ist (Modell Claude Opus 5.5). Die iOS-App und die Android-App sind von Anfang an so entstanden. Seitdem wird Oasis also hauptsächlich mit Claude Code gebaut.
 
-Was dabei gleich bleibt: Ein Mensch entscheidet, was in Oasis kommt, und gibt jede Änderung frei. Jede Änderung wird durch automatische Tests abgesichert, bevor sie ausgeliefert wird.
+Was dabei gleich bleibt: Ein Mensch entscheidet, was in Oasis kommt, beauftragt jede Runde und prüft sie. Jede Änderung wird durch automatische Tests abgesichert, bevor sie ausgeliefert wird.
 
 ## 0.25.0 – 2026-11-04 – Klarere Tropfen, ruhigerer Chat
 
