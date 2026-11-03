@@ -1,5 +1,6 @@
 package de.velwebsolutions.oasis.account.hilt
 
+import android.content.Context
 import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
@@ -7,12 +8,14 @@ import androidx.compose.runtime.Composable
 import dagger.Module
 import dagger.Provides
 import dagger.hilt.android.AndroidEntryPoint
+import dagger.hilt.android.qualifiers.ApplicationContext
 import dagger.hilt.components.SingletonComponent
 import dagger.hilt.testing.TestInstallIn
 import de.velwebsolutions.oasis.core.auth.AuthApi
 import de.velwebsolutions.oasis.core.auth.InMemoryTokenStore
 import de.velwebsolutions.oasis.core.auth.RemoteAuthApi
 import de.velwebsolutions.oasis.core.auth.Session
+import de.velwebsolutions.oasis.core.auth.SessionState
 import de.velwebsolutions.oasis.core.di.AppScope
 import de.velwebsolutions.oasis.core.di.CoreModule
 import de.velwebsolutions.oasis.core.di.DeviceName
@@ -21,6 +24,8 @@ import de.velwebsolutions.oasis.core.network.CommonApi
 import de.velwebsolutions.oasis.core.network.RemoteCommonApi
 import de.velwebsolutions.oasis.core.realtime.NoRealtime
 import de.velwebsolutions.oasis.core.realtime.RealtimeService
+import de.velwebsolutions.oasis.core.screentime.PreferencesScreenTimeStore
+import de.velwebsolutions.oasis.core.screentime.ScreenTime
 import de.velwebsolutions.oasis.testing.StubTransport
 import javax.inject.Singleton
 import kotlinx.coroutines.CoroutineScope
@@ -63,6 +68,11 @@ object TestCoreModule {
 
     @Provides
     fun deviceName(): DeviceName = DeviceName("Pixel 9")
+
+    @Provides
+    @Singleton
+    fun screenTime(@ApplicationContext context: Context, session: Session): ScreenTime =
+        ScreenTime(PreferencesScreenTimeStore(context), userId = { (session.state.value as? SessionState.SignedIn)?.me?.id })
 }
 
 /**

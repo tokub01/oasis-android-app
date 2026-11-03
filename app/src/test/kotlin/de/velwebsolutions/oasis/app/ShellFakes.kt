@@ -112,4 +112,7 @@ object FakeScreens : AppScreens {
 
     @Composable
     override fun ChatNotice() = Text("Chat-Hinweis")
+
+    @Composable
+    override fun QuietBanner() = Text("Ruhemodus-Banner")
 }

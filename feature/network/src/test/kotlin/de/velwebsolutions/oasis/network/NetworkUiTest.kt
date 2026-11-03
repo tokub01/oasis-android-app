@@ -50,6 +50,7 @@ import de.velwebsolutions.oasis.network.ui.components.FeedHandlers
 import de.velwebsolutions.oasis.network.ui.components.LeaveGuard
 import de.velwebsolutions.oasis.network.ui.components.NetworkPage
 import de.velwebsolutions.oasis.network.ui.compose.callbacks
+import de.velwebsolutions.oasis.network.ui.feeds.SeenCut
 import de.velwebsolutions.oasis.network.ui.feeds.sourceContent
 import de.velwebsolutions.oasis.network.ui.posts.ComposeContent
 import de.velwebsolutions.oasis.network.ui.profiles.ProfileCallbacks
@@ -99,7 +100,7 @@ class NetworkUiTest {
         var view: String? = null
         val actions = mutableListOf<Pair<PostAction, Int>>()
         val handlers = FeedHandlers(perform = { action, post -> actions += action to post.id }, loadMore = {}, reload = {})
-        show { NetworkPage { sourceContent(state, "Mira Sol", handlers, onSelectView = { view = it }) } }
+        show { NetworkPage { sourceContent(SeenCut(state, false), "Mira Sol", handlers, onSelectView = { view = it }) } }
 
         compose.onNodeWithText("Hallo Mira Sol.").assertIsDisplayed()
         compose.onNodeWithTag("source.composeEntry").performClick()

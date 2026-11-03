@@ -13,6 +13,7 @@ import de.velwebsolutions.oasis.network.api.ImageUpload
 import de.velwebsolutions.oasis.network.api.InvitationLanding
 import de.velwebsolutions.oasis.network.api.InvitationOverview
 import de.velwebsolutions.oasis.network.api.MemberStatistics
+import de.velwebsolutions.oasis.network.api.MemoryYear
 import de.velwebsolutions.oasis.network.api.NetworkService
 import de.velwebsolutions.oasis.network.api.NoContext
 import de.velwebsolutions.oasis.network.api.OasisClosing
@@ -49,6 +50,12 @@ interface NetworkRepository {
     suspend fun source(view: String?, cursor: String?): FeedPage<SourceContext>
 
     suspend fun discover(cursor: String?): FeedPage<DiscoverContext>
+
+    /** „Heute vor einem Jahr“: the member's own Tropfen of this calendar day in earlier years (empty when dismissed today). */
+    suspend fun memories(): List<MemoryYear>
+
+    /** „Ausblenden“ until the end of the day on every device; „Bis morgen ausgeblendet.“ */
+    suspend fun dismissMemories(): String
 
     suspend fun swipe(): SwipeDeck
 
@@ -187,6 +194,10 @@ class DefaultNetworkRepository @Inject constructor(client: ApiClient) : NetworkR
     override suspend fun source(view: String?, cursor: String?) = service.source(view, cursor)
 
     override suspend fun discover(cursor: String?) = service.discover(cursor)
+
+    override suspend fun memories() = service.memories().data
+
+    override suspend fun dismissMemories() = service.dismissMemories().message
 
     override suspend fun swipe() = service.swipe().data
 

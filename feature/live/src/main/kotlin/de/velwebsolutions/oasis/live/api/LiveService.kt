@@ -29,6 +29,9 @@ internal data class PauseBody(val days: Int)
 @Serializable
 internal data class SwitchBody(val value: Boolean)
 
+@Serializable
+internal data class QuietModeBody(val mode: String)
+
 /** The FCM registration of this installation (`platform` android; Laravel's PushDeviceController checks the token). */
 @Serializable
 internal data class FcmRegistrationBody(val token: String, val platform: String)
@@ -55,6 +58,12 @@ internal interface LiveService {
 
     @DELETE("hints/pause")
     suspend fun resume(@Query("platform") platform: String): Confirmed<HintSettings>
+
+    @POST("hints/quiet-mode")
+    suspend fun startQuietMode(@Query("platform") platform: String, @Body body: QuietModeBody): Confirmed<HintSettings>
+
+    @DELETE("hints/quiet-mode")
+    suspend fun endQuietMode(@Query("platform") platform: String): Confirmed<HintSettings>
 
     @PUT("privacy/settings/{key}")
     suspend fun setChatSwitch(@Path("key") key: String, @Body body: SwitchBody): MessageResponse

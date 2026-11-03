@@ -123,8 +123,16 @@ class AppHostTest {
         val look = de.velwebsolutions.oasis.chat.core.MemoryLook()
         look.set("1:bg:default", "oase")
         look.write("1:photo:default", byteArrayOf(1))
-        AppHost.clearAfterSignOut(context, look, look, this)
+        // And the counted time of „Deine Zeit in Oasis“.
+        val time = de.velwebsolutions.oasis.core.screentime.ScreenTime(
+            de.velwebsolutions.oasis.core.screentime.PreferencesScreenTimeStore(context),
+            userId = { 1 }
+        )
+        time.touched()
+        de.velwebsolutions.oasis.core.screentime.PreferencesScreenTimeStore(context).write(1, mapOf("2026-11-03" to 600L))
+        AppHost.clearAfterSignOut(context, look, look, this, time)
         runCurrent()
+        assertTrue(de.velwebsolutions.oasis.core.screentime.PreferencesScreenTimeStore(context).read(1).isEmpty())
         assertNull(look.get("1:bg:default"))
         assertNull(look.read("1:photo:default"))
         assertEquals(0L, disk.size)

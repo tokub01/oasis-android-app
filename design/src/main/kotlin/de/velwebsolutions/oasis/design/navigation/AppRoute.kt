@@ -139,6 +139,9 @@ sealed interface AccountRoute : AppRoute {
     /** Geräte & Anmeldungen (/app/privatsphaere/geraete). */
     @Serializable data object Devices : AccountRoute
 
+    /** Deine Zeit in Oasis (/app/privatsphaere/zeit): minutes per day, counted only on this device. */
+    @Serializable data object ScreenTime : AccountRoute
+
     /** Willkommen / onboarding (/app/willkommen). */
     @Serializable data object Welcome : AccountRoute
 

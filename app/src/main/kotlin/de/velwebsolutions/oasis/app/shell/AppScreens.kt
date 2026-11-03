@@ -9,6 +9,7 @@ import de.velwebsolutions.oasis.app.ui.AppDestination
 import de.velwebsolutions.oasis.design.navigation.AppRoute
 import de.velwebsolutions.oasis.live.ChatToastOverlay
 import de.velwebsolutions.oasis.live.HintsButton
+import de.velwebsolutions.oasis.live.QuietModeBanner
 
 /**
  * The feature screens the shell places: the real ones in the app, stand-ins in the shell's UI tests (the features have
@@ -36,6 +37,10 @@ interface AppScreens {
 
     @Composable
     fun ChatNotice()
+
+    /** The calm banner of the Ruhemodus above every tab's screens. */
+    @Composable
+    fun QuietBanner()
 }
 
 /** The feature modules' screens. */
@@ -60,6 +65,9 @@ object FeatureScreens : AppScreens {
 
     @Composable
     override fun ChatNotice() = ChatToastOverlay()
+
+    @Composable
+    override fun QuietBanner() = QuietModeBanner()
 }
 
 /** The screens of the running app. */

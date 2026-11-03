@@ -2,6 +2,7 @@ package de.velwebsolutions.oasis.live
 
 import de.velwebsolutions.oasis.core.di.AppScope
 import de.velwebsolutions.oasis.core.realtime.RealtimeService
+import de.velwebsolutions.oasis.live.api.QuietMode
 import de.velwebsolutions.oasis.live.data.LiveRepository
 import de.velwebsolutions.oasis.live.push.PushRegistrar
 import javax.inject.Inject
@@ -26,8 +27,9 @@ class LiveCoordinator internal constructor(
         repository: LiveRepository,
         realtime: RealtimeService,
         push: PushRegistrar,
-        @AppScope scope: CoroutineScope
-    ) : this(repository, realtime, push, LiveCounts(scope))
+        @AppScope scope: CoroutineScope,
+        quiet: QuietModeState = QuietModeState()
+    ) : this(repository, realtime, push, LiveCounts(scope, quiet = quiet))
 
     @Volatile private var userId: Int? = null
 
@@ -45,6 +47,16 @@ class LiveCoordinator internal constructor(
 
     /** The member answered the notification prompt of the shell. */
     suspend fun pushPermissionAnswered(granted: Boolean) = push.promptAnswered(granted)
+
+    /** The Ruhemodus for the calm banner on every screen. */
+    val quietMode: StateFlow<QuietMode> = counts.quiet.mode
+
+    /** „Beenden“ in the banner: off on every device; the answer is „Der Ruhemodus ist beendet.“ */
+    suspend fun endQuietMode(): String? {
+        val answer = repository.endQuietMode()
+        counts.quiet.update(answer.data.quietMode)
+        return answer.message
+    }
 
     /** Conversations with unread messages (the badge at "Chats"). */
     val chats: StateFlow<Int> = counts.chats

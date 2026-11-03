@@ -79,6 +79,7 @@ class NavigationTest {
         "/app/privatsphaere/check" to AccountRoute.PrivacyCheckup,
         "/app/privatsphaere/woerter" to AccountRoute.HiddenWords,
         "/app/privatsphaere/geraete" to AccountRoute.Devices,
+        "/app/privatsphaere/zeit" to AccountRoute.ScreenTime,
         "/app/willkommen" to AccountRoute.Welcome,
         "/app/sicherheit" to AccountRoute.Safety,
         "/app/melden" to AccountRoute.Report(null),

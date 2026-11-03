@@ -10,6 +10,7 @@ import de.velwebsolutions.oasis.core.model.Loadable
 import de.velwebsolutions.oasis.core.network.ApiError
 import de.velwebsolutions.oasis.network.NetworkSignals
 import de.velwebsolutions.oasis.network.api.DiscoverContext
+import de.velwebsolutions.oasis.network.api.MemoryYear
 import de.velwebsolutions.oasis.network.api.NoContext
 import de.velwebsolutions.oasis.network.api.Post
 import de.velwebsolutions.oasis.network.api.SearchContext
@@ -21,6 +22,7 @@ import de.velwebsolutions.oasis.network.ui.BusyCards
 import de.velwebsolutions.oasis.network.ui.NetworkViewModel
 import de.velwebsolutions.oasis.network.ui.PostAction
 import de.velwebsolutions.oasis.network.ui.PostListModel
+import de.velwebsolutions.oasis.network.ui.PostListState
 import de.velwebsolutions.oasis.network.ui.apiError
 import de.velwebsolutions.oasis.network.ui.applying
 import de.velwebsolutions.oasis.network.ui.attempt
@@ -60,17 +62,45 @@ abstract class FeedViewModel<C>(val list: PostListModel<C>) : NetworkViewModel()
 
 /** Quelle (/app): own Tropfen and those of friends, followed people and oases – or "Ganz Oasis". */
 @HiltViewModel
-class SourceViewModel @Inject constructor(repository: NetworkRepository, session: Session) :
+class SourceViewModel @Inject constructor(private val repository: NetworkRepository, session: Session) :
     FeedViewModel<SourceContext>(PostListModel(repository) { view, cursor -> source(view, cursor) }) {
     val session: StateFlow<SessionState> = session.state
 
     /** The member already saw (or was sent to) the welcome tour in this session. */
     var askedWelcome = false
 
+    private val mutableShowOlder = MutableStateFlow(false)
+    private val mutableMemories = MutableStateFlow<List<MemoryYear>>(emptyList())
+
+    /** „Ältere Tropfen“ was tapped after „Du hast alles Neue gesehen.“: from then on the usual list. */
+    val showOlder: StateFlow<Boolean> = mutableShowOlder.asStateFlow()
+
+    /** „Heute vor einem Jahr“ (empty: none, dismissed today, or not loaded). */
+    val memories: StateFlow<List<MemoryYear>> = mutableMemories.asStateFlow()
+
     /** Switches the view ("gefolgt" / "alle") and loads it, keeping the cards on screen meanwhile. */
     fun selectView(view: String) {
         list.filter = view
+        // Each view has its own marker of what was seen.
+        mutableShowOlder.value = false
         launch { list.reload() }
+    }
+
+    /** „Ältere Tropfen“ after „Du hast alles Neue gesehen.“ */
+    fun showOlderPosts() {
+        mutableShowOlder.value = true
+    }
+
+    /** The memories of this day; a failure only leaves the card out. */
+    suspend fun loadMemories() {
+        attempt { repository.memories() }.onSuccess { mutableMemories.value = it }
+    }
+
+    /** „Ausblenden“: until tomorrow on every device. */
+    suspend fun dismissMemories() {
+        val result = attempt { repository.dismissMemories() }
+        list.answered(result)
+        if (result.isSuccess) mutableMemories.value = emptyList()
     }
 
     /**
@@ -82,6 +112,22 @@ class SourceViewModel @Inject constructor(repository: NetworkRepository, session
     override fun belongsOnTop(post: Post): Boolean {
         val showAll = list.state.value.context?.showAll ?: false
         return post.replyTo == null && !showAll
+    }
+}
+
+/** The Quelle up to what was seen at the last visit, and whether „Du hast alles Neue gesehen.“ follows. */
+data class SeenCut(val state: PostListState<SourceContext>, val seen: Boolean) {
+    companion object {
+        /**
+         * Only the Tropfen newer than `context.seen_up_to` while older ones are among the loaded – they wait for „Ältere
+         * Tropfen“ ([showOlder]), and no older page loads meanwhile (the list does not end there either). Without a
+         * marker (the first visit), after „Ältere Tropfen“, and while every loaded Tropfen is new, the list as it is.
+         */
+        fun of(state: PostListState<SourceContext>, showOlder: Boolean): SeenCut {
+            val marker = state.context?.seenUpTo?.toIntOrNull()
+            if (marker == null || showOlder || state.posts.none { it.id <= marker }) return SeenCut(state, seen = false)
+            return SeenCut(state.copy(posts = state.posts.filter { it.id > marker }, nextCursor = state.nextCursor ?: ""), seen = true)
+        }
     }
 }
 

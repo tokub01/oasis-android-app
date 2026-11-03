@@ -11,11 +11,14 @@ import de.velwebsolutions.oasis.core.auth.AuthApi
 import de.velwebsolutions.oasis.core.auth.KeystoreTokenStore
 import de.velwebsolutions.oasis.core.auth.RemoteAuthApi
 import de.velwebsolutions.oasis.core.auth.Session
+import de.velwebsolutions.oasis.core.auth.SessionState
 import de.velwebsolutions.oasis.core.auth.TokenStore
 import de.velwebsolutions.oasis.core.network.ApiClient
 import de.velwebsolutions.oasis.core.network.ApiConfig
 import de.velwebsolutions.oasis.core.network.CommonApi
 import de.velwebsolutions.oasis.core.network.RemoteCommonApi
+import de.velwebsolutions.oasis.core.screentime.PreferencesScreenTimeStore
+import de.velwebsolutions.oasis.core.screentime.ScreenTime
 import java.util.concurrent.TimeUnit
 import javax.inject.Qualifier
 import javax.inject.Singleton
@@ -50,6 +53,12 @@ object CoreModule {
     @Singleton
     fun session(tokenStore: TokenStore, deviceName: DeviceName, @AppScope scope: CoroutineScope, auth: Lazy<AuthApi>): Session =
         Session(tokenStore, deviceName.value, scope) { auth.get() }
+
+    /** „Deine Zeit in Oasis“ of the signed-in account, on this device only. */
+    @Provides
+    @Singleton
+    fun screenTime(@ApplicationContext context: Context, session: Session): ScreenTime =
+        ScreenTime(PreferencesScreenTimeStore(context), userId = { (session.state.value as? SessionState.SignedIn)?.me?.id })
 
     @Provides
     @Singleton

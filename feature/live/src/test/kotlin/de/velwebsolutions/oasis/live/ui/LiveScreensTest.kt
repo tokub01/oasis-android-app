@@ -251,7 +251,7 @@ class LiveScreensTest {
                     pushSupported = true,
                     authorization = PushAuthorization.Denied
                 ),
-                HintSettingsActions({}, {}, { _, _ -> }, {}, {}, {}, {}, {}, {})
+                HintSettingsActions({}, {}, { _, _ -> }, {}, {}, {}, {}, {}, {}, {}, {})
             )
         }
         compose.onNodeWithText("Bitte eine Uhrzeit wählen.").performScrollTo().assertIsDisplayed()
@@ -284,7 +284,7 @@ class LiveScreensTest {
 
     @Test
     fun theSettingsFormIsEmptyWithoutSettings() {
-        show { HintSettingsContent(HintSettingsUiState(), HintSettingsActions({}, {}, { _, _ -> }, {}, {}, {}, {}, {}, {})) }
+        show { HintSettingsContent(HintSettingsUiState(), HintSettingsActions({}, {}, { _, _ -> }, {}, {}, {}, {}, {}, {}, {}, {})) }
         compose.onNodeWithText("Hinweise einstellen").assertDoesNotExist()
     }
 
@@ -334,7 +334,7 @@ class LiveScreensTest {
 
     @Test
     fun theSettingsShowAServerWithoutPushAndADeviceThatIsOnDespiteTheSystem() {
-        val actions = HintSettingsActions({}, {}, { _, _ -> }, {}, {}, {}, {}, {}, {})
+        val actions = HintSettingsActions({}, {}, { _, _ -> }, {}, {}, {}, {}, {}, {}, {}, {})
         var variant by mutableIntStateOf(0)
         show {
             val ui = if (variant == 0) {

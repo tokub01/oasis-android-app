@@ -16,6 +16,7 @@ import de.velwebsolutions.oasis.account.ui.member.VotesScreen
 import de.velwebsolutions.oasis.account.ui.privacy.HiddenWordsScreen
 import de.velwebsolutions.oasis.account.ui.privacy.PrivacyCenterScreen
 import de.velwebsolutions.oasis.account.ui.privacy.PrivacyCheckupScreen
+import de.velwebsolutions.oasis.account.ui.privacy.ScreenTimeScreen
 import de.velwebsolutions.oasis.account.ui.safety.DevicesScreen
 import de.velwebsolutions.oasis.account.ui.safety.ReportScreen
 import de.velwebsolutions.oasis.account.ui.safety.SafetyScreen
@@ -40,6 +41,8 @@ fun AccountScreen(route: AccountRoute) {
         AccountRoute.HiddenWords -> HiddenWordsScreen()
 
         AccountRoute.Devices -> DevicesScreen()
+
+        AccountRoute.ScreenTime -> ScreenTimeScreen()
 
         AccountRoute.Welcome -> WelcomeScreen()
 

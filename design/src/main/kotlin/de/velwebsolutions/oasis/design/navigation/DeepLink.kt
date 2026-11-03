@@ -210,6 +210,7 @@ object DeepLink {
             "check" -> AccountRoute.PrivacyCheckup
             "woerter" -> AccountRoute.HiddenWords
             "geraete" -> AccountRoute.Devices
+            "zeit" -> AccountRoute.ScreenTime
             else -> AccountRoute.Privacy
         }
 

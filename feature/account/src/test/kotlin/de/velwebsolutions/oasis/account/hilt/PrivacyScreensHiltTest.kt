@@ -57,7 +57,7 @@ class PrivacyScreensHiltTest : HiltScreenTest() {
         compose.onNodeWithText("Tropfen begrenzen").tap()
         compose.onAllNodesText("Tropfen begrenzen").last().press()
         waitForRequest("POST", "privacy/limit-past-posts")
-        listOf("privacy.checkup", "privacy.words", "privacy.safety", "privacy.devices", "privacy.hints", "privacy.settings")
+        listOf("privacy.checkup", "privacy.words", "privacy.safety", "privacy.devices", "privacy.time", "privacy.hints", "privacy.settings")
             .forEach { compose.onNodeWithTag(it).tap() }
         assertEquals(
             listOf(
@@ -65,12 +65,30 @@ class PrivacyScreensHiltTest : HiltScreenTest() {
                 AccountRoute.HiddenWords,
                 AccountRoute.Safety,
                 AccountRoute.Devices,
+                AccountRoute.ScreenTime,
                 LiveRoute.Settings,
                 AccountRoute.Settings
             ),
             stack()
         )
         compose.onNodeWithTag("privacy.checkup").performTouchInput { swipeDown() }
+    }
+
+    @Test
+    fun deineZeitShowsTheWeekCountedOnThisDevice() {
+        signIn()
+        val today = java.time.LocalDate.now()
+        de.velwebsolutions.oasis.core.screentime.PreferencesScreenTimeStore(
+            androidx.test.core.app.ApplicationProvider.getApplicationContext()
+        ).write(
+            MIRA.id,
+            mapOf(today.toString() to 2_700L, today.minusDays(1).toString() to 3_900L)
+        )
+        show { AccountScreen(AccountRoute.ScreenTime) }
+        waitForTag("screenTime.week")
+        compose.onNodeWithText("Zusammen 1 Std. 50 Min.").assertExists()
+        compose.onNodeWithContentDescription("Heute: 45 Min.").assertExists()
+        compose.onNodeWithText("Gezählt wird nur auf diesem Gerät, in dieser App.", substring = true).assertExists()
     }
 
     @Test

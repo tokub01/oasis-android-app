@@ -12,6 +12,7 @@ import de.velwebsolutions.oasis.live.api.LiveCountsData
 import de.velwebsolutions.oasis.live.api.LiveService
 import de.velwebsolutions.oasis.live.api.PauseBody
 import de.velwebsolutions.oasis.live.api.PushDevice
+import de.velwebsolutions.oasis.live.api.QuietModeBody
 import de.velwebsolutions.oasis.live.api.SwitchBody
 import javax.inject.Inject
 
@@ -35,6 +36,12 @@ interface LiveRepository {
     suspend fun pause(days: Int): Confirmed<HintSettings>
 
     suspend fun resume(): Confirmed<HintSettings>
+
+    /** The Ruhemodus for `1h`, `8h`, `morning` or `manual`; the message is its status text. */
+    suspend fun startQuietMode(mode: String): Confirmed<HintSettings>
+
+    /** „Beenden“: „Der Ruhemodus ist beendet.“ */
+    suspend fun endQuietMode(): Confirmed<HintSettings>
 
     /** A chat switch of the privacy settings (`chat_push`, `chat_email`); returns the status text. */
     suspend fun setChatSwitch(key: String, on: Boolean): String
@@ -76,6 +83,10 @@ class DefaultLiveRepository @Inject constructor(client: ApiClient) : LiveReposit
     override suspend fun pause(days: Int) = service.pause(PLATFORM, PauseBody(days))
 
     override suspend fun resume() = service.resume(PLATFORM)
+
+    override suspend fun startQuietMode(mode: String) = service.startQuietMode(PLATFORM, QuietModeBody(mode))
+
+    override suspend fun endQuietMode() = service.endQuietMode(PLATFORM)
 
     override suspend fun setChatSwitch(key: String, on: Boolean) = service.setChatSwitch(key, SwitchBody(on)).message
 

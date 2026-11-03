@@ -109,6 +109,7 @@ class AppWiringTest {
                         routes.forEach { route -> Column(Modifier.height(80.dp)) { AppDestination(route) } }
                         FeatureScreens.Bell()
                         FeatureScreens.ChatNotice()
+                        FeatureScreens.QuietBanner()
                         Column(Modifier.height(80.dp)) { FeatureScreens.Destination(NetworkRoute.Oases) }
                         Column(Modifier.height(80.dp)) { FeatureScreens.VerifyEmail() }
                         Column(Modifier.height(80.dp)) { FeatureScreens.ConfirmPhone() }

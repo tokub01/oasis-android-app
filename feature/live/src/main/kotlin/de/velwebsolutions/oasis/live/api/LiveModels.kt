@@ -53,6 +53,17 @@ data class PushSettings(
 @Serializable
 data class ChatSwitch(val key: String, val title: String, val help: String = "", val enabled: Boolean)
 
+/** One choice of the Ruhemodus: `1h`, `8h`, `morning` or `manual` with its German label. */
+@Serializable
+data class QuietModeChoice(val key: String, val label: String)
+
+/**
+ * The Ruhemodus (docs/oasis-notifications.md): on or off, until when (null while on: until switched off) and – in the
+ * hint settings – the modes to choose from.
+ */
+@Serializable
+data class QuietMode(val active: Boolean = false, val until: OasisInstant? = null, val modes: List<QuietModeChoice> = emptyList())
+
 /** Hinweise einstellen (Laravel `HintSettingsResource`). */
 @Serializable
 data class HintSettings(
@@ -65,12 +76,13 @@ data class HintSettings(
     val pauseDays: List<Int> = emptyList(),
     /** How new chat messages are announced: the privacy switches `chat_email` and, while push is set up, `chat_push`. */
     val chat: List<ChatSwitch> = emptyList(),
-    val push: PushSettings = PushSettings()
+    val push: PushSettings = PushSettings(),
+    val quietMode: QuietMode = QuietMode()
 )
 
 /** The numbers of the app shell (`GET live/counts`). */
 @Serializable
-data class LiveCountsData(val chats: Int = 0, val hints: Int = 0)
+data class LiveCountsData(val chats: Int = 0, val hints: Int = 0, val quietMode: QuietMode = QuietMode())
 
 /** The part of `GET app-config` the Live module needs. */
 @Serializable

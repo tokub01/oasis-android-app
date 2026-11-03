@@ -59,7 +59,8 @@ fun <C> PostListModel<C>.handlers(launch: (suspend () -> Unit) -> Unit) = FeedHa
 fun <C> LazyListScope.feedSection(
     state: PostListState<C>,
     handlers: FeedHandlers,
-    empty: String = "Hier ist noch nichts.",
+    /** The note of an empty list; null for none (the Quelle's „Du hast alles Neue gesehen.“ follows instead). */
+    empty: String? = "Hier ist noch nichts.",
     /** A closing line instead of the feed wording (search results are not a feed). */
     end: String? = null,
     keyPrefix: String = "feed",
@@ -76,7 +77,7 @@ fun <C> LazyListScope.feedSection(
             RetryNote(first.error.userMessage, "Noch einmal laden", handlers.reload)
         }
 
-        is Loadable.Loaded -> if (state.posts.isEmpty()) block("$keyPrefix.empty") { DashedNote(empty) }
+        is Loadable.Loaded -> if (state.posts.isEmpty() && empty != null) block("$keyPrefix.empty") { DashedNote(empty) }
     }
     val lastId = state.posts.lastOrNull()?.id
     state.posts.forEach { post ->

@@ -42,6 +42,12 @@ internal interface NetworkService {
     @GET("network/source")
     suspend fun source(@Query("view") view: String?, @Query("cursor") cursor: String?): FeedPage<SourceContext>
 
+    @GET("network/memories")
+    suspend fun memories(): DataEnvelope<List<MemoryYear>>
+
+    @POST("network/memories/dismiss")
+    suspend fun dismissMemories(): MessageResponse
+
     @GET("network/discover")
     suspend fun discover(@Query("cursor") cursor: String?): FeedPage<DiscoverContext>
 

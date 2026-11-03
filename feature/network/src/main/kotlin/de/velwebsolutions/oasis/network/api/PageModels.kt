@@ -44,7 +44,12 @@ data class SourceContext(
     val canPost: Boolean = true,
     val week: Week? = null,
     val oases: List<OasisSummary>? = null,
-    val openVote: Vote? = null
+    val openVote: Vote? = null,
+    /**
+     * The newest Tropfen id of the first page at the last visit (first page only, null on the first visit): the Quelle
+     * shows what is newer, then „Du hast alles Neue gesehen.“ (docs/oasis-network.md, „Alles Neue gesehen“).
+     */
+    val seenUpTo: String? = null
 ) {
     @Serializable
     data class Week(val followers: Int = 0, val reactions: Int = 0, val karawane: Int = 0)
@@ -106,3 +111,7 @@ data class MemberStatistics(val totals: Totals, val weekly: List<Week> = emptyLi
     @Serializable
     data class TopPost(val id: Int, val body: String, val reactions: Int = 0, val replies: Int = 0, val createdAt: OasisInstant)
 }
+
+/** One year of „Heute vor einem Jahr“: „Heute vor 1 Jahr“, „Heute vor 2 Jahren“ … with the member's own Tropfen. */
+@Serializable
+data class MemoryYear(val yearsAgo: Int, val label: String, val posts: List<Post> = emptyList())

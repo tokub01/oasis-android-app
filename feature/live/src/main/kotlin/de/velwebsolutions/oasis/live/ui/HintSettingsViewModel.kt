@@ -8,8 +8,10 @@ import de.velwebsolutions.oasis.core.model.failing
 import de.velwebsolutions.oasis.core.model.refreshing
 import de.velwebsolutions.oasis.core.network.Confirmed
 import de.velwebsolutions.oasis.core.network.asApiError
+import de.velwebsolutions.oasis.live.QuietModeState
 import de.velwebsolutions.oasis.live.api.HintSettings
 import de.velwebsolutions.oasis.live.api.PushDevice
+import de.velwebsolutions.oasis.live.api.QuietMode
 import de.velwebsolutions.oasis.live.catching
 import de.velwebsolutions.oasis.live.data.LiveRepository
 import de.velwebsolutions.oasis.live.push.PushAuthorization
@@ -35,7 +37,9 @@ data class HintSettingsUiState(
     /** Whether Android allows notifications for Oasis. */
     val authorization: PushAuthorization = PushAuthorization.NotDetermined,
     /** Whether this build can get push hints at all (Firebase set up); whether the server sends them is `push.available`. */
-    val pushSupported: Boolean = false
+    val pushSupported: Boolean = false,
+    /** The Ruhemodus as known on every screen (the banner may end it while this screen is open). */
+    val quietMode: QuietMode = QuietMode()
 ) {
     val settings: HintSettings? get() = state.valueOrNull
 
@@ -53,7 +57,11 @@ data class HintSettingsUiState(
  * back with the reason. Refused quiet hours stay on screen with their message, so they can be corrected.
  */
 @HiltViewModel
-class HintSettingsViewModel @Inject constructor(private val repository: LiveRepository, private val push: PushRegistrar) : ViewModel() {
+class HintSettingsViewModel @Inject constructor(
+    private val repository: LiveRepository,
+    private val push: PushRegistrar,
+    private val quiet: QuietModeState = QuietModeState()
+) : ViewModel() {
     private val mutableUi = MutableStateFlow(HintSettingsUiState(pushSupported = push.isSupported))
     val ui: StateFlow<HintSettingsUiState> = mutableUi.asStateFlow()
 
@@ -62,6 +70,7 @@ class HintSettingsViewModel @Inject constructor(private val repository: LiveRepo
 
     init {
         viewModelScope.launch { load() }
+        viewModelScope.launch { quiet.mode.collect { mode -> mutableUi.update { it.copy(quietMode = mode) } } }
     }
 
     suspend fun load() {
@@ -69,6 +78,7 @@ class HintSettingsViewModel @Inject constructor(private val repository: LiveRepo
         catching { repository.settings() }
             .onSuccess { settings ->
                 saved = settings
+                quiet.update(settings.quietMode)
                 mutableUi.update { it.copy(state = Loadable.Loaded(settings)) }
             }
             .onFailure { error ->
@@ -172,6 +182,12 @@ class HintSettingsViewModel @Inject constructor(private val repository: LiveRepo
 
     suspend fun resume() = changePause { repository.resume() }
 
+    /** The Ruhemodus for one of its modes; on every device and in the banner at once. */
+    suspend fun startQuietMode(mode: String) = changeQuietMode { repository.startQuietMode(mode) }
+
+    /** „Beenden“. */
+    suspend fun endQuietMode() = changeQuietMode { repository.endQuietMode() }
+
     /**
      * "Entfernen" in the device list. Removing this installation keeps push off here, like "Auf diesem Gerät
      * ausschalten", so the next start does not register it again.
@@ -216,6 +232,16 @@ class HintSettingsViewModel @Inject constructor(private val repository: LiveRepo
             .onSuccess { answer ->
                 edit { it.copy(pausedUntil = answer.data.pausedUntil) }
                 saved = saved.copy(pausedUntil = answer.data.pausedUntil)
+                mutableUi.update { it.copy(message = answer.message) }
+            }
+            .onFailure { error -> mutableUi.update { it.copy(error = error.asApiError().userMessage) } }
+    }
+
+    /** The Ruhemodus and its end change only the Ruhemodus. */
+    private suspend fun changeQuietMode(request: suspend () -> Confirmed<HintSettings>) {
+        catching { request() }
+            .onSuccess { answer ->
+                quiet.update(answer.data.quietMode)
                 mutableUi.update { it.copy(message = answer.message) }
             }
             .onFailure { error -> mutableUi.update { it.copy(error = error.asApiError().userMessage) } }

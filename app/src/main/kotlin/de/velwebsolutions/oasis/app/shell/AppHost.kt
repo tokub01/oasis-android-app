@@ -18,6 +18,7 @@ import de.velwebsolutions.oasis.chat.core.LookPhotos
 import de.velwebsolutions.oasis.chat.core.LookStore
 import de.velwebsolutions.oasis.core.auth.SessionState
 import de.velwebsolutions.oasis.core.network.ApiClient
+import de.velwebsolutions.oasis.core.screentime.ScreenTime
 import de.velwebsolutions.oasis.core.share.PendingShare
 import de.velwebsolutions.oasis.core.share.ShareInbox
 import de.velwebsolutions.oasis.design.components.LocalApiClient
@@ -146,10 +147,12 @@ object AppHost {
     /**
      * After a sign-out: the images the member saw (memory and disk cache – also ones a moderation quarantine withdrew
      * since) and the notifications with their previews go, like on iOS. The chat vault locks through its own listener.
-     * The chat backgrounds and own background photos belong to the member who left, so they go too.
+     * The chat backgrounds and own background photos belong to the member who left, so they go too, and so does the
+     * counted time („Deine Zeit in Oasis“).
      */
-    fun clearAfterSignOut(context: Context, lookStore: LookStore, lookPhotos: LookPhotos, scope: CoroutineScope) {
+    fun clearAfterSignOut(context: Context, lookStore: LookStore, lookPhotos: LookPhotos, scope: CoroutineScope, screenTime: ScreenTime) {
         clearAfterSignOut(context)
+        screenTime.clear()
         lookPhotos.deleteAll()
         scope.launch { lookStore.clear() }
     }

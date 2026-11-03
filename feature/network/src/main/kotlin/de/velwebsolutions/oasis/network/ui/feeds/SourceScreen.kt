@@ -42,6 +42,7 @@ import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import de.velwebsolutions.oasis.core.auth.SessionState
 import de.velwebsolutions.oasis.core.format.GermanTime
+import de.velwebsolutions.oasis.design.components.AsyncOasisButton
 import de.velwebsolutions.oasis.design.components.Eyebrow
 import de.velwebsolutions.oasis.design.components.LoadableView
 import de.velwebsolutions.oasis.design.components.OasisButton
@@ -62,12 +63,14 @@ import de.velwebsolutions.oasis.design.navigation.NetworkRoute
 import de.velwebsolutions.oasis.design.theme.OasisColors
 import de.velwebsolutions.oasis.design.theme.OasisRadius
 import de.velwebsolutions.oasis.design.theme.OasisType
+import de.velwebsolutions.oasis.network.api.MemoryYear
 import de.velwebsolutions.oasis.network.api.SourceContext
 import de.velwebsolutions.oasis.network.ui.PostListState
 import de.velwebsolutions.oasis.network.ui.components.ComposeFab
 import de.velwebsolutions.oasis.network.ui.components.FabInset
 import de.velwebsolutions.oasis.network.ui.components.FeedHandlers
 import de.velwebsolutions.oasis.network.ui.components.OasisRow
+import de.velwebsolutions.oasis.network.ui.components.PostCard
 import de.velwebsolutions.oasis.network.ui.components.SectionTitle
 import de.velwebsolutions.oasis.network.ui.components.TextLink
 import de.velwebsolutions.oasis.network.ui.components.UnderlinedLink
@@ -86,6 +89,8 @@ fun SourceScreen(viewModel: SourceViewModel = hiltViewModel<SourceViewModel>()) 
     val state by viewModel.list.state.collectAsStateWithLifecycle()
     val session by viewModel.session.collectAsStateWithLifecycle()
     val scrollToTop by viewModel.scrollToTop.collectAsStateWithLifecycle()
+    val showOlder by viewModel.showOlder.collectAsStateWithLifecycle()
+    val memories by viewModel.memories.collectAsStateWithLifecycle()
     val navigator = LocalNavigator.current
     val listState = rememberLazyListState()
     val me = (session as? SessionState.SignedIn)?.me
@@ -97,6 +102,7 @@ fun SourceScreen(viewModel: SourceViewModel = hiltViewModel<SourceViewModel>()) 
         }
         viewModel.list.loadIfNeeded()
     }
+    LaunchedEffect(Unit) { viewModel.loadMemories() }
     LaunchedEffect(scrollToTop) { if (scrollToTop > 0) listState.animateScrollToItem(0) }
 
     OasisScreen(
@@ -111,7 +117,13 @@ fun SourceScreen(viewModel: SourceViewModel = hiltViewModel<SourceViewModel>()) 
             LoadableView(state.state, onRetry = viewModel.list::reload, skeleton = SkeletonLayout.Cards) {
                 val handlers = viewModel.list.handlers(viewModel::launch)
                 FeedPage(listState, handlers, bottomInset = if (canPost) FabInset else 0.dp) {
-                    sourceContent(state, me?.displayName.orEmpty(), handlers, onSelectView = viewModel::selectView)
+                    sourceContent(
+                        SeenCut.of(state, showOlder),
+                        me?.displayName.orEmpty(),
+                        handlers,
+                        onSelectView = viewModel::selectView,
+                        extras = SourceExtras(memories, viewModel::dismissMemories, viewModel::showOlderPosts)
+                    )
                 }
             }
             if (state.state.valueOrNull != null && canPost) {
@@ -121,14 +133,25 @@ fun SourceScreen(viewModel: SourceViewModel = hiltViewModel<SourceViewModel>()) 
     }
 }
 
-/** The Quelle's page: greeting, view switch, composer entry, next steps, the feed and the side blocks. */
+/** „Heute vor einem Jahr“ and „Alles Neue gesehen“ on the Quelle. */
+class SourceExtras(val memories: List<MemoryYear>, val onDismissMemories: suspend () -> Unit, val onShowOlder: () -> Unit) {
+    companion object {
+        val None = SourceExtras(emptyList(), {}, {})
+    }
+}
+
+/** The Quelle's page: greeting, view switch, composer entry, next steps, memories, the feed and the side blocks. */
 @OptIn(ExperimentalMaterial3Api::class)
 fun LazyListScope.sourceContent(
-    state: PostListState<SourceContext>,
+    cut: SeenCut,
     displayName: String,
-    handlers: FeedHandlers,
-    onSelectView: (String) -> Unit
+    feedHandlers: FeedHandlers,
+    onSelectView: (String) -> Unit,
+    extras: SourceExtras = SourceExtras.None
 ) {
+    val state = cut.state
+    // Older Tropfen wait for „Ältere Tropfen“ after „Du hast alles Neue gesehen.“
+    val handlers = if (cut.seen) FeedHandlers(feedHandlers.perform, {}, feedHandlers.reload) else feedHandlers
     val context = state.context
     val showAll = context?.showAll ?: false
     block("header") {
@@ -214,17 +237,57 @@ fun LazyListScope.sourceContent(
             }
         }
     }
+    if (extras.memories.isNotEmpty()) memoriesBlock(extras, handlers)
     feedSection(
         state,
         handlers,
         dimmed = state.isReloading,
-        empty = if (showAll) {
+        empty = if (cut.seen) {
+            null
+        } else if (showAll) {
             "Noch hat niemand etwas geteilt. Schreib den ersten Tropfen!"
         } else {
             "Noch keine Tropfen. Folge Menschen oder Oasen, dann erscheinen ihre Tropfen hier – oder schau unter „Ganz Oasis“, was alle teilen."
         }
     )
-    if (state.reachedEnd || state.posts.isEmpty()) sideBlocks(context)
+    if (cut.seen) {
+        block("source.seen") {
+            Panel(tone = PanelTone.Dune, spacing = 10, modifier = Modifier.testTag("source.seen")) {
+                Text("Du hast alles Neue gesehen.", style = OasisType.BodyBold, color = OasisColors.Night)
+                OasisButton(
+                    "Ältere Tropfen",
+                    extras.onShowOlder,
+                    kind = OasisButtonKind.Secondary,
+                    fullWidth = false,
+                    modifier = Modifier.testTag("source.older")
+                )
+            }
+        }
+    }
+    if (cut.seen || state.reachedEnd || state.posts.isEmpty()) sideBlocks(context)
+}
+
+/** „Erinnerungen“ („Nur für dich“): the member's own Tropfen of this day in earlier years, with „Ausblenden“. */
+private fun LazyListScope.memoriesBlock(extras: SourceExtras, handlers: FeedHandlers) {
+    block("source.memories") {
+        Panel(tone = PanelTone.Dune, spacing = 12, modifier = Modifier.testTag("source.memories")) {
+            Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
+                Eyebrow("Nur für dich")
+                SectionTitle("Erinnerungen")
+            }
+            extras.memories.forEach { year ->
+                Text(year.label, style = OasisType.BodyBold, color = OasisColors.Night)
+                year.posts.forEach { post -> PostCard(post, onAction = handlers.perform) }
+            }
+            AsyncOasisButton(
+                "Ausblenden",
+                extras.onDismissMemories,
+                kind = OasisButtonKind.Secondary,
+                fullWidth = false,
+                modifier = Modifier.testTag("source.memories.dismiss")
+            )
+        }
+    }
 }
 
 private fun LazyListScope.sideBlocks(context: SourceContext?) {

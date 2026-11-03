@@ -119,6 +119,8 @@ class LiveUiTest {
         toggleChat = { _, _ -> },
         pause = {},
         resume = {},
+        startQuietMode = {},
+        endQuietMode = {},
         remove = {},
         togglePush = {},
         openSystemSettings = {},

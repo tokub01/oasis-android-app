@@ -16,6 +16,7 @@ import de.velwebsolutions.oasis.core.di.AppScope
 import de.velwebsolutions.oasis.core.di.DeviceName
 import de.velwebsolutions.oasis.core.network.ApiConfig
 import de.velwebsolutions.oasis.core.network.RealtimeConfig
+import de.velwebsolutions.oasis.core.screentime.ScreenTime
 import de.velwebsolutions.oasis.design.navigation.DeepLink
 import de.velwebsolutions.oasis.design.navigation.Navigator
 import javax.inject.Singleton
@@ -54,11 +55,12 @@ object AppModule {
         @AppScope scope: CoroutineScope,
         @ApplicationContext context: Context,
         lookStore: LookStore,
-        lookPhotos: LookPhotos
+        lookPhotos: LookPhotos,
+        screenTime: ScreenTime
     ): Navigator = Navigator().also { navigator ->
         // Links open screens only for this build's server (hints, push, posts).
         DeepLink.ownHost = java.net.URI(BuildConfig.OASIS_BASE_URL).host
-        val clear = { AppHost.clearAfterSignOut(context, lookStore, lookPhotos, scope) }
+        val clear = { AppHost.clearAfterSignOut(context, lookStore, lookPhotos, scope, screenTime) }
         scope.launch { AppHost.resetAfterSignOut(session.state, navigator, clear) }
     }
 }

@@ -74,8 +74,10 @@ import de.velwebsolutions.oasis.design.navigation.LocalNavigator
 import de.velwebsolutions.oasis.design.theme.OasisColors
 import de.velwebsolutions.oasis.design.theme.OasisRadius
 import de.velwebsolutions.oasis.design.theme.OasisType
+import de.velwebsolutions.oasis.live.QuietModeState
 import de.velwebsolutions.oasis.live.api.HintSettings
 import de.velwebsolutions.oasis.live.api.PushDevice
+import de.velwebsolutions.oasis.live.api.QuietMode
 import de.velwebsolutions.oasis.live.push.PushAuthorization
 import de.velwebsolutions.oasis.live.push.PushRegistrar
 import java.util.Locale
@@ -88,6 +90,8 @@ internal class HintSettingsActions(
     val toggleChat: (key: String, on: Boolean) -> Unit,
     val pause: suspend (days: Int) -> Unit,
     val resume: suspend () -> Unit,
+    val startQuietMode: suspend (mode: String) -> Unit,
+    val endQuietMode: suspend () -> Unit,
     val remove: suspend (PushDevice) -> Unit,
     val togglePush: suspend () -> Unit,
     val openSystemSettings: () -> Unit,
@@ -127,6 +131,8 @@ internal fun HintSettingsScreen(viewModel: HintSettingsViewModel = hiltViewModel
                     toggleChat = viewModel::toggleChat,
                     pause = viewModel::pause,
                     resume = viewModel::resume,
+                    startQuietMode = viewModel::startQuietMode,
+                    endQuietMode = viewModel::endQuietMode,
                     remove = viewModel::remove,
                     togglePush = {
                         val needsPrompt = !ui.isOnForThisDevice && ui.authorization != PushAuthorization.Authorized &&
@@ -156,6 +162,7 @@ internal fun HintSettingsContent(ui: HintSettingsUiState, actions: HintSettingsA
                 lead = "Du entscheidest, was in deiner Hinweis-Liste landet und ob du eine E-Mail bekommst. Jede Änderung gilt sofort."
             )
             Switches(settings, ui, actions)
+            QuietModeSection(settings, ui.quietMode, actions)
             PauseSection(settings, actions)
             PushSection(settings, ui, actions)
             if (settings.chat.isNotEmpty()) ChatSection(settings, ui, actions)
@@ -319,6 +326,46 @@ internal fun hourAndMinute(text: String): Pair<Int, Int> {
 
 /** "07:05" from hour and minute – always Latin digits, whatever the device's language (the web's `H:i`). */
 internal fun timeText(hour: Int, minute: Int): String = String.format(Locale.ROOT, "%02d:%02d", hour, minute)
+
+/** „Ruhemodus“: no push and no e-mail hints at all, chats included, on every device – for a while or until it is ended. */
+@OptIn(ExperimentalLayoutApi::class)
+@Composable
+private fun QuietModeSection(settings: HintSettings, mode: QuietMode, actions: HintSettingsActions) {
+    SectionCard("Ruhemodus") {
+        if (mode.active) {
+            Text(
+                QuietModeState.status(mode.until) + " Hinweise sammeln sich still in der App.",
+                style = OasisType.Body,
+                color = OasisColors.Ink,
+                modifier = Modifier.testTag("quietMode.status")
+            )
+            AsyncOasisButton(
+                "Beenden",
+                actions.endQuietMode,
+                kind = OasisButtonKind.Secondary,
+                fullWidth = false,
+                modifier = Modifier.testTag("quietMode.end")
+            )
+        } else {
+            Text(
+                "Kurz Ruhe: keine Push-Hinweise und keine E-Mails, auch nicht zu Chats – auf allen Geräten. Hinweise sammeln sich still in der App.",
+                style = OasisType.Body,
+                color = OasisColors.Ink2
+            )
+            FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                settings.quietMode.modes.forEach { choice ->
+                    AsyncOasisButton(
+                        choice.label,
+                        { actions.startQuietMode(choice.key) },
+                        kind = OasisButtonKind.Secondary,
+                        fullWidth = false,
+                        modifier = Modifier.testTag("quietMode.${choice.key}")
+                    )
+                }
+            }
+        }
+    }
+}
 
 @OptIn(ExperimentalLayoutApi::class)
 @Composable

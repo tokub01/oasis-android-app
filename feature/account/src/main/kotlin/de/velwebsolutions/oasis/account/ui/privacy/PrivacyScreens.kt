@@ -250,6 +250,11 @@ private fun MoreControls(counts: PrivacyCounts, onLimit: (Int) -> Unit, open: (A
             open(AccountRoute.Devices)
         }
         LinkCard(
+            "Deine Zeit in Oasis",
+            "Wie viele Minuten du an den letzten sieben Tagen hier warst – gezählt nur auf diesem Gerät.",
+            "privacy.time"
+        ) { open(AccountRoute.ScreenTime) }
+        LinkCard(
             "Hinweise einstellen",
             "Welche Hinweise du bekommst und wie wir dir neue Chat-Nachrichten melden – per Push oder E-Mail.",
             "privacy.hints"

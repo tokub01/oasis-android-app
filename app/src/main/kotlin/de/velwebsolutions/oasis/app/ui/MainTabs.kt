@@ -150,12 +150,17 @@ fun MainTabs(me: Me, viewModel: RootViewModel) {
         contentWindowInsets = WindowInsets(0)
     ) { padding ->
         Box(Modifier.fillMaxSize().padding(padding)) {
-            val tab = navigator.selectedTab
-            tabStates.SaveableStateProvider(tab.name) {
-                val root = Navigator.rootRoute(tab) ?: NetworkRoute.Profile(me.username)
-                RouteStack(root, navigator.stack(tab).toList(), onBack = {
-                    navigator.back()
-                }, rootChrome = ScreenChrome(rootHeader = header))
+            Column(Modifier.fillMaxSize()) {
+                screens.QuietBanner()
+                Box(Modifier.weight(1f)) {
+                    val tab = navigator.selectedTab
+                    tabStates.SaveableStateProvider(tab.name) {
+                        val root = Navigator.rootRoute(tab) ?: NetworkRoute.Profile(me.username)
+                        RouteStack(root, navigator.stack(tab).toList(), onBack = {
+                            navigator.back()
+                        }, rootChrome = ScreenChrome(rootHeader = header))
+                    }
+                }
             }
             StatusToast(confirmation, null, onDismissMessage = viewModel::clearConfirmation, onDismissError = {})
             screens.ChatNotice()

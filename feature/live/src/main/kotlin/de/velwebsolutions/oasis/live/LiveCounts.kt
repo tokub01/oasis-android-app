@@ -28,7 +28,9 @@ private val nextToastId = AtomicLong()
 class LiveCounts(
     private val scope: CoroutineScope,
     private val pollInterval: Duration = 30.seconds,
-    private val toastDuration: Duration = 15.seconds
+    private val toastDuration: Duration = 15.seconds,
+    /** The Ruhemodus of the banner, from the same answer. */
+    val quiet: QuietModeState = QuietModeState()
 ) {
     private val mutableHints = MutableStateFlow(0)
     private val mutableChats = MutableStateFlow(0)
@@ -74,6 +76,7 @@ class LiveCounts(
         mutableHints.value = 0
         mutableChats.value = 0
         mutableToast.value = null
+        quiet.clear()
     }
 
     /**
@@ -89,6 +92,7 @@ class LiveCounts(
     internal fun apply(counts: LiveCountsData) {
         mutableHints.value = counts.hints
         mutableChats.value = counts.chats
+        quiet.update(counts.quietMode)
     }
 
     /** InboxActivity `{kind: chat|hint, conversation_id, from}`: refresh, and for a chat message show the notice. */

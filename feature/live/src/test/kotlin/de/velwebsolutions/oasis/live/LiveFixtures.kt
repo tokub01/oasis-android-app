@@ -122,6 +122,10 @@ class ImmediateLiveRepository(
 
     override suspend fun resume() = Confirmed(settings, "Weiter.")
 
+    override suspend fun startQuietMode(mode: String) = Confirmed(settings, "Ruhemodus an, bis du ihn ausschaltest.")
+
+    override suspend fun endQuietMode() = Confirmed(settings, "Der Ruhemodus ist beendet.")
+
     override suspend fun setChatSwitch(key: String, on: Boolean) = "Gespeichert."
 
     override suspend fun removeDevice(device: PushDevice) = "Entfernt."

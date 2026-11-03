@@ -170,6 +170,10 @@ class PostListModel<C>(
         mutableState.update { state -> state.copy(posts = listOf(post) + state.posts.filterNot { it.id == post.id }) }
     }
 
+    /** The confirmation or the error of an action outside the cards (the Quelle's „Ausblenden“). */
+    fun answered(result: Result<String>) =
+        mutableState.update { state -> state.copy(status = result.getOrNull() ?: state.status, actionError = result.apiError) }
+
     fun dismissStatus() = mutableState.update { it.copy(status = null) }
 
     fun dismissError() = mutableState.update { it.copy(actionError = null) }

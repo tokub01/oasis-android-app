@@ -77,6 +77,7 @@ import de.velwebsolutions.oasis.network.ui.compose.ComposeUiState
 import de.velwebsolutions.oasis.network.ui.compose.ComposerCallbacks
 import de.velwebsolutions.oasis.network.ui.compose.ComposerForm
 import de.velwebsolutions.oasis.network.ui.compose.ToneHintNote
+import de.velwebsolutions.oasis.network.ui.feeds.SeenCut
 import de.velwebsolutions.oasis.network.ui.feeds.SourceScreen
 import de.velwebsolutions.oasis.network.ui.feeds.SourceViewModel
 import de.velwebsolutions.oasis.network.ui.feeds.SwipeContent
@@ -420,7 +421,7 @@ class ScreenBranchesTest {
     @Test
     fun `the Quelle's page before its context and when it follows somebody`() {
         var state by mutableStateOf(PostListState<SourceContext>(state = Loadable.Loaded(Unit)))
-        show { NetworkPage { sourceContent(state, "Mira", handlers, onSelectView = {}) } }
+        show { NetworkPage { sourceContent(SeenCut(state, false), "Mira", handlers, onSelectView = {}) } }
         text("Hallo Mira.")
         state =
             PostListState(
@@ -800,7 +801,7 @@ class ScreenBranchesTest {
         }
         compose.onNodeWithTag("profile.requestFriend").assertDoesNotExist()
         switchTo { NetworkPage { discoverContent(discover, handlers) } }
-        switchTo { NetworkPage { sourceContent(source, "Mira", handlers, onSelectView = {}) } }
+        switchTo { NetworkPage { sourceContent(SeenCut(source, false), "Mira", handlers, onSelectView = {}) } }
         switchTo { NetworkPage { searchContent("garten", search, handlers, onQuery = {}, onSubmit = {}) } }
         text("Menschen")
         val notSearching = PostListState(context = SearchContext(searching = false), state = Loadable.Loaded(Unit))
