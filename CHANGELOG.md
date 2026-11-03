@@ -18,6 +18,12 @@ Ab 22. Oktober 2026: Seitdem trägt jede Änderung in allen drei Projekten den V
 
 Was dabei gleich bleibt: Ein Mensch entscheidet, was in Oasis kommt, beauftragt jede Runde und prüft sie. Jede Änderung wird durch automatische Tests abgesichert, bevor sie ausgeliefert wird.
 
+## 0.25.1 – 2026-11-04 – Mehr Platz auf großen Bildschirmen
+
+Auf iPad und großen Android-Geräten stehen Chat-Liste, Unterhaltung und Details nebeneinander, und im Web sitzt im Chat alles an seinem Platz.
+
+- **Neu:** Auf großen Bildschirmen öffnen sich die Chat-Details neben der Unterhaltung.
+
 ## 0.25.0 – 2026-11-04 – Klarere Tropfen, ruhigerer Chat
 
 Antworten gibt es nur noch dort, wo sie erlaubt sind, Namen in jeder Schrift sehen richtig aus, du wählst die Farbe deiner Initialen, und der Chat schützt besser vor Schreien und Fluten.

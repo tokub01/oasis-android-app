@@ -53,7 +53,7 @@ android {
     defaultConfig {
         applicationId = "de.velwebsolutions.oasis"
         versionCode = commitVersionCode
-        versionName = "0.25.0"
+        versionName = "0.25.1"
         buildConfigField("String", "OASIS_GATE_KEY", "\"\"")
         buildConfigField("String", "REVERB_HOST_OVERRIDE", "\"\"")
         // The host whose links open the app (App Links, see AndroidManifest.xml).
