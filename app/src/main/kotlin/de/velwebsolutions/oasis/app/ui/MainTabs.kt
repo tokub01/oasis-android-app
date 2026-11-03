@@ -66,6 +66,7 @@ import androidx.navigation3.ui.NavDisplay
 import de.velwebsolutions.oasis.app.shell.AppHost
 import de.velwebsolutions.oasis.app.shell.LocalAppScreens
 import de.velwebsolutions.oasis.core.model.Me
+import de.velwebsolutions.oasis.design.components.AppearancePicker
 import de.velwebsolutions.oasis.design.components.CountBadge
 import de.velwebsolutions.oasis.design.components.LocalScreenChrome
 import de.velwebsolutions.oasis.design.components.OasisLogo
@@ -297,6 +298,7 @@ private fun MoreMenu(me: Me, viewModel: RootViewModel) {
                     MoreRow("Moderation") { go(StaffRoute.Moderation) }
                     if (me.isAdmin) MoreRow("Verwaltung") { go(StaffRoute.AdminDashboard) }
                 }
+                AppearancePicker(Modifier.padding(horizontal = 12.dp, vertical = 8.dp))
                 MoreRow("Abmelden") {
                     open = false
                     viewModel.signOut()
@@ -321,6 +323,7 @@ private val MorePages: List<Pair<String, AppRoute>> = listOf(
     "Blockiert & stumm" to AccountRoute.Safety,
     "Abstimmungen" to AccountRoute.Votes,
     "Ideen für Oasis" to NetworkRoute.Ideas(),
+    "Wohin dein Beitrag geht" to MembershipRoute.Transparency,
     "Begriffe erklärt" to AccountRoute.Glossary
 )
 

@@ -30,6 +30,7 @@ import de.velwebsolutions.oasis.membership.ui.OverviewViewModel
 import de.velwebsolutions.oasis.membership.ui.PerksViewModel
 import de.velwebsolutions.oasis.membership.ui.PlayCheckoutViewModel
 import de.velwebsolutions.oasis.membership.ui.PortalViewModel
+import de.velwebsolutions.oasis.membership.ui.TransparencyViewModel
 import de.velwebsolutions.oasis.membership.ui.WithdrawViewModel
 import kotlin.reflect.KClass
 import org.junit.Rule
@@ -87,6 +88,7 @@ class RouteScreensTest {
             WithdrawViewModel::class -> WithdrawViewModel(repository, files, events, Fixtures.session())
             PerksViewModel::class -> PerksViewModel(repository, events, Fixtures.session())
             CompanionLinkViewModel::class -> CompanionLinkViewModel("a".repeat(40), repository, events, Fixtures.session())
+            TransparencyViewModel::class -> TransparencyViewModel(repository)
             else -> PlayCheckoutViewModel(repository, gateway, PlayDelivery(repository), events, Fixtures.session())
         } as T
     }
@@ -103,6 +105,7 @@ class RouteScreensTest {
         provider[PlayCheckoutViewModel::class]
         provider[PerksViewModel::class]
         provider[CompanionLinkViewModel::class]
+        provider[TransparencyViewModel::class]
     }
 
     @Test
@@ -133,5 +136,7 @@ class RouteScreensTest {
         compose.onNodeWithText("In Mäzen enthalten").assertExists()
         route = MembershipRoute.CompanionLink("a".repeat(40))
         compose.onNodeWithText("Mia Mäzen nimmt dich mit nach Oasis").assertExists()
+        route = MembershipRoute.Transparency
+        compose.onNodeWithText("Oasis heute").assertExists()
     }
 }

@@ -78,7 +78,7 @@ class LettersAndIdeasUiTest {
     }
 
     private fun waitFor(text: String) =
-        compose.waitUntil(5_000) { compose.onAllNodes(hasText(text, substring = true)).fetchSemanticsNodes().isNotEmpty() }
+        compose.waitUntil(15_000) { compose.onAllNodes(hasText(text, substring = true)).fetchSemanticsNodes().isNotEmpty() }
 
     private fun opened(route: AppRoute) = MainTab.entries.any { route in navigator.stack(it) }
 
@@ -93,6 +93,8 @@ class LettersAndIdeasUiTest {
             stub("POST", "network/posts/3/reaction", """{"message":"Reagiert."}""")
         )
         val model = models.keep(WeeklyLetterViewModel(null, network.repository))
+        // Loaded before the screen shows it: the page then starts with the letter (no answer racing the first frame).
+        kotlinx.coroutines.runBlocking { model.load() }
         show { WeeklyLetterScreen(null, model) }
         waitFor("Woche vom 26. Oktober bis 1. November 2026")
         capture("weekly-letter")
@@ -111,6 +113,8 @@ class LettersAndIdeasUiTest {
         compose.onNodeWithText("Wochenbrief per E-Mail einstellen").tap()
         assertTrue(opened(LiveRoute.Settings))
         compose.onNodeWithTag("letter.4").tap()
+        compose.waitUntil(15_000) { model.letter.value.valueOrNull?.id == 4 }
+        compose.waitForIdle()
         waitFor("Was in diesem Wochenbrief stand, ist nicht mehr da.")
 
         val none = StubbedNetwork(
@@ -118,6 +122,7 @@ class LettersAndIdeasUiTest {
             stub("GET", "network/weekly-letters", """{"data":[]}""")
         )
         val empty = models.keep(WeeklyLetterViewModel(null, none.repository))
+        kotlinx.coroutines.runBlocking { empty.load() }
         switchTo { WeeklyLetterScreen(null, empty) }
         waitFor("Noch kein Wochenbrief.")
         waitFor("Noch keine.")

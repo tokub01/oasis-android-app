@@ -79,6 +79,13 @@ internal interface NetworkService {
     @DELETE("network/time-capsules/{id}")
     suspend fun deleteTimeCapsule(@Path("id") id: Int): MessageResponse
 
+    /** The Karte der Oasen: all 16 Bundesländer in tile order with the oases the viewer can see. */
+    @GET("network/regions")
+    suspend fun regions(): DataEnvelope<List<MapRegion>>
+
+    @GET("network/regions/{code}/oases")
+    suspend fun regionOases(@Path("code") code: String): DataEnvelope<List<OasisSummary>>
+
     /** The last 12 Oasen-Wochenbriefe, newest first. */
     @GET("network/weekly-letters")
     suspend fun weeklyLetters(): DataEnvelope<List<WeeklyLetterSummary>>
@@ -327,7 +334,7 @@ internal interface NetworkService {
     suspend fun oasisEditForm(@Path("slug") slug: String): DataEnvelope<OasisEditForm>
 
     @PUT("network/oases/{slug}")
-    suspend fun updateOasis(@Path("slug") slug: String, @Body input: OasisInput): DataEnvelope<OasisSlug>
+    suspend fun updateOasis(@Path("slug") slug: String, @Body input: OasisUpdate): DataEnvelope<OasisSlug>
 
     @Multipart
     @POST("network/oases/{slug}/banner")

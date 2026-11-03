@@ -332,7 +332,17 @@ class OasisFormViewModel @AssistedInject constructor(@Assisted val slug: String?
         val result = attempt {
             if (slug != null) {
                 val form = repository.oasisEditForm(slug)
-                val input = OasisInput(form.oasis.name, form.oasis.description, form.houseRules, form.oasis.visibility, form.oasis.color)
+                val oasis = form.oasis
+                val input =
+                    OasisInput(
+                        oasis.name,
+                        oasis.description,
+                        form.houseRules,
+                        oasis.visibility,
+                        oasis.color,
+                        oasis.region?.code,
+                        oasis.city.orEmpty()
+                    )
                 mutableState.update { it.copy(edit = form, options = form.options, input = input) }
             } else {
                 val options = repository.oases().options
@@ -418,7 +428,7 @@ class OasisFormViewModel @AssistedInject constructor(@Assisted val slug: String?
 
     companion object {
         /** The fields with their own error line; anything else shows as a banner above the form. */
-        val FIELDS = listOf("name", "description", "house_rules", "visibility", "color", "banner", "role")
+        val FIELDS = listOf("name", "description", "house_rules", "visibility", "color", "banner", "role", "region", "city")
     }
 }
 

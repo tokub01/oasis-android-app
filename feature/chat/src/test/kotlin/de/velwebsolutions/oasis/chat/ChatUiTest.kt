@@ -1,9 +1,12 @@
 package de.velwebsolutions.oasis.chat
 
+import androidx.compose.foundation.background
+import androidx.compose.foundation.layout.Box
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
+import androidx.compose.ui.Modifier
 import androidx.compose.ui.test.ExperimentalTestApi
 import androidx.compose.ui.test.assertCountEquals
 import androidx.compose.ui.test.hasContentDescription
@@ -51,6 +54,9 @@ import de.velwebsolutions.oasis.chat.ui.SafetyFlag
 import de.velwebsolutions.oasis.chatcrypto.KdfLimits
 import de.velwebsolutions.oasis.chatcrypto.MessageContent
 import de.velwebsolutions.oasis.chatcrypto.MessageEnvelope
+import de.velwebsolutions.oasis.design.theme.Appearance
+import de.velwebsolutions.oasis.design.theme.AppearanceChoice
+import de.velwebsolutions.oasis.design.theme.OasisColors
 import de.velwebsolutions.oasis.design.theme.OasisTheme
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertTrue
@@ -316,6 +322,46 @@ class ChatUiTest {
                 listOf("accept", "decline false", "decline true", "block 2", "report a", "dismiss", "older", "spoken")
             )
         )
+    }
+
+    @Test
+    @Config(qualifiers = "w360dp-h740dp")
+    fun theListAndAConversationInDarkMode() {
+        Appearance.show(AppearanceChoice.Dark)
+        try {
+            show {
+                // On the page's sand, as OasisScreen shows it in the app.
+                Box(Modifier.background(OasisColors.Sand)) {
+                    List(
+                        ConversationListState(
+                            conversations = listOf(chat("3", muted = true, unread = true), chat("4")),
+                            requests = listOf(chat("5")),
+                            loaded = true
+                        )
+                    )
+                }
+            }
+            compose.waitForIdle()
+            capture("dark-list")
+            switchTo {
+                Conversation(
+                    ConversationState(
+                        conversation = chat("7"),
+                        title = "Jonas",
+                        timeline = ChatTimeline(
+                            listOf(
+                                item("a", ChatMessageItem.State.Readable, text = "Kommst du heute zum Gießen?"),
+                                item("b", ChatMessageItem.State.NoKey),
+                                item("d", ChatMessageItem.State.Readable, sender = "1", text = "Ja, ab sechs.")
+                            )
+                        )
+                    )
+                )
+            }
+            capture("dark-conversation")
+        } finally {
+            Appearance.show(AppearanceChoice.Automatic)
+        }
     }
 
     @Test

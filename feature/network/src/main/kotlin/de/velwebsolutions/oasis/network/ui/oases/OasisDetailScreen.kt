@@ -2,6 +2,7 @@ package de.velwebsolutions.oasis.network.ui.oases
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -9,6 +10,7 @@ import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.defaultMinSize
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.LazyListScope
@@ -18,6 +20,7 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.BasicTextField
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.outlined.People
+import androidx.compose.material.icons.outlined.Place
 import androidx.compose.material3.Icon
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -32,6 +35,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.SolidColor
 import androidx.compose.ui.platform.testTag
+import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.heading
 import androidx.compose.ui.semantics.semantics
@@ -305,6 +309,19 @@ private fun Header(detail: OasisDetail, onFollow: suspend () -> Unit, onUnfollow
                 )
             }
             Text(detail.oasis.description, style = OasisType.Body, color = OasisColors.Ink)
+            detail.oasis.region?.let { region ->
+                Row(
+                    Modifier
+                        .clickable(role = Role.Button) { navigator.open(NetworkRoute.OasisMap(region.code)) }
+                        .heightIn(min = 44.dp)
+                        .testTag("oasis.region"),
+                    horizontalArrangement = Arrangement.spacedBy(8.dp),
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Icon(Icons.Outlined.Place, contentDescription = null, tint = OasisColors.Ink2, modifier = Modifier.size(20.dp))
+                    Text(detail.oasis.place.orEmpty(), style = OasisType.Body, color = OasisColors.Ink2)
+                }
+            }
             Row(horizontalArrangement = Arrangement.spacedBy(8.dp), verticalAlignment = Alignment.CenterVertically) {
                 Icon(Icons.Outlined.People, contentDescription = null, tint = OasisColors.Ink2, modifier = Modifier.size(20.dp))
                 Text(membersLabel(detail.oasis.membersCount ?: 0), style = OasisType.Body, color = OasisColors.Ink2)

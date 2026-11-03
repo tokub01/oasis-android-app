@@ -157,6 +157,7 @@ class ShellUiTest {
             "Deine Zahlen" to NetworkRoute.Statistics, "Zeitkapseln" to NetworkRoute.TimeCapsules, "Jahrbuch" to NetworkRoute.Yearbook(),
             "Menschen einladen" to NetworkRoute.Invitations,
             "Privatsphäre" to AccountRoute.Privacy, "Blockiert & stumm" to AccountRoute.Safety, "Abstimmungen" to AccountRoute.Votes,
+            "Ideen für Oasis" to NetworkRoute.Ideas(), "Wohin dein Beitrag geht" to MembershipRoute.Transparency,
             "Begriffe erklärt" to AccountRoute.Glossary, "Moderation" to StaffRoute.Moderation, "Verwaltung" to StaffRoute.AdminDashboard
         )
         pages.forEach { (title, route) ->
@@ -167,7 +168,8 @@ class ShellUiTest {
         }
         compose.onNodeWithTag("more.menu").performClick()
         compose.onAllNodes(isRoot())[1].captureRoboImage("build/outputs/roborazzi/app-more.png")
-        compose.onNodeWithText("Abmelden").performClick()
+        compose.onNodeWithTag("appearance.Dark").performScrollTo().assertExists()
+        compose.onNodeWithText("Abmelden").performScrollTo().performClick()
         compose.waitForIdle()
         compose.onNodeWithText("Anmelden-Screen").assertIsDisplayed()
         assertTrue(live.stops >= 1)

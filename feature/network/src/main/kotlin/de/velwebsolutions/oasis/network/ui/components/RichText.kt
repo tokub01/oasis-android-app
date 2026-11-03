@@ -31,7 +31,8 @@ import okhttp3.HttpUrl.Companion.toHttpUrlOrNull
  * the browser.
  */
 object RichTextBuilder {
-    private val LinkStyle = TextLinkStyles(SpanStyle(color = OasisColors.Night, textDecoration = TextDecoration.Underline))
+    /** Links in night, read when a text is built so they follow „Darstellung“. */
+    private val LinkStyle get() = TextLinkStyles(SpanStyle(color = OasisColors.Night, textDecoration = TextDecoration.Underline))
 
     fun annotated(segments: List<TextSegment>, baseUrl: HttpUrl?, onLink: ((String) -> Unit)? = null): AnnotatedString =
         buildAnnotatedString {

@@ -3,10 +3,12 @@ package de.velwebsolutions.oasis.membership
 import de.velwebsolutions.oasis.core.network.ApiError
 import de.velwebsolutions.oasis.core.network.Confirmed
 import de.velwebsolutions.oasis.membership.api.CancellationDetails
+import de.velwebsolutions.oasis.membership.api.FinanceReport
 import de.velwebsolutions.oasis.membership.api.MembershipOverview
 import de.velwebsolutions.oasis.membership.api.MembershipPayment
 import de.velwebsolutions.oasis.membership.api.MembershipPerks
 import de.velwebsolutions.oasis.membership.api.SupporterInput
+import de.velwebsolutions.oasis.membership.api.Transparency
 import de.velwebsolutions.oasis.membership.api.WithdrawalDetails
 import de.velwebsolutions.oasis.membership.billing.PlayPurchaseReceipt
 import de.velwebsolutions.oasis.membership.data.MembershipRepository
@@ -29,6 +31,8 @@ class FakeMembershipRepository : MembershipRepository {
     var googlePurchase: Result<Confirmed<MembershipOverview>> = Result.success(
         Confirmed(Fixtures.overview(Fixtures.subscriptionOverview), Fixtures.WELCOME)
     )
+    var transparency: Result<Transparency> = Result.success(TransparencyFixtures.page())
+    var report: Result<FinanceReport> = Result.success(TransparencyFixtures.report(3, "Oktober 2026", balance = -12.5))
     val receipts = mutableListOf<PlayPurchaseReceipt>()
     var gate: CompletableDeferred<Unit>? = null
     var overviewCalls = 0
@@ -40,6 +44,10 @@ class FakeMembershipRepository : MembershipRepository {
     }
 
     override suspend fun payments() = payments.getOrThrow()
+
+    override suspend fun transparency() = transparency.getOrThrow()
+
+    override suspend fun transparencyReport(id: Int) = report.getOrThrow()
 
     override suspend fun googlePurchase(receipt: PlayPurchaseReceipt): Confirmed<MembershipOverview> {
         receipts += receipt

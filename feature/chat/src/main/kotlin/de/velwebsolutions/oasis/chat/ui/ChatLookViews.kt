@@ -84,9 +84,13 @@ fun Modifier.chatBackground(background: ChatBackground, photo: ImageBitmap?): Mo
     val gradient = gradientOf(background)
     when {
         gradient != null -> drawRect(Brush.verticalGradient(gradient))
+
         background == ChatBackground.Sandkoerner -> drawDots()
+
         background == ChatBackground.Photo && photo != null -> drawCover(photo)
-        else -> drawRect(LookColors.Sand)
+
+        // Standard is the page itself, light or dark as „Darstellung“ shows it.
+        else -> drawRect(OasisColors.Sand)
     }
 }
 

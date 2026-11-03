@@ -40,6 +40,10 @@ class NavigationTest {
         "/app/zeitkapseln#einladungen" to NetworkRoute.CapsuleInvitations,
         "/app/zeitkapseln#anderes" to NetworkRoute.TimeCapsules,
         "/app/wochenbrief" to NetworkRoute.WeeklyLetter(),
+        "/transparenz" to MembershipRoute.Transparency,
+        "/app/oasen/karte" to NetworkRoute.OasisMap(),
+        "/app/oasen/karte?region=BY" to NetworkRoute.OasisMap("BY"),
+        "/app/oasen/karte?region=" to NetworkRoute.OasisMap(),
         "/app/wochenbrief/5" to NetworkRoute.WeeklyLetter(5),
         "/app/ideen" to NetworkRoute.Ideas(),
         "/app/ideen/3" to NetworkRoute.Ideas(3),
@@ -159,6 +163,7 @@ class NavigationTest {
         listOf(
             NetworkRoute.Oases,
             NetworkRoute.Oasis("o"),
+            NetworkRoute.OasisMap("BY"),
             NetworkRoute.CreateOasis,
             NetworkRoute.EditOasis("o"),
             NetworkRoute.CloseOasis("o"),

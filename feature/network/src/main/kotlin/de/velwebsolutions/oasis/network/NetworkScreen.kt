@@ -15,6 +15,7 @@ import de.velwebsolutions.oasis.network.ui.oases.CollectPostScreen
 import de.velwebsolutions.oasis.network.ui.oases.OasesScreen
 import de.velwebsolutions.oasis.network.ui.oases.OasisDetailScreen
 import de.velwebsolutions.oasis.network.ui.oases.OasisFormScreen
+import de.velwebsolutions.oasis.network.ui.oases.OasisMapScreen
 import de.velwebsolutions.oasis.network.ui.oases.OasisStatisticsScreen
 import de.velwebsolutions.oasis.network.ui.posts.CarryScreen
 import de.velwebsolutions.oasis.network.ui.posts.ComposeScreen
@@ -52,6 +53,8 @@ fun NetworkScreen(route: NetworkRoute) {
         is NetworkRoute.Oasis -> OasisDetailScreen(route.slug, atMeetups = route.meetups, atCollection = route.collection)
 
         is NetworkRoute.CollectPost -> CollectPostScreen(route.postId, route.slug)
+
+        is NetworkRoute.OasisMap -> OasisMapScreen(route.region)
 
         NetworkRoute.CreateOasis -> OasisFormScreen(slug = null)
 

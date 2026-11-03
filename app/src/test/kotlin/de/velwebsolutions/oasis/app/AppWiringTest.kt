@@ -72,6 +72,10 @@ class AppWiringTest {
             compose.onAllNodes(androidx.compose.ui.test.hasText("Willkommen zurück.")).fetchSemanticsNodes().isNotEmpty()
         }
         compose.activity.setContent { AppHost.Content(navigator, apiClient) }
+        compose.runOnUiThread {
+            AppHost.systemBars(compose.activity, dark = true)
+            AppHost.systemBars(compose.activity, dark = false)
+        }
         compose.waitForIdle()
     }
 

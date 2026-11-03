@@ -7,6 +7,7 @@ import android.view.MotionEvent
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
 import androidx.annotation.RequiresApi
+import androidx.compose.runtime.snapshotFlow
 import androidx.fragment.app.FragmentActivity
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.lifecycleScope
@@ -18,6 +19,7 @@ import de.velwebsolutions.oasis.core.network.ApiClient
 import de.velwebsolutions.oasis.core.screentime.ScreenTime
 import de.velwebsolutions.oasis.design.components.openWebPage
 import de.velwebsolutions.oasis.design.navigation.Navigator
+import de.velwebsolutions.oasis.design.theme.Appearance
 import javax.inject.Inject
 import kotlinx.coroutines.launch
 
@@ -39,8 +41,11 @@ class MainActivity : FragmentActivity() {
     @Inject lateinit var screenTime: ScreenTime
 
     override fun onCreate(savedInstanceState: Bundle?) {
+        // „Darstellung“ of this device and the system's mode (Android creates the activity again when the latter changes).
+        Appearance.restore(Appearance.preferences(this), resources.configuration)
         enableEdgeToEdge()
         super.onCreate(savedInstanceState)
+        lifecycleScope.launch { snapshotFlow { Appearance.isDark }.collect { dark -> AppHost.systemBars(this@MainActivity, dark) } }
         navigator.openWeb = { url -> openWebPage(this, url) }
         setContent { AppHost.Content(navigator, apiClient) }
         AppHost.created(intent, savedInstanceState, navigator)

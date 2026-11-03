@@ -20,6 +20,7 @@ import de.velwebsolutions.oasis.network.api.IdeaInput
 import de.velwebsolutions.oasis.network.api.ImageUpload
 import de.velwebsolutions.oasis.network.api.InvitationLanding
 import de.velwebsolutions.oasis.network.api.InvitationOverview
+import de.velwebsolutions.oasis.network.api.MapRegion
 import de.velwebsolutions.oasis.network.api.Meetup
 import de.velwebsolutions.oasis.network.api.MeetupAnswerBody
 import de.velwebsolutions.oasis.network.api.MeetupInput
@@ -39,6 +40,7 @@ import de.velwebsolutions.oasis.network.api.OasisInput
 import de.velwebsolutions.oasis.network.api.OasisMeetups
 import de.velwebsolutions.oasis.network.api.OasisMembers
 import de.velwebsolutions.oasis.network.api.OasisStatistics
+import de.velwebsolutions.oasis.network.api.OasisSummary
 import de.velwebsolutions.oasis.network.api.OwnProfile
 import de.velwebsolutions.oasis.network.api.PollVoteBody
 import de.velwebsolutions.oasis.network.api.Post
@@ -97,6 +99,12 @@ interface NetworkRepository {
 
     /** The Jahrbuch of [year], the current year when null. */
     suspend fun yearbook(year: Int?): Yearbook
+
+    /** The Bundesländer of the Karte der Oasen with the number of oases the viewer can see. */
+    suspend fun regions(): List<MapRegion>
+
+    /** The oases of Bundesland [code] (404 for an unknown one). */
+    suspend fun regionOases(code: String): List<OasisSummary>
 
     /** The last 12 Wochenbriefe, newest first. */
     suspend fun weeklyLetters(): List<WeeklyLetterSummary>
@@ -320,6 +328,10 @@ class DefaultNetworkRepository @Inject constructor(client: ApiClient) : NetworkR
 
     override suspend fun yearbook(year: Int?) = (if (year == null) service.yearbook() else service.yearbook(year)).data
 
+    override suspend fun regions() = service.regions().data
+
+    override suspend fun regionOases(code: String) = service.regionOases(escape(code)).data
+
     override suspend fun weeklyLetters() = service.weeklyLetters().data
 
     override suspend fun weeklyLetter(id: Int?) = if (id == null) service.latestWeeklyLetter().data else service.weeklyLetter(id).data
@@ -483,7 +495,7 @@ class DefaultNetworkRepository @Inject constructor(client: ApiClient) : NetworkR
 
     override suspend fun oasisEditForm(slug: String) = service.oasisEditForm(escape(slug)).data
 
-    override suspend fun updateOasis(slug: String, input: OasisInput) = service.updateOasis(escape(slug), input).data.slug
+    override suspend fun updateOasis(slug: String, input: OasisInput) = service.updateOasis(escape(slug), input.update).data.slug
 
     override suspend fun uploadBanner(slug: String, image: ImageUpload) = service.uploadBanner(escape(slug), file("banner", image)).message
 

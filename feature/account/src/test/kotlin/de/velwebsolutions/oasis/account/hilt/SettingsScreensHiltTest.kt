@@ -20,6 +20,8 @@ import de.velwebsolutions.oasis.account.ui.settings.SENSITIVE_CLIP
 import de.velwebsolutions.oasis.account.ui.settings.copySecret
 import de.velwebsolutions.oasis.design.navigation.AccountRoute
 import de.velwebsolutions.oasis.design.navigation.MainTab
+import de.velwebsolutions.oasis.design.theme.Appearance
+import de.velwebsolutions.oasis.design.theme.AppearanceChoice
 import java.time.Duration
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
@@ -54,6 +56,21 @@ class SettingsScreensHiltTest : HiltScreenTest() {
     private fun secure() = (activity.window.attributes.flags and WindowManager.LayoutParams.FLAG_SECURE) != 0
 
     private fun clip() = activity.getSystemService(ClipboardManager::class.java).primaryClip!!
+
+    @Test
+    @Config(qualifiers = "w360dp-h740dp")
+    fun theSettingsInDarkMode() {
+        signIn()
+        stub("GET", "account", """{"data":${settings("off")}}""")
+        Appearance.show(AppearanceChoice.Dark)
+        try {
+            show { AccountScreen(AccountRoute.Settings) }
+            waitForTag("settings.twoFactorEnable")
+            shot("settings-dark")
+        } finally {
+            Appearance.show(AppearanceChoice.Automatic)
+        }
+    }
 
     @Test
     fun theSecretAndTheCodesStayOutOfScreenshotsAndAreCopiedAsSensitive() {

@@ -53,7 +53,8 @@ class RouterTest {
             NetworkRoute.Invitations, NetworkRoute.Invitation("abc"), NetworkRoute.Search(),
             NetworkRoute.Search("garten"), NetworkRoute.Tag("garten"), NetworkRoute.Bookmarks,
             NetworkRoute.CollectPost(1, "garten"), NetworkRoute.CapsuleInvitations, NetworkRoute.Oasis("garten", collection = 4),
-            NetworkRoute.WeeklyLetter(), NetworkRoute.WeeklyLetter(5), NetworkRoute.Ideas(), NetworkRoute.Ideas(3)
+            NetworkRoute.WeeklyLetter(), NetworkRoute.WeeklyLetter(5), NetworkRoute.Ideas(), NetworkRoute.Ideas(3),
+            NetworkRoute.OasisMap(), NetworkRoute.OasisMap("BY")
         )
         ActivityScenario.launch(NetworkTestActivity::class.java).use { scenario ->
             routes.forEach { route ->

@@ -3,11 +3,13 @@ package de.velwebsolutions.oasis.membership.data
 import de.velwebsolutions.oasis.core.network.ApiClient
 import de.velwebsolutions.oasis.core.network.Confirmed
 import de.velwebsolutions.oasis.membership.api.CancellationDetails
+import de.velwebsolutions.oasis.membership.api.FinanceReport
 import de.velwebsolutions.oasis.membership.api.MembershipOverview
 import de.velwebsolutions.oasis.membership.api.MembershipPayment
 import de.velwebsolutions.oasis.membership.api.MembershipPerks
 import de.velwebsolutions.oasis.membership.api.MembershipService
 import de.velwebsolutions.oasis.membership.api.SupporterInput
+import de.velwebsolutions.oasis.membership.api.Transparency
 import de.velwebsolutions.oasis.membership.api.WithdrawalDetails
 import de.velwebsolutions.oasis.membership.billing.PlayPurchaseReceipt
 import javax.inject.Inject
@@ -15,6 +17,12 @@ import javax.inject.Inject
 /** The membership of the signed-in member: status, invoices and the pages that end the contract. */
 interface MembershipRepository {
     suspend fun overview(): MembershipOverview
+
+    /** „Wohin dein Beitrag geht“: the figures, the latest published report and the earlier ones. */
+    suspend fun transparency(): Transparency
+
+    /** An earlier published report. */
+    suspend fun transparencyReport(id: Int): FinanceReport
 
     suspend fun payments(): List<MembershipPayment>
 
@@ -64,6 +72,10 @@ class DefaultMembershipRepository @Inject constructor(private val client: ApiCli
     private val service = client.create<MembershipService>()
 
     override suspend fun overview() = service.overview().data
+
+    override suspend fun transparency() = service.transparency().data
+
+    override suspend fun transparencyReport(id: Int) = service.transparencyReport(id).data
 
     override suspend fun payments() = service.payments().data
 

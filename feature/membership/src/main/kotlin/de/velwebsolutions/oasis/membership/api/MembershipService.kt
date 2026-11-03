@@ -20,6 +20,13 @@ interface MembershipService {
     @GET("membership")
     suspend fun overview(): DataEnvelope<MembershipOverview>
 
+    /** „Wohin dein Beitrag geht“ (public): the figures, the latest published report and the earlier ones. */
+    @GET("transparency")
+    suspend fun transparency(): DataEnvelope<Transparency>
+
+    @GET("transparency/reports/{id}")
+    suspend fun transparencyReport(@Path("id") id: Int): DataEnvelope<FinanceReport>
+
     /**
      * Hands a Google Play purchase to the server, which checks it with Google, activates the membership and acknowledges
      * the purchase itself. Idempotent; 422 names why Oasis cannot take it over, 503 means "try again later".

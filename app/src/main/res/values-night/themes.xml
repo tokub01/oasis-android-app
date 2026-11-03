@@ -1,0 +1,12 @@
+<resources xmlns:tools="http://schemas.android.com/tools">
+    <!-- The dark sand of „Darstellung“ while Compose starts, when the system is in dark mode. -->
+    <style name="Theme.Oasis" parent="android:Theme.Material.NoActionBar">
+        <item name="android:windowBackground">@color/sand</item>
+        <item name="android:statusBarColor">@android:color/transparent</item>
+        <item name="android:navigationBarColor">@android:color/transparent</item>
+        <item name="android:windowLightStatusBar">false</item>
+        <!-- Oasis draws its own dark mode with the web's tokens; the system must not darken it again. -->
+        <item name="android:forceDarkAllowed" tools:targetApi="29">false</item>
+    </style>
+    <color name="sand">#0F1A1B</color>
+</resources>

@@ -103,6 +103,7 @@ object DeepLink {
                 "admin" -> StaffRoute.AdminDashboard
                 "mitglied-werden" -> MembershipRoute.Checkout
                 "mitgliedschaft" -> MembershipRoute.Overview
+                "transparenz" -> MembershipRoute.Transparency
                 else -> null
             }
         }
@@ -191,7 +192,11 @@ object DeepLink {
 
         "freunde" -> NetworkRoute.Friends
 
-        "oasen" -> if (rest.firstOrNull() == "neu") NetworkRoute.CreateOasis else NetworkRoute.Oases
+        "oasen" -> when (rest.firstOrNull()) {
+            "neu" -> NetworkRoute.CreateOasis
+            "karte" -> NetworkRoute.OasisMap(query["region"]?.takeIf { it.isNotEmpty() })
+            else -> NetworkRoute.Oases
+        }
 
         "profil" -> NetworkRoute.EditProfile
 

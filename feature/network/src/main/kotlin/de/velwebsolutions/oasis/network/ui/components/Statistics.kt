@@ -67,7 +67,7 @@ fun StatGrid(tiles: List<Pair<Int, String>>, modifier: Modifier = Modifier) {
 /** One week of a [WeekChart]. */
 data class WeekRow(val week: Instant, val values: List<Int>)
 
-private val SeriesColors = listOf(OasisColors.Spring, OasisColors.Sun, OasisColors.Night)
+private val SeriesColors get() = listOf(OasisColors.Spring, OasisColors.Sun, OasisColors.Night)
 
 /** The accessible weekly chart (`x-network.week-chart`): one row per week with a bar and the number per series. */
 @Composable

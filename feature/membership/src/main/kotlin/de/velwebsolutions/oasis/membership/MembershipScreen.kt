@@ -9,6 +9,7 @@ import de.velwebsolutions.oasis.membership.ui.OverviewScreen
 import de.velwebsolutions.oasis.membership.ui.PerksScreen
 import de.velwebsolutions.oasis.membership.ui.PlayCheckoutScreen
 import de.velwebsolutions.oasis.membership.ui.PortalScreen
+import de.velwebsolutions.oasis.membership.ui.TransparencyScreen
 import de.velwebsolutions.oasis.membership.ui.WithdrawScreen
 
 /** Entry point of the Membership module: the screen for each [MembershipRoute] (mapped in the app). */
@@ -28,6 +29,8 @@ fun MembershipScreen(route: MembershipRoute) {
         MembershipRoute.Perks -> PerksScreen()
 
         is MembershipRoute.CompanionLink -> CompanionLinkScreen(route.token)
+
+        MembershipRoute.Transparency -> TransparencyScreen()
 
         // MembershipRoute.Checkout, the last route (an `else` instead of a check that could never fail).
         else -> PlayCheckoutScreen()

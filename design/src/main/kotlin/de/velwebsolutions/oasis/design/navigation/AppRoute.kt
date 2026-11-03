@@ -95,6 +95,9 @@ sealed interface NetworkRoute : AppRoute {
     /** Gemerkt (/app/gemerkt). */
     @Serializable data object Bookmarks : NetworkRoute
 
+    /** Karte der Oasen (/app/oasen/karte?region=BY): the Bundesländer, [region] chosen. */
+    @Serializable data class OasisMap(val region: String? = null) : NetworkRoute
+
     /** Dein Oasen-Wochenbrief (/app/wochenbrief/{id?}): letter [id], the newest without one. */
     @Serializable data class WeeklyLetter(val id: Int? = null) : NetworkRoute
 
@@ -209,6 +212,9 @@ sealed interface MembershipRoute : AppRoute {
 
     /** Deine Vorteile: what the tier includes, companion places, supporter mark (/app/mitgliedschaft/vorteile). */
     @Serializable data object Perks : MembershipRoute
+
+    /** „Wohin dein Beitrag geht“ (/transparenz, public): figures and published finance reports. */
+    @Serializable data object Transparency : MembershipRoute
 
     /**
      * The link of a companion place a Mäzen shares (/app/mitgliedschaft/mitkommen/{token}); opens without a membership,

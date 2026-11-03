@@ -59,8 +59,10 @@ import de.velwebsolutions.oasis.design.theme.OasisColors
 import de.velwebsolutions.oasis.design.theme.OasisRadius
 import de.velwebsolutions.oasis.design.theme.OasisType
 import de.velwebsolutions.oasis.network.api.Choice
+import de.velwebsolutions.oasis.network.api.OasisInput
 import de.velwebsolutions.oasis.network.ui.ImageConverter
 import de.velwebsolutions.oasis.network.ui.components.ChoiceList
+import de.velwebsolutions.oasis.network.ui.components.ChoiceMenu
 import de.velwebsolutions.oasis.network.ui.components.NetworkPage
 import de.velwebsolutions.oasis.network.ui.components.PaperBox
 import de.velwebsolutions.oasis.network.ui.components.SectionTitle
@@ -163,6 +165,11 @@ fun OasisFormScreen(
                             Text("Farbe", style = OasisType.SmallBold, color = OasisColors.Ink)
                             ColorChoice(options.colors, state.input.color) { value -> viewModel.updateInput { it.copy(color = value) } }
                             failure?.message("color")?.let { FieldError(it) }
+                        }
+                        if (options.regions.isNotEmpty()) {
+                            RegionFields(options.regions, state.input, failure?.message("region") ?: failure?.message("city")) { change ->
+                                viewModel.updateInput(change)
+                            }
                         }
                         BannerSection(state, editing, failure?.message("banner"), onPick = picker.pick, onRemove = viewModel::removeBanner)
                         AsyncOasisButton(
@@ -326,5 +333,38 @@ fun ColorChoice(choices: List<Choice>, selection: String, onSelect: (String) -> 
                 Text(choice.label, style = OasisType.Caption, color = OasisColors.Ink)
             }
         }
+    }
+}
+
+/** „Region (freiwillig, für die Karte der Oasen)“: a Bundesland and, with one, a city or area – never coordinates. */
+@Composable
+internal fun RegionFields(regions: List<Choice>, input: OasisInput, error: String?, onChange: ((OasisInput) -> OasisInput) -> Unit) {
+    Column(verticalArrangement = Arrangement.spacedBy(8.dp), modifier = Modifier.testTag("oasisForm.regionFields")) {
+        Text(
+            buildAnnotatedString {
+                append("Region ")
+                withStyle(SpanStyle(color = OasisColors.Muted)) { append("(freiwillig, für die Karte der Oasen)") }
+            },
+            style = OasisType.SmallBold,
+            color = OasisColors.Ink
+        )
+        ChoiceMenu(
+            "Bundesland",
+            listOf(Choice("", "Keine Region")) + regions,
+            input.region.orEmpty(),
+            { code -> onChange { it.copy(region = code.ifEmpty { null }) } },
+            Modifier.testTag("oasisForm.region")
+        )
+        if (input.region != null) {
+            OasisTextField(
+                "Ort oder Gegend",
+                input.city,
+                { value -> onChange { it.copy(city = value) } },
+                prompt = "z. B. Leipzig",
+                modifier = Modifier.testTag("oasisForm.city"),
+                maxLength = 60
+            )
+        }
+        error?.let { FieldError(it) }
     }
 }

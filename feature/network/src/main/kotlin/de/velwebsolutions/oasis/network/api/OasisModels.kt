@@ -3,10 +3,18 @@ package de.velwebsolutions.oasis.network.api
 import de.velwebsolutions.oasis.core.network.OasisInstant
 import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
+import kotlinx.serialization.json.JsonElement
+import kotlinx.serialization.json.JsonNull
+import kotlinx.serialization.json.JsonPrimitive
 
 /** The form choices for founding and editing an oasis. */
 @Serializable
-data class OasisOptions(val visibilities: List<Choice> = emptyList(), val colors: List<Choice> = emptyList())
+data class OasisOptions(
+    val visibilities: List<Choice> = emptyList(),
+    val colors: List<Choice> = emptyList(),
+    /** The Bundesländer for „Region“ (none from a server without the Karte: the field is not shown). */
+    val regions: List<Choice> = emptyList()
+)
 
 /** "Oasen": own oases and all others. */
 @Serializable
@@ -92,9 +100,13 @@ data class OasisInput(
     val description: String = "",
     val houseRules: String = "",
     val visibility: String = "public",
-    val color: String = "spring"
+    val color: String = "spring",
+    /** The Bundesland code (`BY`), null for none. */
+    val region: String? = null,
+    /** A city or area (at most 60), only with a region. */
+    val city: String = ""
 ) {
-    /** The multipart fields when founding (with the optional banner). */
+    /** The multipart fields when founding (with the optional banner); region and city only with a region. */
     val fields: List<Pair<String, String>>
         get() = listOf(
             "name" to name,
@@ -102,7 +114,43 @@ data class OasisInput(
             "house_rules" to houseRules,
             "visibility" to visibility,
             "color" to color
+        ) + region?.let { listOf("region" to it, "city" to city) }.orEmpty()
+
+    /** What saving an edited oasis sends: `region` also as null, since leaving it out would keep the old one. */
+    internal val update: OasisUpdate
+        get() = OasisUpdate(
+            name,
+            description,
+            houseRules,
+            visibility,
+            color,
+            region?.let(::JsonPrimitive) ?: JsonNull,
+            region?.let {
+                city
+            }.orEmpty()
         )
+}
+
+/** The body of `PUT oases/{slug}`. */
+@Serializable
+internal data class OasisUpdate(
+    val name: String,
+    val description: String,
+    val houseRules: String,
+    val visibility: String,
+    val color: String,
+    val region: JsonElement,
+    val city: String
+)
+
+/** One tile of the Karte der Oasen (`GET network/regions`): the Bundesland, its visible oases and its grid cell. */
+@Serializable
+data class MapRegion(val code: String, val name: String, val oasesCount: Int = 0, val tile: Tile) {
+    @Serializable
+    data class Tile(val x: Int, val y: Int)
+
+    /** „Bayern: 3 Oasen“. */
+    val accessibleName: String get() = "$name: ${if (oasesCount == 1) "1 Oase" else "$oasesCount Oasen"}"
 }
 
 /** The confirmation page before closing an oasis. */

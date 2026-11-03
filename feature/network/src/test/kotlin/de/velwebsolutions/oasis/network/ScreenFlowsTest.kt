@@ -24,6 +24,8 @@ import de.velwebsolutions.oasis.design.navigation.LocalNavigator
 import de.velwebsolutions.oasis.design.navigation.MainTab
 import de.velwebsolutions.oasis.design.navigation.Navigator
 import de.velwebsolutions.oasis.design.navigation.NetworkRoute
+import de.velwebsolutions.oasis.design.theme.Appearance
+import de.velwebsolutions.oasis.design.theme.AppearanceChoice
 import de.velwebsolutions.oasis.design.theme.OasisTheme
 import de.velwebsolutions.oasis.network.ui.feeds.BookmarksScreen
 import de.velwebsolutions.oasis.network.ui.feeds.BookmarksViewModel
@@ -144,6 +146,33 @@ class ScreenFlowsTest {
         capture("source")
         compose.onNodeWithTag("source.compose").performClick()
         assertEquals(NetworkRoute.Compose(), navigator.sheet)
+    }
+
+    @Test
+    @Config(qualifiers = "w360dp-h740dp")
+    fun `the Quelle in dark mode`() {
+        val network = StubbedNetwork(
+            stub(
+                "GET",
+                "network/source",
+                pageJson(
+                    postJson(3, reacted = true),
+                    postJson(4),
+                    context = """{"show_all":false,"follows_anyone":true,"can_post":true,"week":{"followers":1,"reactions":2,"karawane":3},
+                    |"oases":[]}
+                    """.trimMargin()
+                )
+            )
+        )
+        val model = models.keep(SourceViewModel(network.repository, network.session))
+        Appearance.show(AppearanceChoice.Dark)
+        try {
+            show(ScreenChrome()) { SourceScreen(model) }
+            text("Tropfen 3").assertIsDisplayed()
+            capture("source-dark")
+        } finally {
+            Appearance.show(AppearanceChoice.Automatic)
+        }
     }
 
     @Test

@@ -5,7 +5,7 @@
         <item name="android:statusBarColor">@android:color/transparent</item>
         <item name="android:navigationBarColor">@android:color/transparent</item>
         <item name="android:windowLightStatusBar">true</item>
-        <!-- Oasis has one light design, like iOS (UIUserInterfaceStyle Light) and the web (color-scheme: light). -->
+        <!-- Oasis draws its own dark mode (values-night, „Darstellung“); the system must not darken it again. -->
         <item name="android:forceDarkAllowed" tools:targetApi="29">false</item>
     </style>
     <color name="sand">#F4EDE1</color>

@@ -46,7 +46,10 @@ import de.velwebsolutions.oasis.design.theme.OasisRadius
 import de.velwebsolutions.oasis.design.theme.OasisType
 import de.velwebsolutions.oasis.network.api.OasisDirectory
 import de.velwebsolutions.oasis.network.api.OasisSummary
+import de.velwebsolutions.oasis.network.ui.components.ButtonFlow
 import de.velwebsolutions.oasis.network.ui.components.NetworkPage
+import de.velwebsolutions.oasis.network.ui.components.OnNightButton
+import de.velwebsolutions.oasis.network.ui.components.OnNightKind
 import de.velwebsolutions.oasis.network.ui.components.SectionTitle
 import de.velwebsolutions.oasis.network.ui.components.block
 import de.velwebsolutions.oasis.network.ui.components.membersLabel
@@ -84,13 +87,21 @@ fun LazyListScope.oasesContent(list: OasisDirectory) {
                 style = OasisType.Body,
                 color = OasisColors.OnNight2
             )
-            if (list.canCreate) {
-                OasisButton(
-                    "Oase eröffnen",
-                    { navigator.open(NetworkRoute.CreateOasis) },
-                    kind = OasisButtonKind.Accent,
-                    fullWidth = false,
-                    modifier = Modifier.testTag("oases.create")
+            ButtonFlow {
+                if (list.canCreate) {
+                    OasisButton(
+                        "Oase eröffnen",
+                        { navigator.open(NetworkRoute.CreateOasis) },
+                        kind = OasisButtonKind.Accent,
+                        fullWidth = false,
+                        modifier = Modifier.testTag("oases.create")
+                    )
+                }
+                OnNightButton(
+                    "Karte",
+                    onClick = { navigator.open(NetworkRoute.OasisMap()) },
+                    modifier = Modifier.testTag("oases.map"),
+                    kind = OnNightKind.Outline
                 )
             }
         }

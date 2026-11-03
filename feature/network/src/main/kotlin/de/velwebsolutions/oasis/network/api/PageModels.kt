@@ -33,8 +33,20 @@ data class OasisSummary(
     val bannerUrl: String? = null,
     val membersCount: Int? = null,
     /** The viewer's (or the profile owner's) role: "host" or "member". */
-    val role: String? = null
-)
+    val role: String? = null,
+    /** The Bundesland for the Karte der Oasen; null without. */
+    val region: RegionRef? = null,
+    /** A city or area, only with a region. */
+    val city: String? = null
+) {
+    /** „Bayern · München“; null without a region. */
+    val place: String?
+        get() = region?.let { listOfNotNull(it.name, city?.takeIf(String::isNotBlank)).joinToString(" · ") }
+}
+
+/** A Bundesland of an oasis (`region: {code, name}`). */
+@Serializable
+data class RegionRef(val code: String, val name: String)
 
 /** The Quelle's side information. */
 @Serializable

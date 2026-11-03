@@ -6,6 +6,9 @@ import android.content.Intent
 import android.os.Bundle
 import android.view.Window
 import android.view.WindowManager
+import androidx.activity.ComponentActivity
+import androidx.activity.SystemBarStyle
+import androidx.activity.enableEdgeToEdge
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
 import androidx.core.app.NotificationManagerCompat
@@ -163,6 +166,13 @@ object AppHost {
         images.memoryCache?.clear()
         images.diskCache?.clear()
         NotificationManagerCompat.from(context).cancelAll()
+    }
+
+    /** Light or dark icons in the status and navigation bar, as the page under them. */
+    fun systemBars(activity: ComponentActivity, dark: Boolean) {
+        val transparent = android.graphics.Color.TRANSPARENT
+        val style = if (dark) SystemBarStyle.dark(transparent) else SystemBarStyle.light(transparent, transparent)
+        activity.enableEdgeToEdge(statusBarStyle = style, navigationBarStyle = style)
     }
 
     /** The image loader that loads members-only images with the API client's headers. */
