@@ -10,6 +10,7 @@ import de.velwebsolutions.oasis.core.model.Loadable
 import de.velwebsolutions.oasis.core.network.ApiError
 import de.velwebsolutions.oasis.network.NetworkSignals
 import de.velwebsolutions.oasis.network.api.DiscoverContext
+import de.velwebsolutions.oasis.network.api.Meetup
 import de.velwebsolutions.oasis.network.api.MemoryYear
 import de.velwebsolutions.oasis.network.api.NoContext
 import de.velwebsolutions.oasis.network.api.Post
@@ -75,6 +76,11 @@ class SourceViewModel @Inject constructor(private val repository: NetworkReposit
     /** „Ältere Tropfen“ was tapped after „Du hast alles Neue gesehen.“: from then on the usual list. */
     val showOlder: StateFlow<Boolean> = mutableShowOlder.asStateFlow()
 
+    private val mutableMeetups = MutableStateFlow<List<Meetup>>(emptyList())
+
+    /** „Nächste Treffen“: the own oases' meetups within 30 days (empty: none, or not loaded). */
+    val meetups: StateFlow<List<Meetup>> = mutableMeetups.asStateFlow()
+
     /** „Heute vor einem Jahr“ (empty: none, dismissed today, or not loaded). */
     val memories: StateFlow<List<MemoryYear>> = mutableMemories.asStateFlow()
 
@@ -94,6 +100,11 @@ class SourceViewModel @Inject constructor(private val repository: NetworkReposit
     /** The memories of this day; a failure only leaves the card out. */
     suspend fun loadMemories() {
         attempt { repository.memories() }.onSuccess { mutableMemories.value = it }
+    }
+
+    /** The next meetups; a failure only leaves the card out. */
+    suspend fun loadMeetups() {
+        attempt { repository.upcomingMeetups() }.onSuccess { mutableMeetups.value = it }
     }
 
     /** „Ausblenden“: until tomorrow on every device. */

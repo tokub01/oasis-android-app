@@ -14,6 +14,7 @@ import de.velwebsolutions.oasis.network.NetworkSignals
 import de.velwebsolutions.oasis.network.api.ComposerContext
 import de.velwebsolutions.oasis.network.api.ImageEdge
 import de.velwebsolutions.oasis.network.api.ImageUpload
+import de.velwebsolutions.oasis.network.api.PollDraft
 import de.velwebsolutions.oasis.network.api.PostDraft
 import de.velwebsolutions.oasis.network.api.PublishResult
 import de.velwebsolutions.oasis.network.data.NetworkRepository
@@ -50,8 +51,13 @@ data class ComposeUiState(
     val images: List<PickedImage> = emptyList(),
     val error: ApiError? = null,
     /** While the Tropfen is sent, also after the form that sent it went away (a rotation during the upload). */
-    val isPublishing: Boolean = false
+    val isPublishing: Boolean = false,
+    /** „Umfrage hinzufügen“ (null: none). */
+    val poll: PollDraft? = null
 ) {
+    /** A poll fits only a new Tropfen of an oasis (not a reply, not a carry, not in the Quelle). */
+    val canPoll: Boolean get() = oasisSlug != null && !isReply && !isCarry
+
     val maxLength: Int get() = context.valueOrNull?.maxLength ?: 500
     val maxImages: Int get() = context.valueOrNull?.maxImages ?: 4
 
@@ -168,6 +174,12 @@ class ComposeViewModel @AssistedInject constructor(
 
     fun setToneConfirmed(value: Boolean) = mutableState.update { it.copy(toneConfirmed = value) }
 
+    /** „Umfrage hinzufügen“ (a new, empty one) or „Umfrage entfernen“ (null). */
+    fun showPoll(poll: PollDraft?) = mutableState.update { it.copy(poll = poll) }
+
+    /** The question, the answers, „Mehrere Antworten erlaubt“ and the runtime. */
+    fun editPoll(change: (PollDraft) -> PollDraft) = mutableState.update { state -> state.copy(poll = state.poll?.let(change)) }
+
     /** "Entwurf verwerfen". */
     fun discard() {
         mutableState.update { it.copy(body = "", images = emptyList()) }
@@ -256,7 +268,8 @@ class ComposeViewModel @AssistedInject constructor(
             linkRead = state.linkRead,
             toneConfirmed = state.toneConfirmed,
             images = state.images.map { it.upload },
-            alts = state.images.map { it.alt }
+            alts = state.images.map { it.alt },
+            poll = state.poll?.takeIf { state.canPoll }
         )
         val running = viewModelScope.async { send(draft) }
         sending = running
@@ -285,7 +298,15 @@ class ComposeViewModel @AssistedInject constructor(
         }
         val result = outcome.getOrNull() ?: return null
         mutableState.update {
-            it.copy(body = "", images = emptyList(), linkRead = false, toneConfirmed = false, toneNudge = false, toneHint = null)
+            it.copy(
+                body = "",
+                images = emptyList(),
+                linkRead = false,
+                toneConfirmed = false,
+                toneNudge = false,
+                toneHint = null,
+                poll = null
+            )
         }
         saveDraft()
         NetworkSignals.didPublish(result.data, result.message)

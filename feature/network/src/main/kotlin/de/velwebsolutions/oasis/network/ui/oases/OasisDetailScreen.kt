@@ -85,12 +85,16 @@ import kotlinx.coroutines.delay
 @Composable
 fun OasisDetailScreen(
     slug: String,
-    viewModel: OasisViewModel = hiltViewModel<OasisViewModel, OasisViewModel.Factory>(creationCallback = { it.create(slug) })
+    viewModel: OasisViewModel = hiltViewModel<OasisViewModel, OasisViewModel.Factory>(creationCallback = { it.create(slug) }),
+    /** Opened from a meetup hint (`#treffen`): the page scrolls to „Treffen“ once they are there. */
+    atMeetups: Boolean = false
 ) {
     val detail by viewModel.detail.collectAsStateWithLifecycle()
     val posts by viewModel.posts.state.collectAsStateWithLifecycle()
     val members by viewModel.members.collectAsStateWithLifecycle()
     val memberQuery by viewModel.memberQuery.collectAsStateWithLifecycle()
+    val meetups by viewModel.meetups.collectAsStateWithLifecycle()
+    val meetupForm by viewModel.meetupForm.collectAsStateWithLifecycle()
     val status by viewModel.status.collectAsStateWithLifecycle()
     val error by viewModel.error.collectAsStateWithLifecycle()
     val navigator = LocalNavigator.current
@@ -100,6 +104,9 @@ fun OasisDetailScreen(
     val listState = rememberLazyListState()
 
     LaunchedEffect(Unit) { viewModel.loadIfNeeded() }
+    // Opened from a meetup hint: once the meetups are there, the page shows them.
+    val meetupsRow = if (atMeetups && meetups != null) loaded?.let(::meetupsIndex) else null
+    LaunchedEffect(meetupsRow) { meetupsRow?.let { listState.animateScrollToItem(it) } }
     LaunchedEffect(memberQuery) {
         if (viewModel.members.value != null) {
             delay(300)
@@ -122,7 +129,8 @@ fun OasisDetailScreen(
     ) {
         Box(Modifier.fillMaxSize()) {
             LoadableView(detail, onRetry = viewModel::load, skeleton = SkeletonLayout.Cards) { oasis ->
-                OasisPage(oasis, listState, viewModel, posts, members, memberQuery, onUnfollow = { confirmUnfollow = true }) {
+                val extras = OasisMeetupsUi(meetups, meetupForm, viewModel.meetupActions())
+                OasisPage(oasis, listState, viewModel, posts, members, memberQuery, extras, onUnfollow = { confirmUnfollow = true }) {
                     compose(oasis)
                 }
             }
@@ -155,6 +163,7 @@ private fun OasisPage(
     posts: PostListState<NoContext>,
     members: OasisMembers?,
     memberQuery: String,
+    extras: OasisMeetupsUi,
     onUnfollow: () -> Unit,
     onCompose: () -> Unit
 ) {
@@ -169,10 +178,26 @@ private fun OasisPage(
             onMemberQuery = viewModel::updateMemberQuery,
             onFollow = { viewModel.setFollowing(true) },
             onUnfollow = onUnfollow,
-            onCompose = onCompose
+            onCompose = onCompose,
+            extras = extras
         )
     }
 }
+
+/** The view model's meetup and Willkommenspaten steps for the page. */
+internal fun OasisViewModel.meetupActions() = OasisMeetupActions(
+    onOpenForm = { openMeetupForm(it) },
+    onEditForm = ::editMeetupForm,
+    onCloseForm = ::closeMeetupForm,
+    onSave = ::saveMeetup,
+    onAnswer = { meetup, answer -> launch { answerMeetup(meetup, answer) } },
+    onCancel = { meetup -> launch { cancelMeetup(meetup) } },
+    onAllowMembers = { allowed -> launch { setMembersCreateMeetups(allowed) } },
+    onVolunteer = { volunteer -> launch { setWelcomeVolunteer(volunteer) } }
+)
+
+/** The row of „Treffen“ on the page: after the header, the pate, the house rules and the composer entry. */
+internal fun meetupsIndex(detail: OasisDetail): Int = 2 + (if (detail.welcome?.pate != null) 1 else 0) + (if (detail.canPost) 1 else 0)
 
 /** The oasis page's content. */
 fun LazyListScope.oasisContent(
@@ -184,9 +209,11 @@ fun LazyListScope.oasisContent(
     onMemberQuery: (String) -> Unit,
     onFollow: suspend () -> Unit,
     onUnfollow: () -> Unit,
-    onCompose: () -> Unit
+    onCompose: () -> Unit,
+    extras: OasisMeetupsUi = OasisMeetupsUi.None
 ) {
     block("header") { Header(detail, onFollow, onUnfollow) }
+    detail.welcome?.pate?.let { pate -> block("pate") { PateCard(pate) } }
     block("rules") {
         var showRules by rememberSaveable { mutableStateOf(false) }
         Disclosure("Hausregeln dieser Oase", showRules, {
@@ -196,10 +223,15 @@ fun LazyListScope.oasisContent(
         }
     }
     if (detail.canPost) block("compose") { ComposeEntry("Dein Tropfen in ${detail.oasis.name}", onClick = onCompose) }
+    // Only members get meetups and Willkommenspaten from the server.
+    extras.meetups?.let { meetups ->
+        block("meetups") { MeetupsSection(meetups, extras.form, detail.isHost, extras.actions) }
+    }
     block("posts.title") { SectionTitle("Tropfen") }
     feedSection(posts, handlers, empty = "In dieser Oase gibt es noch keine Tropfen.")
     block("side.hosts") { SideCard("Gastgeber:innen") { detail.hosts.forEach { MemberRow(it) } } }
     if (detail.isMember && members != null) block("side.members") { MemberListCard(members, memberQuery, onMemberQuery) }
+    detail.welcome?.let { welcome -> block("side.welcome") { VolunteerCard(welcome, extras.actions.onVolunteer) } }
     if (detail.isHost) {
         block("side.host") {
             val navigator = LocalNavigator.current

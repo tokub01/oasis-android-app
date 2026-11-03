@@ -120,9 +120,13 @@ object DeepLink {
 
             "oasen" -> when (third) {
                 "bearbeiten" -> NetworkRoute.EditOasis(parts[1])
+
                 "schliessen" -> NetworkRoute.CloseOasis(parts[1])
+
                 "statistik" -> NetworkRoute.OasisStatistics(parts[1])
-                else -> NetworkRoute.Oasis(parts[1])
+
+                // „#treffen“ (meetup hints) opens the page at its meetups.
+                else -> NetworkRoute.Oasis(parts[1], meetups = uri.rawFragment == "treffen")
             }
 
             "profil" -> NetworkRoute.Profile(parts[1])

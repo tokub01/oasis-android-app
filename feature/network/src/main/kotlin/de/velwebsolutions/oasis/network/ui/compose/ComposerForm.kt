@@ -42,6 +42,7 @@ import de.velwebsolutions.oasis.design.components.Banner
 import de.velwebsolutions.oasis.design.components.ConsentCheck
 import de.velwebsolutions.oasis.design.components.FieldError
 import de.velwebsolutions.oasis.design.components.OasisButton
+import de.velwebsolutions.oasis.design.components.OasisButtonKind
 import de.velwebsolutions.oasis.design.components.OasisTextButton
 import de.velwebsolutions.oasis.design.components.OasisTextField
 import de.velwebsolutions.oasis.design.media.ImageCodec
@@ -50,8 +51,10 @@ import de.velwebsolutions.oasis.design.navigation.WebRoute
 import de.velwebsolutions.oasis.design.theme.OasisColors
 import de.velwebsolutions.oasis.design.theme.OasisRadius
 import de.velwebsolutions.oasis.design.theme.OasisType
+import de.velwebsolutions.oasis.network.api.Choice
 import de.velwebsolutions.oasis.network.api.ExternalLink
 import de.velwebsolutions.oasis.network.api.ImageUpload
+import de.velwebsolutions.oasis.network.api.PollDraft
 import de.velwebsolutions.oasis.network.api.PublishResult
 import de.velwebsolutions.oasis.network.ui.ImageConverter
 import de.velwebsolutions.oasis.network.ui.components.ChoiceMenu
@@ -74,8 +77,17 @@ class ComposerCallbacks(
     val checkTone: suspend () -> Unit,
     val publish: suspend () -> PublishResult?,
     /** The answer of a publish whose form went away while it was sent (a rotation during the upload), for the next form. */
-    val unclaimedPublish: suspend () -> PublishResult? = { null }
+    val unclaimedPublish: suspend () -> PublishResult? = { null },
+    /** „Umfrage hinzufügen“ / „entfernen“ and its fields. */
+    val poll: PollCallbacks = PollCallbacks.None
 )
+
+/** The poll of a new oasis Tropfen in the composer. */
+class PollCallbacks(val onShow: (PollDraft?) -> Unit, val onEdit: ((PollDraft) -> PollDraft) -> Unit) {
+    companion object {
+        val None = PollCallbacks({}, {})
+    }
+}
 
 /** The form's callbacks wired to this view model. */
 fun ComposeViewModel.callbacks() = ComposerCallbacks(
@@ -89,7 +101,8 @@ fun ComposeViewModel.callbacks() = ComposerCallbacks(
     onAlt = ::updateAlt,
     checkTone = ::checkTone,
     publish = ::publish,
-    unclaimedPublish = ::unclaimedPublish
+    unclaimedPublish = ::unclaimedPublish,
+    poll = PollCallbacks(::showPoll, ::editPoll)
 )
 
 /**
@@ -168,6 +181,7 @@ fun ComposerForm(
         if (showsImages) {
             ImagesSection(state, callbacks, loadingImages, onLoading = { loadingImages = it })
         }
+        if (state.canPoll) PollSection(state, callbacks.poll)
         Options(state, callbacks)
         OasisButton(
             text = state.submitLabel,
@@ -311,3 +325,93 @@ private fun Options(state: ComposeUiState, callbacks: ComposerCallbacks) {
         (state.fieldError("visibility") ?: state.fieldError("kind"))?.let { FieldError(it) }
     }
 }
+
+/** „Umfrage hinzufügen“, or the poll: „Frage“, „Antwort 1“ …, „Mehrere Antworten erlaubt“, „Läuft“ and „Umfrage entfernen“. */
+@Composable
+private fun PollSection(state: ComposeUiState, callbacks: PollCallbacks) {
+    val poll = state.poll
+    if (poll == null) {
+        OasisButton(
+            "Umfrage hinzufügen",
+            { callbacks.onShow(PollDraft()) },
+            kind = OasisButtonKind.Secondary,
+            fullWidth = false,
+            modifier = Modifier.testTag("compose.poll.add")
+        )
+        return
+    }
+    Column(
+        Modifier
+            .fillMaxWidth()
+            .border(1.dp, OasisColors.DuneLine, RoundedCornerShape(OasisRadius.S.dp))
+            .padding(16.dp)
+            .testTag("compose.poll"),
+        verticalArrangement = Arrangement.spacedBy(12.dp)
+    ) {
+        Text("Umfrage", style = OasisType.BodyBold, color = OasisColors.Night)
+        OasisTextField(
+            label = "Frage",
+            value = poll.question,
+            onValueChange = { value -> callbacks.onEdit { it.copy(question = value) } },
+            error = state.fieldError("poll.question"),
+            modifier = Modifier.testTag("compose.poll.question")
+        )
+        poll.options.forEachIndexed { index, option ->
+            Row(verticalAlignment = Alignment.Bottom, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                OasisTextField(
+                    label = "Antwort ${index + 1}",
+                    value = option,
+                    onValueChange = { value ->
+                        callbacks.onEdit {
+                            it.copy(
+                                options = it.options.mapIndexed { at, old ->
+                                    if (at ==
+                                        index
+                                    ) {
+                                        value
+                                    } else {
+                                        old
+                                    }
+                                }
+                            )
+                        }
+                    },
+                    error = state.fieldError("poll.options.$index"),
+                    modifier = Modifier.weight(1f).testTag("compose.poll.option.$index")
+                )
+                if (poll.options.size > 2) {
+                    OasisTextButton(
+                        "Entfernen",
+                        { callbacks.onEdit { it.copy(options = it.options.filterIndexed { at, _ -> at != index }) } },
+                        Modifier.testTag("compose.poll.remove.$index")
+                    )
+                }
+            }
+        }
+        (state.fieldError("poll.options") ?: state.fieldError("poll"))?.let { FieldError(it) }
+        if (poll.options.size < 6) {
+            OasisButton(
+                "Antwort hinzufügen",
+                { callbacks.onEdit { it.copy(options = it.options + "") } },
+                kind = OasisButtonKind.Secondary,
+                fullWidth = false,
+                modifier = Modifier.testTag("compose.poll.addOption")
+            )
+        }
+        ConsentCheck("Mehrere Antworten erlaubt", poll.multiple, { value ->
+            callbacks.onEdit { it.copy(multiple = value) }
+        }, Modifier.testTag("compose.poll.multiple"))
+        ChoiceMenu(
+            "Läuft",
+            POLL_DURATIONS,
+            poll.duration.orEmpty(),
+            { value -> callbacks.onEdit { it.copy(duration = value.ifEmpty { null }) } },
+            Modifier.testTag("compose.poll.duration")
+        )
+        state.fieldError("poll.duration")?.let { FieldError(it) }
+        OasisTextButton("Umfrage entfernen", { callbacks.onShow(null) }, Modifier.testTag("compose.poll.remove"))
+    }
+}
+
+/** The runtimes of a poll („Läuft“). */
+private val POLL_DURATIONS = listOf(Choice("", "ohne Ende"), Choice("1d", "1 Tag"), Choice("3d", "3 Tage"), Choice("1w", "1 Woche"))

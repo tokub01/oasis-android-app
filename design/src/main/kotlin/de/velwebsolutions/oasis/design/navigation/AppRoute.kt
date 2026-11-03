@@ -42,7 +42,7 @@ sealed interface NetworkRoute : AppRoute {
     @Serializable data object Oases : NetworkRoute
 
     /** One oasis (/oasen/{slug}). */
-    @Serializable data class Oasis(val slug: String) : NetworkRoute
+    @Serializable data class Oasis(val slug: String, val meetups: Boolean = false) : NetworkRoute
 
     /** Create an oasis (/app/oasen/neu). */
     @Serializable data object CreateOasis : NetworkRoute

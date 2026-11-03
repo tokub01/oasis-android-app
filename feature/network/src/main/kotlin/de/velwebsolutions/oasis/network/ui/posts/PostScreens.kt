@@ -14,6 +14,7 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
@@ -64,10 +65,12 @@ import de.velwebsolutions.oasis.network.ui.components.CarriedOriginal
 import de.velwebsolutions.oasis.network.ui.components.ConfirmDialog
 import de.velwebsolutions.oasis.network.ui.components.Disclosure
 import de.velwebsolutions.oasis.network.ui.components.LeaveGuard
+import de.velwebsolutions.oasis.network.ui.components.LocalPollActions
 import de.velwebsolutions.oasis.network.ui.components.MemberRow
 import de.velwebsolutions.oasis.network.ui.components.NetworkPage
 import de.velwebsolutions.oasis.network.ui.components.OasisDot
 import de.velwebsolutions.oasis.network.ui.components.PaperBox
+import de.velwebsolutions.oasis.network.ui.components.PollActions
 import de.velwebsolutions.oasis.network.ui.components.PostCard
 import de.velwebsolutions.oasis.network.ui.components.SectionTitle
 import de.velwebsolutions.oasis.network.ui.components.TextLink
@@ -326,16 +329,22 @@ fun PostDetailScreen(
         }
     ) {
         LoadableView(detail, onRetry = viewModel::load, skeleton = SkeletonLayout.Cards) { loaded ->
-            PostDetailContent(
-                detail = loaded,
-                reply = replyState,
-                replyCallbacks = reply.callbacks(),
-                onAction = { action, post -> viewModel.launch { viewModel.perform(action, post) } },
-                onRefresh = viewModel::load,
-                onLoadReply = reply::loadIfNeeded,
-                focusReply = focusReply,
-                onFocusHandled = { focusReply = false }
+            val polls = PollActions(
+                vote = { post, index -> viewModel.launch { viewModel.vote(post, index) } },
+                close = { post -> viewModel.launch { viewModel.closePoll(post) } }
             )
+            CompositionLocalProvider(LocalPollActions provides polls) {
+                PostDetailContent(
+                    detail = loaded,
+                    reply = replyState,
+                    replyCallbacks = reply.callbacks(),
+                    onAction = { action, post -> viewModel.launch { viewModel.perform(action, post) } },
+                    onRefresh = viewModel::load,
+                    onLoadReply = reply::loadIfNeeded,
+                    focusReply = focusReply,
+                    onFocusHandled = { focusReply = false }
+                )
+            }
         }
     }
 }

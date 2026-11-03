@@ -69,8 +69,35 @@ data class Post(
     val held: Held? = null,
     val stats: Stats? = null,
     val conversation: Conversation? = null,
-    val viewer: Viewer? = null
+    val viewer: Viewer? = null,
+    /** The poll of a Tropfen in an oasis (docs/oasis-network.md, „Umfragen in Tropfen“). */
+    val poll: Poll? = null
 ) {
+    /**
+     * Counts per answer and the number of voters for everyone who may read the Tropfen – never who voted; only the
+     * own choice ([myOptions]). [canVote] for members of the oasis while it runs, [canClose] for its author.
+     */
+    @Serializable
+    data class Poll(
+        val question: String,
+        val options: List<String>,
+        val counts: List<Int> = emptyList(),
+        val voters: Int = 0,
+        val multiple: Boolean = false,
+        val endsAt: OasisInstant? = null,
+        val closed: Boolean = false,
+        val myOptions: List<Int> = emptyList(),
+        val canVote: Boolean = false,
+        val canClose: Boolean = false
+    ) {
+        /** The vote after tapping answer [index]: single choice replaces (the own one again takes it back), multiple toggles. */
+        fun choosing(index: Int): List<Int> = when {
+            index in myOptions -> myOptions - index
+            multiple -> myOptions + index
+            else -> listOf(index)
+        }
+    }
+
     @Serializable
     data class OasisRef(val slug: String, val name: String, val color: String)
 
@@ -224,5 +251,15 @@ data class PostDraft(
     val linkRead: Boolean = false,
     val toneConfirmed: Boolean = false,
     val images: List<ImageUpload> = emptyList(),
-    val alts: List<String> = emptyList()
+    val alts: List<String> = emptyList(),
+    /** „Umfrage hinzufügen“: only in a new Tropfen of an oasis. */
+    val poll: PollDraft? = null
+)
+
+/** The poll of a new Tropfen: question, 2–6 answers, single or multiple choice, runtime `1d`, `3d`, `1w` or none. */
+data class PollDraft(
+    val question: String = "",
+    val options: List<String> = listOf("", ""),
+    val multiple: Boolean = false,
+    val duration: String? = null
 )

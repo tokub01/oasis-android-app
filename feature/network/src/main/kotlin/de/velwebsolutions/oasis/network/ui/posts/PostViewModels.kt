@@ -6,6 +6,7 @@ import dagger.assisted.AssistedInject
 import dagger.hilt.android.lifecycle.HiltViewModel
 import de.velwebsolutions.oasis.core.model.Loadable
 import de.velwebsolutions.oasis.core.network.ApiError
+import de.velwebsolutions.oasis.core.network.Confirmed
 import de.velwebsolutions.oasis.network.NetworkSignals
 import de.velwebsolutions.oasis.network.api.CarrySource
 import de.velwebsolutions.oasis.network.api.Post
@@ -97,6 +98,24 @@ class PostDetailViewModel @AssistedInject constructor(@Assisted val id: Int, pri
             }
         }
         apply(action, post)
+    }
+
+    /** A vote for answer [index] of the page's poll; the answer brings the Tropfen with its new counts. */
+    suspend fun vote(post: Post, index: Int) {
+        val poll = post.poll ?: return
+        changePoll { repository.votePoll(post.id, poll.choosing(index)) }
+    }
+
+    /** „Umfrage beenden“ (the author, after confirming). */
+    suspend fun closePoll(post: Post) = changePoll { repository.closePoll(post.id) }
+
+    private suspend fun changePoll(request: suspend () -> Confirmed<Post>) {
+        val result = attempt(request)
+        mutableError.value = result.apiError
+        val answer = result.getOrNull() ?: return
+        mutableStatus.value = answer.message
+        val current = detail.value.valueOrNull ?: return
+        mutableDetail.value = Loadable.Loaded(current.copy(post = answer.data))
     }
 
     /** The effect on the page: the Tropfen itself when it was the target or its author's state changed, and the replies. */

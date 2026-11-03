@@ -16,7 +16,9 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.staticCompositionLocalOf
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.alpha
@@ -37,18 +39,26 @@ import de.velwebsolutions.oasis.network.ui.PostAction
 import de.velwebsolutions.oasis.network.ui.PostListModel
 import de.velwebsolutions.oasis.network.ui.PostListState
 
-/** What a feed can ask its list for: card actions, the next page and a new first page. */
+/** What a feed can ask its list for: card actions, the next page, a new first page and the polls of its Tropfen. */
 class FeedHandlers(
     val perform: (PostAction, Post) -> Unit,
     val loadMore: () -> Unit,
-    val reload: suspend () -> Unit
+    val reload: suspend () -> Unit,
+    val poll: PollActions? = null
 )
+
+/** Voting in and ending the poll of a Tropfen (docs/oasis-network.md, „Umfragen in Tropfen“). */
+class PollActions(val vote: (Post, Int) -> Unit, val close: (Post) -> Unit)
+
+/** The poll actions of the cards below; none: the poll shows without buttons. */
+val LocalPollActions = staticCompositionLocalOf<PollActions?> { null }
 
 /** The handlers of a [PostListModel], run by [launch] so they outlive the card that started them. */
 fun <C> PostListModel<C>.handlers(launch: (suspend () -> Unit) -> Unit) = FeedHandlers(
     perform = { action, post -> launch { perform(action, post) } },
     loadMore = { launch { loadMore() } },
-    reload = { reload() }
+    reload = { reload() },
+    poll = PollActions(vote = { post, index -> launch { vote(post, index) } }, close = { post -> launch { closePoll(post) } })
 )
 
 /**
@@ -82,7 +92,9 @@ fun <C> LazyListScope.feedSection(
     val lastId = state.posts.lastOrNull()?.id
     state.posts.forEach { post ->
         block("$keyPrefix.post.${post.id}", contentType = "post") {
-            PostCard(post, onAction = handlers.perform, modifier = Modifier.alpha(if (dimmed) 0.5f else 1f))
+            CompositionLocalProvider(LocalPollActions provides handlers.poll) {
+                PostCard(post, onAction = handlers.perform, modifier = Modifier.alpha(if (dimmed) 0.5f else 1f))
+            }
             // Asked again once a reload is over: older Tropfen wait for the new first page.
             if (post.id == lastId) LaunchedEffect(post.id, state.isReloading) { handlers.loadMore() }
         }

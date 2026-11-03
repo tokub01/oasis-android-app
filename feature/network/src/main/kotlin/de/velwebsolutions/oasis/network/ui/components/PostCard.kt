@@ -176,6 +176,7 @@ fun PostCard(
             }
             post.held?.let { HeldNotice(it) }
             RichTextView(post.segments)
+            post.poll?.let { PostPollView(post, it) }
             PostImages(post)
             post.carried?.let { CarriedView(it) }
             Stats(post)

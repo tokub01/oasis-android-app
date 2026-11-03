@@ -63,6 +63,7 @@ import de.velwebsolutions.oasis.design.navigation.NetworkRoute
 import de.velwebsolutions.oasis.design.theme.OasisColors
 import de.velwebsolutions.oasis.design.theme.OasisRadius
 import de.velwebsolutions.oasis.design.theme.OasisType
+import de.velwebsolutions.oasis.network.api.Meetup
 import de.velwebsolutions.oasis.network.api.MemoryYear
 import de.velwebsolutions.oasis.network.api.SourceContext
 import de.velwebsolutions.oasis.network.ui.PostListState
@@ -77,6 +78,7 @@ import de.velwebsolutions.oasis.network.ui.components.UnderlinedLink
 import de.velwebsolutions.oasis.network.ui.components.block
 import de.velwebsolutions.oasis.network.ui.components.feedSection
 import de.velwebsolutions.oasis.network.ui.components.handlers
+import de.velwebsolutions.oasis.network.ui.oases.meetupWhen
 import java.time.Instant
 
 /**
@@ -91,6 +93,7 @@ fun SourceScreen(viewModel: SourceViewModel = hiltViewModel<SourceViewModel>()) 
     val scrollToTop by viewModel.scrollToTop.collectAsStateWithLifecycle()
     val showOlder by viewModel.showOlder.collectAsStateWithLifecycle()
     val memories by viewModel.memories.collectAsStateWithLifecycle()
+    val meetups by viewModel.meetups.collectAsStateWithLifecycle()
     val navigator = LocalNavigator.current
     val listState = rememberLazyListState()
     val me = (session as? SessionState.SignedIn)?.me
@@ -102,7 +105,10 @@ fun SourceScreen(viewModel: SourceViewModel = hiltViewModel<SourceViewModel>()) 
         }
         viewModel.list.loadIfNeeded()
     }
-    LaunchedEffect(Unit) { viewModel.loadMemories() }
+    LaunchedEffect(Unit) {
+        viewModel.loadMemories()
+        viewModel.loadMeetups()
+    }
     LaunchedEffect(scrollToTop) { if (scrollToTop > 0) listState.animateScrollToItem(0) }
 
     OasisScreen(
@@ -122,7 +128,7 @@ fun SourceScreen(viewModel: SourceViewModel = hiltViewModel<SourceViewModel>()) 
                         me?.displayName.orEmpty(),
                         handlers,
                         onSelectView = viewModel::selectView,
-                        extras = SourceExtras(memories, viewModel::dismissMemories, viewModel::showOlderPosts)
+                        extras = SourceExtras(memories, viewModel::dismissMemories, viewModel::showOlderPosts, meetups)
                     )
                 }
             }
@@ -134,7 +140,13 @@ fun SourceScreen(viewModel: SourceViewModel = hiltViewModel<SourceViewModel>()) 
 }
 
 /** „Heute vor einem Jahr“ and „Alles Neue gesehen“ on the Quelle. */
-class SourceExtras(val memories: List<MemoryYear>, val onDismissMemories: suspend () -> Unit, val onShowOlder: () -> Unit) {
+class SourceExtras(
+    val memories: List<MemoryYear>,
+    val onDismissMemories: suspend () -> Unit,
+    val onShowOlder: () -> Unit,
+    /** „Nächste Treffen“. */
+    val meetups: List<Meetup> = emptyList()
+) {
     companion object {
         val None = SourceExtras(emptyList(), {}, {})
     }
@@ -264,7 +276,7 @@ fun LazyListScope.sourceContent(
             }
         }
     }
-    if (cut.seen || state.reachedEnd || state.posts.isEmpty()) sideBlocks(context)
+    if (cut.seen || state.reachedEnd || state.posts.isEmpty()) sideBlocks(context, extras.meetups)
 }
 
 /** „Erinnerungen“ („Nur für dich“): the member's own Tropfen of this day in earlier years, with „Ausblenden“. */
@@ -290,7 +302,7 @@ private fun LazyListScope.memoriesBlock(extras: SourceExtras, handlers: FeedHand
     }
 }
 
-private fun LazyListScope.sideBlocks(context: SourceContext?) {
+private fun LazyListScope.sideBlocks(context: SourceContext?, meetups: List<Meetup>) {
     context?.week?.let { week ->
         block("side.week") {
             val navigator = LocalNavigator.current
@@ -314,6 +326,27 @@ private fun LazyListScope.sideBlocks(context: SourceContext?) {
                 if (oases.isEmpty()) Text("Du folgst noch keiner Oase.")
                 oases.forEach { OasisRow(it) }
                 TextLink("Alle Oasen", NetworkRoute.Oases)
+            }
+        }
+    }
+    if (meetups.isNotEmpty()) {
+        block("side.meetups") {
+            val navigator = LocalNavigator.current
+            SideCard("Nächste Treffen", modifier = Modifier.testTag("source.meetups")) {
+                meetups.take(3).forEach { meetup ->
+                    Column(
+                        Modifier
+                            .fillMaxWidth()
+                            .pressable({ navigator.open(NetworkRoute.Oasis(meetup.oasis.slug, meetups = true)) })
+                            .padding(vertical = 6.dp)
+                    ) {
+                        Text(meetup.title, style = OasisType.BodyBold, color = OasisColors.Night)
+                        Text("${meetupWhen(meetup.startsAt)} · ${meetup.oasis.name}", style = OasisType.Small, color = OasisColors.Muted)
+                        meetup.myAnswer?.let {
+                            Text("Deine Antwort: ${Meetup.answerLabel(it)}", style = OasisType.Small, color = OasisColors.Ink2)
+                        }
+                    }
+                }
             }
         }
     }

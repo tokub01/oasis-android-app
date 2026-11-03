@@ -27,7 +27,11 @@ data class OasisDetail(
     val isMember: Boolean = false,
     val isHost: Boolean = false,
     val canFollow: Boolean = false,
-    val canPost: Boolean = false
+    val canPost: Boolean = false,
+    /** „Mitglieder dürfen Treffen anlegen“. */
+    val membersCreateMeetups: Boolean = false,
+    /** Willkommenspaten (null for non-members). */
+    val welcome: OasisWelcome? = null
 )
 
 /** The member list of an oasis, for its members. */

@@ -4,6 +4,7 @@ import de.velwebsolutions.oasis.core.model.Loadable
 import de.velwebsolutions.oasis.core.model.failing
 import de.velwebsolutions.oasis.core.model.refreshing
 import de.velwebsolutions.oasis.core.network.ApiError
+import de.velwebsolutions.oasis.core.network.Confirmed
 import de.velwebsolutions.oasis.network.api.FeedPage
 import de.velwebsolutions.oasis.network.api.Post
 import de.velwebsolutions.oasis.network.data.NetworkRepository
@@ -163,6 +164,36 @@ class PostListModel<C>(
         mutableState.update { it.copy(actionError = result.apiError) }
         if (result.isSuccess && !optimistic) apply(action, post)
         if (result.isFailure && undo != null) mutableState.update { it.copy(posts = it.posts.applying(undo, post)) }
+    }
+
+    /** A vote for answer [index] of the Tropfen's poll; the answer replaces the Tropfen with its new counts. */
+    suspend fun vote(post: Post, index: Int) {
+        val poll = post.poll ?: return
+        changePoll { repository.votePoll(post.id, poll.choosing(index)) }
+    }
+
+    /** „Umfrage beenden“ (the author, after confirming). */
+    suspend fun closePoll(post: Post) = changePoll { repository.closePoll(post.id) }
+
+    private suspend fun changePoll(request: suspend () -> Confirmed<Post>) {
+        val result = attempt(request)
+        result.onSuccess { answer ->
+            mutableState.update { state ->
+                state.copy(
+                    posts = state.posts.map {
+                        if (it.id ==
+                            answer.data.id
+                        ) {
+                            answer.data
+                        } else {
+                            it
+                        }
+                    },
+                    status = answer.message
+                )
+            }
+        }
+        mutableState.update { it.copy(actionError = result.apiError) }
     }
 
     /** Put a just-published Tropfen on top. */

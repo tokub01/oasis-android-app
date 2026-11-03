@@ -35,6 +35,9 @@ internal data class RoleInput(val role: String)
 @Serializable
 internal data class ConfirmInput(val confirm: Boolean)
 
+@Serializable
+internal data class PollVoteBody(val options: List<Int>)
+
 /** The network endpoints (`/api/v1/network`, Laravel `routes/api/v1/members/network.php`). */
 internal interface NetworkService {
     // Feeds
@@ -107,6 +110,36 @@ internal interface NetworkService {
         @Query("reply_to") replyTo: Int?,
         @Query("carried") carried: Int?
     ): DataEnvelope<ComposerContext>
+
+    @POST("network/posts/{id}/poll/vote")
+    suspend fun votePoll(@Path("id") id: Int, @Body body: PollVoteBody): Confirmed<Post>
+
+    @POST("network/posts/{id}/poll/close")
+    suspend fun closePoll(@Path("id") id: Int): Confirmed<Post>
+
+    @GET("network/oases/{slug}/meetups")
+    suspend fun meetups(@Path("slug") slug: String): DataEnvelope<OasisMeetups>
+
+    @POST("network/oases/{slug}/meetups")
+    suspend fun createMeetup(@Path("slug") slug: String, @Body body: MeetupInput): Confirmed<Meetup>
+
+    @PUT("network/meetups/{id}")
+    suspend fun updateMeetup(@Path("id") id: Int, @Body body: MeetupInput): Confirmed<Meetup>
+
+    @DELETE("network/meetups/{id}")
+    suspend fun cancelMeetup(@Path("id") id: Int): Confirmed<Meetup>
+
+    @POST("network/meetups/{id}/answer")
+    suspend fun answerMeetup(@Path("id") id: Int, @Body body: MeetupAnswerBody): Confirmed<Meetup>
+
+    @PUT("network/oases/{slug}/meetup-settings")
+    suspend fun meetupSettings(@Path("slug") slug: String, @Body body: MeetupSettings): DataEnvelope<MeetupSettings>
+
+    @GET("network/meetups/upcoming")
+    suspend fun upcomingMeetups(): DataEnvelope<List<Meetup>>
+
+    @PUT("network/oases/{slug}/welcome")
+    suspend fun welcomeVolunteer(@Path("slug") slug: String, @Body body: WelcomeVolunteer): DataEnvelope<WelcomeVolunteer>
 
     @Multipart
     @POST("network/posts")

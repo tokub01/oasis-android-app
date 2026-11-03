@@ -46,7 +46,7 @@ fun NetworkScreen(route: NetworkRoute) {
 
         NetworkRoute.Oases -> OasesScreen()
 
-        is NetworkRoute.Oasis -> OasisDetailScreen(route.slug)
+        is NetworkRoute.Oasis -> OasisDetailScreen(route.slug, atMeetups = route.meetups)
 
         NetworkRoute.CreateOasis -> OasisFormScreen(slug = null)
 

@@ -12,6 +12,10 @@ import de.velwebsolutions.oasis.network.api.FriendLists
 import de.velwebsolutions.oasis.network.api.ImageUpload
 import de.velwebsolutions.oasis.network.api.InvitationLanding
 import de.velwebsolutions.oasis.network.api.InvitationOverview
+import de.velwebsolutions.oasis.network.api.Meetup
+import de.velwebsolutions.oasis.network.api.MeetupAnswerBody
+import de.velwebsolutions.oasis.network.api.MeetupInput
+import de.velwebsolutions.oasis.network.api.MeetupSettings
 import de.velwebsolutions.oasis.network.api.MemberStatistics
 import de.velwebsolutions.oasis.network.api.MemoryYear
 import de.velwebsolutions.oasis.network.api.NetworkService
@@ -21,9 +25,12 @@ import de.velwebsolutions.oasis.network.api.OasisDetail
 import de.velwebsolutions.oasis.network.api.OasisDirectory
 import de.velwebsolutions.oasis.network.api.OasisEditForm
 import de.velwebsolutions.oasis.network.api.OasisInput
+import de.velwebsolutions.oasis.network.api.OasisMeetups
 import de.velwebsolutions.oasis.network.api.OasisMembers
 import de.velwebsolutions.oasis.network.api.OasisStatistics
 import de.velwebsolutions.oasis.network.api.OwnProfile
+import de.velwebsolutions.oasis.network.api.PollVoteBody
+import de.velwebsolutions.oasis.network.api.Post
 import de.velwebsolutions.oasis.network.api.PostDetail
 import de.velwebsolutions.oasis.network.api.PostDraft
 import de.velwebsolutions.oasis.network.api.PostEditForm
@@ -38,6 +45,7 @@ import de.velwebsolutions.oasis.network.api.SwipeDeck
 import de.velwebsolutions.oasis.network.api.TagContext
 import de.velwebsolutions.oasis.network.api.TimeCapsuleInput
 import de.velwebsolutions.oasis.network.api.TimeCapsules
+import de.velwebsolutions.oasis.network.api.WelcomeVolunteer
 import de.velwebsolutions.oasis.network.api.Yearbook
 import javax.inject.Inject
 import okhttp3.MediaType.Companion.toMediaType
@@ -94,6 +102,36 @@ interface NetworkRepository {
 
     /** Publishes a Tropfen as multipart (`images[]`, `alts[]` in the same order). */
     suspend fun publish(draft: PostDraft): PublishResult
+
+    // Treffen and Willkommenspaten (docs/oasis-network.md)
+
+    suspend fun meetups(slug: String): OasisMeetups
+
+    /** A new meetup → „Das Treffen ist angelegt.“ (the server's words) and the meetup. */
+    suspend fun createMeetup(slug: String, input: MeetupInput): Confirmed<Meetup>
+
+    suspend fun updateMeetup(id: Int, input: MeetupInput): Confirmed<Meetup>
+
+    /** „Treffen absagen“. */
+    suspend fun cancelMeetup(id: Int): Confirmed<Meetup>
+
+    /** „Ich komme“ (`yes`), „Vielleicht“ (`maybe`), „Nein“ (`no`) → „Deine Antwort: …“. */
+    suspend fun answerMeetup(id: Int, answer: String): Confirmed<Meetup>
+
+    /** „Mitglieder dürfen Treffen anlegen“ (hosts); returns the setting as stored. */
+    suspend fun setMembersCreateMeetups(slug: String, allowed: Boolean): MeetupSettings
+
+    /** „Nächste Treffen“ on the Quelle: the own oases' meetups within 30 days. */
+    suspend fun upcomingMeetups(): List<Meetup>
+
+    /** „Ich bin gern Willkommenspate oder -patin“; returns the setting as stored. */
+    suspend fun setWelcomeVolunteer(slug: String, volunteer: Boolean): WelcomeVolunteer
+
+    /** A vote in a Tropfen's poll ([options] empty takes it back) → „Abgestimmt.“ / „Stimme zurückgenommen.“ and the Tropfen. */
+    suspend fun votePoll(id: Int, options: List<Int>): Confirmed<Post>
+
+    /** „Umfrage beenden“ (the author) → „Die Umfrage ist beendet.“ and the Tropfen. */
+    suspend fun closePoll(id: Int): Confirmed<Post>
 
     suspend fun deletePost(id: Int): String
 
@@ -240,11 +278,39 @@ class DefaultNetworkRepository @Inject constructor(client: ApiClient) : NetworkR
             add("link_read" to if (draft.linkRead) "1" else "0")
             add("tone_confirmed" to if (draft.toneConfirmed) "1" else "0")
             draft.alts.forEach { add("alts[]" to it) }
+            draft.poll?.let { poll ->
+                add("poll[question]" to poll.question)
+                poll.options.forEach { add("poll[options][]" to it) }
+                add("poll[multiple]" to if (poll.multiple) "1" else "0")
+                poll.duration?.let { add("poll[duration]" to it) }
+            }
         }
         val parts =
             fields.map { (name, value) -> MultipartBody.Part.createFormData(name, value) } + draft.images.map { file("images[]", it) }
         return service.publish(parts)
     }
+
+    override suspend fun meetups(slug: String) = service.meetups(slug).data
+
+    override suspend fun createMeetup(slug: String, input: MeetupInput) = service.createMeetup(slug, input)
+
+    override suspend fun updateMeetup(id: Int, input: MeetupInput) = service.updateMeetup(id, input)
+
+    override suspend fun cancelMeetup(id: Int) = service.cancelMeetup(id)
+
+    override suspend fun answerMeetup(id: Int, answer: String) = service.answerMeetup(id, MeetupAnswerBody(answer))
+
+    override suspend fun setMembersCreateMeetups(slug: String, allowed: Boolean) =
+        service.meetupSettings(slug, MeetupSettings(allowed)).data
+
+    override suspend fun upcomingMeetups() = service.upcomingMeetups().data
+
+    override suspend fun setWelcomeVolunteer(slug: String, volunteer: Boolean) =
+        service.welcomeVolunteer(slug, WelcomeVolunteer(volunteer)).data
+
+    override suspend fun votePoll(id: Int, options: List<Int>) = service.votePoll(id, PollVoteBody(options))
+
+    override suspend fun closePoll(id: Int) = service.closePoll(id)
 
     override suspend fun deletePost(id: Int) = service.deletePost(id).message
 

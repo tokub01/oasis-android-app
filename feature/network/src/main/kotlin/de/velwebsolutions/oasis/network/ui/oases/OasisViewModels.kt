@@ -4,16 +4,22 @@ import dagger.assisted.Assisted
 import dagger.assisted.AssistedFactory
 import dagger.assisted.AssistedInject
 import dagger.hilt.android.lifecycle.HiltViewModel
+import de.velwebsolutions.oasis.core.format.GermanTime
 import de.velwebsolutions.oasis.core.model.Loadable
 import de.velwebsolutions.oasis.core.network.ApiError
+import de.velwebsolutions.oasis.core.network.Confirmed
+import de.velwebsolutions.oasis.core.network.OasisJson
 import de.velwebsolutions.oasis.network.NetworkSignals
 import de.velwebsolutions.oasis.network.api.ImageUpload
+import de.velwebsolutions.oasis.network.api.Meetup
+import de.velwebsolutions.oasis.network.api.MeetupInput
 import de.velwebsolutions.oasis.network.api.NoContext
 import de.velwebsolutions.oasis.network.api.OasisClosing
 import de.velwebsolutions.oasis.network.api.OasisDetail
 import de.velwebsolutions.oasis.network.api.OasisDirectory
 import de.velwebsolutions.oasis.network.api.OasisEditForm
 import de.velwebsolutions.oasis.network.api.OasisInput
+import de.velwebsolutions.oasis.network.api.OasisMeetups
 import de.velwebsolutions.oasis.network.api.OasisMembers
 import de.velwebsolutions.oasis.network.api.OasisOptions
 import de.velwebsolutions.oasis.network.api.OasisStatistics
@@ -22,6 +28,7 @@ import de.velwebsolutions.oasis.network.ui.NetworkViewModel
 import de.velwebsolutions.oasis.network.ui.PostListModel
 import de.velwebsolutions.oasis.network.ui.apiError
 import de.velwebsolutions.oasis.network.ui.attempt
+import java.time.Instant
 import javax.inject.Inject
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -67,6 +74,14 @@ class OasisViewModel @AssistedInject constructor(@Assisted val slug: String, pri
     val members: StateFlow<OasisMembers?> = mutableMembers.asStateFlow()
     private val mutableMemberQuery = MutableStateFlow("")
     val memberQuery: StateFlow<String> = mutableMemberQuery.asStateFlow()
+    private val mutableMeetups = MutableStateFlow<OasisMeetups?>(null)
+
+    /** „Treffen“ for members (null for others, or while not loaded). */
+    val meetups: StateFlow<OasisMeetups?> = mutableMeetups.asStateFlow()
+    private val mutableMeetupForm = MutableStateFlow<MeetupForm?>(null)
+
+    /** The form to create or change a meetup, while it is open. */
+    val meetupForm: StateFlow<MeetupForm?> = mutableMeetupForm.asStateFlow()
 
     init {
         observe(NetworkSignals.published) { posts.reload() }
@@ -80,7 +95,13 @@ class OasisViewModel @AssistedInject constructor(@Assisted val slug: String, pri
     suspend fun load() {
         val loaded = mutableDetail.load { repository.oasis(slug) } ?: return
         posts.reload()
-        if (loaded.isMember) loadMembers() else mutableMembers.value = null
+        if (loaded.isMember) {
+            loadMembers()
+            loadMeetups()
+        } else {
+            mutableMembers.value = null
+            mutableMeetups.value = null
+        }
     }
 
     /**
@@ -95,6 +116,75 @@ class OasisViewModel @AssistedInject constructor(@Assisted val slug: String, pri
         }
         posts.loadIfNeeded()
         if (loaded.isMember && members.value == null) loadMembers()
+        if (loaded.isMember && meetups.value == null) loadMeetups()
+    }
+
+    /** The meetups of the oasis; a list that cannot load is simply not shown. */
+    suspend fun loadMeetups() {
+        mutableMeetups.value = attempt { repository.meetups(slug) }.getOrNull()
+    }
+
+    /** „Treffen anlegen“ (null) or „Ändern“ of [meetup]: the form, filled with the meetup or empty for tomorrow evening. */
+    fun openMeetupForm(meetup: Meetup?, now: Instant = Instant.now()) {
+        mutableMeetupForm.value = meetup?.let(MeetupForm::of) ?: MeetupForm(startsAt = MeetupForm.tomorrowEvening(now))
+    }
+
+    fun editMeetupForm(change: (MeetupForm) -> MeetupForm) = mutableMeetupForm.update { it?.let(change) }
+
+    /** „Abbrechen“. */
+    fun closeMeetupForm() {
+        mutableMeetupForm.value = null
+    }
+
+    /** „Treffen anlegen“ / „Änderung speichern“; refused fields stay on the form with their messages. */
+    suspend fun saveMeetup() {
+        val form = meetupForm.value ?: return
+        val id = form.editing
+        val result = attempt { if (id == null) repository.createMeetup(slug, form.input) else repository.updateMeetup(id, form.input) }
+        val saved = result.getOrNull()
+        if (saved == null) {
+            mutableMeetupForm.value = form.copy(error = result.apiError)
+            return
+        }
+        mutableStatus.value = saved.message
+        mutableMeetupForm.value = null
+        loadMeetups()
+    }
+
+    /** „Ich komme“, „Vielleicht“, „Nein“. */
+    suspend fun answerMeetup(meetup: Meetup, answer: String) = changeMeetup { repository.answerMeetup(meetup.id, answer) }
+
+    /** „Treffen absagen“ (after confirming); who said yes or maybe gets a hint. */
+    suspend fun cancelMeetup(meetup: Meetup) = changeMeetup { repository.cancelMeetup(meetup.id) }
+
+    private suspend fun changeMeetup(request: suspend () -> Confirmed<Meetup>) {
+        val result = attempt(request)
+        mutableError.value = result.apiError
+        val answer = result.getOrNull() ?: return
+        mutableStatus.value = answer.message
+        mutableMeetups.update { list ->
+            list?.copy(
+                upcoming = list.upcoming.map { if (it.id == answer.data.id) answer.data else it },
+                past = list.past.map { if (it.id == answer.data.id) answer.data else it }
+            )
+        }
+    }
+
+    /** „Mitglieder dürfen Treffen anlegen“ (hosts). */
+    suspend fun setMembersCreateMeetups(allowed: Boolean) {
+        val result = attempt { repository.setMembersCreateMeetups(slug, allowed) }
+        mutableError.value = result.apiError
+        val stored = result.getOrNull() ?: return
+        mutableMeetups.update { it?.copy(membersCreateMeetups = stored.membersCreateMeetups) }
+    }
+
+    /** „Ich bin gern Willkommenspate oder -patin“. */
+    suspend fun setWelcomeVolunteer(volunteer: Boolean) {
+        val result = attempt { repository.setWelcomeVolunteer(slug, volunteer) }
+        mutableError.value = result.apiError
+        val stored = result.getOrNull() ?: return
+        val loaded = detail.value.valueOrNull ?: return
+        mutableDetail.value = Loadable.Loaded(loaded.copy(welcome = loaded.welcome?.copy(volunteer = stored.volunteer)))
     }
 
     suspend fun loadMembers() {
@@ -296,5 +386,43 @@ class OasisStatisticsViewModel @AssistedInject constructor(@Assisted val slug: S
 
     suspend fun load() {
         mutableStatistics.load { repository.oasisStatistics(slug) }
+    }
+}
+
+/**
+ * The form of a meetup: title (≤ 120), date and time in German time (in the future), place (≤ 200), link (http(s),
+ * ≤ 500) and description (≤ 2000); [editing] names the meetup being changed, [error] the server's refusal.
+ */
+data class MeetupForm(
+    val editing: Int? = null,
+    val title: String = "",
+    val startsAt: Instant,
+    val place: String = "",
+    val link: String = "",
+    val description: String = "",
+    val error: ApiError? = null
+) {
+    /** What is sent: every field, empty ones as "". */
+    val input: MeetupInput get() = MeetupInput(
+        title.trim(),
+        OasisJson.formatInstant(startsAt),
+        place.trim(),
+        link.trim(),
+        description.trim()
+    )
+
+    companion object {
+        fun of(meetup: Meetup) = MeetupForm(
+            editing = meetup.id,
+            title = meetup.title,
+            startsAt = meetup.startsAt,
+            place = meetup.place.orEmpty(),
+            link = meetup.link.orEmpty(),
+            description = meetup.description.orEmpty()
+        )
+
+        /** A start to begin with: tomorrow at 18:00 German time. */
+        fun tomorrowEvening(now: Instant): Instant =
+            now.atZone(GermanTime.zone).toLocalDate().plusDays(1).atTime(18, 0).atZone(GermanTime.zone).toInstant()
     }
 }

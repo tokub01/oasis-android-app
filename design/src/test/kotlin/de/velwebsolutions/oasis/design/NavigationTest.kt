@@ -35,6 +35,7 @@ class NavigationTest {
         "/tropfen/4/anderes" to NetworkRoute.Post(4),
         "/tropfen/abc" to null,
         "/oasen/garten" to NetworkRoute.Oasis("garten"),
+        "/oasen/garten#treffen" to NetworkRoute.Oasis("garten", meetups = true),
         "/oasen/garten/bearbeiten" to NetworkRoute.EditOasis("garten"),
         "/oasen/garten/schliessen" to NetworkRoute.CloseOasis("garten"),
         "/oasen/garten/statistik" to NetworkRoute.OasisStatistics("garten"),
