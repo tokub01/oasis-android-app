@@ -48,8 +48,8 @@ data class DraftLimit(
             else -> ""
         }
 
-        /** The empty field always tells the limit: „Nachricht – bis zu 4.000 Zeichen“. */
-        fun placeholder(max: Int): String = "Nachricht – bis zu ${german(max)} Zeichen"
+        /** The empty field always tells the limit: „Bis zu 4.000 Zeichen“. */
+        fun placeholder(max: Int): String = "Bis zu ${german(max)} Zeichen"
 
         /** „4.000“: German thousands dot. */
         private fun german(number: Int): String = String.format(Locale.GERMANY, "%,d", number)

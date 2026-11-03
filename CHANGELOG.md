@@ -18,6 +18,12 @@ Ab 22. Oktober 2026: Seitdem trägt jede Änderung in allen drei Projekten den V
 
 Was dabei gleich bleibt: Ein Mensch entscheidet, was in Oasis kommt, beauftragt jede Runde und prüft sie. Jede Änderung wird durch automatische Tests abgesichert, bevor sie ausgeliefert wird.
 
+## 0.25.2 – 2026-11-04 – Passt in jede Zeile
+
+Der Hinweis im leeren Chatfeld ist kürzer und passt jetzt auch auf schmale Handys.
+
+- **Behoben:** Im leeren Chatfeld steht jetzt kurz „Bis zu 4.000 Zeichen“ und wird nicht mehr abgeschnitten.
+
 ## 0.25.1 – 2026-11-04 – Mehr Platz auf großen Bildschirmen
 
 Auf iPad und großen Android-Geräten stehen Chat-Liste, Unterhaltung und Details nebeneinander, und im Web sitzt im Chat alles an seinem Platz.

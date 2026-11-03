@@ -220,7 +220,7 @@ data class ConversationState(
     val pinBar: PinBar? = null,
     /** A label on the round send button: „Trotzdem senden“ after a spam hint, „Noch 27 s“ during a pause; null: the icon. */
     val sendLabel: String? = null,
-    /** The empty field's text and hint: „Nachricht – bis zu 4.000 Zeichen“ with the current maximum. */
+    /** The empty field's text and hint: „Bis zu 4.000 Zeichen“ with the current maximum. */
     val placeholder: String = DraftLimit.placeholder(DraftLimit.DEFAULT_MAX),
     /** Sending pauses after flooding (ChatSpam), with the countdown in [sendLabel]. */
     val paused: Boolean = false,
