@@ -211,7 +211,7 @@ internal fun SwipeHintPill(onDismiss: suspend () -> Unit) {
 @Composable
 internal fun UnreadDivider() {
     Row(
-        Modifier.fillMaxWidth().padding(top = 12.dp).testTag("chat.unread"),
+        Modifier.fillMaxWidth().padding(top = 12.dp, bottom = 8.dp).testTag("chat.unread"),
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.spacedBy(8.dp)
     ) {
@@ -402,7 +402,11 @@ private const val NUDGE = 24f
 private const val NUDGE_MS = 200
 
 /** The gap above a row of the message list: 2 inside a run, 12 between runs. */
-internal fun rowGap(run: ChatLayout.Run): Dp = if (run == ChatLayout.Run.Middle || run == ChatLayout.Run.Last) 2.dp else 12.dp
+internal fun rowGap(run: ChatLayout.Run, afterSeparator: Boolean = false): Dp = when {
+    afterSeparator -> 0.dp
+    run == ChatLayout.Run.Middle || run == ChatLayout.Run.Last -> 2.dp
+    else -> 12.dp
+}
 
 /** The offset of a list row in px. */
 internal fun rowOffset(value: Float, density: Float): IntOffset = IntOffset((value * density).roundToInt(), 0)

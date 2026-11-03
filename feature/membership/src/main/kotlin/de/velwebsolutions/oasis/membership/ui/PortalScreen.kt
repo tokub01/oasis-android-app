@@ -46,7 +46,7 @@ import de.velwebsolutions.oasis.membership.api.MembershipPayment
 @Composable
 fun PortalScreen(viewModel: PortalViewModel = hiltViewModel()) {
     val state by viewModel.state.collectAsStateWithLifecycle()
-    PortalContent(state, viewModel::load, viewModel::openInvoice, viewModel::dismissMessage, viewModel::dismissError)
+    PortalContent(state, viewModel.retry(viewModel::load), viewModel::openInvoice, viewModel::dismissMessage, viewModel::dismissError)
     state.invoiceFile?.let { InvoiceSheet(it, viewModel::closeInvoice) }
 }
 
@@ -143,7 +143,7 @@ fun InvoiceScreen(
     )
 ) {
     val state by viewModel.state.collectAsStateWithLifecycle()
-    InvoiceContent(paymentId, state, viewModel::load, viewModel::showPreview, viewModel::closePreview)
+    InvoiceContent(paymentId, state, viewModel.retry(viewModel::load), viewModel::showPreview, viewModel::closePreview)
 }
 
 /** The invoice page: loading, the server's error, or the invoice with "Rechnung ansehen" and "Teilen". */

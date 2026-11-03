@@ -26,6 +26,7 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import de.velwebsolutions.oasis.account.api.Release
 import de.velwebsolutions.oasis.account.ui.components.AccountPage
 import de.velwebsolutions.oasis.account.ui.components.SubHeading
+import de.velwebsolutions.oasis.account.ui.retry
 import de.velwebsolutions.oasis.design.components.LoadableView
 import de.velwebsolutions.oasis.design.components.OasisScreen
 import de.velwebsolutions.oasis.design.components.OasisTextButton
@@ -46,7 +47,7 @@ internal fun ReleasesScreen(viewModel: ReleasesViewModel = hiltViewModel()) {
                 eyebrow = "Deine App: Oasis ${viewModel.version}",
                 lead = "Jede Version von Oasis, die neueste zuerst. Web, iPhone und Android tragen dieselbe Nummer."
             )
-            LoadableView(state, onRetry = { viewModel.reload() }) { releases ->
+            LoadableView(state, onRetry = viewModel.retry { viewModel.reload() }) { releases ->
                 Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
                     if (releases.about.isNotBlank()) AboutCard(releases.about)
                     releases.data.forEach { release -> ReleaseCard(release, current = release.version == releases.current) }

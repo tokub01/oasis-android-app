@@ -181,16 +181,17 @@ internal fun ConversationListContent(
         LazyColumn(
             modifier = Modifier.fillMaxSize().testTag("chat.list"),
             // Room below the last panel for the floating "Neuer Chat" button.
-            contentPadding = PaddingValues(start = 20.dp, top = 20.dp, end = 20.dp, bottom = if (canParticipate) 96.dp else 20.dp),
-            verticalArrangement = Arrangement.spacedBy(16.dp)
+            // Page gutter 16; rows 8 apart and 24 between the page head, notices, the requests and the list (8 + 16).
+            contentPadding = PaddingValues(start = 16.dp, top = 16.dp, end = 16.dp, bottom = if (canParticipate) 96.dp else 16.dp),
+            verticalArrangement = Arrangement.spacedBy(8.dp)
         ) {
-            item { PageHeader(eyebrow = "Ende-zu-Ende verschlüsselt", title = "Nachrichten") }
-            state.error?.let { error -> item { Banner(error) } }
-            if (state.backupRow) item { BackupRow(backup) }
-            if (state.linkRequests.isNotEmpty()) item { LinkRequests(state.linkRequests, onApprove, onReject) }
+            item { Section { PageHeader(eyebrow = "Ende-zu-Ende verschlüsselt", title = "Nachrichten") } }
+            state.error?.let { error -> item { Section { Banner(error) } } }
+            if (state.backupRow) item { Section { BackupRow(backup) } }
+            if (state.linkRequests.isNotEmpty()) item { Section { LinkRequests(state.linkRequests, onApprove, onReject) } }
             if (state.requests.isNotEmpty()) {
                 item {
-                    Panel(tone = PanelTone.Dune, modifier = Modifier.testTag("chat.requests")) {
+                    Panel(tone = PanelTone.Dune, modifier = Modifier.padding(bottom = SECTION_GAP).testTag("chat.requests")) {
                         Text("Anfragen", style = OasisType.heading(19), color = OasisColors.Night)
                         Text(
                             "Von Menschen, denen du nicht folgst und mit denen du nicht befreundet bist. Sie lösen keine Benachrichtigung aus, und niemand sieht, ob du sie gelesen hast. Antworten oder Annehmen macht daraus einen normalen Chat.",
@@ -341,9 +342,9 @@ private fun ConversationRow(
                     overflow = TextOverflow.Ellipsis,
                     modifier = Modifier.weight(1f).testTag("chat.list.preview")
                 )
-                if (conversation.ended) {
+                conversation.endedBadge?.let { badge ->
                     Text(
-                        "Beendet",
+                        badge,
                         style = OasisType.Caption.copy(fontSize = 12.sp, fontWeight = FontWeight.Bold),
                         color = OasisColors.Ink2,
                         modifier = Modifier.background(OasisColors.Dune, CircleShape).padding(horizontal = 8.dp, vertical = 2.dp)
@@ -485,6 +486,15 @@ private fun SwipeRow(
             { confirmLeave = false }
         )
     }
+}
+
+/** What a section of the list adds below itself to the rows' 8: 24 between sections. */
+private val SECTION_GAP = 16.dp
+
+/** A section of the list (page head, notices) with the room below it. */
+@Composable
+private fun Section(content: @Composable () -> Unit) {
+    Box(Modifier.padding(bottom = SECTION_GAP)) { content() }
 }
 
 /** One of the two 80 wide buttons behind a row opened by a swipe left. */

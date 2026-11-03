@@ -86,6 +86,7 @@ import de.velwebsolutions.oasis.network.ui.components.block
 import de.velwebsolutions.oasis.network.ui.components.feedSection
 import de.velwebsolutions.oasis.network.ui.components.handlers
 import de.velwebsolutions.oasis.network.ui.components.share
+import de.velwebsolutions.oasis.network.ui.retry
 import java.time.Instant
 
 /** A profile action that asks first, with the web's wording. */
@@ -155,7 +156,7 @@ fun ProfileScreen(
             }
         }
     ) {
-        LoadableView(profile, onRetry = viewModel::load, skeleton = SkeletonLayout.Cards) { shown ->
+        LoadableView(profile, onRetry = viewModel.retry(viewModel::load), skeleton = SkeletonLayout.Cards) { shown ->
             val handlers = viewModel.posts.handlers(viewModel::launch)
             NetworkPage(onRefresh = viewModel::load) {
                 profileContent(shown, posts, handlers, ProfileCallbacks(viewModel::perform) { confirmation = it })

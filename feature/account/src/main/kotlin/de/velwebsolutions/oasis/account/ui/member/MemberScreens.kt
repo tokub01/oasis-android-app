@@ -40,6 +40,7 @@ import de.velwebsolutions.oasis.account.ui.components.DataExportButton
 import de.velwebsolutions.oasis.account.ui.components.LinkText
 import de.velwebsolutions.oasis.account.ui.components.SubHeading
 import de.velwebsolutions.oasis.account.ui.components.webUrl
+import de.velwebsolutions.oasis.account.ui.retry
 import de.velwebsolutions.oasis.core.format.GermanTime
 import de.velwebsolutions.oasis.core.model.Loadable
 import de.velwebsolutions.oasis.core.network.ApiError
@@ -105,7 +106,7 @@ internal fun SuspendedScreen(viewModel: SuspensionViewModel = hiltViewModel()) {
                         AsyncOasisButton("Weiter zu Oasis", viewModel::refreshMe, fullWidth = false)
                     }
                 } else {
-                    LoadableView(state, onRetry = viewModel::load) { suspension ->
+                    LoadableView(state, onRetry = viewModel.retry(viewModel::load)) { suspension ->
                         SuspendedContent(
                             suspension,
                             ui,
@@ -232,7 +233,7 @@ internal fun ComplaintScreen(decisionId: Int) {
     val ui by viewModel.ui.collectAsStateWithLifecycle()
     OasisScreen(title = "Widerspruch", error = ui.error, onDismissError = viewModel::dismissError) {
         AccountPage(maxWidth = 640, spacing = 18) {
-            LoadableView(ui.state, onRetry = viewModel::load) { decision ->
+            LoadableView(ui.state, onRetry = viewModel.retry(viewModel::load)) { decision ->
                 ComplaintContent(decision, ui, viewModel::setReason, viewModel::submit) {
                     if (!navigator.back()) navigator.dismissSheet()
                 }
@@ -315,7 +316,7 @@ internal fun GlossaryScreen(viewModel: GlossaryViewModel = hiltViewModel()) {
     OasisScreen(title = "Begriffe") {
         AccountPage(spacing = 16) {
             PageHeader("Oasis-Begriffe", eyebrow = "Kurz erklärt", lead = "Oasis hat ein paar eigene Wörter. Hier steht, was sie bedeuten.")
-            LoadableView(state, onRetry = viewModel::load) { terms ->
+            LoadableView(state, onRetry = viewModel.retry(viewModel::load)) { terms ->
                 Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
                     terms.forEach { term ->
                         Column(

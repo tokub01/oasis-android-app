@@ -51,6 +51,7 @@ import de.velwebsolutions.oasis.staff.ui.components.StaffLoadable
 import de.velwebsolutions.oasis.staff.ui.components.StaffPage
 import de.velwebsolutions.oasis.staff.ui.components.StaffTitle
 import de.velwebsolutions.oasis.staff.ui.components.staffBox
+import de.velwebsolutions.oasis.staff.ui.retry
 import java.text.NumberFormat
 import java.util.Locale
 
@@ -68,7 +69,7 @@ fun AdminPaymentsScreen(viewModel: AdminPaymentsViewModel = hiltViewModel()) {
         onDismissMessage = viewModel::dismissMessage,
         onDismissError = viewModel::dismissError
     ) {
-        StaffLoadable(state.page, viewModel::load) { page ->
+        StaffLoadable(state.page, viewModel.retry(viewModel::load)) { page ->
             StaffPage(viewModel::load, spacing = 16) {
                 Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
                     Eyebrow("Admin")

@@ -59,6 +59,7 @@ import de.velwebsolutions.oasis.staff.ui.components.StaffLoadable
 import de.velwebsolutions.oasis.staff.ui.components.StaffPage
 import de.velwebsolutions.oasis.staff.ui.components.StaffTitle
 import de.velwebsolutions.oasis.staff.ui.components.staffBox
+import de.velwebsolutions.oasis.staff.ui.retry
 import java.time.Instant
 import kotlinx.coroutines.launch
 
@@ -79,7 +80,7 @@ fun DataBreachesScreen(viewModel: DataBreachesViewModel = hiltViewModel()) {
         onDismissMessage = viewModel::dismissMessage,
         onDismissError = viewModel::dismissError
     ) {
-        StaffLoadable(state.register, viewModel::load) { register ->
+        StaffLoadable(state.register, viewModel.retry(viewModel::load)) { register ->
             StaffPage(viewModel::load) {
                 Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
                     Eyebrow("Admin")

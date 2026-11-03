@@ -12,6 +12,7 @@ import androidx.lifecycle.viewModelScope
 import dagger.hilt.android.lifecycle.HiltViewModel
 import de.velwebsolutions.oasis.chat.core.BiometricPrompter
 import de.velwebsolutions.oasis.chat.ui.ChatGate
+import de.velwebsolutions.oasis.chat.ui.ChatPanes
 import de.velwebsolutions.oasis.chat.ui.ChatSettingsScreen
 import de.velwebsolutions.oasis.chat.ui.ConversationDetailsScreen
 import de.velwebsolutions.oasis.chat.ui.ConversationListScreen
@@ -52,9 +53,10 @@ fun ChatScreen(route: ChatRoute) {
     key(member.id) {
         ChatGate {
             when (route) {
-                ChatRoute.Conversations -> ConversationListScreen()
+                // From 840 dp the list stays beside the open conversation.
+                ChatRoute.Conversations -> ChatPanes(null, list = { ConversationListScreen() }) { ConversationScreen(it) }
 
-                is ChatRoute.Conversation -> ConversationScreen(route.id)
+                is ChatRoute.Conversation -> ChatPanes(route.id, list = { ConversationListScreen() }) { ConversationScreen(it) }
 
                 ChatRoute.NewConversation -> NewConversationScreen(username = null)
 

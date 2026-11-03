@@ -57,12 +57,13 @@ import de.velwebsolutions.oasis.staff.ui.components.StaffLoadable
 import de.velwebsolutions.oasis.staff.ui.components.StaffPage
 import de.velwebsolutions.oasis.staff.ui.components.StaffTitle
 import de.velwebsolutions.oasis.staff.ui.components.staffBox
+import de.velwebsolutions.oasis.staff.ui.retry
 
 /** The moderation start page (web: livewire.moderation.overview with the embedded queue and the staff navigation). */
 @Composable
 fun ModerationOverviewScreen(viewModel: ModerationOverviewViewModel = hiltViewModel()) {
     val state by viewModel.state.collectAsStateWithLifecycle()
-    ModerationOverviewContent(state, viewModel::load, viewModel::apply, viewModel::loadMore, viewModel::dismissError)
+    ModerationOverviewContent(state, viewModel.retry(viewModel::load), viewModel::apply, viewModel::loadMore, viewModel::dismissError)
 }
 
 /** The start page without its view model, for the app and for tests. */

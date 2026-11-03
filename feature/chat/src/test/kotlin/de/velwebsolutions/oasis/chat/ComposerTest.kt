@@ -4,9 +4,11 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.semantics.SemanticsProperties
+import androidx.compose.ui.test.assertIsNotEnabled
 import androidx.compose.ui.test.assertTextEquals
 import androidx.compose.ui.test.junit4.createComposeRule
 import androidx.compose.ui.test.onNodeWithTag
+import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performTextInput
 import androidx.compose.ui.test.performTextInputSelection
 import androidx.compose.ui.test.performTextReplacement
@@ -15,6 +17,7 @@ import androidx.compose.ui.unit.dp
 import de.velwebsolutions.oasis.chat.api.ChatConversation
 import de.velwebsolutions.oasis.chat.core.AttachmentKind
 import de.velwebsolutions.oasis.chat.core.ChatMessages
+import de.velwebsolutions.oasis.chat.core.ChatSpam
 import de.velwebsolutions.oasis.chat.core.DraftAttachment
 import de.velwebsolutions.oasis.chat.ui.ConversationContent
 import de.velwebsolutions.oasis.chat.ui.ConversationState
@@ -128,24 +131,37 @@ class ComposerTest {
     fun theCounterShowsFromThreeQuartersAndAtTheLimit() {
         show()
         compose.onNodeWithTag("chat.composer.counter").assertDoesNotExist()
-        state = state.copy(counter = "3120 / 4000")
-        compose.onNodeWithTag("chat.composer.counter").assertTextEquals("3120 / 4000")
-        state = state.copy(counter = "Höchstens 4000 Zeichen", atLimit = true)
-        compose.onNodeWithTag("chat.composer.counter").assertTextEquals("Höchstens 4000 Zeichen")
+        state = state.copy(counter = "3.120 / 4.000")
+        compose.onNodeWithTag("chat.composer.counter").assertTextEquals("3.120 / 4.000")
+        state = state.copy(counter = "Höchstens 4.000 Zeichen", atLimit = true)
+        compose.onNodeWithTag("chat.composer.counter").assertTextEquals("Höchstens 4.000 Zeichen")
+    }
+
+    @Test
+    fun theSendButtonSaysTrotzdemSendenAndCountsDownAPause() {
+        show()
+        state = state.copy(draft = "ICH FREUE MICH SO SEHR", hint = ChatSpam.SHOUTING_HINT, sendLabel = ChatSpam.SEND_ANYWAY)
+        compose.onNodeWithTag("chat.composer.hint").assertTextEquals(ChatSpam.SHOUTING_HINT)
+        compose.onNodeWithText(ChatSpam.SEND_ANYWAY).assertExists()
+        state = state.copy(paused = true, hint = ChatSpam.FLOOD_PAUSE, sendLabel = "Noch 27 s")
+        compose.onNodeWithText("Noch 27 s").assertExists()
+        compose.onNodeWithTag("chat.composer.send").assertIsNotEnabled()
     }
 
     @Test
     fun theCounterAndTheMaximumFollowTheMeasurement() {
         assertEquals("", DraftLimit.counter(ChatMessages.measure("a".repeat(2_999))))
-        assertEquals("3000 / 4000", DraftLimit.counter(ChatMessages.measure("a".repeat(3_000))))
-        assertEquals("Höchstens 4000 Zeichen", DraftLimit.counter(ChatMessages.measure("a".repeat(4_000))))
+        assertEquals("3.000 / 4.000", DraftLimit.counter(ChatMessages.measure("a".repeat(3_000))))
+        assertEquals("Höchstens 4.000 Zeichen", DraftLimit.counter(ChatMessages.measure("a".repeat(4_000))))
+        assertEquals("Nachricht – bis zu 4.000 Zeichen", DraftLimit.placeholder(4_000))
+        assertEquals("Nachricht – bis zu 950 Zeichen", DraftLimit.placeholder(950))
         assertTrue(DraftLimit.atLimit(ChatMessages.measure("a".repeat(4_000))))
         assertFalse(DraftLimit.atLimit(ChatMessages.measure("a".repeat(3_999))))
         assertTrue("a file added after the text", DraftLimit.atLimit(ChatMessages.measure("a".repeat(4_001))))
         // Every palm tree takes 4 bytes: the maximum shrinks with the bytes left.
         val palms = ChatMessages.measure("🌴".repeat(1_400))
         assertEquals(1_400 + 5_984 - palms.bytes, palms.max)
-        assertEquals("over the bytes", "Höchstens 1184 Zeichen", DraftLimit.counter(ChatMessages.measure("🌴".repeat(1_600))))
+        assertEquals("over the bytes", "Höchstens 1.184 Zeichen", DraftLimit.counter(ChatMessages.measure("🌴".repeat(1_600))))
         assertEquals("never below 0", 0, ChatMessages.measure("🌴".repeat(3_000)).max)
         // With files the plaintext is JSON, whose characters count too.
         val video = listOf(DraftAttachment(1, AttachmentKind.Video, "video/mp4", byteArrayOf(1)))

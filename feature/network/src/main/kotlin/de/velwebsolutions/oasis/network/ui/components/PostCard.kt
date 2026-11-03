@@ -64,6 +64,7 @@ import androidx.compose.ui.semantics.onLongClick
 import androidx.compose.ui.semantics.role
 import androidx.compose.ui.semantics.selected
 import androidx.compose.ui.semantics.semantics
+import androidx.compose.ui.text.AnnotatedString
 import androidx.compose.ui.text.SpanStyle
 import androidx.compose.ui.text.buildAnnotatedString
 import androidx.compose.ui.text.font.FontWeight
@@ -155,8 +156,12 @@ fun PostCard(
                 .testTag("post.card.${post.id}"),
             verticalArrangement = Arrangement.spacedBy(12.dp)
         ) {
-            ReplyContext(post)
-            Header(post, isDetail, run, onConfirm = { confirmation = it })
+            if (post.isPlainCarry) {
+                CarrierLine(post, run, onConfirm = { confirmation = it })
+            } else {
+                ReplyContext(post)
+                Header(post, isDetail, run, onConfirm = { confirmation = it })
+            }
             if (post.isQuestion) {
                 Row(
                     Modifier.background(OasisColors.Sand, CircleShape).padding(horizontal = 12.dp, vertical = 4.dp),
@@ -175,7 +180,7 @@ fun PostCard(
                 Banner("Die Gastgeber:innen haben diesen Tropfen aus der Oase entfernt. Nur du siehst ihn noch.", kind = BannerKind.Info)
             }
             post.held?.let { HeldNotice(it) }
-            RichTextView(post.segments)
+            if (!post.isPlainCarry) RichTextView(post.segments)
             post.poll?.let { PostPollView(post, it) }
             post.oasis?.takeIf { post.collections.isNotEmpty() }?.let { oasis -> PostCollections(oasis.slug, post.collections) }
             PostImages(post)
@@ -184,6 +189,9 @@ fun PostCard(
             val conversation = post.conversation
             if (!isDetail && conversation != null && conversation.replies.isNotEmpty()) ConversationView(post, conversation)
             if (viewer != null) ActionRow(post, viewer, run, reply)
+            viewer?.replyHint?.takeUnless { viewer.canReply }?.let { hint ->
+                Text(hint, style = OasisType.Caption, color = OasisColors.Muted, modifier = Modifier.testTag("post.replyHint"))
+            }
             if (!isDetail && viewer?.canQuickReply == true) {
                 HorizontalDivider(color = OasisColors.PaperLine)
                 Row(
@@ -251,6 +259,31 @@ fun fullDate(instant: Instant): String = GermanTime.format(instant, "d. MMMM yyy
 
 private fun plural(count: Int, one: String, many: String) = "$count ${if (count == 1) one else many}"
 
+/**
+ * The head of a plain carry instead of the author line: „**Mira Sol** hat das weitergetragen“ (the name opens the
+ * profile) and the repost's „⋯“ menu; the carried Tropfen follows as the card's content.
+ */
+@Composable
+private fun CarrierLine(post: Post, run: (PostAction) -> Unit, onConfirm: (CardConfirmation) -> Unit) {
+    val navigator = LocalNavigator.current
+    Row(horizontalArrangement = Arrangement.spacedBy(6.dp), verticalAlignment = Alignment.CenterVertically) {
+        Icon(Icons.Outlined.Repeat, contentDescription = null, tint = OasisColors.Muted, modifier = Modifier.size(16.dp))
+        Text(
+            buildAnnotatedString {
+                withStyle(SpanStyle(fontWeight = FontWeight.Bold, color = OasisColors.Ink)) { append(post.author.displayName) }
+                append(" hat das weitergetragen")
+            },
+            style = OasisType.Small,
+            color = OasisColors.Muted,
+            modifier = Modifier
+                .weight(1f)
+                .clickable(role = Role.Button) { navigator.open(NetworkRoute.Profile(post.author.username)) }
+                .testTag("post.carrier")
+        )
+        post.viewer?.let { viewer -> PostMenu(post, viewer, run, onConfirm) }
+    }
+}
+
 @Composable
 private fun ReplyContext(post: Post) {
     val navigator = LocalNavigator.current
@@ -273,7 +306,6 @@ private fun ReplyContext(post: Post) {
     }
 }
 
-@OptIn(ExperimentalLayoutApi::class)
 @Composable
 private fun Header(post: Post, isDetail: Boolean, run: (PostAction) -> Unit, onConfirm: (CardConfirmation) -> Unit) {
     val navigator = LocalNavigator.current
@@ -287,44 +319,59 @@ private fun Header(post: Post, isDetail: Boolean, run: (PostAction) -> Unit, onC
                 color = OasisColors.Ink,
                 modifier = Modifier.clickable(role = Role.Button, onClick = openProfile)
             )
-            FlowRow(horizontalArrangement = Arrangement.spacedBy(4.dp)) {
-                val meta = OasisType.Small
-                Text("@${post.author.username}", style = meta, color = OasisColors.Muted, maxLines = 1, overflow = TextOverflow.Ellipsis)
-                post.oasis?.let { oasis ->
-                    Text(
-                        buildAnnotatedString {
-                            append("· in ")
-                            withStyle(SpanStyle(textDecoration = TextDecoration.Underline)) { append(oasis.name) }
-                        },
-                        style = meta,
-                        color = OasisColors.Muted,
-                        maxLines = 1,
-                        modifier = Modifier.clickable(role = Role.Button) { navigator.open(NetworkRoute.Oasis(oasis.slug)) }
-                    )
-                }
-                if (isDetail) {
-                    Text("· ${fullDate(post.createdAt)}", style = meta, color = OasisColors.Muted)
-                } else {
-                    val relative = RelativeTime.format(post.createdAt)
-                    Text(
-                        buildAnnotatedString {
-                            append("· ")
-                            withStyle(SpanStyle(textDecoration = TextDecoration.Underline)) { append(relative) }
-                        },
-                        style = meta,
-                        color = OasisColors.Muted,
-                        modifier = Modifier
-                            .clickable(role = Role.Button) { navigator.open(NetworkRoute.Post(post.id)) }
-                            .semantics { contentDescription = "Zum Tropfen, $relative" }
-                            .testTag("post.open")
-                    )
-                }
-                if (post.isMembersOnly) Text("· nur Mitglieder", style = meta, color = OasisColors.Muted)
-                if (post.editedAt != null) Text("· bearbeitet", style = meta, color = OasisColors.Muted)
-            }
+            MetaRow(metaParts(post, isDetail, open = navigator::open))
         }
         val viewer = post.viewer
         if (viewer != null) PostMenu(post, viewer, run, onConfirm)
+    }
+}
+
+/** One part of a card's meta line; [onClick] makes it a link (underlined). */
+internal class MetaPart(val text: String, val tag: String? = null, val description: String? = null, val onClick: (() -> Unit)? = null)
+
+/**
+ * The second line of every card header, the same in all lists (docs/oasis-network.md): „@username · Oase Name · vor
+ * 2 Std.“, then „bearbeitet“ and „nur Mitglieder“ where they apply. On the Tropfen page the full date instead of the
+ * relative time. Screen readers hear „@name, in Oase, vor 2 Std., bearbeitet, nur für Mitglieder“.
+ */
+internal fun metaParts(post: Post, isDetail: Boolean, open: (NetworkRoute) -> Unit): List<MetaPart> = listOfNotNull(
+    MetaPart("@${post.author.username}"),
+    post.oasis?.let { oasis -> MetaPart(oasis.name, description = "in ${oasis.name}") { open(NetworkRoute.Oasis(oasis.slug)) } },
+    if (isDetail) {
+        MetaPart(fullDate(post.createdAt))
+    } else {
+        val relative = RelativeTime.format(post.createdAt)
+        MetaPart(relative, tag = "post.open", description = "Zum Tropfen, $relative") { open(NetworkRoute.Post(post.id)) }
+    },
+    MetaPart("bearbeitet").takeIf { post.editedAt != null },
+    MetaPart("nur Mitglieder", description = "nur für Mitglieder").takeIf { post.isMembersOnly }
+)
+
+/** Meta parts with „·“ only between them; screen readers skip the dots and read the parts in order. */
+@OptIn(ExperimentalLayoutApi::class)
+@Composable
+internal fun MetaRow(parts: List<MetaPart>) {
+    val meta = OasisType.Small
+    FlowRow(horizontalArrangement = Arrangement.spacedBy(4.dp)) {
+        parts.forEachIndexed { index, part ->
+            if (index > 0) Text("·", style = meta, color = OasisColors.Muted, modifier = Modifier.clearAndSetSemantics {})
+            val click = part.onClick
+            Text(
+                if (click == null) {
+                    AnnotatedString(part.text)
+                } else {
+                    buildAnnotatedString { withStyle(SpanStyle(textDecoration = TextDecoration.Underline)) { append(part.text) } }
+                },
+                style = meta,
+                color = OasisColors.Muted,
+                maxLines = 1,
+                overflow = TextOverflow.Ellipsis,
+                modifier = Modifier
+                    .then(if (click == null) Modifier else Modifier.clickable(role = Role.Button, onClick = click))
+                    .then(part.description?.let { text -> Modifier.semantics { contentDescription = text } } ?: Modifier)
+                    .then(part.tag?.let { Modifier.testTag(it) } ?: Modifier)
+            )
+        }
     }
 }
 
@@ -440,7 +487,7 @@ private fun ContextMenuItems(
     if (viewer.canInteract &&
         viewer.canCarry
     ) {
-        item("Weitertragen", Icons.Outlined.Repeat) { navigator.open(NetworkRoute.CarryPost(post.id)) }
+        item("Weitertragen", Icons.Outlined.Repeat) { navigator.open(NetworkRoute.CarryPost(post.id, quote = viewer.canQuote)) }
     }
     if (viewer.canInteract) {
         item(
@@ -477,7 +524,7 @@ private fun ActionRow(post: Post, viewer: Post.Viewer, run: (PostAction) -> Unit
             }
             if (viewer.canCarry) {
                 ActionTile("Weitertragen", Icons.Outlined.Repeat, OasisColors.Night, "post.action.Weitertragen") {
-                    navigator.open(NetworkRoute.CarryPost(post.id))
+                    navigator.open(NetworkRoute.CarryPost(post.id, quote = viewer.canQuote))
                 }
             }
             ActionTile(

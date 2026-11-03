@@ -6,7 +6,9 @@ import androidx.compose.ui.text.TextRange
 import de.velwebsolutions.oasis.chat.core.ChatMessages
 import de.velwebsolutions.oasis.chat.core.DraftAttachment
 import de.velwebsolutions.oasis.chat.core.DraftMeasure
+import de.velwebsolutions.oasis.chatcrypto.ChatCrypto
 import de.velwebsolutions.oasis.chatcrypto.MessageReply
+import java.util.Locale
 
 /**
  * The composer's length limit (docs/oasis-chat-client.md, „Composer limit and draft“): the text with what goes along
@@ -36,12 +38,21 @@ data class DraftLimit(
         /** The counter shows from this share of the maximum. */
         private const val COUNTER_FROM = 0.75
 
-        /** „3120 / 4000“ from 75 % of the maximum, „Höchstens 4000 Zeichen“ at or over it, else nothing (""). */
+        /** The maximum of a message without files, effect or quote. */
+        const val DEFAULT_MAX = ChatCrypto.MAX_MESSAGE_LENGTH
+
+        /** „3.120 / 4.000“ from 75 % of the maximum, „Höchstens 4.000 Zeichen“ at or over it, else nothing (""). */
         fun counter(measure: DraftMeasure): String = when {
-            measure.tooLong || measure.characters >= measure.max -> "Höchstens ${measure.max} Zeichen"
-            measure.characters >= measure.max * COUNTER_FROM -> "${measure.characters} / ${measure.max}"
+            measure.tooLong || measure.characters >= measure.max -> "Höchstens ${german(measure.max)} Zeichen"
+            measure.characters >= measure.max * COUNTER_FROM -> "${german(measure.characters)} / ${german(measure.max)}"
             else -> ""
         }
+
+        /** The empty field always tells the limit: „Nachricht – bis zu 4.000 Zeichen“. */
+        fun placeholder(max: Int): String = "Nachricht – bis zu ${german(max)} Zeichen"
+
+        /** „4.000“: German thousands dot. */
+        private fun german(number: Int): String = String.format(Locale.GERMANY, "%,d", number)
 
         /** The counter is at the limit (shown in the warning colour). */
         fun atLimit(measure: DraftMeasure): Boolean = measure.tooLong || measure.characters >= measure.max

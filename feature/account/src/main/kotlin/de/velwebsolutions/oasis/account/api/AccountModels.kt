@@ -287,7 +287,9 @@ data class WelcomeTour(
     val defaultPostVisibility: String = "members",
     val audiences: List<PrivacyChoice> = emptyList(),
     val visibilities: List<PrivacyChoice> = emptyList(),
-    val oases: List<StarterOasis> = emptyList()
+    val oases: List<StarterOasis> = emptyList(),
+    /** The chosen colour of the initials; null: „Automatisch“. */
+    val avatarColorChoice: String? = null
 )
 
 @Serializable

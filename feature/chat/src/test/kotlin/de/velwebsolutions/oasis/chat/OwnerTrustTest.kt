@@ -301,7 +301,7 @@ class OwnerTrustTest {
         jonas.repository.leave(id)
         starter.open()
         assertEquals(
-            "Dieser Chat ist beendet. Du kannst ihn noch lesen und Nachrichten melden, aber nicht mehr schreiben.",
+            "Dieser Chat ist beendet – jemand hat ihn verlassen. Du kannst ihn noch lesen und Nachrichten melden, aber nicht mehr schreiben.",
             starter.state.value.notices.first()
         )
         assertFalse(starter.state.value.untrustedOwner)
@@ -329,7 +329,7 @@ class OwnerTrustTest {
         assertEquals("Hallo Jonas", reader.state.value.timeline.items.single().plaintext)
         assertFalse(reader.state.value.untrustedOwner)
         assertFalse(reader.state.value.canSend)
-        assertTrue(reader.state.value.notices.first().startsWith("Dieser Chat ist beendet."))
+        assertTrue(reader.state.value.notices.first().startsWith("Dieser Chat ist beendet – "))
     }
 
     @Test

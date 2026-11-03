@@ -55,7 +55,7 @@ fun PlayCheckoutScreen(viewModel: PlayCheckoutViewModel = hiltViewModel()) {
     val navigator = LocalNavigator.current
     PlayCheckoutContent(
         state = state,
-        onRetry = viewModel::load,
+        onRetry = viewModel.retry(viewModel::load),
         onSelectRhythm = viewModel::selectRhythm,
         onPurchase = { product -> if (viewModel.purchase(activity, product)) backToOverview(navigator) },
         onRestore = viewModel::restore,

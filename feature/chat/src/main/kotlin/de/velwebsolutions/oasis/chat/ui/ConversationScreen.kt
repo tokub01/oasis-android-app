@@ -25,6 +25,7 @@ import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.defaultMinSize
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.imePadding
 import androidx.compose.foundation.layout.offset
@@ -365,7 +366,7 @@ private fun TimelineRowView(
                     )
                 )
             }
-            Box(Modifier.padding(top = rowGap(model.run))) {
+            Box(Modifier.padding(top = rowGap(model.run, model.afterSeparator))) {
                 MessageBubble(
                     item,
                     mine = model.mine,
@@ -388,6 +389,9 @@ private fun TimelineRowView(
         }
     }
 }
+
+/** The timeline's inset left and right: 12 on phones, 16 from a width of 640. */
+internal fun timelineInset(width: Dp): Dp = if (width >= 640.dp) 16.dp else 12.dp
 
 /** How often bubbles were composed – read by the tests that keep scrolling and typing cheap. */
 internal object ChatCompositions {
@@ -497,7 +501,9 @@ private fun ConversationColumn(
     // The room above the keyboard: a long draft takes at most a third of it (the field scrolls), so messages stay in view.
     var area by remember { mutableStateOf(0.dp) }
 
-    Box(Modifier.fillMaxSize().imePadding().onSizeChanged { area = (it.height / density.density).dp }) {
+    BoxWithConstraints(Modifier.fillMaxSize().imePadding().onSizeChanged { area = (it.height / density.density).dp }) {
+        // The same inset for own and others' bubbles: 12 on phones, 16 from 640 (docs/oasis-chat-client.md, „Spacing“).
+        val inset = timelineInset(maxWidth)
         LazyColumn(
             state = listState,
             reverseLayout = true,
@@ -508,7 +514,8 @@ private fun ConversationColumn(
                 // Until the first message is placed (at the newest one or the divider) nothing is drawn: no jump.
                 .graphicsLayer { alpha = if (placed || rows.none { it is RowModel.Bubble }) 1f else 0f }
                 .testTag("chat.messages"),
-            contentPadding = PaddingValues(start = 12.dp, end = 12.dp, top = 8.dp, bottom = composerSpace)
+            // The first item brings its own 12 (a run's start), so the top adds nothing.
+            contentPadding = PaddingValues(start = inset, end = inset, top = 0.dp, bottom = composerSpace)
         ) {
             items(rows.asReversed(), key = { it.key }, contentType = { it.contentType }) { row ->
                 // Only a row with files gets the files' views, so loading one composes no other row again.
@@ -618,7 +625,8 @@ private fun ConversationColumn(
                     arrived = 0
                     scope.launch { listState.animateScrollToItem(0) }
                 },
-                modifier = Modifier.align(Alignment.BottomEnd).padding(end = 12.dp, bottom = composerSpace)
+                // 12 above the composer, 4 in from the right edge (docs/oasis-chat-client.md, „Spacing“).
+                modifier = Modifier.align(Alignment.BottomEnd).padding(end = 4.dp, bottom = composerSpace)
             )
         }
         state.viewOnce?.let { ViewOnceViewer(it, attachments, onReport) }
@@ -815,7 +823,7 @@ private fun ConversationComposer(
                     ComposerField(state, onDraftChange, shape, focus, fieldMax)
                     if (state.showsSend) {
                         // Holding „Senden“ opens the effect menu.
-                        SendButton(state.canSubmit, onSend, onLongPress = { effectMenu = true })
+                        SendButton(state.canSubmit, onSend, label = state.sendLabel, onLongPress = { effectMenu = true })
                     } else {
                         RoundAction(
                             Icons.Outlined.Mic,
@@ -900,7 +908,7 @@ private fun RowScope.ComposerField(
             .weight(1f)
             .heightIn(max = maxHeight)
             .focusRequester(focus)
-            .semantics { contentDescription = "Nachricht" }
+            .semantics { contentDescription = state.placeholder }
             .testTag("chat.composer.field"),
         decorator = { inner ->
             Box(
@@ -911,7 +919,7 @@ private fun RowScope.ComposerField(
                     .padding(horizontal = 14.dp, vertical = 10.dp),
                 contentAlignment = Alignment.CenterStart
             ) {
-                if (field.text.isEmpty()) Text("Nachricht", style = OasisType.Body, color = OasisColors.Muted)
+                if (field.text.isEmpty()) Text(state.placeholder, style = OasisType.Body, color = OasisColors.Muted)
                 inner()
             }
         }
@@ -1051,17 +1059,21 @@ private fun EffectChip(text: String, clearLabel: String, onClear: () -> Unit, ta
     }
 }
 
-/** „Senden“ as a round button; it waits for the message to go out and cannot be pressed twice meanwhile. */
+/**
+ * „Senden“ as a round button; it waits for the message to go out and cannot be pressed twice meanwhile. With a [label]
+ * („Trotzdem senden“, „Noch 27 s“) it widens to show it.
+ */
 @Composable
-private fun SendButton(enabled: Boolean, onSend: suspend () -> Unit, onLongPress: () -> Unit) {
+private fun SendButton(enabled: Boolean, onSend: suspend () -> Unit, onLongPress: () -> Unit, label: String? = null) {
     val scope = rememberCoroutineScope()
     var sending by remember { mutableStateOf(false) }
     RoundAction(
         Icons.AutoMirrored.Filled.Send,
-        "Senden",
+        label ?: "Senden",
         enabled = enabled && !sending,
         filled = true,
         modifier = Modifier.testTag("chat.composer.send"),
+        label = label,
         onLongClick = onLongPress
     ) {
         scope.launch {
@@ -1084,6 +1096,8 @@ private fun RoundAction(
     filled: Boolean,
     modifier: Modifier = Modifier,
     size: Dp = ROUND_BUTTON,
+    /** Text instead of the icon (the button widens to a pill). */
+    label: String? = null,
     onLongClick: (() -> Unit)? = null,
     onClick: () -> Unit
 ) {
@@ -1094,7 +1108,8 @@ private fun RoundAction(
     }
     Box(
         modifier
-            .size(size)
+            .height(size)
+            .widthIn(min = size)
             .clip(CircleShape)
             .background(background)
             .combinedClickable(
@@ -1108,17 +1123,27 @@ private fun RoundAction(
             .semantics { contentDescription = description },
         contentAlignment = Alignment.Center
     ) {
-        Icon(
-            icon,
-            contentDescription = null,
-            tint = if (filled) {
-                OasisColors.OnNight
-            } else if (enabled) {
-                OasisColors.Night
-            } else {
-                OasisColors.Muted
-            }
-        )
+        if (label != null) {
+            Text(
+                label,
+                style = OasisType.SmallBold,
+                color = OasisColors.OnNight,
+                maxLines = 1,
+                modifier = Modifier.padding(horizontal = 14.dp)
+            )
+        } else {
+            Icon(
+                icon,
+                contentDescription = null,
+                tint = if (filled) {
+                    OasisColors.OnNight
+                } else if (enabled) {
+                    OasisColors.Night
+                } else {
+                    OasisColors.Muted
+                }
+            )
+        }
     }
 }
 

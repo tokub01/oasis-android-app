@@ -53,6 +53,7 @@ import de.velwebsolutions.oasis.staff.ui.components.StaffPage
 import de.velwebsolutions.oasis.staff.ui.components.StaffTitle
 import de.velwebsolutions.oasis.staff.ui.components.TileGrid
 import de.velwebsolutions.oasis.staff.ui.components.boldLead
+import de.velwebsolutions.oasis.staff.ui.retry
 import kotlinx.coroutines.launch
 
 /** Admin statistics (web: livewire.admin.dashboard). Sums only, never people or content. */
@@ -62,7 +63,7 @@ fun AdminDashboardScreen(viewModel: AdminDashboardViewModel = hiltViewModel()) {
     val state by viewModel.state.collectAsStateWithLifecycle()
     val scope = rememberCoroutineScope()
     OasisScreen("Statistik", error = state.error, onDismissError = viewModel::dismissError) {
-        StaffLoadable(state.dashboard, viewModel::load) { stats ->
+        StaffLoadable(state.dashboard, viewModel.retry(viewModel::load)) { stats ->
             StaffPage(viewModel::load, spacing = 22) {
                 Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
                     Eyebrow("Admin")

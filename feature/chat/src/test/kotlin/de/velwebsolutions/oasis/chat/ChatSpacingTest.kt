@@ -13,6 +13,7 @@ import androidx.compose.ui.test.isRoot
 import androidx.compose.ui.test.junit4.createComposeRule
 import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.performScrollToIndex
+import androidx.compose.ui.unit.dp
 import com.github.takahirom.roborazzi.captureRoboImage
 import de.velwebsolutions.oasis.chat.api.ChatAvatar
 import de.velwebsolutions.oasis.chat.api.ChatConversation
@@ -21,6 +22,7 @@ import de.velwebsolutions.oasis.chat.core.ChatMessageItem
 import de.velwebsolutions.oasis.chat.core.ChatTimeline
 import de.velwebsolutions.oasis.chat.ui.ChatAccessState
 import de.velwebsolutions.oasis.chat.ui.ChatHeaderBar
+import de.velwebsolutions.oasis.chat.ui.ChatPanes
 import de.velwebsolutions.oasis.chat.ui.ChatSetupContent
 import de.velwebsolutions.oasis.chat.ui.ChatUnlockContent
 import de.velwebsolutions.oasis.chat.ui.ConversationContent
@@ -34,6 +36,7 @@ import de.velwebsolutions.oasis.chat.ui.PollView
 import de.velwebsolutions.oasis.chat.ui.ReactionChip
 import de.velwebsolutions.oasis.chat.ui.ReplyBar
 import de.velwebsolutions.oasis.chat.ui.ReplyQuote
+import de.velwebsolutions.oasis.chat.ui.timelineInset
 import de.velwebsolutions.oasis.chatcrypto.MessageAttachment
 import de.velwebsolutions.oasis.chatcrypto.MessageContent
 import de.velwebsolutions.oasis.chatcrypto.MessageEnvelope
@@ -45,6 +48,7 @@ import de.velwebsolutions.oasis.design.theme.OasisColors
 import de.velwebsolutions.oasis.design.theme.OasisTheme
 import java.time.Instant
 import org.junit.After
+import org.junit.Assert.assertEquals
 import org.junit.Rule
 import org.junit.Test
 import org.junit.runner.RunWith
@@ -243,4 +247,42 @@ class ChatSpacingTest {
     @Test
     @Config(qualifiers = "w430dp-h932dp")
     fun atALargePhone() = everything("430")
+
+    @Test
+    @Config(qualifiers = "w320dp-h640dp")
+    fun atASmallPhone() = everything("320")
+
+    @Test
+    fun onePaneAtATimeOnPhones() {
+        show { ChatPanes(null, list = { List() }) { Chat() } }
+        compose.onNodeWithTag("chat.panes").assertDoesNotExist()
+        compose.onNodeWithTag("chat.list").assertExists()
+        show2 { ChatPanes(7, list = { List() }) { Chat() } }
+        compose.onNodeWithTag("chat.list").assertDoesNotExist()
+        compose.onNodeWithTag("chat.messages").assertExists()
+    }
+
+    @Test
+    @Config(qualifiers = "w900dp-h700dp")
+    fun listBesideTheConversationOnWideScreens() {
+        show { ChatPanes(7, list = { List() }) { Chat() } }
+        compose.onNodeWithTag("chat.panes").assertExists()
+        compose.onNodeWithTag("chat.list").assertExists()
+        compose.onNodeWithTag("chat.messages").assertExists()
+        capture("900-panes")
+        show2 { ChatPanes(null, list = { List() }) { Chat() } }
+        compose.onNodeWithTag("chat.panes.empty").assertExists()
+        capture("900-empty")
+        Appearance.show(AppearanceChoice.Dark)
+        show2 { ChatPanes(7, list = { List() }) { Chat() } }
+        capture("900-panes-dark")
+    }
+
+    @Test
+    @Config(qualifiers = "w700dp-h1000dp")
+    fun aTabletInOnePaneUsesTheWiderInset() {
+        assertEquals(16.dp, timelineInset(700.dp))
+        assertEquals(12.dp, timelineInset(639.dp))
+        everything("700")
+    }
 }

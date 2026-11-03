@@ -303,7 +303,9 @@ data class BubbleModel(
     val own: String,
     val canAct: Boolean,
     val pinLabel: String?,
-    val poll: PollView?
+    val poll: PollView?,
+    /** Right after a day pill or the „Neue Nachrichten“ line, which keep the distance: the bubble adds none. */
+    val afterSeparator: Boolean = false
 )
 
 /** One row of the message list as it is drawn. */
@@ -348,13 +350,19 @@ internal fun rowModels(
     now: Instant
 ): List<RowModel> {
     val rows = state.shownRows
-    val models = rows.map { row ->
+    val models = rows.mapIndexed { index, row ->
         if (row is TimelineRow.Day) {
             RowModel.Day(row.label, row.key)
         } else if (row is TimelineRow.Unread) {
             RowModel.Unread
         } else {
-            bubbleModel(row as TimelineRow.Message, state, myId, senderName, senderAvatar, senderProfile, now)
+            val bubble = bubbleModel(row as TimelineRow.Message, state, myId, senderName, senderAvatar, senderProfile, now)
+            val previous = rows.getOrNull(index - 1)
+            if (previous is TimelineRow.Day || previous is TimelineRow.Unread) {
+                RowModel.Bubble(bubble.model.copy(afterSeparator = true))
+            } else {
+                bubble
+            }
         }
     }.toMutableList()
     // Placed among the rows as they are, inserted from the back so the places of the others stay right; notices at the
@@ -414,8 +422,8 @@ private fun bubbleModel(
 }
 
 /**
- * Quiet lines about members with a new device or newly set-up chats (when, if known; during this session: [now]) and
- * members who cannot receive this chat securely (at the end).
+ * Quiet lines about members with a new device or newly set-up chats (when, if known; during this session: [now]),
+ * members who cannot receive this chat securely and who left an ended chat (at the end).
  */
 internal fun keyNotices(conversation: ChatConversation, directory: ChatKeyring.Directory, myId: String, now: Instant): List<QuietNotice> {
     val names = directory.users.associate { it.id to it.name }
@@ -424,7 +432,8 @@ internal fun keyNotices(conversation: ChatConversation, directory: ChatKeyring.D
         directory.user(member.userId)?.keyChangedAt?.let { QuietNotice(newDevice(member.userId), OasisJson.parseInstant(it)) }
     }
     return changed + directory.changedInSession.map { QuietNotice(newDevice(it), now) } +
-        directory.invalid.map { QuietNotice("${names.getValue(it)} kann diesen Chat gerade nicht sicher empfangen.", null) }
+        directory.invalid.map { QuietNotice("${names.getValue(it)} kann diesen Chat gerade nicht sicher empfangen.", null) } +
+        listOfNotNull(conversation.endedLine?.let { QuietNotice(it, null) })
 }
 
 /**
@@ -454,7 +463,7 @@ internal class SwipeHintTracker(private val preferences: ChatPreferences, privat
 
 /** Why nobody can write in [current] (yet), as a banner on top: ended, waiting for the new key, no access yet; or null. */
 internal fun waitingNotice(current: ChatConversation, vault: ChatVault, myId: String): String? = when {
-    current.ended -> "Dieser Chat ist beendet. Du kannst ihn noch lesen und Nachrichten melden, aber nicht mehr schreiben."
+    current.ended -> current.endedBanner
 
     // Shown instead of the composer (ConversationState.untrustedOwner).
     !ChatKeyring.ownerTrusted(vault, current) -> null

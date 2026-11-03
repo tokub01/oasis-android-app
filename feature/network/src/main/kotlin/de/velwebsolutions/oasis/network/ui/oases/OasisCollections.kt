@@ -53,6 +53,7 @@ import de.velwebsolutions.oasis.network.ui.components.NetworkPage
 import de.velwebsolutions.oasis.network.ui.components.SectionTitle
 import de.velwebsolutions.oasis.network.ui.components.block
 import de.velwebsolutions.oasis.network.ui.components.feedSection
+import de.velwebsolutions.oasis.network.ui.retry
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -274,7 +275,7 @@ fun CollectPostScreen(
     LaunchedEffect(Unit) { viewModel.load() }
     LaunchedEffect(done) { if (done) navigator.dismissSheet() }
     OasisScreen(title = "Zu Sammlung hinzufügen", error = error?.userMessage, onDismissError = viewModel::dismissError) {
-        LoadableView(collections, onRetry = viewModel::load) { list ->
+        LoadableView(collections, onRetry = viewModel.retry(viewModel::load)) { list ->
             NetworkPage {
                 block("header") { PageHeader("Zu Sammlung hinzufügen", eyebrow = "Sammlungen") }
                 block("list") {

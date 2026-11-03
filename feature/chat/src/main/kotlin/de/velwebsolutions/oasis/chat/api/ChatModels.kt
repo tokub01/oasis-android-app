@@ -5,6 +5,7 @@ import de.velwebsolutions.oasis.chatcrypto.LinkApproval
 import de.velwebsolutions.oasis.chatcrypto.LockedIdentity
 import de.velwebsolutions.oasis.chatcrypto.MessageEnvelope
 import de.velwebsolutions.oasis.chatcrypto.PublicKeyBundle
+import de.velwebsolutions.oasis.core.format.Initials
 import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
 
@@ -36,18 +37,10 @@ data class ChatAvatar(
         val Unknown = ChatAvatar()
 
         /**
-         * The initials of a name, as `User::initials()` (first and last word's capital), in dune: for answers of an
-         * older server without `avatar`.
+         * The initials of a name, as `User::initials()` (first grapheme of the first and last word, [Initials]), in
+         * dune: for answers of an older server without `avatar`.
          */
-        fun initialsOf(name: String): ChatAvatar {
-            val letters = name.removePrefix("@").split(' ', '-', '_', '.').filter { it.isNotBlank() }.map { it.first().uppercaseChar() }
-            val initials = when {
-                letters.isEmpty() -> "?"
-                letters.size == 1 -> letters.first().toString()
-                else -> "${letters.first()}${letters.last()}"
-            }
-            return ChatAvatar(initials = initials)
-        }
+        fun initialsOf(name: String): ChatAvatar = ChatAvatar(initials = Initials.of(name) ?: "?")
     }
 }
 
@@ -117,12 +110,49 @@ data class ChatConversation(
      * (`Conversation::isEnded`).
      */
     val ended: Boolean = false,
+    /** Why it ended: "left" (someone left it) or "deleted" (the other account is gone); null while open or from older servers. */
+    @SerialName("ended_reason") val endedReason: String? = null,
+    /** Who left it; null for the signed-in member themself, for a deleted account and while open. */
+    @SerialName("ended_by") val endedBy: EndedBy? = null,
     /** When the member last had the chat open (ISO 8601), for the „Neue Nachrichten“ divider; null: never. */
     @SerialName("last_read_at") val lastReadAt: String? = null,
     /** The newest message's time, else when the chat began (ISO 8601) – never a preview. */
     @SerialName("last_activity_at") val lastActivityAt: String? = null
 ) {
     val isGroup: Boolean get() = type == "group"
+
+    /** Who ended it, as the screens name people: „Mira Sol“ or „@mira“. */
+    private val leaver: String? get() = endedBy?.let { by -> by.displayName?.takeIf(String::isNotEmpty) ?: "@${by.username}" }
+
+    /** What happened, in the words of the list's meta line; null while open (docs/oasis-chat.md, „Beendete Chats“). */
+    val endedSummary: String?
+        get() = when {
+            !ended -> null
+            endedReason == "deleted" -> "Konto gelöscht"
+            endedReason == "left" -> leaver?.let { "$it hat den Chat verlassen" } ?: "Du hast den Chat verlassen"
+            else -> null
+        }
+
+    /** The quiet line at the end of the timeline: who left; null for a deleted account, an unknown reason or while open. */
+    val endedLine: String? get() = endedSummary.takeIf { endedReason == "left" }
+
+    /** The badge of the list row: „Verlassen“, „Konto gelöscht“ or (older servers) „Beendet“; null while open. */
+    val endedBadge: String?
+        get() = when {
+            !ended -> null
+            endedReason == "left" -> "Verlassen"
+            endedReason == "deleted" -> "Konto gelöscht"
+            else -> "Beendet"
+        }
+
+    /** The banner above an ended chat (also the 403 text when sending into it); null while open. */
+    val endedBanner: String?
+        get() = when {
+            !ended -> null
+            endedReason == "deleted" -> "Dieses Konto gibt es nicht mehr. Du kannst den Chat noch lesen, aber nicht mehr schreiben."
+            endedReason == "left" -> "$endedLine. $STILL_READABLE"
+            else -> "Dieser Chat ist beendet – jemand hat ihn verlassen. $STILL_READABLE"
+        }
 
     /** The group title, or the other people's names in a 1:1 chat (`conversationTitle` in conversation-list.js). */
     fun displayTitle(myId: String): String {
@@ -141,6 +171,17 @@ data class ChatConversation(
     /** The avatar of a member, null for someone no longer in the chat. */
     fun avatarOf(userId: String): ChatAvatar? = members.firstOrNull { it.userId == userId }?.shownAvatar
 }
+
+/** Who left an ended chat (`ended_by`). */
+@Serializable
+data class EndedBy(
+    @Serializable(with = FlexibleIdSerializer::class) val id: String,
+    @SerialName("display_name") val displayName: String? = null,
+    val username: String
+)
+
+/** The rest of every ended chat's banner. */
+private const val STILL_READABLE = "Du kannst ihn noch lesen und Nachrichten melden, aber nicht mehr schreiben."
 
 /** Laravel's page-number paginator (`GET /chat/conversations`, 30 per page). */
 @Serializable

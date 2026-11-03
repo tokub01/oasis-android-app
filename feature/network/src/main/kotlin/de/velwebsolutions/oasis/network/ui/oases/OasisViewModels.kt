@@ -9,7 +9,6 @@ import de.velwebsolutions.oasis.core.model.Loadable
 import de.velwebsolutions.oasis.core.network.ApiError
 import de.velwebsolutions.oasis.core.network.Confirmed
 import de.velwebsolutions.oasis.core.network.OasisJson
-import de.velwebsolutions.oasis.core.network.Page
 import de.velwebsolutions.oasis.network.NetworkSignals
 import de.velwebsolutions.oasis.network.api.CollectionInput
 import de.velwebsolutions.oasis.network.api.FeedPage
@@ -529,8 +528,6 @@ data class CollectionForm(val editing: Int? = null, val name: String = "", val d
 
 /** A page of a collection's Tropfen as a list page: the next page number as the cursor while there is one. */
 internal suspend fun NetworkRepository.collectionPage(id: Int, cursor: String?): FeedPage<NoContext> {
-    val number = cursor?.toIntOrNull() ?: 1
-    val page = collectionPosts(id, number)
-    val last = page.meta?.lastPage ?: number
-    return FeedPage(page.data, Page.Meta(nextCursor = if (number < last) "${number + 1}" else null))
+    val page = collectionPosts(id, cursor?.toIntOrNull() ?: 1)
+    return FeedPage(page.data, page.meta)
 }

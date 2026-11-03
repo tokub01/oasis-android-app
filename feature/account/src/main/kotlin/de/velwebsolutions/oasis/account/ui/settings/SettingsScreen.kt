@@ -56,6 +56,7 @@ import de.velwebsolutions.oasis.account.ui.components.DataExportButton
 import de.velwebsolutions.oasis.account.ui.components.LinkText
 import de.velwebsolutions.oasis.account.ui.components.QrCodeView
 import de.velwebsolutions.oasis.account.ui.components.webUrl
+import de.velwebsolutions.oasis.account.ui.retry
 import de.velwebsolutions.oasis.design.components.AsyncOasisButton
 import de.velwebsolutions.oasis.design.components.Banner
 import de.velwebsolutions.oasis.design.components.BannerKind
@@ -143,7 +144,7 @@ internal fun SettingsContent(
             PageHeader("Einstellungen", eyebrow = "Konto", lead = "Profil, Passwort, Anmeldung und deine Daten an einem Ort.")
             if (canSeeWelcome) LinkText("Neu hier? Einstieg noch einmal ansehen", { open(AccountRoute.Welcome) }, bold = false)
         }
-        LoadableView(ui.state, onRetry = viewModel::load) { settings ->
+        LoadableView(ui.state, onRetry = viewModel.retry(viewModel::load)) { settings ->
             Column(verticalArrangement = Arrangement.spacedBy(24.dp)) {
                 ProfileSection(ui, settings, viewModel)
                 PasswordSection(ui, viewModel)

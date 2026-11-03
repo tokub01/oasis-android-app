@@ -46,6 +46,7 @@ import de.velwebsolutions.oasis.staff.ui.components.StaffLoadable
 import de.velwebsolutions.oasis.staff.ui.components.StaffPage
 import de.velwebsolutions.oasis.staff.ui.components.StaffTitle
 import de.velwebsolutions.oasis.staff.ui.components.boldLead
+import de.velwebsolutions.oasis.staff.ui.retry
 import kotlinx.coroutines.launch
 
 /**
@@ -55,7 +56,7 @@ import kotlinx.coroutines.launch
 @Composable
 fun SuspensionsScreen(viewModel: SuspensionsViewModel = hiltViewModel()) {
     val state by viewModel.state.collectAsStateWithLifecycle()
-    SuspensionsContent(state, viewModel::load, viewModel::release, viewModel::dismissMessage, viewModel::dismissError)
+    SuspensionsContent(state, viewModel.retry(viewModel::load), viewModel::release, viewModel::dismissMessage, viewModel::dismissError)
 }
 
 /** The locks page without its view model, for the app and for tests. */

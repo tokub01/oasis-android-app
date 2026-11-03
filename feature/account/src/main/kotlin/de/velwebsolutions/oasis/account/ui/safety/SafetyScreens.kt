@@ -44,6 +44,7 @@ import de.velwebsolutions.oasis.account.ui.components.FlowChoices
 import de.velwebsolutions.oasis.account.ui.components.GermanDate
 import de.velwebsolutions.oasis.account.ui.components.LinkText
 import de.velwebsolutions.oasis.account.ui.components.ListRow
+import de.velwebsolutions.oasis.account.ui.retry
 import de.velwebsolutions.oasis.design.components.AsyncOasisButton
 import de.velwebsolutions.oasis.design.components.AvatarView
 import de.velwebsolutions.oasis.design.components.FieldError
@@ -115,7 +116,7 @@ internal fun DevicesScreen(viewModel: DevicesViewModel = hiltViewModel()) {
                     eyebrow = "Privatsphäre",
                     lead = "Hier siehst du, wo du gerade angemeldet bist, und meldest fremde Geräte sofort ab."
                 )
-                LoadableView(ui.state, onRetry = viewModel::load) { overview ->
+                LoadableView(ui.state, onRetry = viewModel.retry(viewModel::load)) { overview ->
                     Column(verticalArrangement = Arrangement.spacedBy(20.dp)) {
                         SignedIn(overview, viewModel) { confirmAll = true }
                         Known(overview, viewModel)
@@ -302,7 +303,7 @@ internal fun SafetyScreen(viewModel: SafetyViewModel = hiltViewModel()) {
                     lead =
                         "Hier verwaltest du Personen, die du blockiert, stummgeschaltet oder eingeschränkt hast. Alles wirkt leise – niemand wird benachrichtigt."
                 )
-                LoadableView(ui.state, onRetry = viewModel::load) { lists ->
+                LoadableView(ui.state, onRetry = viewModel.retry(viewModel::load)) { lists ->
                     Column(verticalArrangement = Arrangement.spacedBy(20.dp)) {
                         SafetyListCard(
                             "Blockierte Personen",
@@ -421,7 +422,7 @@ internal fun ReportScreen(url: String?) {
     val ui by viewModel.ui.collectAsStateWithLifecycle()
     OasisScreen(title = "Melden", error = ui.error, onDismissError = viewModel::dismissError) {
         AccountPage(maxWidth = 640) {
-            ReportContent(ui, viewModel::choose, viewModel::setComment, viewModel::send, viewModel::load) {
+            ReportContent(ui, viewModel::choose, viewModel::setComment, viewModel::send, viewModel.retry(viewModel::load)) {
                 if (navigator.sheet != null) navigator.dismissSheet() else navigator.handle(NetworkRoute.Source)
             }
         }

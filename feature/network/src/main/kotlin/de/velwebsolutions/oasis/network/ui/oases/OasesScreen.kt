@@ -53,6 +53,7 @@ import de.velwebsolutions.oasis.network.ui.components.OnNightKind
 import de.velwebsolutions.oasis.network.ui.components.SectionTitle
 import de.velwebsolutions.oasis.network.ui.components.block
 import de.velwebsolutions.oasis.network.ui.components.membersLabel
+import de.velwebsolutions.oasis.network.ui.retry
 
 /** "Oasen" (/app/oasen): the member's oases and all others as cards; "Oase eröffnen" for members who may write. */
 @Composable
@@ -61,7 +62,7 @@ fun OasesScreen(viewModel: OasesViewModel = hiltViewModel<OasesViewModel>()) {
     val error by viewModel.error.collectAsStateWithLifecycle()
     LaunchedEffect(Unit) { viewModel.loadIfNeeded() }
     OasisScreen(title = "Oasen", error = error?.userMessage, onDismissError = viewModel::dismissError) {
-        LoadableView(directory, onRetry = viewModel::load) { list ->
+        LoadableView(directory, onRetry = viewModel.retry(viewModel::load)) { list ->
             NetworkPage(onRefresh = viewModel::load) { oasesContent(list) }
         }
     }

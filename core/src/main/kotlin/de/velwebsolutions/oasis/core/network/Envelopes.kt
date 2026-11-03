@@ -19,16 +19,22 @@ data class Page<T>(val data: List<T>, val meta: Meta? = null) {
         val currentPage: Int? = null,
         val lastPage: Int? = null,
         val total: Int? = null
-    )
+    ) {
+        /**
+         * The cursor for the next request, or null on the last page. Page-number pagination maps to "page" numbers; a
+         * page beyond the end (`current_page` 5 of `last_page` 1) has no next one either.
+         */
+        val next: String?
+            get() {
+                nextCursor?.let { return it }
+                val current = currentPage
+                val last = lastPage
+                return if (current != null && last != null && current < last) (current + 1).toString() else null
+            }
+    }
 
-    /** The cursor for the next request, or null on the last page. Page-number pagination maps to "page" numbers. */
-    val nextCursor: String?
-        get() {
-            meta?.nextCursor?.let { return it }
-            val current = meta?.currentPage
-            val last = meta?.lastPage
-            return if (current != null && last != null && current < last) (current + 1).toString() else null
-        }
+    /** The cursor for the next request, or null on the last page ([Meta.next]). */
+    val nextCursor: String? get() = meta?.next
 }
 
 /** `{ "message": "…", "data": … }` – the answer of an action that changed something. */

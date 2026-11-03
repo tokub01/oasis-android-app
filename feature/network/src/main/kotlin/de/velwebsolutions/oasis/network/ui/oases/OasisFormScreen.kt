@@ -69,6 +69,7 @@ import de.velwebsolutions.oasis.network.ui.components.SectionTitle
 import de.velwebsolutions.oasis.network.ui.components.UnderlinedLink
 import de.velwebsolutions.oasis.network.ui.components.block
 import de.velwebsolutions.oasis.network.ui.components.rememberImagePicker
+import de.velwebsolutions.oasis.network.ui.retry
 
 /**
  * Found an oasis (/app/oasen/neu) or edit it as host (/oasen/{slug}/bearbeiten): texts, house rules, audience, colour,
@@ -107,7 +108,7 @@ fun OasisFormScreen(
         val loadError = state.loadError
         val options = state.options
         when {
-            loadError != null -> ErrorStateView(loadError, onRetry = viewModel::load)
+            loadError != null -> ErrorStateView(loadError, onRetry = viewModel.retry(viewModel::load))
 
             options == null -> LoadingView()
 
@@ -312,7 +313,13 @@ private fun BannerSection(state: OasisFormState, editing: Boolean, error: String
 
 /** The four colours with their German names (Sonne, Quelle, Nacht, Düne). */
 @Composable
-fun ColorChoice(choices: List<Choice>, selection: String, onSelect: (String) -> Unit) {
+fun ColorChoice(
+    choices: List<Choice>,
+    selection: String,
+    /** The colour a choice shows („Automatisch“ shows the one it resolves to). */
+    swatch: (String) -> String = { it },
+    onSelect: (String) -> Unit
+) {
     Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
         choices.forEach { choice ->
             val selected = selection == choice.value
@@ -328,7 +335,7 @@ fun ColorChoice(choices: List<Choice>, selection: String, onSelect: (String) -> 
                     Modifier.size(40.dp).border(3.dp, if (selected) OasisColors.Night else Color.Transparent, CircleShape).padding(4.dp),
                     contentAlignment = Alignment.Center
                 ) {
-                    Box(Modifier.size(32.dp).background(AvatarTint.background(choice.value), CircleShape))
+                    Box(Modifier.size(32.dp).background(AvatarTint.background(swatch(choice.value)), CircleShape))
                 }
                 Text(choice.label, style = OasisType.Caption, color = OasisColors.Ink)
             }

@@ -122,10 +122,11 @@ class AccountViewModelTest {
     @Test
     fun theWelcomeTourKeepsAStricterChoiceMadeInThePrivacyCheck() = runTest {
         val transport = StubTransport()
-            .stub("GET", "onboarding", Fixtures.onboarding)
+            .stub("GET", "onboarding", Fixtures.onboarding.replace("\"avatar_color\"", CHOSEN_COLOR))
             .stub("PUT", "onboarding/visibility", "{}")
         val model = WelcomeViewModel(repository(transport), session(transport, backgroundScope))
         model.ui.first { loaded(it.state) }
+        assertEquals("the chosen colour of the initials", "night", model.ui.value.avatarColor)
         model.appeared()
         assertEquals("shown the first time, the first load is enough", 1, transport.requests.count { it.path == "onboarding" })
         model.skip()
@@ -307,6 +308,7 @@ class AccountViewModelTest {
             )
         val model = WelcomeViewModel(repository(transport), session(transport, backgroundScope))
         model.ui.first { loaded(it.state) }
+        assertEquals("„Automatisch“ without a chosen colour", "auto", model.ui.value.avatarColor)
         model.edit { it.copy(bio = "Ihr seid alle Idioten") }
         model.next()
         assertEquals(1, model.ui.value.step)
@@ -341,3 +343,6 @@ class AccountViewModelTest {
         assertEquals(JsonPrimitive(category), transport.lastBody("report")?.jsonObject?.get("category"))
     }
 }
+
+/** The onboarding answer with a chosen colour of the initials (`avatar_color_choice`). */
+private const val CHOSEN_COLOR = "\"avatar_color_choice\": \"night\", \"avatar_color\""

@@ -35,6 +35,7 @@ import de.velwebsolutions.oasis.staff.ui.components.StaffPage
 import de.velwebsolutions.oasis.staff.ui.components.StaffTitle
 import de.velwebsolutions.oasis.staff.ui.components.apiError
 import de.velwebsolutions.oasis.staff.ui.components.attempt
+import de.velwebsolutions.oasis.staff.ui.retry
 import javax.inject.Inject
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -147,7 +148,7 @@ fun AdminIdeasScreen(viewModel: AdminIdeasViewModel = hiltViewModel()) {
         onDismissMessage = viewModel::dismissMessage,
         onDismissError = viewModel::dismissError
     ) {
-        StaffLoadable(state.ideas, viewModel::load) { ideas ->
+        StaffLoadable(state.ideas, viewModel.retry(viewModel::load)) { ideas ->
             StaffPage(viewModel::load, spacing = 20) {
                 Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
                     Eyebrow("Admin")

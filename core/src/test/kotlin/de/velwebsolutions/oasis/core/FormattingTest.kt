@@ -1,11 +1,13 @@
 package de.velwebsolutions.oasis.core
 
 import de.velwebsolutions.oasis.core.format.GermanTime
+import de.velwebsolutions.oasis.core.format.Initials
 import de.velwebsolutions.oasis.core.format.RelativeTime
 import de.velwebsolutions.oasis.core.network.ApiError
 import de.velwebsolutions.oasis.core.network.OasisJson
 import java.time.Instant
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertNull
 import org.junit.Test
 
 class FormattingTest {
@@ -28,8 +30,27 @@ class FormattingTest {
         assertEquals("gerade eben", RelativeTime.format(now.minusSeconds(30), now))
         assertEquals("vor 5 Min.", RelativeTime.format(now.minusSeconds(300), now))
         assertEquals("vor 3 Std.", RelativeTime.format(now.minusSeconds(3 * 3600), now))
-        assertEquals("gestern", RelativeTime.format(now.minusSeconds(26 * 3600), now))
+        assertEquals("vor 1 Tag", RelativeTime.format(now.minusSeconds(26 * 3600), now))
+        assertEquals("vor 6 Tagen", RelativeTime.format(now.minusSeconds(6 * 86400 + 3600), now))
         assertEquals("12. Okt.", RelativeTime.format(Instant.parse("2026-10-12T12:00:00Z"), now))
+        assertEquals("3. Nov. 2025", RelativeTime.format(Instant.parse("2025-11-03T12:00:00Z"), now))
+        assertEquals("14. Mai", RelativeTime.format(Instant.parse("2026-05-14T12:00:00Z"), now))
+        assertEquals("2. Sept.", RelativeTime.format(Instant.parse("2026-09-02T12:00:00Z"), now))
+    }
+
+    @Test
+    fun `initials by grapheme without breaking dotted and dotless i`() {
+        assertEquals("Y", Initials.of("Yıldız"))
+        assertEquals("İŞ", Initials.of("İlkay Şahin"))
+        assertEquals("ÖÇ", Initials.of("Ömer Çelik"))
+        assertEquals("🌵K", Initials.of("🌵 Kaktus"))
+        assertEquals("👩‍👩‍👧M", Initials.of("👩‍👩‍👧 Familie Meier"))
+        assertEquals("É", Initials.of("e\u0301milie"))
+        assertEquals("MS", Initials.of("@mira_sol"))
+        assertEquals("ß", Initials.of("ßlava"))
+        assertEquals("I", Initials.of("ılık"))
+        assertNull(Initials.of("  "))
+        assertEquals("", Initials.firstGrapheme(""))
     }
 
     @Test

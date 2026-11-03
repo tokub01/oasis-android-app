@@ -41,6 +41,7 @@ import de.velwebsolutions.oasis.staff.ui.components.StaffLoadable
 import de.velwebsolutions.oasis.staff.ui.components.StaffPage
 import de.velwebsolutions.oasis.staff.ui.components.StaffTitle
 import de.velwebsolutions.oasis.staff.ui.components.boldLead
+import de.velwebsolutions.oasis.staff.ui.retry
 import kotlinx.coroutines.launch
 
 /**
@@ -58,7 +59,7 @@ fun ComplaintReviewScreen(
     val state by viewModel.state.collectAsStateWithLifecycle()
     ComplaintReviewContent(
         state,
-        onRefresh = viewModel::load,
+        onRefresh = viewModel.retry(viewModel::load),
         onResult = viewModel::selectResult,
         onExplanation = viewModel::updateExplanation,
         onStatement = viewModel::updateStatement,

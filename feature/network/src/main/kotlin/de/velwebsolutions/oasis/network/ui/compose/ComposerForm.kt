@@ -141,30 +141,32 @@ fun ComposerForm(
 
     Column(modifier.fillMaxWidth(), verticalArrangement = Arrangement.spacedBy(16.dp)) {
         state.generalError?.let { Banner(it) }
-        Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
-            OasisTextField(
-                label = state.bodyLabel,
-                value = state.body,
-                onValueChange = callbacks.onBody,
-                prompt = if (state.isReply) {
-                    "Antworten …"
-                } else if (state.isCarry) {
-                    null
-                } else {
-                    "Was möchtest du teilen?"
-                },
-                error = state.fieldError("body"),
-                lines = 3..10,
-                modifier = Modifier.focusRequester(focus).testTag("compose.body")
-            )
-            Text(
-                "${state.length}/${state.maxLength}",
-                style = OasisType.Caption,
-                color = OasisColors.Muted,
-                textAlign = TextAlign.End,
-                modifier = Modifier.fillMaxWidth().semantics { contentDescription = "${state.length} von ${state.maxLength} Zeichen" }
-            )
-            AnimatedVisibility(state.toneHint != null) { state.toneHint?.let { ToneHintNote(it) } }
+        if (!state.plainCarry) {
+            Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
+                OasisTextField(
+                    label = state.bodyLabel,
+                    value = state.body,
+                    onValueChange = callbacks.onBody,
+                    prompt = if (state.isReply) {
+                        "Antworten …"
+                    } else if (state.isCarry) {
+                        null
+                    } else {
+                        "Was möchtest du teilen?"
+                    },
+                    error = state.fieldError("body"),
+                    lines = 3..10,
+                    modifier = Modifier.focusRequester(focus).testTag("compose.body")
+                )
+                Text(
+                    "${state.length}/${state.maxLength}",
+                    style = OasisType.Caption,
+                    color = OasisColors.Muted,
+                    textAlign = TextAlign.End,
+                    modifier = Modifier.fillMaxWidth().semantics { contentDescription = "${state.length} von ${state.maxLength} Zeichen" }
+                )
+                AnimatedVisibility(state.toneHint != null) { state.toneHint?.let { ToneHintNote(it) } }
+            }
         }
         AnimatedVisibility(state.toneNudge) {
             ToneQuestion(
@@ -178,7 +180,7 @@ fun ComposerForm(
         }
         val links = state.context.valueOrNull?.links.orEmpty()
         if (links.isNotEmpty()) LinkConfirmation(links, state, callbacks)
-        if (showsImages) {
+        if (showsImages && !state.plainCarry) {
             ImagesSection(state, callbacks, loadingImages, onLoading = { loadingImages = it })
         }
         if (state.canPoll) PollSection(state, callbacks.poll)

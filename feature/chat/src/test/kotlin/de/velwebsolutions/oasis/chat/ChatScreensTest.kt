@@ -307,7 +307,7 @@ class ChatScreensTest {
         compose.onNodeWithTag("chat.composer.send").assertDoesNotExist()
         compose.onNodeWithTag("chat.composer.record").assertIsEnabled()
 
-        field("Nachricht").performTextInput("Hallo Jonas 🌴")
+        field("Nachricht – bis zu 4.000 Zeichen").performTextInput("Hallo Jonas 🌴")
         compose.onNodeWithTag("chat.composer.record").assertDoesNotExist()
         compose.onNodeWithTag("chat.composer.send").assertIsEnabled().performClick()
         waitFor(20_000) { model.state.value.timeline.items.isNotEmpty() }

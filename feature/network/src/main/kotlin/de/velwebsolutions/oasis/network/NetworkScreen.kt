@@ -44,7 +44,7 @@ fun NetworkScreen(route: NetworkRoute) {
 
         is NetworkRoute.EditPost -> EditPostScreen(route.id)
 
-        is NetworkRoute.CarryPost -> CarryScreen(route.id)
+        is NetworkRoute.CarryPost -> CarryScreen(route.id, quote = route.quote)
 
         is NetworkRoute.Compose -> ComposeScreen(route.oasisSlug, route.replyTo)
 

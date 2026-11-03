@@ -10,9 +10,11 @@ import de.velwebsolutions.oasis.account.catching
 import de.velwebsolutions.oasis.account.data.AccountRepository
 import de.velwebsolutions.oasis.core.auth.Session
 import de.velwebsolutions.oasis.core.model.Loadable
+import de.velwebsolutions.oasis.core.model.Me
 import de.velwebsolutions.oasis.core.model.failing
 import de.velwebsolutions.oasis.core.model.refreshing
 import de.velwebsolutions.oasis.core.network.asApiError
+import de.velwebsolutions.oasis.design.components.AvatarTint
 import javax.inject.Inject
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -55,6 +57,9 @@ data class WelcomeUiState(
 class WelcomeViewModel @Inject constructor(private val repository: AccountRepository, private val session: Session) : ViewModel() {
     private val mutableUi = MutableStateFlow(WelcomeUiState())
     val ui: StateFlow<WelcomeUiState> = mutableUi.asStateFlow()
+
+    /** The signed-in member, for the colour „Automatisch“ resolves to. */
+    val member: Me? get() = session.me
 
     /** The tour was shown before; until then the first load is the one started in `init`. */
     private var shown = false
@@ -111,7 +116,7 @@ class WelcomeViewModel @Inject constructor(private val repository: AccountReposi
                             state = Loadable.Loaded(tour),
                             bio = tour.bio,
                             location = tour.location,
-                            avatarColor = tour.avatarColor,
+                            avatarColor = tour.avatarColorChoice ?: AvatarTint.AUTOMATIC,
                             profileAudience = tour.profileAudience,
                             defaultPostVisibility = tour.defaultPostVisibility
                         )

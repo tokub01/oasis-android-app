@@ -53,6 +53,7 @@ import de.velwebsolutions.oasis.design.navigation.NetworkRoute
 import de.velwebsolutions.oasis.design.theme.OasisColors
 import de.velwebsolutions.oasis.design.theme.OasisRadius
 import de.velwebsolutions.oasis.design.theme.OasisType
+import de.velwebsolutions.oasis.network.api.Choice
 import de.velwebsolutions.oasis.network.api.OwnProfile
 import de.velwebsolutions.oasis.network.ui.ImageConverter
 import de.velwebsolutions.oasis.network.ui.components.ButtonFlow
@@ -67,7 +68,12 @@ import de.velwebsolutions.oasis.network.ui.components.rememberImagePicker
 import de.velwebsolutions.oasis.network.ui.compose.ToneHintNote
 import de.velwebsolutions.oasis.network.ui.compose.ToneQuestion
 import de.velwebsolutions.oasis.network.ui.oases.ColorChoice
+import de.velwebsolutions.oasis.network.ui.retry
 import kotlinx.coroutines.delay
+
+/** Under „Farbe deiner Initialen“ (docs/oasis-accounts.md). */
+const val AVATAR_COLOR_HINT =
+    "Deine Initialen siehst du überall, wo kein Profilbild gezeigt wird. „Automatisch“ wählt eine Farbe für dich."
 
 /**
  * "Dein Profil" (/app/profil): bio with tone hints, location, the optional photo and banner and the colour of the
@@ -97,7 +103,7 @@ fun EditProfileScreen(viewModel: EditProfileViewModel = hiltViewModel<EditProfil
     }
 
     OasisScreen(title = "Dein Profil", message = status, onDismissMessage = viewModel::dismissStatus) {
-        LoadableView(profile, onRetry = viewModel::load) { current ->
+        LoadableView(profile, onRetry = viewModel.retry(viewModel::load)) { current ->
             NetworkPage {
                 block("header") {
                     Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
@@ -283,7 +289,13 @@ private fun ProfileForm(
         }
         Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
             Text("Farbe deiner Initialen", style = OasisType.SmallBold, color = OasisColors.Ink)
-            ColorChoice(current.colors, form.color, viewModel::updateColor)
+            ColorChoice(
+                listOf(Choice(AvatarTint.AUTOMATIC, "Automatisch")) + current.colors,
+                form.color,
+                swatch = { AvatarTint.shown(it, current.member.id) },
+                onSelect = viewModel::updateColor
+            )
+            Text(AVATAR_COLOR_HINT, style = OasisType.Caption, color = OasisColors.Muted)
             error?.message("avatar_color")?.let { FieldError(it) }
         }
         AsyncOasisButton("Profil speichern", viewModel::save, fullWidth = false, modifier = Modifier.testTag("profileEdit.save"))

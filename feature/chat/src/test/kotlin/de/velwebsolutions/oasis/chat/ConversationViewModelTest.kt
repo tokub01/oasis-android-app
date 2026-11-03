@@ -4,6 +4,7 @@ import de.velwebsolutions.oasis.chat.api.ChatAvatar
 import de.velwebsolutions.oasis.chat.api.SafetyLists
 import de.velwebsolutions.oasis.chat.core.ChatContext
 import de.velwebsolutions.oasis.chat.core.ChatMessageItem
+import de.velwebsolutions.oasis.chat.core.ChatSpam
 import de.velwebsolutions.oasis.chat.ui.ConversationViewModel
 import de.velwebsolutions.oasis.chatcrypto.MessageEnvelope
 import de.velwebsolutions.oasis.core.realtime.RealtimeEvent
@@ -85,12 +86,12 @@ class ConversationViewModelTest {
         owner.setDraft("   ")
         owner.send()
         owner.setDraft("a".repeat(4001))
-        assertEquals("Höchstens 4000 Zeichen", owner.state.value.counter)
+        assertEquals("Höchstens 4.000 Zeichen", owner.state.value.counter)
         assertTrue(owner.state.value.atLimit)
         owner.send()
         assertTrue("nothing went out", owner.state.value.timeline.items.isEmpty())
         owner.setDraft("a".repeat(3_000))
-        assertEquals("3000 / 4000", owner.state.value.counter)
+        assertEquals("3.000 / 4.000", owner.state.value.counter)
         owner.setDraft("Hallo  Jonas ")
         assertEquals("the draft stays exactly as typed", "Hallo  Jonas ", owner.state.value.draft)
         assertEquals("", owner.state.value.counter)
@@ -218,6 +219,109 @@ class ConversationViewModelTest {
         mira.vault.safety = SafetyLists(tone = SafetyLists.Tone(always = listOf("digga")))
         owner.setDraft("Digga, alles klar?")
         assertEquals("Kurzer Hinweis: „Digga“ wirkt schnell herablassend. Bitte achte auf einen freundlichen Ton.", owner.state.value.hint)
+    }
+
+    @Test
+    fun anEndedChatSaysWhoLeft() = runTest {
+        val (mira, jonas, id) = pair()
+        server.conversations.getValue(id.toInt()).tellsWhoLeft = true
+        jonas.repository.leave(id)
+        val owner = model(mira, id)
+        owner.open()
+        assertEquals(
+            "Jonas hat den Chat verlassen. Du kannst ihn noch lesen und Nachrichten melden, aber nicht mehr schreiben.",
+            owner.state.value.notices.first()
+        )
+        assertEquals("Jonas hat den Chat verlassen", owner.state.value.quietNotices.last().text)
+        assertNull(owner.state.value.quietNotices.last().at)
+    }
+
+    @Test
+    fun shoutingAndRepetitionNeedTrotzdemSenden() = runTest {
+        val (mira, _, id) = pair()
+        val owner = model(mira, id)
+        owner.open()
+        owner.setDraft("ICH FREUE MICH SO SEHR AUF MORGEN")
+        assertEquals(ChatSpam.SHOUTING_HINT, owner.state.value.hint)
+        assertNull(owner.state.value.sendLabel)
+        owner.send()
+        assertTrue("the first press only asks", owner.state.value.timeline.items.isEmpty())
+        assertEquals(ChatSpam.SEND_ANYWAY, owner.state.value.sendLabel)
+        owner.setDraft("ICH FREUE MICH SO SEHR AUF MORGEN ")
+        assertEquals("the same text keeps „Trotzdem senden“", ChatSpam.SEND_ANYWAY, owner.state.value.sendLabel)
+        owner.setDraft("ja ja ja ja")
+        assertEquals(ChatSpam.REPETITION_HINT, owner.state.value.hint)
+        assertNull("a changed text asks again", owner.state.value.sendLabel)
+        owner.send()
+        owner.send()
+        assertEquals("ja ja ja ja", owner.state.value.bubbles.single().content.text)
+        assertNull(owner.state.value.sendLabel)
+        owner.setDraft("Ich freue mich auf morgen")
+        assertNull("the hint goes once the text no longer matches", owner.state.value.hint)
+    }
+
+    @Test
+    fun theThirdSameTextPausesSendingWithACountdown() = runTest {
+        val (mira, _, id) = pair()
+        val owner = model(mira, id)
+        owner.open()
+        repeat(3) {
+            owner.setDraft("Hallo")
+            owner.send()
+        }
+        assertEquals(2, owner.state.value.bubbles.size)
+        assertTrue(owner.state.value.paused)
+        assertFalse(owner.state.value.canSubmit)
+        assertEquals(ChatSpam.FLOOD_PAUSE, owner.state.value.hint)
+        assertEquals("Noch 30 s", owner.state.value.sendLabel)
+        owner.setDraft("Hallo?")
+        assertEquals("typing keeps the pause", ChatSpam.FLOOD_PAUSE, owner.state.value.hint)
+        testScheduler.advanceTimeBy(1_100)
+        assertEquals("Noch 29 s", owner.state.value.sendLabel)
+        testScheduler.advanceTimeBy(29_000)
+        assertFalse(owner.state.value.paused)
+        assertNull(owner.state.value.sendLabel)
+        assertNull(owner.state.value.hint)
+        owner.send()
+        assertEquals(3, owner.state.value.bubbles.size)
+    }
+
+    @Test
+    fun theServersLimitPausesLikeTheDevice() = runTest {
+        val (mira, _, id) = pair()
+        val owner = model(mira, id)
+        owner.open()
+        owner.setDraft("Eins")
+        failing("POST conversations/$id/messages", 429, """{"message":"${ChatSpam.FLOOD_PAUSE}"}""")
+        owner.send()
+        assertNull(owner.state.value.composerError)
+        assertTrue(owner.state.value.paused)
+        assertEquals("without Retry-After the pause of the device", "Noch 30 s", owner.state.value.sendLabel)
+        assertFalse(owner.state.value.canSubmit)
+    }
+
+    @Test
+    fun theServersPauseLastsAsLongAsItSays() = runTest {
+        val (mira, _, id) = pair()
+        val owner = model(mira, id)
+        owner.open()
+        owner.setDraft("Eins")
+        server.retryAfter = "5"
+        failing("POST conversations/$id/messages", 429, """{"message":"${ChatSpam.FLOOD_PAUSE}"}""")
+        owner.send()
+        assertEquals("Noch 5 s", owner.state.value.sendLabel)
+    }
+
+    @Test
+    fun anotherLimitIsAnErrorAtTheComposer() = runTest {
+        val (mira, _, id) = pair()
+        val owner = model(mira, id)
+        owner.open()
+        owner.setDraft("Eins")
+        failing("POST conversations/$id/messages", 429, """{"message":"Too Many Attempts."}""")
+        owner.send()
+        assertFalse(owner.state.value.paused)
+        assertNotNull(owner.state.value.composerError)
     }
 
     @Test

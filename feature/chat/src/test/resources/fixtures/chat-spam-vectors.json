@@ -1,0 +1,536 @@
+{
+  "comment": "Spam checks of the chat on the own device (docs/oasis-chat-client.md, \"Schreien, Wiederholungen, Fluten\"). Every client must decide the drafts and the flood sequences exactly as given. Drafts: `hint` is \"shouting\", \"repetition\" or null (shouting wins when both match); a hint needs a second press on the send button (`texts.send_anyway`) and never changes the text. Flood: each send is [seconds, text] in one chat; `waits` gives per send the seconds until sending works again (0: it leaves and counts; otherwise it is not sent, does not count, and a new pause starts only once the previous one ended). Checked by tests/js/chat/spam.test.mjs; iOS and Android copy this file byte-identical.",
+  "rules": {
+    "shouting": {
+      "min_letters": 12,
+      "upper_percent": 70,
+      "ignore_words_up_to_letters": 3,
+      "definition": "Split at white space; tokens starting with @, http://, https:// or www. (any case) are left out. In the others, words are runs of letters and combining marks (\\p{L}\\p{M}); a word counts with its letters (\\p{L}) only when it has more than 3. Shouting when letters >= 12 and upper (\\p{Lu}) * 100 >= letters * 70."
+    },
+    "repetition": {
+      "same_word_in_a_row": 4,
+      "same_character_more_than": 8,
+      "definition": "Words: split at white space, lower case (locale-independent), keep only \\p{L}\\p{M}\\p{N}; tokens that become empty are skipped. Repetitive when the same word comes 4 or more times in a row, or the same grapheme cluster (extended, so 👍🏽 and ❤️ are one) more than 8 times in a row; graphemes are compared by their code points (no canonical equivalence: Swift must compare unicodeScalars); graphemes of white space or digits only never count and break the run."
+    },
+    "flood": {
+      "same_text_in_a_row": 3,
+      "same_text_within_seconds": 120,
+      "max_messages": 10,
+      "max_messages_within_seconds": 30,
+      "pause_seconds": 30,
+      "definition": "Per chat, over the own sends that left: a send is held when the 2 sends before it have the same trimmed, non-empty text as it and the first of them is at most 120 seconds old, or when 10 sends left in the last 30 seconds (now - at < 30). A held send starts a pause of 30 seconds; during it every send waits ceil(paused_until - now) seconds."
+    },
+    "server": {
+      "per_chat_per_minute": 20,
+      "status": 429,
+      "message": "Kurz durchatmen – du kannst gleich weiterschreiben."
+    }
+  },
+  "texts": {
+    "shouting": "Bitte nicht so laut – viele Großbuchstaben wirken wie Schreien.",
+    "repetition": "Das wiederholt sich ziemlich oft.",
+    "send_anyway": "Trotzdem senden",
+    "flood": "Kurz durchatmen – du kannst gleich weiterschreiben.",
+    "countdown": "Noch {seconds} s"
+  },
+  "drafts": [
+    {
+      "text": "Hallo, wie geht es dir heute?",
+      "shouting": false,
+      "repetitive": false,
+      "hint": null
+    },
+    {
+      "text": "ICH FREUE MICH SO SEHR AUF MORGEN",
+      "shouting": true,
+      "repetitive": false,
+      "hint": "shouting"
+    },
+    {
+      "text": "Ich freue mich SO SEHR auf morgen",
+      "shouting": false,
+      "repetitive": false,
+      "hint": null
+    },
+    {
+      "text": "OK OK EU USA ABC DEF GHI",
+      "shouting": false,
+      "repetitive": false,
+      "hint": null
+    },
+    {
+      "text": "HALLO WELT!",
+      "shouting": false,
+      "repetitive": false,
+      "hint": null
+    },
+    {
+      "text": "HALLO WELTEN",
+      "shouting": false,
+      "repetitive": false,
+      "hint": null
+    },
+    {
+      "text": "WAS IST DENN hier los",
+      "shouting": false,
+      "repetitive": false,
+      "hint": null
+    },
+    {
+      "text": "WAS IST DENN HIER los heute",
+      "shouting": false,
+      "repetitive": false,
+      "hint": null
+    },
+    {
+      "text": "SCHAU MAL https://EXAMPLE.COM/ABCDEFGHIJKLMNOP",
+      "shouting": false,
+      "repetitive": false,
+      "hint": null
+    },
+    {
+      "text": "@ABCDEFGHIJKLMNOP hallo du",
+      "shouting": false,
+      "repetitive": false,
+      "hint": null
+    },
+    {
+      "text": "ЭТО ОЧЕНЬ ВАЖНО ДЛЯ МЕНЯ",
+      "shouting": true,
+      "repetitive": false,
+      "hint": "shouting"
+    },
+    {
+      "text": "ΓΕΙΑ ΣΟΥ ΚΟΣΜΕ ΚΑΛΗΜΕΡΑ",
+      "shouting": true,
+      "repetitive": false,
+      "hint": "shouting"
+    },
+    {
+      "text": "YILDIZ İLKAY ŞAHİN ÇELİK",
+      "shouting": true,
+      "repetitive": false,
+      "hint": "shouting"
+    },
+    {
+      "text": "Yıldız und İlkay Şahin",
+      "shouting": false,
+      "repetitive": false,
+      "hint": null
+    },
+    {
+      "text": "1234567890 ABCD efghijklmnop",
+      "shouting": false,
+      "repetitive": false,
+      "hint": null
+    },
+    {
+      "text": "你好你好你好你好你好你好你好",
+      "shouting": false,
+      "repetitive": false,
+      "hint": null
+    },
+    {
+      "text": "ja ja ja",
+      "shouting": false,
+      "repetitive": false,
+      "hint": null
+    },
+    {
+      "text": "ja ja ja ja",
+      "shouting": false,
+      "repetitive": true,
+      "hint": "repetition"
+    },
+    {
+      "text": "Ja, JA! ja ja.",
+      "shouting": false,
+      "repetitive": true,
+      "hint": "repetition"
+    },
+    {
+      "text": "ja - ja - ja - ja",
+      "shouting": false,
+      "repetitive": true,
+      "hint": "repetition"
+    },
+    {
+      "text": "ja ja ja nein ja",
+      "shouting": false,
+      "repetitive": false,
+      "hint": null
+    },
+    {
+      "text": "jaaaaaaaa",
+      "shouting": false,
+      "repetitive": false,
+      "hint": null
+    },
+    {
+      "text": "jaaaaaaaaa",
+      "shouting": false,
+      "repetitive": true,
+      "hint": "repetition"
+    },
+    {
+      "text": "!!!!!!!!",
+      "shouting": false,
+      "repetitive": false,
+      "hint": null
+    },
+    {
+      "text": "!!!!!!!!!",
+      "shouting": false,
+      "repetitive": true,
+      "hint": "repetition"
+    },
+    {
+      "text": "1000000000 Euro",
+      "shouting": false,
+      "repetitive": false,
+      "hint": null
+    },
+    {
+      "text": "so          viel Platz",
+      "shouting": false,
+      "repetitive": false,
+      "hint": null
+    },
+    {
+      "text": "😂😂😂😂😂😂😂😂",
+      "shouting": false,
+      "repetitive": false,
+      "hint": null
+    },
+    {
+      "text": "😂😂😂😂😂😂😂😂😂",
+      "shouting": false,
+      "repetitive": true,
+      "hint": "repetition"
+    },
+    {
+      "text": "👍🏽👍🏽👍🏽👍🏽👍🏽👍🏽👍🏽👍🏽👍🏽",
+      "shouting": false,
+      "repetitive": true,
+      "hint": "repetition"
+    },
+    {
+      "text": "❤️❤️❤️❤️❤️❤️❤️❤️❤️",
+      "shouting": false,
+      "repetitive": true,
+      "hint": "repetition"
+    },
+    {
+      "text": "NEIN NEIN NEIN NEIN",
+      "shouting": true,
+      "repetitive": true,
+      "hint": "shouting"
+    },
+    {
+      "text": "Café Café Café",
+      "shouting": false,
+      "repetitive": false,
+      "hint": null
+    },
+    {
+      "text": "ééééééééé",
+      "shouting": false,
+      "repetitive": true,
+      "hint": "repetition"
+    },
+    {
+      "text": "",
+      "shouting": false,
+      "repetitive": false,
+      "hint": null
+    }
+  ],
+  "flood": [
+    {
+      "name": "third same text within two minutes pauses",
+      "sends": [
+        [
+          0,
+          "Hallo"
+        ],
+        [
+          10,
+          "Hallo"
+        ],
+        [
+          20,
+          "Hallo"
+        ],
+        [
+          49,
+          "Hallo"
+        ],
+        [
+          50,
+          "Hallo"
+        ]
+      ],
+      "waits": [
+        0,
+        0,
+        30,
+        1,
+        30
+      ]
+    },
+    {
+      "name": "same text with a different one between is fine",
+      "sends": [
+        [
+          0,
+          "Hallo"
+        ],
+        [
+          10,
+          "Hallo"
+        ],
+        [
+          20,
+          "Na?"
+        ],
+        [
+          30,
+          "Hallo"
+        ]
+      ],
+      "waits": [
+        0,
+        0,
+        0,
+        0
+      ]
+    },
+    {
+      "name": "same text spread over more than two minutes is fine",
+      "sends": [
+        [
+          0,
+          "Hallo"
+        ],
+        [
+          60,
+          "Hallo"
+        ],
+        [
+          121,
+          "Hallo"
+        ]
+      ],
+      "waits": [
+        0,
+        0,
+        0
+      ]
+    },
+    {
+      "name": "same text exactly two minutes apart pauses",
+      "sends": [
+        [
+          0,
+          "Hallo"
+        ],
+        [
+          60,
+          "Hallo"
+        ],
+        [
+          120,
+          "Hallo"
+        ]
+      ],
+      "waits": [
+        0,
+        0,
+        30
+      ]
+    },
+    {
+      "name": "white space around the text does not make it different",
+      "sends": [
+        [
+          0,
+          "Hallo"
+        ],
+        [
+          5,
+          " Hallo "
+        ],
+        [
+          10,
+          "Hallo\n"
+        ]
+      ],
+      "waits": [
+        0,
+        0,
+        30
+      ]
+    },
+    {
+      "name": "empty texts (attachments only) never count as the same text",
+      "sends": [
+        [
+          0,
+          ""
+        ],
+        [
+          1,
+          ""
+        ],
+        [
+          2,
+          ""
+        ]
+      ],
+      "waits": [
+        0,
+        0,
+        0
+      ]
+    },
+    {
+      "name": "eleventh message within thirty seconds pauses",
+      "sends": [
+        [
+          0,
+          "a1"
+        ],
+        [
+          2,
+          "a2"
+        ],
+        [
+          4,
+          "a3"
+        ],
+        [
+          6,
+          "a4"
+        ],
+        [
+          8,
+          "a5"
+        ],
+        [
+          10,
+          "a6"
+        ],
+        [
+          12,
+          "a7"
+        ],
+        [
+          14,
+          "a8"
+        ],
+        [
+          16,
+          "a9"
+        ],
+        [
+          18,
+          "a10"
+        ],
+        [
+          20,
+          "a11"
+        ],
+        [
+          49,
+          "a12"
+        ],
+        [
+          50,
+          "a13"
+        ]
+      ],
+      "waits": [
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        30,
+        1,
+        0
+      ]
+    },
+    {
+      "name": "ten messages per thirty seconds keep flowing",
+      "sends": [
+        [
+          0,
+          "b1"
+        ],
+        [
+          3,
+          "b2"
+        ],
+        [
+          6,
+          "b3"
+        ],
+        [
+          9,
+          "b4"
+        ],
+        [
+          12,
+          "b5"
+        ],
+        [
+          15,
+          "b6"
+        ],
+        [
+          18,
+          "b7"
+        ],
+        [
+          21,
+          "b8"
+        ],
+        [
+          24,
+          "b9"
+        ],
+        [
+          27,
+          "b10"
+        ],
+        [
+          30,
+          "b11"
+        ],
+        [
+          33,
+          "b12"
+        ]
+      ],
+      "waits": [
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0
+      ]
+    }
+  ]
+}

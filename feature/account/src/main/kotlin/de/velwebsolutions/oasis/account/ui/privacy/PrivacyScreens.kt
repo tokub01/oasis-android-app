@@ -52,6 +52,7 @@ import de.velwebsolutions.oasis.account.ui.components.ConfirmDialog
 import de.velwebsolutions.oasis.account.ui.components.EmptyLine
 import de.velwebsolutions.oasis.account.ui.components.FlowChoices
 import de.velwebsolutions.oasis.account.ui.components.LinkText
+import de.velwebsolutions.oasis.account.ui.retry
 import de.velwebsolutions.oasis.design.components.AsyncOasisButton
 import de.velwebsolutions.oasis.design.components.Bullets
 import de.velwebsolutions.oasis.design.components.Eyebrow
@@ -148,7 +149,7 @@ internal fun PrivacyCenterScreen(viewModel: PrivacyViewModel = hiltViewModel()) 
             },
             modifier = Modifier.fillMaxSize()
         ) {
-            PrivacyCenterContent(ui, onRetry = viewModel::load, onChange = viewModel::change, onLimit = {
+            PrivacyCenterContent(ui, onRetry = viewModel.retry(viewModel::load), onChange = viewModel::change, onLimit = {
                 limitCount = it
             }, open = navigator::open)
         }
@@ -289,7 +290,7 @@ internal fun PrivacyCheckupScreen(viewModel: PrivacyViewModel = hiltViewModel())
         onDismissError = viewModel::dismissError
     ) {
         AccountPage {
-            LoadableView(ui.state, onRetry = viewModel::load) {
+            LoadableView(ui.state, onRetry = viewModel.retry(viewModel::load)) {
                 PrivacyCheckupContent(ui, viewModel::change, viewModel::next, viewModel::back, navigator::open) {
                     if (!navigator.back()) navigator.dismissSheet()
                 }
@@ -405,7 +406,7 @@ internal fun HiddenWordsScreen(viewModel: HiddenWordsViewModel = hiltViewModel()
                 lead =
                     "Tropfen, Antworten und Hinweise mit diesen Wörtern bekommst du nicht mehr zu sehen. Groß- und Kleinschreibung spielt keine Rolle."
             )
-            LoadableView(ui.state, onRetry = viewModel::load) { words ->
+            LoadableView(ui.state, onRetry = viewModel.retry(viewModel::load)) { words ->
                 SectionCard("Deine Wörter (${words.words.size} von ${words.max})") {
                     OasisTextField(
                         "Wort oder Ausdruck hinzufügen",

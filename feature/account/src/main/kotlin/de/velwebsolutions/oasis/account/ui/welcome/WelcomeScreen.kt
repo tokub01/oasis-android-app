@@ -49,9 +49,11 @@ import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.compose.LifecycleEventEffect
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import de.velwebsolutions.oasis.account.api.PrivacyChoice
 import de.velwebsolutions.oasis.account.api.WelcomeTour
 import de.velwebsolutions.oasis.account.ui.components.FlowChoices
 import de.velwebsolutions.oasis.account.ui.components.LinkText
+import de.velwebsolutions.oasis.account.ui.retry
 import de.velwebsolutions.oasis.design.components.AsyncOasisButton
 import de.velwebsolutions.oasis.design.components.AuthorizedImage
 import de.velwebsolutions.oasis.design.components.AvatarTint
@@ -110,7 +112,7 @@ internal fun WelcomeContent(ui: WelcomeUiState, viewModel: WelcomeViewModel, fin
     LaunchedEffect(ui.step) { scroll.animateScrollTo(0) }
     Column(Modifier.fillMaxSize().verticalScroll(scroll).padding(20.dp), horizontalAlignment = Alignment.CenterHorizontally) {
         Column(Modifier.widthIn(max = 720.dp).fillMaxWidth(), verticalArrangement = Arrangement.spacedBy(20.dp)) {
-            LoadableView(ui.state, onRetry = viewModel::load) { tour ->
+            LoadableView(ui.state, onRetry = viewModel.retry(viewModel::load)) { tour ->
                 Column(verticalArrangement = Arrangement.spacedBy(20.dp)) {
                     Header(ui, tour, finish)
                     ui.error?.let { Banner(it) }
@@ -230,9 +232,9 @@ private fun ColumnScope.ProfileStep(ui: WelcomeUiState, tour: WelcomeTour, viewM
             }
         }
     }
-    Text("Farbe deines Profilbilds", style = OasisType.SmallBold, color = OasisColors.Ink)
+    Text("Farbe deiner Initialen", style = OasisType.SmallBold, color = OasisColors.Ink)
     Row(horizontalArrangement = Arrangement.spacedBy(16.dp)) {
-        tour.colors.forEach { color ->
+        (listOf(PrivacyChoice(AvatarTint.AUTOMATIC, "Automatisch")) + tour.colors).forEach { color ->
             val isSelected = ui.avatarColor == color.value
             Column(
                 Modifier
@@ -249,13 +251,18 @@ private fun ColumnScope.ProfileStep(ui: WelcomeUiState, tour: WelcomeTour, viewM
                 Box(
                     Modifier
                         .size(32.dp)
-                        .background(AvatarTint.background(color.value), CircleShape)
+                        .background(AvatarTint.background(AvatarTint.shown(color.value, viewModel.member?.id ?: 0)), CircleShape)
                         .then(if (isSelected) Modifier.border(3.dp, OasisColors.Night, CircleShape) else Modifier)
                 )
                 Text(color.label, style = OasisType.Caption, color = OasisColors.Ink)
             }
         }
     }
+    Text(
+        "Deine Initialen siehst du überall, wo kein Profilbild gezeigt wird. „Automatisch“ wählt eine Farbe für dich.",
+        style = OasisType.Caption,
+        color = OasisColors.Muted
+    )
 }
 
 @Composable

@@ -18,6 +18,21 @@ Ab 22. Oktober 2026: Seitdem trägt jede Änderung in allen drei Projekten den V
 
 Was dabei gleich bleibt: Ein Mensch entscheidet, was in Oasis kommt, und gibt jede Änderung frei. Jede Änderung wird durch automatische Tests abgesichert, bevor sie ausgeliefert wird.
 
+## 0.25.0 – 2026-11-04 – Klarere Tropfen, ruhigerer Chat
+
+Antworten gibt es nur noch dort, wo sie erlaubt sind, Namen in jeder Schrift sehen richtig aus, du wählst die Farbe deiner Initialen, und der Chat schützt besser vor Schreien und Fluten.
+
+- **Neu:** Farbe deiner Initialen: Ohne Profilbild wählst du in den Profileinstellungen eine Farbe – oder lässt „Automatisch“.
+- **Neu:** Weitertragen geht jetzt auch ohne eigene Worte.
+- **Neu:** Der Chat bittet ruhig um weniger Großbuchstaben und Wiederholungen und legt nach sehr vielen Nachrichten kurz eine Pause ein.
+- **Verbessert:** Darf man auf einen Tropfen nicht antworten, steht dort statt „Antworten“ kurz, wer antworten darf. Weitertragen geht dann nur ohne eigenen Text.
+- **Verbessert:** Die Kopfzeile jedes Tropfens ist überall gleich aufgebaut: Name, dann @Name · Oase · Zeit – ohne überflüssige Punkte.
+- **Verbessert:** Ein beendeter Chat sagt jetzt, was passiert ist: wer ihn verlassen hat oder dass es das Konto nicht mehr gibt.
+- **Verbessert:** Das Eingabefeld im Chat nennt immer, wie viele Zeichen hineinpassen, mit Tausenderpunkt („4.000“).
+- **Verbessert:** Im Chat haben Nachrichten mehr Luft zum Rand, die Abstände sind überall gleich.
+- **Behoben:** Am Ende einer Liste erscheint keine Fehlermeldung mehr, die Liste endet einfach.
+- **Behoben:** Namen wie „Yıldız“ oder „İlkay Şahin“ sehen jetzt richtig aus, auch in den Initialen.
+
 ## 0.24.0 – 2026-11-03 – Ruhigerer Chat, ruhigerer Start
 
 Der Chat ist ruhiger gestaltet und lässt sich mit Wischgesten bedienen, der Weg in Oasis ist kürzer, und Oasis ist ab jetzt ein Netzwerk für Erwachsene.

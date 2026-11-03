@@ -84,6 +84,7 @@ import de.velwebsolutions.oasis.network.ui.compose.ComposeViewModel
 import de.velwebsolutions.oasis.network.ui.compose.ComposerCallbacks
 import de.velwebsolutions.oasis.network.ui.compose.ComposerForm
 import de.velwebsolutions.oasis.network.ui.compose.callbacks
+import de.velwebsolutions.oasis.network.ui.retry
 
 /**
  * The composer as a sheet: a new Tropfen in the Quelle or an oasis, or a (quick) reply. While something is written or
@@ -145,7 +146,7 @@ private fun ComposePage(state: ComposeUiState, viewModel: ComposeViewModel, onCl
             }
         }
     ) {
-        LoadableView(state.context, onRetry = viewModel::load) {
+        LoadableView(state.context, onRetry = viewModel.retry(viewModel::load)) {
             ComposeContent(state, viewModel.callbacks(), onPublished = { onPublished() })
         }
     }
@@ -173,7 +174,9 @@ fun CarryScreen(
     id: Int,
     viewModel: CarryViewModel = hiltViewModel<CarryViewModel, CarryViewModel.Factory>(creationCallback = { it.create(id) }),
     composer: ComposeViewModel =
-        hiltViewModel<ComposeViewModel, ComposeViewModel.Factory>(key = "carry:$id", creationCallback = { it.create(null, null, id) })
+        hiltViewModel<ComposeViewModel, ComposeViewModel.Factory>(key = "carry:$id", creationCallback = { it.create(null, null, id) }),
+    /** From the card's `can_quote`; the carry page's own answer decides as well. */
+    quote: Boolean = true
 ) {
     val source by viewModel.source.collectAsStateWithLifecycle()
     val state by composer.state.collectAsStateWithLifecycle()
@@ -183,13 +186,24 @@ fun CarryScreen(
         composer.loadIfNeeded()
     }
     OasisScreen(title = "Weitertragen") {
-        LoadableView(source, onRetry = {
-            viewModel.load()
-            composer.loadIfNeeded()
-        }) { original ->
+        LoadableView(
+            source,
+            onRetry = viewModel.retry {
+                viewModel.load()
+                composer.loadIfNeeded()
+            }
+        ) { original ->
+            val plain = !quote || !original.canQuote
+            LaunchedEffect(plain) { if (plain) composer.carryPlainly() }
             NetworkPage {
-                block { PageHeader("Weitertragen", lead = "Schreib ein paar eigene Worte dazu: Warum ist das wichtig?") }
+                block {
+                    PageHeader(
+                        "Weitertragen",
+                        lead = if (plain) PLAIN_CARRY_LEAD else QUOTE_CARRY_LEAD
+                    )
+                }
                 block { CarriedOriginal(original.author, original.segments) }
+                if (plain) block { Text(plainCarryNote(original.author.displayName), style = OasisType.Small, color = OasisColors.Muted) }
                 block {
                     PaperBox {
                         ComposerForm(state, composer.callbacks(), onPublished = {
@@ -202,6 +216,16 @@ fun CarryScreen(
         }
     }
 }
+
+/** The lead of the carry page when own words are allowed (empty is a plain carry). */
+const val QUOTE_CARRY_LEAD = "Magst du ein paar eigene Worte dazuschreiben? Warum ist das wichtig?"
+
+/** The lead of the carry page when own words would be an answer the member may not give. */
+const val PLAIN_CARRY_LEAD = "Teile den Tropfen mit den Menschen, die dir folgen."
+
+/** Why the carry page has no text field. */
+fun plainCarryNote(author: String): String =
+    "$author lässt nicht alle antworten. Du kannst den Tropfen deshalb nur ohne eigene Worte weitertragen."
 
 /**
  * "Tropfen bearbeiten" (/tropfen/{id}/bearbeiten): the text within the edit window; images and audience stay. A changed
@@ -234,7 +258,7 @@ fun EditPostScreen(
 @Composable
 private fun EditPostPage(viewModel: EditPostViewModel, form: Loadable<PostEditForm>, text: String, error: ApiError?, onCancel: () -> Unit) {
     OasisScreen(title = "Bearbeiten") {
-        LoadableView(form, onRetry = viewModel::load) { loaded ->
+        LoadableView(form, onRetry = viewModel.retry(viewModel::load)) { loaded ->
             NetworkPage {
                 block {
                     PageHeader(
@@ -330,7 +354,7 @@ fun PostDetailScreen(
             }
         }
     ) {
-        LoadableView(detail, onRetry = viewModel::load, skeleton = SkeletonLayout.Cards) { loaded ->
+        LoadableView(detail, onRetry = viewModel.retry(viewModel::load), skeleton = SkeletonLayout.Cards) { loaded ->
             val polls = PollActions(
                 vote = { post, index -> viewModel.launch { viewModel.vote(post, index) } },
                 close = { post -> viewModel.launch { viewModel.closePoll(post) } }

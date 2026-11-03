@@ -80,6 +80,7 @@ import de.velwebsolutions.oasis.network.ui.components.feedSection
 import de.velwebsolutions.oasis.network.ui.components.handlers
 import de.velwebsolutions.oasis.network.ui.components.membersLabel
 import de.velwebsolutions.oasis.network.ui.feeds.ComposeEntry
+import de.velwebsolutions.oasis.network.ui.retry
 import kotlinx.coroutines.delay
 
 /**
@@ -140,7 +141,7 @@ fun OasisDetailScreen(
         }
     ) {
         Box(Modifier.fillMaxSize()) {
-            LoadableView(detail, onRetry = viewModel::load, skeleton = SkeletonLayout.Cards) { oasis ->
+            LoadableView(detail, onRetry = viewModel.retry(viewModel::load), skeleton = SkeletonLayout.Cards) { oasis ->
                 val extras = OasisMeetupsUi(meetups, meetupForm, viewModel.meetupActions())
                 val collectionsUi = OasisCollectionsUi(
                     collections,

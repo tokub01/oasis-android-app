@@ -53,7 +53,7 @@ import kotlinx.coroutines.launch
 @Composable
 fun CancelScreen(viewModel: CancelViewModel = hiltViewModel()) {
     val state by viewModel.state.collectAsStateWithLifecycle()
-    CancelContent(state, viewModel::load, viewModel::confirm, viewModel::prepareExport, viewModel::dismissError)
+    CancelContent(state, viewModel.retry(viewModel::load), viewModel::confirm, viewModel::prepareExport, viewModel::dismissError)
 }
 
 /** The cancel page without its view model, for the app and for tests. */
@@ -112,7 +112,7 @@ fun CancelContent(
 @Composable
 fun WithdrawScreen(viewModel: WithdrawViewModel = hiltViewModel()) {
     val state by viewModel.state.collectAsStateWithLifecycle()
-    WithdrawContent(state, viewModel::load, viewModel::confirm, viewModel::prepareExport, viewModel::dismissError)
+    WithdrawContent(state, viewModel.retry(viewModel::load), viewModel::confirm, viewModel::prepareExport, viewModel::dismissError)
 }
 
 /** The withdraw page without its view model, for the app and for tests. */

@@ -162,6 +162,16 @@ data class Post(
         val canReply: Boolean = false,
         val canCarry: Boolean = false,
         val canWriteReply: Boolean = false,
+        /**
+         * Why the viewer may not answer („Nur Menschen, denen Mira folgt, können antworten“), shown instead of
+         * „Antworten“; null: nothing to say.
+         */
+        val replyHint: String? = null,
+        /**
+         * Weitertragen with own words; without it only plain Weitertragen (own words would be an answer). Servers before
+         * round N leave it out: with words, as before.
+         */
+        val canQuote: Boolean = true,
         val canQuickReply: Boolean = false,
         val canEdit: Boolean = false,
         val canDelete: Boolean = false,
@@ -171,6 +181,9 @@ data class Post(
     )
 
     val isQuestion: Boolean get() = kind == "question"
+
+    /** Weitergetragen without own words: the card shows the carried Tropfen under „{Name} hat das weitergetragen“. */
+    val isPlainCarry: Boolean get() = carried != null && body.isBlank()
     val isMembersOnly: Boolean get() = visibility == "members"
 }
 
@@ -203,7 +216,9 @@ data class CarrySource(
     val author: Member,
     val body: String,
     val segments: List<TextSegment> = emptyList(),
-    val links: List<ExternalLink> = emptyList()
+    val links: List<ExternalLink> = emptyList(),
+    /** Weitertragen with own words; false: only plain Weitertragen (the member may not answer this Tropfen). */
+    val canQuote: Boolean = true
 )
 
 /** A choice with its German label (visibility, kind, colour). */

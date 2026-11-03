@@ -74,6 +74,7 @@ import de.velwebsolutions.oasis.network.ui.components.copyToClipboard
 import de.velwebsolutions.oasis.network.ui.components.rememberBaseUrl
 import de.velwebsolutions.oasis.network.ui.components.share
 import de.velwebsolutions.oasis.network.ui.feeds.dayMonth
+import de.velwebsolutions.oasis.network.ui.retry
 import java.time.Instant
 
 /** "Freund:innen" (/app/freunde): incoming requests (accept, decline), friends (end) and own open requests (withdraw). */
@@ -93,7 +94,7 @@ fun FriendsScreen(viewModel: FriendsViewModel = hiltViewModel<FriendsViewModel>(
         onDismissMessage = viewModel::dismissStatus,
         onDismissError = viewModel::dismissError
     ) {
-        LoadableView(lists, onRetry = viewModel::load) { friends ->
+        LoadableView(lists, onRetry = viewModel.retry(viewModel::load)) { friends ->
             NetworkPage(onRefresh = viewModel::load) {
                 block("header") {
                     PageHeader(
@@ -215,7 +216,7 @@ fun StatisticsScreen(viewModel: StatisticsViewModel = hiltViewModel<StatisticsVi
         TierLoadableView(
             statistics,
             "Deine Zahlen",
-            onRetry = viewModel::load,
+            onRetry = viewModel.retry(viewModel::load),
             feature = "Wie deine Karawane wächst, welche Tropfen ankommen und wie lebendig deine Oasen sind: leise Zahlen über " +
                 "zwölf Wochen, die nur du siehst. Wer reagiert hat, zeigen sie nie."
         ) { stats ->
@@ -294,7 +295,7 @@ fun InvitationsScreen(viewModel: InvitationsViewModel = hiltViewModel<Invitation
     val navigator = LocalNavigator.current
     LaunchedEffect(Unit) { viewModel.loadIfNeeded() }
     OasisScreen(title = "Einladen", message = status, onDismissMessage = viewModel::dismissStatus) {
-        LoadableView(overview, onRetry = viewModel::load) { info ->
+        LoadableView(overview, onRetry = viewModel.retry(viewModel::load)) { info ->
             NetworkPage(onRefresh = viewModel::load) {
                 block("header") {
                     Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
@@ -443,7 +444,7 @@ fun InvitationScreen(
     val navigator = LocalNavigator.current
     LaunchedEffect(Unit) { viewModel.load() }
     OasisScreen(title = "Einladung") {
-        LoadableView(landing, onRetry = viewModel::load) { info ->
+        LoadableView(landing, onRetry = viewModel.retry(viewModel::load)) { info ->
             NetworkPage {
                 block("card") {
                     PaperBox(padding = 24, radius = OasisRadius.L, spacing = 16) {

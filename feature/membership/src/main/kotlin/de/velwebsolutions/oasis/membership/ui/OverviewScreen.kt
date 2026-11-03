@@ -65,7 +65,7 @@ fun OverviewScreen(viewModel: OverviewViewModel = hiltViewModel()) {
     val state by viewModel.state.collectAsStateWithLifecycle()
     OverviewContent(
         state,
-        onRefresh = viewModel::load,
+        onRefresh = viewModel.retry(viewModel::load),
         onDismissMessage = viewModel::dismissMessage,
         onDismissError = viewModel::dismissError,
         onSubscriptionManaged = viewModel::subscriptionManaged

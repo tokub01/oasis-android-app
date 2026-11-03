@@ -34,6 +34,7 @@ import de.velwebsolutions.oasis.staff.ui.components.OptionPicker
 import de.velwebsolutions.oasis.staff.ui.components.StaffLoadable
 import de.velwebsolutions.oasis.staff.ui.components.StaffPage
 import de.velwebsolutions.oasis.staff.ui.components.StaffTitle
+import de.velwebsolutions.oasis.staff.ui.retry
 import kotlinx.coroutines.launch
 
 /** Role management for admins (web: livewire.moderation.roles). Only the operator account appoints admins. */
@@ -47,7 +48,7 @@ fun RolesScreen(viewModel: RolesViewModel = hiltViewModel()) {
         onDismissMessage = viewModel::dismissMessage,
         onDismissError = viewModel::dismissError
     ) {
-        StaffLoadable(state.users, viewModel::load) { users ->
+        StaffLoadable(state.users, viewModel.retry(viewModel::load)) { users ->
             StaffPage(viewModel::load, spacing = 12) {
                 StaffTitle("Rollen")
                 Text(

@@ -54,6 +54,8 @@ class FakeChatServer : Interceptor {
         var ownerRoleHidden: Boolean = false,
         /** Members who left or were removed: the directory still lists them (`GET public-keys`). */
         val former: MutableSet<Int> = mutableSetOf(),
+        /** A server that says who left an ended chat (`ended_reason`, `ended_by`); older servers do not. */
+        var tellsWhoLeft: Boolean = false,
         /** Per member: when they last had the chat open (`last_read_at`). */
         val lastReadAt: MutableMap<Int, String> = mutableMapOf(),
         /** The newest message's time (`last_activity_at`). */
@@ -112,6 +114,9 @@ class FakeChatServer : Interceptor {
     /** Answers that replace the normal route once each, keyed "METHOD path" (path below chat/, e.g. "GET identity"). */
     val failures = mutableMapOf<String, Pair<Int, String>>()
 
+    /** The `Retry-After` header of the next failure (a 429 of the server's limit). */
+    var retryAfter: String? = null
+
     /** Requests being answered right now (tests wait for 0). */
     val inFlight = java.util.concurrent.atomic.AtomicInteger()
 
@@ -161,7 +166,21 @@ class FakeChatServer : Interceptor {
         put("lifetime_days", conversation.lifetimeDays)
         put("key_version", conversation.keyVersion)
         put("rotation_required", conversation.rotationRequired)
-        put("ended", conversation.type == "direct" && conversation.members.size < 2)
+        val ended = conversation.type == "direct" && conversation.members.size < 2
+        put("ended", ended)
+        if (ended && conversation.tellsWhoLeft) {
+            put("ended_reason", "left")
+            conversation.former.lastOrNull()?.takeIf { it != user }?.let { leaver ->
+                put(
+                    "ended_by",
+                    buildJsonObject {
+                        put("id", leaver.toString())
+                        put("display_name", name(leaver))
+                        put("username", users.getValue(leaver))
+                    }
+                )
+            }
+        }
         put(
             "members",
             buildJsonArray {
@@ -252,6 +271,7 @@ class FakeChatServer : Interceptor {
             .protocol(Protocol.HTTP_1_1)
             .code(status)
             .message("fake")
+            .apply { retryAfter?.takeIf { status == 429 }?.let { header("Retry-After", it) } }
             .body(json.toString().toResponseBody("application/json".toMediaType()))
             .build()
     }

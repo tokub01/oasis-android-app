@@ -29,6 +29,7 @@ import de.velwebsolutions.oasis.account.platform.rememberPasskeyAuthenticator
 import de.velwebsolutions.oasis.account.ui.components.ConfirmDialog
 import de.velwebsolutions.oasis.account.ui.components.GermanDate
 import de.velwebsolutions.oasis.account.ui.components.OneTimeCodeField
+import de.velwebsolutions.oasis.account.ui.retry
 import de.velwebsolutions.oasis.design.components.AsyncOasisButton
 import de.velwebsolutions.oasis.design.components.Banner
 import de.velwebsolutions.oasis.design.components.BannerKind
@@ -61,7 +62,7 @@ internal fun PasskeysSection(ui: PasskeysUiState, viewModel: PasskeysViewModel) 
             style = OasisType.Small,
             color = OasisColors.Ink2
         )
-        LoadableView(ui.state, onRetry = viewModel::load) { list ->
+        LoadableView(ui.state, onRetry = viewModel.retry(viewModel::load)) { list ->
             Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
                 if (list.isEmpty()) Text("Du hast noch keinen Passkey.", style = OasisType.Small, color = OasisColors.Muted)
                 list.forEach { passkey -> PasskeyRow(passkey, viewModel) }
@@ -191,7 +192,7 @@ internal fun PhoneNumberSection(ui: PhoneNumberUiState, viewModel: PhoneNumberVi
             style = OasisType.Small,
             color = OasisColors.Ink2
         )
-        LoadableView(ui.state, onRetry = viewModel::load) { status -> PhoneNumberContent(ui, status, viewModel) }
+        LoadableView(ui.state, onRetry = viewModel.retry(viewModel::load)) { status -> PhoneNumberContent(ui, status, viewModel) }
     }
     if (ui.confirmingRemoval) {
         ConfirmDialog(

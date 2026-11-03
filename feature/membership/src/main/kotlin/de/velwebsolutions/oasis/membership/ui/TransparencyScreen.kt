@@ -98,7 +98,7 @@ fun figureText(value: Int): String = java.text.NumberFormat.getIntegerInstance(j
 @Composable
 fun TransparencyScreen(viewModel: TransparencyViewModel = hiltViewModel()) {
     val state by viewModel.state.collectAsStateWithLifecycle()
-    TransparencyContent(state, onRefresh = viewModel::load, onShow = { id ->
+    TransparencyContent(state, onRefresh = viewModel.retry(viewModel::load), onShow = { id ->
         viewModel.viewModelScope.launch { viewModel.show(id) }
     }, viewModel::dismissError)
 }

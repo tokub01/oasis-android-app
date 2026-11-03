@@ -141,7 +141,15 @@ class PostListModel<C>(
         val started = generation
         val result = attempt { repository.fetch(current.filter, cursor) }
         if (started != generation) return
-        mutableState.update { it.copy(isLoadingMore = false, loadMoreError = result.apiError) }
+        // An older page the app cannot read ends the list quietly: trying again would bring the same answer.
+        val unreadable = result.apiError is ApiError.Decoding
+        mutableState.update {
+            it.copy(
+                isLoadingMore = false,
+                loadMoreError = result.apiError.takeUnless { unreadable },
+                nextCursor = if (unreadable) null else it.nextCursor
+            )
+        }
         result.onSuccess { page ->
             mutableState.update { state ->
                 val known = state.posts.map { it.id }.toSet()

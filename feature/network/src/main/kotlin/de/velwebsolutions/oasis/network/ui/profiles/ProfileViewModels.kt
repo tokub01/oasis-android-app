@@ -8,6 +8,7 @@ import de.velwebsolutions.oasis.core.model.Loadable
 import de.velwebsolutions.oasis.core.network.ApiError
 import de.velwebsolutions.oasis.core.network.CommonApi
 import de.velwebsolutions.oasis.core.network.Confirmed
+import de.velwebsolutions.oasis.design.components.AvatarTint
 import de.velwebsolutions.oasis.network.NetworkSignals
 import de.velwebsolutions.oasis.network.api.FriendLists
 import de.velwebsolutions.oasis.network.api.ImageUpload
@@ -245,7 +246,7 @@ class EditProfileViewModel @Inject constructor(private val repository: NetworkRe
                 bio = loaded.bio,
                 location = loaded.location,
                 status = loaded.status,
-                color = loaded.avatarColor,
+                color = loaded.avatarColorChoice ?: AvatarTint.AUTOMATIC,
                 toneHint = null,
                 toneNudge = false,
                 toneConfirmed = false

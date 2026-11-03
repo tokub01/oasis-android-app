@@ -27,6 +27,7 @@ import de.velwebsolutions.oasis.network.ui.components.WeekChart
 import de.velwebsolutions.oasis.network.ui.components.WeekRow
 import de.velwebsolutions.oasis.network.ui.components.block
 import de.velwebsolutions.oasis.network.ui.components.membersLabel
+import de.velwebsolutions.oasis.network.ui.retry
 
 /**
  * "„…“ schließen?" (/oasen/{slug}/schliessen): host-only confirmation with an explicit checkbox; Tropfen stay with their
@@ -52,7 +53,7 @@ fun CloseOasisScreen(
         }
     }
     OasisScreen(title = "Oase schließen") {
-        LoadableView(closing, onRetry = viewModel::load) { info ->
+        LoadableView(closing, onRetry = viewModel.retry(viewModel::load)) { info ->
             NetworkPage {
                 block("header") { PageHeader("„${info.name}“ schließen?") }
                 block("form") {
@@ -99,7 +100,7 @@ fun OasisStatisticsScreen(
         TierLoadableView(
             statistics,
             "Statistik deiner Oase",
-            onRetry = viewModel::load,
+            onRetry = viewModel.retry(viewModel::load),
             feature = "Wie deine Oase wächst und wie lebendig sie ist: neue Mitglieder und Tropfen pro Woche über zwölf Wochen, " +
                 "nur für Gastgeber:innen. Wer was liest oder schreibt, zeigen die Zahlen nie."
         ) { stats ->

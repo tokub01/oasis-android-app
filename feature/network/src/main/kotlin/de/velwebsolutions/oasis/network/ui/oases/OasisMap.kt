@@ -66,6 +66,7 @@ import de.velwebsolutions.oasis.network.ui.components.NetworkPage
 import de.velwebsolutions.oasis.network.ui.components.SectionTitle
 import de.velwebsolutions.oasis.network.ui.components.block
 import de.velwebsolutions.oasis.network.ui.components.membersLabel
+import de.velwebsolutions.oasis.network.ui.retry
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -128,7 +129,7 @@ fun OasisMapScreen(
     val error by viewModel.error.collectAsStateWithLifecycle()
     LaunchedEffect(Unit) { viewModel.loadIfNeeded() }
     OasisScreen(title = "Karte", error = error?.userMessage, onDismissError = viewModel::dismissError) {
-        LoadableView(regions, onRetry = viewModel::load) { tiles ->
+        LoadableView(regions, onRetry = viewModel.retry(viewModel::load)) { tiles ->
             NetworkPage(onRefresh = viewModel::load) {
                 block("header") {
                     PageHeader(

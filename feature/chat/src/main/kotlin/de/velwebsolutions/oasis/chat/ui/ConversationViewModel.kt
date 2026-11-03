@@ -22,6 +22,7 @@ import de.velwebsolutions.oasis.chat.core.ChatKeyringException
 import de.velwebsolutions.oasis.chat.core.ChatMessageItem
 import de.velwebsolutions.oasis.chat.core.ChatMessages
 import de.velwebsolutions.oasis.chat.core.ChatSafety
+import de.velwebsolutions.oasis.chat.core.ChatSpam
 import de.velwebsolutions.oasis.chat.core.ChatTimeline
 import de.velwebsolutions.oasis.chat.core.DraftAttachment
 import de.velwebsolutions.oasis.chat.core.LookChoice
@@ -174,7 +175,7 @@ data class ConversationState(
      * screen shows [ChatKeyring.UNTRUSTED_OWNER] instead of the composer.
      */
     val untrustedOwner: Boolean = false,
-    /** „3120 / 4000“ from 75 % of the maximum, „Höchstens 4000 Zeichen“ at it; "" below ([DraftLimit.counter]). */
+    /** „3.120 / 4.000“ from 75 % of the maximum, „Höchstens 4.000 Zeichen“ at it; "" below ([DraftLimit.counter]). */
     val counter: String = "",
     /** The draft is at or over the limit: the counter in the warning colour. */
     val atLimit: Boolean = false,
@@ -217,6 +218,12 @@ data class ConversationState(
     val replyBar: ReplyBar? = null,
     /** „Angeheftet: …“ at the top of the chat. */
     val pinBar: PinBar? = null,
+    /** A label on the round send button: „Trotzdem senden“ after a spam hint, „Noch 27 s“ during a pause; null: the icon. */
+    val sendLabel: String? = null,
+    /** The empty field's text and hint: „Nachricht – bis zu 4.000 Zeichen“ with the current maximum. */
+    val placeholder: String = DraftLimit.placeholder(DraftLimit.DEFAULT_MAX),
+    /** Sending pauses after flooding (ChatSpam), with the countdown in [sendLabel]. */
+    val paused: Boolean = false,
     /** „Anheften“ is offered: both members of a 1:1 chat, a group's owner. */
     val canPin: Boolean = false,
     /** The polls as they stand, by the poll's signature. */
@@ -266,7 +273,8 @@ data class ConversationState(
 
     /** "Senden" is possible: text or files, within the limits, not while recording or uploading. */
     val canSubmit: Boolean
-        get() = canSend && (draft.isNotBlank() || drafts.isNotEmpty()) && !tooLong && recordingSeconds == null && uploadProgress == null
+        get() = canSend && (draft.isNotBlank() || drafts.isNotEmpty()) && !tooLong && recordingSeconds == null && uploadProgress == null &&
+            !paused
 }
 
 /**
@@ -317,7 +325,12 @@ class ConversationViewModel @AssistedInject constructor(
     private var users: Map<String, PublicUser> = emptyMap()
     private var warnings: List<String> = emptyList()
     private val dismissed = mutableSetOf<String>()
-    private var confirmedDraft: String? = null
+
+    /** Shouting, repetition and flooding in this chat, in memory only; a pause counts down on the send button. */
+    private val guard = SendGuard(viewModelScope, { vault.clock.now() }) { left ->
+        render { it.pausing(left) }
+        if (left == null) setDraft(state.value.draft)
+    }
     private var flagged: SafetyFlag? = null
 
     /** When the member last had the chat open, taken once per opening (the „Neue Nachrichten“ divider). */
@@ -394,6 +407,7 @@ class ConversationViewModel @AssistedInject constructor(
             polls = derived.polls,
             untrustedOwner = current != null && !current.ended && !trusted,
             counter = DraftLimit.counter(measured),
+            placeholder = DraftLimit.placeholder(measured.max),
             atLimit = DraftLimit.atLimit(measured),
             tooLong = measured.tooLong,
             limit = limit,
@@ -476,7 +490,7 @@ class ConversationViewModel @AssistedInject constructor(
         quiet = emptyList()
         flagged = null
         dismissed.clear()
-        confirmedDraft = null
+        guard.forget()
         unseen = false
         reply = null
         render {
@@ -700,12 +714,9 @@ class ConversationViewModel @AssistedInject constructor(
     /** Typing: tone hint; a pending sensitive-data warning ends when the text changes; counts as interaction (idle lock). */
     fun setDraft(value: String) {
         vault.touch()
-        if (confirmedDraft != null && confirmedDraft != value.trim()) confirmedDraft = null
+        guard.edited(value)
         val tone = ChatSafety.scanOutgoing(value, vault.safety.tone).tone
-        mutableState.value = mutableState.value.copy(
-            draft = value,
-            hint = tone?.let { "Kurzer Hinweis: „$it“ wirkt schnell herablassend. Bitte achte auf einen freundlichen Ton." }
-        )
+        mutableState.value = guard.typed(mutableState.value.copy(draft = value), tone)
         render()
     }
 
@@ -726,16 +737,12 @@ class ConversationViewModel @AssistedInject constructor(
         val drafts = state.value.drafts
         if (!state.value.canSubmit) return@inScope
         render { it.copy(composerError = null) }
-        val sensitive = ChatSafety.scanOutgoing(text, vault.safety.tone).sensitive
-        if (sensitive.isNotEmpty() && confirmedDraft != text) {
-            confirmedDraft = text
-            render {
-                it.copy(
-                    hint = "Du bist dabei, ${sensitive.joinToString(" und ")} zu verschicken. $SENSITIVE_ADVICE"
-                )
-            }
+        // Sensitive data, shouting or repetition: a hint, and the next press with the same text sends it.
+        guard.hold(text, ChatSafety.scanOutgoing(text, vault.safety.tone).sensitive)?.let { hint ->
+            render { it.copy(hint = hint, sendLabel = ChatSpam.SEND_ANYWAY.takeIf { guard.asksAgain }) }
             return@inScope
         }
+        if (!guard.mayLeave(text)) return@inScope
         val token = openCount
         try {
             // Nothing is uploaded for a chat nothing may be sealed for.
@@ -749,7 +756,8 @@ class ConversationViewModel @AssistedInject constructor(
             val stored = context.repository.sendMessage(current.id, envelope, references.map { it.id })
             // Left or locked meanwhile: sent, but nothing of it is kept or written to the device any more (conversation-view.js).
             if (!isCurrent(token)) return@inScope
-            confirmedDraft = null
+            guard.sent(text)
+            render { it.copy(sendLabel = null) }
             // Sent: nothing after this may report a failure, or the member sends it again. What was picked stays on screen
             // without a download (a preview that cannot be written, on a full storage, comes down later like a
             // recipient's); view-once files are not shown to the sender again.
@@ -772,6 +780,7 @@ class ConversationViewModel @AssistedInject constructor(
         } catch (error: Exception) {
             // The chat was left meanwhile: its error and a reload are not for the chat shown now.
             if (!isCurrent(token)) return@inScope
+            if (guard.limited(error)) return@inScope render { it.copy(uploadProgress = null) }
             render { it.copy(composerError = describeChatError(error), uploadProgress = null) }
             if (error is ApiError.Conflict || error == ChatKeyringException.StaleKeyVersion) {
                 try {
@@ -1398,9 +1407,6 @@ class ConversationViewModel @AssistedInject constructor(
 
         /** No app on the device opens this kind of file. */
         const val NO_APP = "Auf deinem Gerät ist keine App, die diese Datei öffnen kann."
-
-        private const val SENSITIVE_ADVICE =
-            "Oasis fragt dich nie im Chat danach – sei vorsichtig, besonders bei Menschen, die du noch nicht kennst. Zum Senden tippe noch einmal auf „Senden“."
 
         /** The composer after `sent` went out: what was typed meanwhile stays; a changed draft stays as it is. */
         fun remainder(draft: String, sent: String): String {

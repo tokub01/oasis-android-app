@@ -75,7 +75,7 @@ fun PerksScreen(viewModel: PerksViewModel = hiltViewModel()) {
     PerksContent(
         state,
         PerksCallbacks(
-            onRefresh = viewModel::load,
+            onRefresh = viewModel.retry(viewModel::load),
             onCreateSeat = viewModel::createSeat,
             onReleaseSeat = viewModel::releaseSeat,
             onGiveBack = viewModel::giveBack,
@@ -266,7 +266,7 @@ fun CompanionLinkScreen(
     val navigator = LocalNavigator.current
     CompanionLinkContent(
         state,
-        onRetry = viewModel::load,
+        onRetry = viewModel.retry(viewModel::load),
         onAccept = { viewModel.accept { navigator.handle(NetworkRoute.Source) } },
         onDismissError = viewModel::dismissError
     )

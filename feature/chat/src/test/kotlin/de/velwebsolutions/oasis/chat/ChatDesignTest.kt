@@ -192,6 +192,7 @@ class ChatDesignTest {
         assertEquals(2.dp, rowGap(Run.Last))
         assertEquals(12.dp, rowGap(Run.First))
         assertEquals(12.dp, rowGap(Run.Single))
+        assertEquals("a day pill or „Neue Nachrichten“ keeps the distance", 0.dp, rowGap(Run.Single, afterSeparator = true))
         assertEquals(30, rowOffset(15f, 2f).x)
         assertEquals("unread", TimelineRow.Unread().key)
     }

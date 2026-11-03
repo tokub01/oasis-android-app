@@ -18,6 +18,7 @@ import de.velwebsolutions.oasis.account.platform.SmsCodeConsent
 import de.velwebsolutions.oasis.account.ui.components.AuthCard
 import de.velwebsolutions.oasis.account.ui.components.LinkText
 import de.velwebsolutions.oasis.account.ui.components.OneTimeCodeField
+import de.velwebsolutions.oasis.account.ui.retry
 import de.velwebsolutions.oasis.account.ui.settings.PhoneNumberUiState
 import de.velwebsolutions.oasis.account.ui.settings.PhoneNumberViewModel
 import de.velwebsolutions.oasis.design.components.AsyncOasisButton
@@ -36,7 +37,7 @@ import kotlinx.coroutines.launch
 internal fun ConfirmPhoneContentScreen(viewModel: PhoneNumberViewModel = hiltViewModel()) {
     val ui by viewModel.ui.collectAsStateWithLifecycle()
     OasisScreen(title = "Handynummer bestätigen") {
-        LoadableView(ui.state, onRetry = viewModel::load) { status ->
+        LoadableView(ui.state, onRetry = viewModel.retry(viewModel::load)) { status ->
             ConfirmPhoneContent(
                 ui,
                 status,

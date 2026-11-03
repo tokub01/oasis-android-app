@@ -121,7 +121,7 @@ internal fun HintSettingsScreen(viewModel: HintSettingsViewModel = hiltViewModel
         onDismissMessage = viewModel::dismissMessage,
         onDismissError = viewModel::dismissError
     ) {
-        LoadableView(ui.state, onRetry = viewModel::load) {
+        LoadableView(ui.state, onRetry = viewModel.retry(viewModel::load)) {
             HintSettingsContent(
                 ui,
                 HintSettingsActions(

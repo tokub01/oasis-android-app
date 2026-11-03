@@ -59,6 +59,8 @@ class ModelsTest {
         assertEquals("3", Page(listOf(1), Page.Meta(currentPage = 2, lastPage = 5)).nextCursor)
         assertNull(Page(listOf(1), Page.Meta(currentPage = 5, lastPage = 5)).nextCursor)
         assertNull(Page(listOf(1), Page.Meta(currentPage = 5)).nextCursor)
+        assertNull(Page(listOf(1), Page.Meta(lastPage = 5)).nextCursor)
+        assertNull("a page beyond the end", Page(emptyList<Int>(), Page.Meta(currentPage = 5, lastPage = 1, total = 0)).nextCursor)
         assertNull(Page<Int>(emptyList()).nextCursor)
     }
 

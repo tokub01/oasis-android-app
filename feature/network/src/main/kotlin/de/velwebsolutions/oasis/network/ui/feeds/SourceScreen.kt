@@ -77,6 +77,7 @@ import de.velwebsolutions.oasis.network.ui.components.block
 import de.velwebsolutions.oasis.network.ui.components.feedSection
 import de.velwebsolutions.oasis.network.ui.components.handlers
 import de.velwebsolutions.oasis.network.ui.oases.meetupWhen
+import de.velwebsolutions.oasis.network.ui.retry
 import java.time.Instant
 
 /**
@@ -113,7 +114,7 @@ fun SourceScreen(viewModel: SourceViewModel = hiltViewModel<SourceViewModel>()) 
     ) {
         val canPost = state.context?.canPost != false
         Box(Modifier.fillMaxSize()) {
-            LoadableView(state.state, onRetry = viewModel.list::reload, skeleton = SkeletonLayout.Cards) {
+            LoadableView(state.state, onRetry = viewModel.retry(viewModel.list::reload), skeleton = SkeletonLayout.Cards) {
                 val handlers = viewModel.list.handlers(viewModel::launch)
                 FeedPage(listState, handlers, bottomInset = if (canPost) FabInset else 0.dp) {
                     sourceContent(

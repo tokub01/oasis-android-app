@@ -1,6 +1,7 @@
 package de.velwebsolutions.oasis.network
 
 import de.velwebsolutions.oasis.core.model.Loadable
+import de.velwebsolutions.oasis.design.components.AvatarTint
 import de.velwebsolutions.oasis.network.api.FeedPage
 import de.velwebsolutions.oasis.network.api.ImageUpload
 import de.velwebsolutions.oasis.network.api.NoContext
@@ -172,6 +173,15 @@ class ProfileViewModelsTest(private val answersAtOnce: Boolean) {
         assertEquals("🌱".repeat(80), model.form.value.status)
     }
 
+    @Test
+    fun `the chosen colour of the initials comes back into the form`() = runTest {
+        val chosen = Fixtures.ownProfile.replace("\"has_photo\"", "\"avatar_color_choice\":\"night\",\"has_photo\"")
+        val network = StubbedNetwork(stub("GET", "network/profile", chosen))
+        val model = models.keep(EditProfileViewModel(network.repository, network.common))
+        model.loadIfNeeded()
+        assertEquals("night", model.form.value.color)
+    }
+
     private val savedProfile get() = Fixtures.ownProfile.replaceFirst("{\"data\"", "{\"message\":\"Dein Profil ist gespeichert.\",\"data\"")
 
     @Test
@@ -187,6 +197,7 @@ class ProfileViewModelsTest(private val answersAtOnce: Boolean) {
 
         model.loadIfNeeded()
         model.loadIfNeeded()
+        assertEquals("„Automatisch“ when the server names no choice", AvatarTint.AUTOMATIC, model.form.value.color)
         assertEquals("Leipzig", model.form.value.location)
         assertEquals("Im Urlaub bis Sonntag", model.form.value.status)
         model.updateStatus("x".repeat(90))

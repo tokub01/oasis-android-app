@@ -52,6 +52,18 @@ object AvatarTint {
         else -> OasisColors.SunInk
     }
 
+    /** „Automatisch“ in the colour choice of initials (`avatar_color` "auto"): the server resolves it per member. */
+    const val AUTOMATIC = "auto"
+
+    /** The palette in the server's order: „Automatisch“ is `KEYS[id % 4]`. */
+    val KEYS = listOf("sun", "spring", "night", "dune")
+
+    /** The colour „Automatisch“ resolves to for member [memberId], like the server. */
+    fun automatic(memberId: Int): String = KEYS[Math.floorMod(memberId, KEYS.size)]
+
+    /** The colour a choice shows for member [memberId]: „Automatisch“ shows the colour it resolves to. */
+    fun shown(choice: String, memberId: Int): String = if (choice == AUTOMATIC) automatic(memberId) else choice
+
     /** An oasis colour surface (`bg-{color}`), where dune is the light sand tone. */
     fun surface(name: String): Color = if (name == "dune") OasisColors.Dune else background(name)
 }
@@ -116,7 +128,7 @@ fun AuthorizedImage(
 internal fun imageModel(context: Context, url: String, cacheOnDisk: Boolean): Any =
     if (cacheOnDisk) url else ImageRequest.Builder(context).data(url).diskCachePolicy(CachePolicy.DISABLED).build()
 
-/** "vor 5 Min." / "gestern" / "12. Okt." – relative time in German like the web's timestamps. */
+/** "vor 5 Min." / "vor 3 Tagen" / "12. Okt." – relative time in German like the web's timestamps ([RelativeTime]). */
 @Composable
 fun RelativeTimeText(
     instant: Instant,

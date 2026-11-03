@@ -25,13 +25,14 @@ import de.velwebsolutions.oasis.staff.ui.components.StaffDate
 import de.velwebsolutions.oasis.staff.ui.components.StaffLoadable
 import de.velwebsolutions.oasis.staff.ui.components.StaffPage
 import de.velwebsolutions.oasis.staff.ui.components.StaffTitle
+import de.velwebsolutions.oasis.staff.ui.retry
 
 /** Systemzustand (web: livewire.admin.system): health checks, backups and monitoring, bot refusals, last runs. */
 @Composable
 fun SystemScreen(viewModel: SystemViewModel = hiltViewModel()) {
     val state by viewModel.state.collectAsStateWithLifecycle()
     OasisScreen("System", error = state.error, onDismissError = viewModel::dismissError) {
-        StaffLoadable(state.status, viewModel::load) { status ->
+        StaffLoadable(state.status, viewModel.retry(viewModel::load)) { status ->
             StaffPage(viewModel::load) {
                 Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
                     Eyebrow("Admin")

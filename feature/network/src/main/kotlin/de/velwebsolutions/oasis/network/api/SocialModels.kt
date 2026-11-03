@@ -52,6 +52,8 @@ data class OwnProfile(
     /** The status line under the name, "" when empty. */
     val status: String = "",
     val avatarColor: String = "sun",
+    /** The chosen colour of the initials; null: „Automatisch“ ([avatarColor] is then the resolved one). */
+    val avatarColorChoice: String? = null,
     val hasPhoto: Boolean = false,
     val bannerUrl: String? = null,
     val bioHeld: Boolean = false,

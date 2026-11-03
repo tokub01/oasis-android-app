@@ -69,6 +69,7 @@ import de.velwebsolutions.oasis.network.ui.components.NetworkPage
 import de.velwebsolutions.oasis.network.ui.components.PostCard
 import de.velwebsolutions.oasis.network.ui.components.UnderlinedLink
 import de.velwebsolutions.oasis.network.ui.components.block
+import de.velwebsolutions.oasis.network.ui.retry
 
 /** „Dein Oasen-Wochenbrief“ (/app/wochenbrief/{id?}). */
 @Composable
@@ -91,7 +92,7 @@ fun WeeklyLetterScreen(
         onDismissMessage = viewModel::dismissStatus,
         onDismissError = viewModel::dismissError
     ) {
-        LoadableView(letter, onRetry = viewModel::load) { shown ->
+        LoadableView(letter, onRetry = viewModel.retry(viewModel::load)) { shown ->
             WeeklyLetterContent(
                 shown,
                 earlier,
@@ -209,7 +210,7 @@ fun IdeasScreen(
         onDismissMessage = viewModel::dismissStatus,
         onDismissError = viewModel::dismissError
     ) {
-        LoadableView(ideas, onRetry = viewModel::load) { list -> IdeasPage(list.ideas, list.nextPage, viewModel) }
+        LoadableView(ideas, onRetry = viewModel.retry(viewModel::load)) { list -> IdeasPage(list.ideas, list.nextPage, viewModel) }
     }
 }
 

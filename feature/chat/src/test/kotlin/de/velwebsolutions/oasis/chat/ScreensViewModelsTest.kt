@@ -4,6 +4,7 @@ import de.velwebsolutions.oasis.chat.api.ChatConversation
 import de.velwebsolutions.oasis.chat.api.ConversationMember
 import de.velwebsolutions.oasis.chat.api.ConversationPage
 import de.velwebsolutions.oasis.chat.api.DeviceLinkRequest
+import de.velwebsolutions.oasis.chat.api.EndedBy
 import de.velwebsolutions.oasis.chat.api.PublicUser
 import de.velwebsolutions.oasis.chat.core.ChatContext
 import de.velwebsolutions.oasis.chat.core.ChatMessageItem
@@ -80,6 +81,28 @@ class ScreensViewModelsTest {
         assertEquals("Gruppe · 3 Menschen · löscht nach 7 Tagen · wird neu gesichert", list.meta(group))
         assertEquals("Zu zweit · löscht nach 7 Tagen · wird neu gesichert", list.meta(one))
         assertEquals("Zu zweit · löscht nach 7 Tagen · beendet", list.meta(one.copy(ended = true)))
+        val leaver = EndedBy("1", "Mira Sol", "mira")
+        val left = one.copy(ended = true, endedReason = "left", endedBy = leaver)
+        assertEquals("Zu zweit · löscht nach 7 Tagen · Mira Sol hat den Chat verlassen", list.meta(left))
+        assertEquals("@mira hat den Chat verlassen", left.copy(endedBy = leaver.copy(displayName = "")).endedLine)
+        assertEquals("@mira hat den Chat verlassen", left.copy(endedBy = EndedBy("1", username = "mira")).endedLine)
+        assertEquals("Verlassen", left.endedBadge)
+        assertEquals(
+            "Mira Sol hat den Chat verlassen. Du kannst ihn noch lesen und Nachrichten melden, aber nicht mehr schreiben.",
+            left.endedBanner
+        )
+        val iLeft = left.copy(endedBy = null)
+        assertEquals("Du hast den Chat verlassen", iLeft.endedLine)
+        assertTrue(iLeft.endedBanner!!.startsWith("Du hast den Chat verlassen. Du kannst"))
+        val deleted = one.copy(ended = true, endedReason = "deleted")
+        assertEquals("Zu zweit · löscht nach 7 Tagen · Konto gelöscht", list.meta(deleted))
+        assertEquals("Konto gelöscht", deleted.endedBadge)
+        assertNull("no quiet line for a deleted account", deleted.endedLine)
+        assertEquals("Dieses Konto gibt es nicht mehr. Du kannst den Chat noch lesen, aber nicht mehr schreiben.", deleted.endedBanner)
+        assertEquals("Beendet", one.copy(ended = true).endedBadge)
+        assertNull(one.endedBadge)
+        assertNull(one.endedBanner)
+        assertNull(one.copy(endedReason = "left").endedSummary)
         assertEquals("Jonas", list.title(one))
         assertEquals(direct, one.id)
 

@@ -33,7 +33,7 @@ sealed interface NetworkRoute : AppRoute {
     @Serializable data class EditPost(val id: Int) : NetworkRoute
 
     /** Weitertragen – share a Tropfen into an oasis or the own feed (/tropfen/{id}/weitertragen). */
-    @Serializable data class CarryPost(val id: Int) : NetworkRoute
+    @Serializable data class CarryPost(val id: Int, val quote: Boolean = true) : NetworkRoute
 
     /** Write a new Tropfen, optionally into an oasis or as a reply. */
     @Serializable data class Compose(val oasisSlug: String? = null, val replyTo: Int? = null) : NetworkRoute

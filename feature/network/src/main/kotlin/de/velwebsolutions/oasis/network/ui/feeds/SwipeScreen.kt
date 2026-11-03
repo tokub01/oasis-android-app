@@ -76,6 +76,7 @@ import de.velwebsolutions.oasis.network.ui.PostAction
 import de.velwebsolutions.oasis.network.ui.components.OnNightButton
 import de.velwebsolutions.oasis.network.ui.components.OnNightKind
 import de.velwebsolutions.oasis.network.ui.components.PostCard
+import de.velwebsolutions.oasis.network.ui.retry
 import kotlinx.coroutines.launch
 
 /**
@@ -95,7 +96,7 @@ fun SwipeScreen(viewModel: SwipeViewModel = hiltViewModel<SwipeViewModel>()) {
         onDismissMessage = viewModel::dismissStatus,
         onDismissError = viewModel::dismissError
     ) {
-        LoadableView(deck, onRetry = viewModel::load) { loaded ->
+        LoadableView(deck, onRetry = viewModel.retry(viewModel::load)) { loaded ->
             SwipeContent(loaded) { action, post -> viewModel.launch { viewModel.perform(action, post) } }
         }
     }

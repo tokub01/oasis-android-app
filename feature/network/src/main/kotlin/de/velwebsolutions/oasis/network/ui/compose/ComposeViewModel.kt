@@ -53,7 +53,9 @@ data class ComposeUiState(
     /** While the Tropfen is sent, also after the form that sent it went away (a rotation during the upload). */
     val isPublishing: Boolean = false,
     /** „Umfrage hinzufügen“ (null: none). */
-    val poll: PollDraft? = null
+    val poll: PollDraft? = null,
+    /** Only plain Weitertragen: the member may not answer, so own words (or images) would be an answer. */
+    val plainCarry: Boolean = false
 ) {
     /** A poll fits only a new Tropfen of an oasis (not a reply, not a carry, not in the Quelle). */
     val canPoll: Boolean get() = oasisSlug != null && !isReply && !isCarry
@@ -72,11 +74,11 @@ data class ComposeUiState(
     /** Whether closing would lose something the member wrote or picked. */
     val hasDraft: Boolean get() = body.isNotBlank() || images.isNotEmpty()
 
-    /** The field label like the web ("Deine Antwort", "Deine Worte dazu", "Dein Tropfen in …", "Dein Tropfen"). */
+    /** The field label like the web ("Deine Antwort", "Deine Worte dazu (freiwillig)", "Dein Tropfen in …", "Dein Tropfen"). */
     val bodyLabel: String
         get() {
             if (isReply) return "Deine Antwort"
-            if (isCarry) return "Deine Worte dazu"
+            if (isCarry) return "Deine Worte dazu (freiwillig)"
             val name = context.valueOrNull?.oasis?.name
             return if (name != null) "Dein Tropfen in $name" else "Dein Tropfen"
         }
@@ -167,6 +169,9 @@ class ComposeViewModel @AssistedInject constructor(
     }
 
     fun setVisibility(value: String) = mutableState.update { it.copy(visibility = value) }
+
+    /** Weitertragen without own words (`can_quote` false): the form hides the text and images and sends neither. */
+    fun carryPlainly() = mutableState.update { it.copy(plainCarry = true) }
 
     fun setKind(value: String) = mutableState.update { it.copy(kind = value) }
 
@@ -259,7 +264,7 @@ class ComposeViewModel @AssistedInject constructor(
         mutableState.update { it.copy(isPublishing = true, error = null) }
         val state = current
         val draft = PostDraft(
-            body = state.body,
+            body = if (state.plainCarry) "" else state.body,
             visibility = state.visibility,
             kind = if (state.isReply || state.isCarry) "post" else state.kind,
             oasisSlug = state.oasisSlug,
@@ -267,8 +272,8 @@ class ComposeViewModel @AssistedInject constructor(
             carried = state.carried,
             linkRead = state.linkRead,
             toneConfirmed = state.toneConfirmed,
-            images = state.images.map { it.upload },
-            alts = state.images.map { it.alt },
+            images = if (state.plainCarry) emptyList() else state.images.map { it.upload },
+            alts = if (state.plainCarry) emptyList() else state.images.map { it.alt },
             poll = state.poll?.takeIf { state.canPoll }
         )
         val running = viewModelScope.async { send(draft) }

@@ -55,6 +55,7 @@ import de.velwebsolutions.oasis.network.ui.components.block
 import de.velwebsolutions.oasis.network.ui.components.feedSection
 import de.velwebsolutions.oasis.network.ui.components.handlers
 import de.velwebsolutions.oasis.network.ui.components.membersLabel
+import de.velwebsolutions.oasis.network.ui.retry
 
 /**
  * A list page around its content: card skeletons, the error with retry, then the page with pull to refresh and the
@@ -79,7 +80,7 @@ fun <C> FeedScaffold(
         onDismissMessage = viewModel.list::dismissStatus,
         onDismissError = viewModel.list::dismissError
     ) {
-        LoadableView(state.state, onRetry = viewModel.list::reload, skeleton = SkeletonLayout.Cards) {
+        LoadableView(state.state, onRetry = viewModel.retry(viewModel.list::reload), skeleton = SkeletonLayout.Cards) {
             FeedPage(listState, handlers) { content(state, handlers) }
         }
     }

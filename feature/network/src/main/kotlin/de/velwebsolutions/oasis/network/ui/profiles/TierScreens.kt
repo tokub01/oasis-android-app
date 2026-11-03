@@ -61,6 +61,7 @@ import de.velwebsolutions.oasis.network.ui.components.SectionTitle
 import de.velwebsolutions.oasis.network.ui.components.UnderlinedLink
 import de.velwebsolutions.oasis.network.ui.components.block
 import de.velwebsolutions.oasis.network.ui.components.capsuleTime
+import de.velwebsolutions.oasis.network.ui.retry
 import java.time.Instant
 import java.time.ZoneId
 
@@ -103,7 +104,7 @@ fun TimeCapsulesScreen(
         onDismissMessage = viewModel::dismissStatus,
         onDismissError = viewModel::dismissError
     ) {
-        LoadableView(capsules, onRetry = viewModel::load) { info ->
+        LoadableView(capsules, onRetry = viewModel.retry(viewModel::load)) { info ->
             if (!info.available && info.invitations.isNotEmpty()) {
                 NetworkPage(state = listState, onRefresh = viewModel::load) {
                     block("locked") { CapsuleLockedPanel(info.lockedMessage ?: FROM_OASE) }
@@ -308,7 +309,7 @@ fun YearbookScreen(
         TierLoadableView(
             book,
             "Dein Jahrbuch",
-            onRetry = viewModel::load,
+            onRetry = viewModel.retry(viewModel::load),
             feature = "Deine Tropfen und Fotos eines Jahres, gestaltet als Buch zum Durchblättern, Drucken oder als PDF zum " +
                 "Aufheben. Damit bleibt, was du geteilt hast, auch ohne Bildschirm."
         ) { shown ->

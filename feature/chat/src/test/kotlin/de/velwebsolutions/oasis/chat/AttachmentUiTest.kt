@@ -230,8 +230,8 @@ class AttachmentUiTest {
 
         // The view model measures every draft (ConversationViewModel.render); this state is set by hand, so it does too.
         val text = "Hallo Jonas, wie war dein Tag? Ich wollte dir noch etwas Längeres schreiben."
-        state = state.copy(draft = text, counter = "${ChatMessages.measure(text).characters} / 4000")
-        compose.onNodeWithText("76 / 4000").assertExists()
+        state = state.copy(draft = text, counter = "${ChatMessages.measure(text).characters} / 4.000")
+        compose.onNodeWithText("76 / 4.000").assertExists()
         capture("composer-360dp-text")
         compose.onNodeWithTag("chat.composer.send").assertIsEnabled().performClick()
         compose.waitForIdle()

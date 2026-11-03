@@ -2,15 +2,35 @@ package de.velwebsolutions.oasis.network.api
 
 import de.velwebsolutions.oasis.core.network.OasisInstant
 import de.velwebsolutions.oasis.core.network.Page
+import kotlinx.serialization.ExperimentalSerializationApi
+import kotlinx.serialization.KSerializer
+import kotlinx.serialization.KeepGeneratedSerializer
 import kotlinx.serialization.Serializable
+import kotlinx.serialization.json.JsonElement
+import kotlinx.serialization.json.JsonObject
+import kotlinx.serialization.json.JsonTransformingSerializer
+import kotlinx.serialization.json.jsonObject
 
 /**
  * A cursor page of Tropfen with the page's side information in `context` (first page only for most lists):
- * `{ "data": [...], "meta": { "next_cursor": … }, "context": { … } }`.
+ * `{ "data": [...], "meta": { "next_cursor": … }, "context": { … } }`. Later pages may carry PHP's empty array as
+ * `"context": []` (Entdecken); that is no side information, not an unexpected answer ([FeedPageSerializer]).
  */
-@Serializable
+@OptIn(ExperimentalSerializationApi::class)
+@KeepGeneratedSerializer
+@Serializable(with = FeedPageSerializer::class)
 data class FeedPage<C>(val data: List<Post> = emptyList(), val meta: Page.Meta? = null, val context: C? = null) {
-    val nextCursor: String? get() = meta?.nextCursor
+    /** The next cursor, or the next page number of a page-numbered list (a Sammlung). */
+    val nextCursor: String? get() = meta?.next
+}
+
+/** Reads a `context` that is not an object (`[]`, a number …) as no context, so the end of a list decodes. */
+class FeedPageSerializer<C>(context: KSerializer<C>) :
+    JsonTransformingSerializer<FeedPage<C>>(FeedPage.generatedSerializer(context)) {
+    override fun transformDeserialize(element: JsonElement): JsonElement {
+        val page = element.jsonObject
+        return if (page["context"] is JsonObject) page else JsonObject(page - "context")
+    }
 }
 
 /** For lists without side information. */

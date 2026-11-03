@@ -65,6 +65,7 @@ import de.velwebsolutions.oasis.staff.ui.components.StaffPage
 import de.velwebsolutions.oasis.staff.ui.components.StaffTitle
 import de.velwebsolutions.oasis.staff.ui.components.boldLead
 import de.velwebsolutions.oasis.staff.ui.components.staffBox
+import de.velwebsolutions.oasis.staff.ui.retry
 import java.text.NumberFormat
 import java.util.Locale
 import kotlinx.coroutines.launch
@@ -106,7 +107,7 @@ fun CaseDetailScreen(
         caseId,
         state,
         CaseDetailActions(
-            onRefresh = viewModel::load,
+            onRefresh = viewModel.retry(viewModel::load),
             onSelectAssignee = viewModel::selectAssignee,
             onStatement = viewModel::updateStatement,
             onReference = viewModel::updateReference,

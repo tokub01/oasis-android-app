@@ -162,14 +162,17 @@ class ConversationListViewModel @Inject constructor(context: ChatContext, privat
         }
     }
 
-    /** Meta line: "Gruppe · 3 Menschen · löscht nach 7 Tagen · wird neu gesichert" (or "· beendet"). */
+    /**
+     * Meta line: "Gruppe · 3 Menschen · löscht nach 7 Tagen · wird neu gesichert", or what ended it ("· Mira Sol hat den
+     * Chat verlassen", "· Konto gelöscht", from older servers "· beendet").
+     */
     fun meta(conversation: ChatConversation): String {
         val parts = mutableListOf(
             if (conversation.isGroup) "Gruppe · ${conversation.members.size} Menschen" else "Zu zweit",
             "löscht nach ${lifetimeLabel(conversation.lifetimeDays)}"
         )
         if (conversation.ended) {
-            parts += "beendet"
+            parts += conversation.endedSummary ?: "beendet"
         } else if (conversation.rotationRequired) {
             parts += "wird neu gesichert"
         }
