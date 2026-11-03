@@ -126,7 +126,7 @@ object DeepLink {
                 "statistik" -> NetworkRoute.OasisStatistics(parts[1])
 
                 // „#treffen“ (meetup hints) opens the page at its meetups.
-                else -> NetworkRoute.Oasis(parts[1], meetups = uri.rawFragment == "treffen")
+                else -> NetworkRoute.Oasis(parts[1], meetups = uri.rawFragment == "treffen", collection = query["sammlung"]?.toIntOrNull())
             }
 
             "profil" -> NetworkRoute.Profile(parts[1])
@@ -151,7 +151,11 @@ object DeepLink {
                 else -> null
             }
 
-            "app" -> appRoute(parts[1], parts.drop(2), query)
+            "app" -> if (parts[1] == "zeitkapseln" && uri.rawFragment == "einladungen") {
+                NetworkRoute.CapsuleInvitations
+            } else {
+                appRoute(parts[1], parts.drop(2), query)
+            }
 
             else -> null
         }

@@ -51,7 +51,8 @@ class RouterTest {
                 2025
             ),
             NetworkRoute.Invitations, NetworkRoute.Invitation("abc"), NetworkRoute.Search(),
-            NetworkRoute.Search("garten"), NetworkRoute.Tag("garten"), NetworkRoute.Bookmarks
+            NetworkRoute.Search("garten"), NetworkRoute.Tag("garten"), NetworkRoute.Bookmarks,
+            NetworkRoute.CollectPost(1, "garten"), NetworkRoute.CapsuleInvitations, NetworkRoute.Oasis("garten", collection = 4)
         )
         ActivityScenario.launch(NetworkTestActivity::class.java).use { scenario ->
             routes.forEach { route ->

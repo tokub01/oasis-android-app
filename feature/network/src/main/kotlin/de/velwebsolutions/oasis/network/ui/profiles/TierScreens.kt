@@ -5,6 +5,7 @@ import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -45,6 +46,7 @@ import de.velwebsolutions.oasis.design.theme.OasisColors
 import de.velwebsolutions.oasis.design.theme.OasisRadius
 import de.velwebsolutions.oasis.design.theme.OasisType
 import de.velwebsolutions.oasis.network.api.Choice
+import de.velwebsolutions.oasis.network.api.Member
 import de.velwebsolutions.oasis.network.api.TimeCapsule
 import de.velwebsolutions.oasis.network.api.TimeCapsules
 import de.velwebsolutions.oasis.network.api.Yearbook
@@ -73,9 +75,22 @@ private enum class CapsuleQuestion { Open, Delete }
  * "Jetzt öffnen" and "Löschen", and the opened ones. Below Oase the server's message and the way to the membership.
  */
 @Composable
-fun TimeCapsulesScreen(viewModel: TimeCapsulesViewModel = hiltViewModel<TimeCapsulesViewModel>()) {
+fun TimeCapsulesScreen(
+    viewModel: TimeCapsulesViewModel = hiltViewModel<TimeCapsulesViewModel>(),
+    /** Opened from a capsule hint (`#einladungen`): the page scrolls to „Einladungen“. */
+    atInvitations: Boolean = false
+) {
     val capsules by viewModel.capsules.collectAsStateWithLifecycle()
     val draft by viewModel.draft.collectAsStateWithLifecycle()
+    val candidates by viewModel.candidates.collectAsStateWithLifecycle()
+    val texts by viewModel.contributions.collectAsStateWithLifecycle()
+    val textErrors by viewModel.contributionErrors.collectAsStateWithLifecycle()
+    val listState = rememberLazyListState()
+    val invitationsShown = capsules.valueOrNull?.invitations?.isNotEmpty() == true
+    LaunchedEffect(atInvitations && invitationsShown) {
+        // „Einladungen“ follow the header (or the way to the membership).
+        if (atInvitations && invitationsShown) listState.animateScrollToItem(1)
+    }
     val status by viewModel.status.collectAsStateWithLifecycle()
     val error by viewModel.error.collectAsStateWithLifecycle()
     val fields = error?.fieldMessages.orEmpty()
@@ -84,12 +99,17 @@ fun TimeCapsulesScreen(viewModel: TimeCapsulesViewModel = hiltViewModel<TimeCaps
         title = "Zeitkapseln",
         message = status,
         // Field errors stand below their field; everything else is a toast.
-        error = error?.takeIf { "body" !in fields && "opens_at" !in fields }?.userMessage,
+        error = error?.takeIf { fields.keys.none { it in FIELD_ERRORS } }?.userMessage,
         onDismissMessage = viewModel::dismissStatus,
         onDismissError = viewModel::dismissError
     ) {
         LoadableView(capsules, onRetry = viewModel::load) { info ->
-            if (!info.available) {
+            if (!info.available && info.invitations.isNotEmpty()) {
+                NetworkPage(state = listState, onRefresh = viewModel::load) {
+                    block("locked") { CapsuleLockedPanel(info.lockedMessage ?: FROM_OASE) }
+                    invitationsSection(info.invitations, texts, textErrors, viewModel)
+                }
+            } else if (!info.available) {
                 TierLockedView(
                     "Zeitkapseln",
                     info.lockedMessage ?: FROM_OASE,
@@ -97,7 +117,7 @@ fun TimeCapsulesScreen(viewModel: TimeCapsulesViewModel = hiltViewModel<TimeCaps
                         "Jahrestag oder für dein künftiges Ich. Bis dahin sieht ihn niemand außer dir."
                 )
             } else {
-                NetworkPage(onRefresh = viewModel::load) {
+                NetworkPage(state = listState, onRefresh = viewModel::load) {
                     block("header") {
                         PageHeader(
                             "Zeitkapseln",
@@ -107,7 +127,8 @@ fun TimeCapsulesScreen(viewModel: TimeCapsulesViewModel = hiltViewModel<TimeCaps
                                     "dein künftiges Ich. Bis dahin sieht die Zeitkapsel niemand außer dir."
                         )
                     }
-                    block("form") { CapsuleForm(info, draft, fields, viewModel) }
+                    invitationsSection(info.invitations, texts, textErrors, viewModel)
+                    block("form") { CapsuleForm(info, draft, candidates, fields, viewModel) }
                     block("waiting") {
                         Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
                             SectionTitle("Warten noch")
@@ -141,7 +162,13 @@ fun TimeCapsulesScreen(viewModel: TimeCapsulesViewModel = hiltViewModel<TimeCaps
 }
 
 @Composable
-private fun CapsuleForm(info: TimeCapsules, draft: CapsuleDraft, fields: Map<String, String>, viewModel: TimeCapsulesViewModel) {
+private fun CapsuleForm(
+    info: TimeCapsules,
+    draft: CapsuleDraft,
+    candidates: List<Member>?,
+    fields: Map<String, String>,
+    viewModel: TimeCapsulesViewModel
+) {
     val places = listOf(Choice("", "in deiner Quelle")) + info.oases.map { Choice("${it.id}", "in der Oase ${it.name}") }
     PaperBox(spacing = 16) {
         OasisTextField(
@@ -168,10 +195,11 @@ private fun CapsuleForm(info: TimeCapsules, draft: CapsuleDraft, fields: Map<Str
                 "Erscheint",
                 places,
                 draft.oasisId?.toString().orEmpty(),
-                { value -> viewModel.updateOasis(value.toIntOrNull()) },
+                { value -> viewModel.launch { viewModel.updateOasis(value.toIntOrNull()) } },
                 Modifier.testTag("capsule.place")
             )
         }
+        SharedSealSection(draft, candidates, fields, viewModel)
         AsyncOasisButton(
             "Zeitkapsel versiegeln",
             viewModel::seal,
@@ -192,6 +220,7 @@ private fun WaitingCapsule(capsule: TimeCapsule, viewModel: TimeCapsulesViewMode
             color = OasisColors.Ink2
         )
         Text(capsule.body, style = OasisType.Body, color = OasisColors.Ink)
+        CapsuleSharedInfo(capsule)
         ButtonFlow {
             OasisButton("Jetzt öffnen", { question = CapsuleQuestion.Open }, kind = OasisButtonKind.Secondary, fullWidth = false)
             OasisButton("Löschen", { question = CapsuleQuestion.Delete }, kind = OasisButtonKind.Destructive, fullWidth = false)
@@ -238,6 +267,7 @@ private fun PastCapsule(capsule: TimeCapsule, viewModel: TimeCapsulesViewModel) 
             Text("Geht gerade auf …", style = OasisType.BodyBold, color = OasisColors.Ink2)
         }
         Text(capsule.body, style = OasisType.Body, color = OasisColors.Ink2, maxLines = 2)
+        CapsuleSharedInfo(capsule)
         if (postId == null && capsule.openedAt == null) {
             // A capsule that did not open keeps its text until the author removes it.
             OasisButton(
@@ -358,3 +388,6 @@ private fun YearbookEntry(entry: Yearbook.Entry) {
         }
     }
 }
+
+/** The capsule form's fields that show their own message. */
+private val FIELD_ERRORS = setOf("body", "opens_at", "invitees", "contribute_until")

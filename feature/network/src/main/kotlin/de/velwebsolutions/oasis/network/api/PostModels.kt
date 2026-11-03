@@ -71,8 +71,13 @@ data class Post(
     val conversation: Conversation? = null,
     val viewer: Viewer? = null,
     /** The poll of a Tropfen in an oasis (docs/oasis-network.md, „Umfragen in Tropfen“). */
-    val poll: Poll? = null
+    val poll: Poll? = null,
+    /** The Sammlungen of its oasis it is in. */
+    val collections: List<CollectionRef> = emptyList()
 ) {
+    @Serializable
+    data class CollectionRef(val id: Int, val name: String, val canRemove: Boolean = false)
+
     /**
      * Counts per answer and the number of voters for everyone who may read the Tropfen – never who voted; only the
      * own choice ([myOptions]). [canVote] for members of the oasis while it runs, [canClose] for its author.

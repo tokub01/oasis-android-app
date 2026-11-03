@@ -5,6 +5,7 @@ import de.velwebsolutions.oasis.core.model.failing
 import de.velwebsolutions.oasis.core.model.refreshing
 import de.velwebsolutions.oasis.core.network.ApiError
 import de.velwebsolutions.oasis.core.network.Confirmed
+import de.velwebsolutions.oasis.network.NetworkSignals
 import de.velwebsolutions.oasis.network.api.FeedPage
 import de.velwebsolutions.oasis.network.api.Post
 import de.velwebsolutions.oasis.network.data.NetworkRepository
@@ -46,6 +47,8 @@ class PostListModel<C>(
     filter: String? = null,
     /** The Merkliste drops a Tropfen once it is no longer bookmarked, like the web's re-query. */
     private val dropsUnbookmarked: Boolean = false,
+    /** The Sammlung this list shows: a Tropfen taken out of it leaves the list. */
+    private val collectionId: Int? = null,
     private val fetch: suspend NetworkRepository.(filter: String?, cursor: String?) -> FeedPage<C>
 ) {
     private val mutableState = MutableStateFlow(PostListState<C>(filter = filter))
@@ -192,6 +195,30 @@ class PostListModel<C>(
                     status = answer.message
                 )
             }
+        }
+        mutableState.update { it.copy(actionError = result.apiError) }
+    }
+
+    /** „Aus „X“ entfernen“: the card no longer names that collection; a collection's own list drops the Tropfen. */
+    suspend fun removeFromCollection(post: Post, collection: Int) {
+        val result = attempt { repository.uncollectPost(collection, post.id) }
+        result.onSuccess { answer ->
+            mutableState.update { state ->
+                val changed = state.posts.map { item ->
+                    if (item.id == post.id) item.copy(collections = item.collections.filterNot { it.id == collection }) else item
+                }
+                state.copy(
+                    posts = if (collectionId ==
+                        collection
+                    ) {
+                        changed.filterNot { it.id == post.id }
+                    } else {
+                        changed
+                    },
+                    status = answer.message
+                )
+            }
+            NetworkSignals.didChangeCollections()
         }
         mutableState.update { it.copy(actionError = result.apiError) }
     }

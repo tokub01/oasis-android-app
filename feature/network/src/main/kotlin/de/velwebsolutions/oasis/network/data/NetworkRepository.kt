@@ -2,10 +2,16 @@ package de.velwebsolutions.oasis.network.data
 
 import de.velwebsolutions.oasis.core.network.ApiClient
 import de.velwebsolutions.oasis.core.network.Confirmed
+import de.velwebsolutions.oasis.core.network.Page
 import de.velwebsolutions.oasis.network.api.BodyInput
+import de.velwebsolutions.oasis.network.api.CapsuleInvitation
 import de.velwebsolutions.oasis.network.api.CarrySource
+import de.velwebsolutions.oasis.network.api.CollectPostBody
+import de.velwebsolutions.oasis.network.api.CollectionInput
+import de.velwebsolutions.oasis.network.api.CollectionSettings
 import de.velwebsolutions.oasis.network.api.ComposerContext
 import de.velwebsolutions.oasis.network.api.ConfirmInput
+import de.velwebsolutions.oasis.network.api.ContributionBody
 import de.velwebsolutions.oasis.network.api.DiscoverContext
 import de.velwebsolutions.oasis.network.api.FeedPage
 import de.velwebsolutions.oasis.network.api.FriendLists
@@ -16,11 +22,14 @@ import de.velwebsolutions.oasis.network.api.Meetup
 import de.velwebsolutions.oasis.network.api.MeetupAnswerBody
 import de.velwebsolutions.oasis.network.api.MeetupInput
 import de.velwebsolutions.oasis.network.api.MeetupSettings
+import de.velwebsolutions.oasis.network.api.Member
 import de.velwebsolutions.oasis.network.api.MemberStatistics
 import de.velwebsolutions.oasis.network.api.MemoryYear
 import de.velwebsolutions.oasis.network.api.NetworkService
 import de.velwebsolutions.oasis.network.api.NoContext
 import de.velwebsolutions.oasis.network.api.OasisClosing
+import de.velwebsolutions.oasis.network.api.OasisCollection
+import de.velwebsolutions.oasis.network.api.OasisCollections
 import de.velwebsolutions.oasis.network.api.OasisDetail
 import de.velwebsolutions.oasis.network.api.OasisDirectory
 import de.velwebsolutions.oasis.network.api.OasisEditForm
@@ -102,6 +111,42 @@ interface NetworkRepository {
 
     /** Publishes a Tropfen as multipart (`images[]`, `alts[]` in the same order). */
     suspend fun publish(draft: PostDraft): PublishResult
+
+    // Sammlungen (docs/oasis-network.md)
+
+    suspend fun collections(slug: String): OasisCollections
+
+    suspend fun createCollection(slug: String, input: CollectionInput): Confirmed<OasisCollection>
+
+    suspend fun updateCollection(id: Int, input: CollectionInput): Confirmed<OasisCollection>
+
+    /** „Sammlung löschen“: its Tropfen stay in the oasis. */
+    suspend fun deleteCollection(id: Int): String
+
+    /** A page of 20 Tropfen of a collection, newest added first. */
+    suspend fun collectionPosts(id: Int, page: Int): Page<Post>
+
+    /** „Zu Sammlung hinzufügen“. */
+    suspend fun collectPost(id: Int, postId: Int): Confirmed<OasisCollection>
+
+    /** „Aus „X“ entfernen“. */
+    suspend fun uncollectPost(id: Int, postId: Int): Confirmed<OasisCollection>
+
+    /** „Mitglieder dürfen Sammlungen anlegen“ (hosts). */
+    suspend fun setMembersCreateCollections(slug: String, allowed: Boolean): CollectionSettings
+
+    // Gemeinsame Zeitkapseln
+
+    /** Who may be invited: friends, and the members of [oasisId] for a capsule that opens there. */
+    suspend fun capsuleInvitees(oasisId: Int?): List<Member>
+
+    /** Write or change the own text of an invitation (until the deadline). */
+    suspend fun contribute(id: Int, body: String): Confirmed<CapsuleInvitation>
+
+    suspend fun removeContribution(id: Int): Confirmed<CapsuleInvitation>
+
+    /** „Ablehnen“: final, the own text goes. */
+    suspend fun declineInvitation(id: Int): Confirmed<CapsuleInvitation>
 
     // Treffen and Willkommenspaten (docs/oasis-network.md)
 
@@ -289,6 +334,31 @@ class DefaultNetworkRepository @Inject constructor(client: ApiClient) : NetworkR
             fields.map { (name, value) -> MultipartBody.Part.createFormData(name, value) } + draft.images.map { file("images[]", it) }
         return service.publish(parts)
     }
+
+    override suspend fun collections(slug: String) = service.collections(slug).data
+
+    override suspend fun createCollection(slug: String, input: CollectionInput) = service.createCollection(slug, input)
+
+    override suspend fun updateCollection(id: Int, input: CollectionInput) = service.updateCollection(id, input)
+
+    override suspend fun deleteCollection(id: Int) = service.deleteCollection(id).message
+
+    override suspend fun collectionPosts(id: Int, page: Int) = service.collectionPosts(id, page)
+
+    override suspend fun collectPost(id: Int, postId: Int) = service.collectPost(id, CollectPostBody(postId))
+
+    override suspend fun uncollectPost(id: Int, postId: Int) = service.uncollectPost(id, postId)
+
+    override suspend fun setMembersCreateCollections(slug: String, allowed: Boolean) =
+        service.collectionSettings(slug, CollectionSettings(allowed)).data
+
+    override suspend fun capsuleInvitees(oasisId: Int?) = service.capsuleInvitees(oasisId).data
+
+    override suspend fun contribute(id: Int, body: String) = service.contribute(id, ContributionBody(body))
+
+    override suspend fun removeContribution(id: Int) = service.removeContribution(id)
+
+    override suspend fun declineInvitation(id: Int) = service.declineInvitation(id)
 
     override suspend fun meetups(slug: String) = service.meetups(slug).data
 

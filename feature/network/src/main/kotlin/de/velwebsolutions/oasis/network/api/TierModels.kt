@@ -17,7 +17,9 @@ data class TimeCapsules(
     /** The oases the member belongs to, where a capsule may appear instead of the own Quelle. */
     val oases: List<Oasis> = emptyList(),
     val waiting: List<TimeCapsule> = emptyList(),
-    val past: List<TimeCapsule> = emptyList()
+    val past: List<TimeCapsule> = emptyList(),
+    /** Invitations to others' gemeinsame Zeitkapseln (also below Oase). */
+    val invitations: List<CapsuleInvitation> = emptyList()
 ) {
     @Serializable
     data class Oasis(val id: Int, val slug: String, val name: String)
@@ -32,8 +34,17 @@ data class TimeCapsule(
     val oasis: NamedOasis? = null,
     val openedAt: OasisInstant? = null,
     val postId: Int? = null,
-    val failedReason: String? = null
-)
+    val failedReason: String? = null,
+    /** A gemeinsame Zeitkapsel: the deadline and where each invitee stands (the texts stay sealed). */
+    val shared: Shared? = null
+) {
+    @Serializable
+    data class Shared(val contributeUntil: OasisInstant? = null, val invitees: List<Invitee> = emptyList())
+
+    /** One invitee: `invited`, `contributed`, `declined`, `published` or `failed`. */
+    @Serializable
+    data class Invitee(val member: Member, val status: String)
+}
 
 /** Where a Zeitkapsel or a Tropfen of the Jahrbuch appeared: an oasis by slug and name. */
 @Serializable
@@ -41,7 +52,15 @@ data class NamedOasis(val slug: String, val name: String)
 
 /** What sealing a Zeitkapsel sends: `opens_at` as ISO 8601 with the device's offset (2026-12-24T18:00:00+01:00). */
 @Serializable
-data class TimeCapsuleInput(val body: String, val opensAt: String, val oasisId: Int? = null)
+data class TimeCapsuleInput(
+    val body: String,
+    val opensAt: String,
+    val oasisId: Int? = null,
+    /** „Gemeinsam versiegeln“: up to 10 usernames. */
+    val invitees: List<String> = emptyList(),
+    /** „Beitragen bis“ (ISO with offset); none: one hour before opening. */
+    val contributeUntil: String? = null
+)
 
 /** Dein Jahrbuch (GET /api/v1/network/yearbook/{year?}, from Oase; 403 below): the own Tropfen of one year by month. */
 @Serializable

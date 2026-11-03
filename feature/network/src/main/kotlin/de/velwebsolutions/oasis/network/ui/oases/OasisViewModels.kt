@@ -9,12 +9,17 @@ import de.velwebsolutions.oasis.core.model.Loadable
 import de.velwebsolutions.oasis.core.network.ApiError
 import de.velwebsolutions.oasis.core.network.Confirmed
 import de.velwebsolutions.oasis.core.network.OasisJson
+import de.velwebsolutions.oasis.core.network.Page
 import de.velwebsolutions.oasis.network.NetworkSignals
+import de.velwebsolutions.oasis.network.api.CollectionInput
+import de.velwebsolutions.oasis.network.api.FeedPage
 import de.velwebsolutions.oasis.network.api.ImageUpload
 import de.velwebsolutions.oasis.network.api.Meetup
 import de.velwebsolutions.oasis.network.api.MeetupInput
 import de.velwebsolutions.oasis.network.api.NoContext
 import de.velwebsolutions.oasis.network.api.OasisClosing
+import de.velwebsolutions.oasis.network.api.OasisCollection
+import de.velwebsolutions.oasis.network.api.OasisCollections
 import de.velwebsolutions.oasis.network.api.OasisDetail
 import de.velwebsolutions.oasis.network.api.OasisDirectory
 import de.velwebsolutions.oasis.network.api.OasisEditForm
@@ -78,6 +83,22 @@ class OasisViewModel @AssistedInject constructor(@Assisted val slug: String, pri
 
     /** „Treffen“ for members (null for others, or while not loaded). */
     val meetups: StateFlow<OasisMeetups?> = mutableMeetups.asStateFlow()
+    private val mutableCollections = MutableStateFlow<OasisCollections?>(null)
+
+    /** „Sammlungen“ for everyone who sees the oasis (null while not loaded, or when they cannot load). */
+    val collections: StateFlow<OasisCollections?> = mutableCollections.asStateFlow()
+    private val mutableShownCollection = MutableStateFlow<PostListModel<NoContext>?>(null)
+
+    /** The Tropfen of the chosen collection, newest added first (null: none chosen). */
+    val shownCollection: StateFlow<PostListModel<NoContext>?> = mutableShownCollection.asStateFlow()
+    private val mutableShownCollectionId = MutableStateFlow<Int?>(null)
+
+    /** The chosen collection. */
+    val shownCollectionId: StateFlow<Int?> = mutableShownCollectionId.asStateFlow()
+    private val mutableCollectionForm = MutableStateFlow<CollectionForm?>(null)
+
+    /** The form to create or rename a collection, while it is open. */
+    val collectionForm: StateFlow<CollectionForm?> = mutableCollectionForm.asStateFlow()
     private val mutableMeetupForm = MutableStateFlow<MeetupForm?>(null)
 
     /** The form to create or change a meetup, while it is open. */
@@ -86,6 +107,11 @@ class OasisViewModel @AssistedInject constructor(@Assisted val slug: String, pri
     init {
         observe(NetworkSignals.published) { posts.reload() }
         observe(NetworkSignals.oases) { load() }
+        observe(NetworkSignals.collections) {
+            loadCollections()
+            posts.reload()
+            shownCollection.value?.reload()
+        }
     }
 
     fun updateMemberQuery(query: String) {
@@ -95,6 +121,7 @@ class OasisViewModel @AssistedInject constructor(@Assisted val slug: String, pri
     suspend fun load() {
         val loaded = mutableDetail.load { repository.oasis(slug) } ?: return
         posts.reload()
+        loadCollections()
         if (loaded.isMember) {
             loadMembers()
             loadMeetups()
@@ -117,6 +144,66 @@ class OasisViewModel @AssistedInject constructor(@Assisted val slug: String, pri
         posts.loadIfNeeded()
         if (loaded.isMember && members.value == null) loadMembers()
         if (loaded.isMember && meetups.value == null) loadMeetups()
+        if (collections.value == null) loadCollections()
+    }
+
+    /** The collections; a list that cannot load is simply not shown. */
+    suspend fun loadCollections() {
+        mutableCollections.value = attempt { repository.collections(slug) }.getOrNull()
+    }
+
+    /** Shows the Tropfen of collection [id] (the chosen one again: none). */
+    suspend fun chooseCollection(id: Int?) {
+        val chosen = id?.takeIf { it != shownCollectionId.value }
+        mutableShownCollectionId.value = chosen
+        val list = chosen?.let { collection ->
+            PostListModel<NoContext>(repository, collectionId = collection) { _, cursor -> collectionPage(collection, cursor) }
+        }
+        mutableShownCollection.value = list
+        list?.reload()
+    }
+
+    /** „Sammlung anlegen“ (null) or „Ändern“. */
+    fun openCollectionForm(collection: OasisCollection?) {
+        mutableCollectionForm.value = collection?.let { CollectionForm(it.id, it.name, it.description.orEmpty()) } ?: CollectionForm()
+    }
+
+    fun editCollectionForm(change: (CollectionForm) -> CollectionForm) = mutableCollectionForm.update { it?.let(change) }
+
+    fun closeCollectionForm() {
+        mutableCollectionForm.value = null
+    }
+
+    /** „Sammlung anlegen“ / „Änderung speichern“; refused fields stay on the form. */
+    suspend fun saveCollection() {
+        val form = collectionForm.value ?: return
+        val id = form.editing
+        val input = CollectionInput(form.name.trim(), form.description.trim())
+        val result = attempt { if (id == null) repository.createCollection(slug, input) else repository.updateCollection(id, input) }
+        val saved = result.getOrNull()
+        if (saved == null) {
+            mutableCollectionForm.value = form.copy(error = result.apiError)
+            return
+        }
+        mutableStatus.value = saved.message
+        mutableCollectionForm.value = null
+        loadCollections()
+    }
+
+    /** „Sammlung löschen“ (after confirming): its Tropfen stay in the oasis. */
+    suspend fun deleteCollection(collection: OasisCollection) {
+        if (!confirm { repository.deleteCollection(collection.id) }) return
+        if (shownCollectionId.value == collection.id) chooseCollection(null)
+        loadCollections()
+        posts.reload()
+    }
+
+    /** „Mitglieder dürfen Sammlungen anlegen“ (hosts). */
+    suspend fun setMembersCreateCollections(allowed: Boolean) {
+        val result = attempt { repository.setMembersCreateCollections(slug, allowed) }
+        mutableError.value = result.apiError
+        val stored = result.getOrNull() ?: return
+        mutableCollections.update { it?.copy(membersCreateCollections = stored.membersCreateCollections) }
     }
 
     /** The meetups of the oasis; a list that cannot load is simply not shown. */
@@ -425,4 +512,15 @@ data class MeetupForm(
         fun tomorrowEvening(now: Instant): Instant =
             now.atZone(GermanTime.zone).toLocalDate().plusDays(1).atTime(18, 0).atZone(GermanTime.zone).toInstant()
     }
+}
+
+/** The form of a collection: name (1–60) and description (≤ 300); [editing] names the one being renamed. */
+data class CollectionForm(val editing: Int? = null, val name: String = "", val description: String = "", val error: ApiError? = null)
+
+/** A page of a collection's Tropfen as a list page: the next page number as the cursor while there is one. */
+internal suspend fun NetworkRepository.collectionPage(id: Int, cursor: String?): FeedPage<NoContext> {
+    val number = cursor?.toIntOrNull() ?: 1
+    val page = collectionPosts(id, number)
+    val last = page.meta?.lastPage ?: number
+    return FeedPage(page.data, Page.Meta(nextCursor = if (number < last) "${number + 1}" else null))
 }

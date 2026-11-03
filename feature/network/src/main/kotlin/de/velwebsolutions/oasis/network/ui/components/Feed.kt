@@ -44,8 +44,15 @@ class FeedHandlers(
     val perform: (PostAction, Post) -> Unit,
     val loadMore: () -> Unit,
     val reload: suspend () -> Unit,
-    val poll: PollActions? = null
+    val poll: PollActions? = null,
+    val collections: CollectionActions? = null
 )
+
+/** „Aus „X“ entfernen“ in the card menu: takes a Tropfen out of one of its oasis' Sammlungen (by id). */
+class CollectionActions(val remove: (Post, Int) -> Unit)
+
+/** The collection actions of the cards below; none: the menu offers no removal. */
+val LocalCollectionActions = staticCompositionLocalOf<CollectionActions?> { null }
 
 /** Voting in and ending the poll of a Tropfen (docs/oasis-network.md, „Umfragen in Tropfen“). */
 class PollActions(val vote: (Post, Int) -> Unit, val close: (Post) -> Unit)
@@ -58,7 +65,8 @@ fun <C> PostListModel<C>.handlers(launch: (suspend () -> Unit) -> Unit) = FeedHa
     perform = { action, post -> launch { perform(action, post) } },
     loadMore = { launch { loadMore() } },
     reload = { reload() },
-    poll = PollActions(vote = { post, index -> launch { vote(post, index) } }, close = { post -> launch { closePoll(post) } })
+    poll = PollActions(vote = { post, index -> launch { vote(post, index) } }, close = { post -> launch { closePoll(post) } }),
+    collections = CollectionActions { post, collection -> launch { removeFromCollection(post, collection) } }
 )
 
 /**
@@ -92,7 +100,7 @@ fun <C> LazyListScope.feedSection(
     val lastId = state.posts.lastOrNull()?.id
     state.posts.forEach { post ->
         block("$keyPrefix.post.${post.id}", contentType = "post") {
-            CompositionLocalProvider(LocalPollActions provides handlers.poll) {
+            CompositionLocalProvider(LocalPollActions provides handlers.poll, LocalCollectionActions provides handlers.collections) {
                 PostCard(post, onAction = handlers.perform, modifier = Modifier.alpha(if (dimmed) 0.5f else 1f))
             }
             // Asked again once a reload is over: older Tropfen wait for the new first page.

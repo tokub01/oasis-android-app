@@ -17,6 +17,7 @@ object NetworkSignals {
 
     private val publishedCount = MutableStateFlow(0)
     private val oasesCount = MutableStateFlow(0)
+    private val collectionsCount = MutableStateFlow(0)
     private val profileCount = MutableStateFlow(0)
 
     /** Counts publishes and edits; screens reload (or put [lastPublished] on top) when it changes. */
@@ -24,6 +25,9 @@ object NetworkSignals {
 
     /** Counts changes to oases. */
     val oases: StateFlow<Int> = oasesCount.asStateFlow()
+
+    /** Changes whenever a Tropfen went into or out of a Sammlung. */
+    val collections: StateFlow<Int> = collectionsCount.asStateFlow()
 
     /** Counts changes to the own profile. */
     val profile: StateFlow<Int> = profileCount.asStateFlow()
@@ -40,6 +44,11 @@ object NetworkSignals {
         lastPublished = post
         this.confirmation.value = confirmation
         publishedCount.update { it + 1 }
+    }
+
+    /** A Tropfen went into or out of a Sammlung: oasis pages show their collections and cards again. */
+    fun didChangeCollections() {
+        collectionsCount.update { it + 1 }
     }
 
     fun didChangeOases() {

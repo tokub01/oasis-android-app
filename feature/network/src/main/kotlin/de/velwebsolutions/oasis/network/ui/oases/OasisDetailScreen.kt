@@ -87,7 +87,9 @@ fun OasisDetailScreen(
     slug: String,
     viewModel: OasisViewModel = hiltViewModel<OasisViewModel, OasisViewModel.Factory>(creationCallback = { it.create(slug) }),
     /** Opened from a meetup hint (`#treffen`): the page scrolls to „Treffen“ once they are there. */
-    atMeetups: Boolean = false
+    atMeetups: Boolean = false,
+    /** Opened from „In Sammlung: …“: that collection is chosen. */
+    atCollection: Int? = null
 ) {
     val detail by viewModel.detail.collectAsStateWithLifecycle()
     val posts by viewModel.posts.state.collectAsStateWithLifecycle()
@@ -95,6 +97,11 @@ fun OasisDetailScreen(
     val memberQuery by viewModel.memberQuery.collectAsStateWithLifecycle()
     val meetups by viewModel.meetups.collectAsStateWithLifecycle()
     val meetupForm by viewModel.meetupForm.collectAsStateWithLifecycle()
+    val collections by viewModel.collections.collectAsStateWithLifecycle()
+    val shownCollection by viewModel.shownCollection.collectAsStateWithLifecycle()
+    val shownCollectionId by viewModel.shownCollectionId.collectAsStateWithLifecycle()
+    val collectionForm by viewModel.collectionForm.collectAsStateWithLifecycle()
+    val shownPosts = shownCollection?.state?.collectAsStateWithLifecycle()?.value
     val status by viewModel.status.collectAsStateWithLifecycle()
     val error by viewModel.error.collectAsStateWithLifecycle()
     val navigator = LocalNavigator.current
@@ -104,6 +111,7 @@ fun OasisDetailScreen(
     val listState = rememberLazyListState()
 
     LaunchedEffect(Unit) { viewModel.loadIfNeeded() }
+    LaunchedEffect(atCollection) { atCollection?.let { viewModel.chooseCollection(it) } }
     // Opened from a meetup hint: once the meetups are there, the page shows them.
     val meetupsRow = if (atMeetups && meetups != null) loaded?.let(::meetupsIndex) else null
     LaunchedEffect(meetupsRow) { meetupsRow?.let { listState.animateScrollToItem(it) } }
@@ -130,7 +138,18 @@ fun OasisDetailScreen(
         Box(Modifier.fillMaxSize()) {
             LoadableView(detail, onRetry = viewModel::load, skeleton = SkeletonLayout.Cards) { oasis ->
                 val extras = OasisMeetupsUi(meetups, meetupForm, viewModel.meetupActions())
-                OasisPage(oasis, listState, viewModel, posts, members, memberQuery, extras, onUnfollow = { confirmUnfollow = true }) {
+                val collectionsUi = OasisCollectionsUi(
+                    collections,
+                    shownCollectionId,
+                    shownPosts,
+                    shownCollection?.handlers(viewModel::launch),
+                    collectionForm,
+                    viewModel.collectionActions()
+                )
+                OasisPage(oasis, listState, viewModel, posts, members, memberQuery, extras, collectionsUi, onUnfollow = {
+                    confirmUnfollow =
+                        true
+                }) {
                     compose(oasis)
                 }
             }
@@ -164,6 +183,7 @@ private fun OasisPage(
     members: OasisMembers?,
     memberQuery: String,
     extras: OasisMeetupsUi,
+    collections: OasisCollectionsUi,
     onUnfollow: () -> Unit,
     onCompose: () -> Unit
 ) {
@@ -179,7 +199,8 @@ private fun OasisPage(
             onFollow = { viewModel.setFollowing(true) },
             onUnfollow = onUnfollow,
             onCompose = onCompose,
-            extras = extras
+            extras = extras,
+            collections = collections
         )
     }
 }
@@ -196,6 +217,17 @@ internal fun OasisViewModel.meetupActions() = OasisMeetupActions(
     onVolunteer = { volunteer -> launch { setWelcomeVolunteer(volunteer) } }
 )
 
+/** The view model's collection steps for the page. */
+internal fun OasisViewModel.collectionActions() = OasisCollectionActions(
+    onChoose = { id -> launch { chooseCollection(id) } },
+    onOpenForm = ::openCollectionForm,
+    onEditForm = ::editCollectionForm,
+    onCloseForm = ::closeCollectionForm,
+    onSave = ::saveCollection,
+    onDelete = { collection -> launch { deleteCollection(collection) } },
+    onAllowMembers = { allowed -> launch { setMembersCreateCollections(allowed) } }
+)
+
 /** The row of „Treffen“ on the page: after the header, the pate, the house rules and the composer entry. */
 internal fun meetupsIndex(detail: OasisDetail): Int = 2 + (if (detail.welcome?.pate != null) 1 else 0) + (if (detail.canPost) 1 else 0)
 
@@ -210,7 +242,8 @@ fun LazyListScope.oasisContent(
     onFollow: suspend () -> Unit,
     onUnfollow: () -> Unit,
     onCompose: () -> Unit,
-    extras: OasisMeetupsUi = OasisMeetupsUi.None
+    extras: OasisMeetupsUi = OasisMeetupsUi.None,
+    collections: OasisCollectionsUi = OasisCollectionsUi.None
 ) {
     block("header") { Header(detail, onFollow, onUnfollow) }
     detail.welcome?.pate?.let { pate -> block("pate") { PateCard(pate) } }
@@ -227,6 +260,7 @@ fun LazyListScope.oasisContent(
     extras.meetups?.let { meetups ->
         block("meetups") { MeetupsSection(meetups, extras.form, detail.isHost, extras.actions) }
     }
+    collectionsSection(collections, detail.isHost)
     block("posts.title") { SectionTitle("Tropfen") }
     feedSection(posts, handlers, empty = "In dieser Oase gibt es noch keine Tropfen.")
     block("side.hosts") { SideCard("Gastgeber:innen") { detail.hosts.forEach { MemberRow(it) } } }

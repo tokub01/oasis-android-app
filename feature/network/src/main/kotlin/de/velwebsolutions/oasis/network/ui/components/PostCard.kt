@@ -177,6 +177,7 @@ fun PostCard(
             post.held?.let { HeldNotice(it) }
             RichTextView(post.segments)
             post.poll?.let { PostPollView(post, it) }
+            post.oasis?.takeIf { post.collections.isNotEmpty() }?.let { oasis -> PostCollections(oasis.slug, post.collections) }
             PostImages(post)
             post.carried?.let { CarriedView(it) }
             Stats(post)
@@ -359,7 +360,18 @@ private fun MenuItems(
     onConfirm: (CardConfirmation) -> Unit
 ) {
     val navigator = LocalNavigator.current
+    val collections = LocalCollectionActions.current
     val entries = buildList {
+        // Sammlungen of the Tropfen's oasis: add to one, or take it out where the viewer may.
+        val oasis = post.oasis
+        if (oasis != null && post.replyTo == null && viewer.canInteract) {
+            add(MenuEntry("Zu Sammlung hinzufügen …") { navigator.present(NetworkRoute.CollectPost(post.id, oasis.slug)) })
+        }
+        if (collections != null) {
+            post.collections.filter { it.canRemove }.forEach { collection ->
+                add(MenuEntry("Aus „${collection.name}“ entfernen") { collections.remove(post, collection.id) })
+            }
+        }
         if (viewer.canRemoveFromOasis) {
             add(
                 MenuEntry("Aus Oase entfernen …", destructive = true) {
@@ -772,4 +784,26 @@ private fun ConversationView(post: Post, conversation: Post.Conversation) {
 @Composable
 fun OasisDot(color: String, modifier: Modifier = Modifier) {
     Box(modifier.size(40.dp).background(AvatarTint.surface(color), CircleShape))
+}
+
+/** „In Sammlung: Rezepte, Tipps“ – each opens its collection in the oasis. */
+@OptIn(ExperimentalLayoutApi::class)
+@Composable
+internal fun PostCollections(slug: String, collections: List<Post.CollectionRef>) {
+    val navigator = LocalNavigator.current
+    FlowRow(horizontalArrangement = Arrangement.spacedBy(6.dp), itemVerticalAlignment = Alignment.CenterVertically) {
+        Text("In Sammlung:", style = OasisType.Small, color = OasisColors.Ink2)
+        collections.forEach { collection ->
+            Text(
+                collection.name,
+                style = OasisType.SmallBold.copy(textDecoration = TextDecoration.Underline),
+                color = OasisColors.Night,
+                modifier = Modifier
+                    .defaultMinSize(minHeight = 44.dp)
+                    .clickable(role = Role.Button) { navigator.open(NetworkRoute.Oasis(slug, collection = collection.id)) }
+                    .padding(vertical = 12.dp)
+                    .testTag("post.collection.${collection.id}")
+            )
+        }
+    }
 }

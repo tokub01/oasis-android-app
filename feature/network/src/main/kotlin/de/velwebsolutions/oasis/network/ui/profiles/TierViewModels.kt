@@ -6,6 +6,9 @@ import dagger.assisted.AssistedInject
 import dagger.hilt.android.lifecycle.HiltViewModel
 import de.velwebsolutions.oasis.core.model.Loadable
 import de.velwebsolutions.oasis.core.model.refreshing
+import de.velwebsolutions.oasis.core.network.Confirmed
+import de.velwebsolutions.oasis.network.api.CapsuleInvitation
+import de.velwebsolutions.oasis.network.api.Member
 import de.velwebsolutions.oasis.network.api.TimeCapsuleInput
 import de.velwebsolutions.oasis.network.api.TimeCapsules
 import de.velwebsolutions.oasis.network.api.Yearbook
@@ -27,8 +30,22 @@ import kotlinx.coroutines.flow.update
 data class CapsuleDraft(
     val body: String = "",
     val opensAt: Instant = CapsuleDraft.suggestedOpening(Instant.now()),
-    val oasisId: Int? = null
+    val oasisId: Int? = null,
+    /** „Gemeinsam versiegeln“: the invited usernames (up to 10) and „Beitragen bis“ (none: an hour before opening). */
+    val shared: Boolean = false,
+    val invitees: Set<String> = emptySet(),
+    val contributeUntil: Instant? = null
 ) {
+    /** What „Zeitkapsel versiegeln“ sends. */
+    val input: TimeCapsuleInput
+        get() = TimeCapsuleInput(
+            body,
+            wireTime(opensAt),
+            oasisId,
+            invitees = if (shared) invitees.sorted() else emptyList(),
+            contributeUntil = contributeUntil?.takeIf { shared }?.let { wireTime(it) }
+        )
+
     companion object {
         private val Wire = DateTimeFormatter.ofPattern("yyyy-MM-dd'T'HH:mm:ssxxx")
 
@@ -73,15 +90,85 @@ class TimeCapsulesViewModel @Inject constructor(private val repository: NetworkR
 
     fun updateOpensAt(opensAt: Instant) = mutableDraft.update { it.copy(opensAt = opensAt) }
 
-    fun updateOasis(oasisId: Int?) = mutableDraft.update { it.copy(oasisId = oasisId) }
+    /** Where it appears; the invitable people change with it (members of that oasis). */
+    suspend fun updateOasis(oasisId: Int?) {
+        mutableDraft.update { it.copy(oasisId = oasisId) }
+        if (draft.value.shared) loadCandidates()
+    }
+
+    private val mutableCandidates = MutableStateFlow<List<Member>?>(null)
+
+    /** Who may be invited: friends, plus the members of the chosen oasis (null while not loaded). */
+    val candidates: StateFlow<List<Member>?> = mutableCandidates.asStateFlow()
+
+    /** „Gemeinsam versiegeln“ on or off; on, the invitable people load. */
+    suspend fun setShared(shared: Boolean) {
+        mutableDraft.update { it.copy(shared = shared) }
+        if (shared) loadCandidates()
+    }
+
+    private suspend fun loadCandidates() {
+        mutableCandidates.value = attempt { repository.capsuleInvitees(draft.value.oasisId) }.getOrNull().orEmpty()
+    }
+
+    /** A person in or out (at most 10). */
+    fun toggleInvitee(username: String) = mutableDraft.update { draft ->
+        when {
+            username in draft.invitees -> draft.copy(invitees = draft.invitees - username)
+            draft.invitees.size < MAX_INVITEES -> draft.copy(invitees = draft.invitees + username)
+            else -> draft
+        }
+    }
+
+    fun updateContributeUntil(until: Instant) = mutableDraft.update { it.copy(contributeUntil = until) }
+
+    private val mutableContributions = MutableStateFlow<Map<Int, String>>(emptyMap())
+
+    /** The own texts of the invitations being written, by invitation. */
+    val contributions: StateFlow<Map<Int, String>> = mutableContributions.asStateFlow()
+
+    private val mutableContributionErrors = MutableStateFlow<Map<Int, String>>(emptyMap())
+
+    /** A refused text's message, by invitation. */
+    val contributionErrors: StateFlow<Map<Int, String>> = mutableContributionErrors.asStateFlow()
+
+    /** The text being written for [invitation] (at first its stored text). */
+    fun contributionOf(invitation: CapsuleInvitation): String = contributions.value[invitation.id] ?: invitation.body.orEmpty()
+
+    fun updateContribution(id: Int, text: String) {
+        mutableContributions.update { it + (id to CapsuleDraft.capped(text, capsules.value.valueOrNull?.maxLength ?: DEFAULT_MAX_LENGTH)) }
+    }
+
+    /** „Beitragen“ / „Beitrag speichern“. */
+    suspend fun saveContribution(invitation: CapsuleInvitation) =
+        changeInvitation(invitation.id) { repository.contribute(invitation.id, contributionOf(invitation)) }
+
+    /** „Beitrag entfernen“. */
+    suspend fun removeContribution(invitation: CapsuleInvitation) =
+        changeInvitation(invitation.id) { repository.removeContribution(invitation.id) }
+
+    /** „Ablehnen“ (after confirming): final, the own text goes. */
+    suspend fun decline(invitation: CapsuleInvitation) = changeInvitation(invitation.id) { repository.declineInvitation(invitation.id) }
+
+    private suspend fun changeInvitation(id: Int, request: suspend () -> Confirmed<CapsuleInvitation>) {
+        val result = attempt(request)
+        val failure = result.apiError
+        val field = failure?.message("body")
+        mutableContributionErrors.update { if (field == null) it - id else it + (id to field) }
+        mutableError.value = failure?.takeIf { field == null }
+        val answer = result.getOrNull() ?: return
+        mutableStatus.value = answer.message
+        mutableContributions.update { it - id }
+        mutableCapsules.update { loaded ->
+            val info = loaded.valueOrNull ?: return@update loaded
+            Loadable.Loaded(info.copy(invitations = info.invitations.map { if (it.id == id) answer.data else it }))
+        }
+    }
 
     /** "Zeitkapsel versiegeln": a fresh draft and the new list once sealed; field errors stay in [error]. */
     suspend fun seal() {
         val current = draft.value
-        if (confirm {
-                repository.sealTimeCapsule(TimeCapsuleInput(current.body, CapsuleDraft.wireTime(current.opensAt), current.oasisId))
-            }
-        ) {
+        if (confirm { repository.sealTimeCapsule(current.input) }) {
             mutableDraft.value = CapsuleDraft()
             load()
         }
@@ -99,6 +186,9 @@ class TimeCapsulesViewModel @Inject constructor(private val repository: NetworkR
     private companion object {
         /** `TimeCapsules.maxLength` before the list answered. */
         const val DEFAULT_MAX_LENGTH = 500
+
+        /** „Höchstens 10 Personen.“ */
+        const val MAX_INVITEES = 10
     }
 }
 

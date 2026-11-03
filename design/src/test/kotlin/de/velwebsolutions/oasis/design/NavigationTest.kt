@@ -36,6 +36,9 @@ class NavigationTest {
         "/tropfen/abc" to null,
         "/oasen/garten" to NetworkRoute.Oasis("garten"),
         "/oasen/garten#treffen" to NetworkRoute.Oasis("garten", meetups = true),
+        "/oasen/garten?sammlung=4#sammlungen" to NetworkRoute.Oasis("garten", collection = 4),
+        "/app/zeitkapseln#einladungen" to NetworkRoute.CapsuleInvitations,
+        "/app/zeitkapseln#anderes" to NetworkRoute.TimeCapsules,
         "/oasen/garten/bearbeiten" to NetworkRoute.EditOasis("garten"),
         "/oasen/garten/schliessen" to NetworkRoute.CloseOasis("garten"),
         "/oasen/garten/statistik" to NetworkRoute.OasisStatistics("garten"),
@@ -124,6 +127,7 @@ class NavigationTest {
         val routes = links.values.filterNotNull().toSet() + setOf(
             WebRoute("https://get-oasis.com/impressum"),
             NetworkRoute.Compose("garten", 4),
+            NetworkRoute.CollectPost(3, "garten"),
             ChatRoute.Settings,
             ChatRoute.Devices,
             ChatRoute.Share

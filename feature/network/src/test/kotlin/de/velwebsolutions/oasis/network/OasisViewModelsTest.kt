@@ -114,13 +114,14 @@ class OasisViewModelsTest(private val answersAtOnce: Boolean) {
         val network = StubbedNetwork(
             stub("GET", "network/oases/stadtgarten", detail(member = false)),
             stub("GET", "network/oases/stadtgarten/posts", pageJson(postJson(4))),
-            stub("POST", "network/oases/stadtgarten/follow", """{"message":"Du folgst jetzt der Oase Stadtgarten."}""")
+            stub("POST", "network/oases/stadtgarten/follow", """{"message":"Du folgst jetzt der Oase Stadtgarten."}"""),
+            stub("GET", "network/oases/stadtgarten/collections", """{"data":{"can_create":false,"collections":[]}}""")
         )
         val model = models.keep(OasisViewModel("stadtgarten", network.repository))
         model.loadIfNeeded()
         model.loadIfNeeded()
         assertNull(model.members.value)
-        assertEquals(2, network.transport.requests.size)
+        assertEquals("the page, its Tropfen and its Sammlungen, once", 3, network.transport.requests.size)
 
         model.setFollowing(true)
         assertEquals("Du folgst jetzt der Oase Stadtgarten.", model.status.value)

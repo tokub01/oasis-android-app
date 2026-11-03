@@ -118,6 +118,18 @@ class PostDetailViewModel @AssistedInject constructor(@Assisted val id: Int, pri
         mutableDetail.value = Loadable.Loaded(current.copy(post = answer.data))
     }
 
+    /** „Aus „X“ entfernen“: the Tropfen no longer names that collection. */
+    suspend fun removeFromCollection(post: Post, collection: Int) {
+        val result = attempt { repository.uncollectPost(collection, post.id) }
+        mutableError.value = result.apiError
+        val answer = result.getOrNull() ?: return
+        mutableStatus.value = answer.message
+        NetworkSignals.didChangeCollections()
+        val current = detail.value.valueOrNull ?: return
+        val shown = current.post.copy(collections = current.post.collections.filterNot { it.id == collection })
+        mutableDetail.value = Loadable.Loaded(current.copy(post = shown))
+    }
+
     /** The effect on the page: the Tropfen itself when it was the target or its author's state changed, and the replies. */
     private fun apply(action: PostAction, post: Post) {
         val current = detail.value.valueOrNull ?: return

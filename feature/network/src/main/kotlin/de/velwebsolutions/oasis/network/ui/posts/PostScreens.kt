@@ -62,9 +62,11 @@ import de.velwebsolutions.oasis.network.api.PostDetail
 import de.velwebsolutions.oasis.network.api.PostEditForm
 import de.velwebsolutions.oasis.network.ui.PostAction
 import de.velwebsolutions.oasis.network.ui.components.CarriedOriginal
+import de.velwebsolutions.oasis.network.ui.components.CollectionActions
 import de.velwebsolutions.oasis.network.ui.components.ConfirmDialog
 import de.velwebsolutions.oasis.network.ui.components.Disclosure
 import de.velwebsolutions.oasis.network.ui.components.LeaveGuard
+import de.velwebsolutions.oasis.network.ui.components.LocalCollectionActions
 import de.velwebsolutions.oasis.network.ui.components.LocalPollActions
 import de.velwebsolutions.oasis.network.ui.components.MemberRow
 import de.velwebsolutions.oasis.network.ui.components.NetworkPage
@@ -333,7 +335,9 @@ fun PostDetailScreen(
                 vote = { post, index -> viewModel.launch { viewModel.vote(post, index) } },
                 close = { post -> viewModel.launch { viewModel.closePoll(post) } }
             )
-            CompositionLocalProvider(LocalPollActions provides polls) {
+            val collections =
+                CollectionActions { post, collection -> viewModel.launch { viewModel.removeFromCollection(post, collection) } }
+            CompositionLocalProvider(LocalPollActions provides polls, LocalCollectionActions provides collections) {
                 PostDetailContent(
                     detail = loaded,
                     reply = replyState,

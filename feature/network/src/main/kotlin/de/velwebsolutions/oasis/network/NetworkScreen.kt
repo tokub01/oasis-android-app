@@ -9,6 +9,7 @@ import de.velwebsolutions.oasis.network.ui.feeds.SourceScreen
 import de.velwebsolutions.oasis.network.ui.feeds.SwipeScreen
 import de.velwebsolutions.oasis.network.ui.feeds.TagScreen
 import de.velwebsolutions.oasis.network.ui.oases.CloseOasisScreen
+import de.velwebsolutions.oasis.network.ui.oases.CollectPostScreen
 import de.velwebsolutions.oasis.network.ui.oases.OasesScreen
 import de.velwebsolutions.oasis.network.ui.oases.OasisDetailScreen
 import de.velwebsolutions.oasis.network.ui.oases.OasisFormScreen
@@ -46,7 +47,9 @@ fun NetworkScreen(route: NetworkRoute) {
 
         NetworkRoute.Oases -> OasesScreen()
 
-        is NetworkRoute.Oasis -> OasisDetailScreen(route.slug, atMeetups = route.meetups)
+        is NetworkRoute.Oasis -> OasisDetailScreen(route.slug, atMeetups = route.meetups, atCollection = route.collection)
+
+        is NetworkRoute.CollectPost -> CollectPostScreen(route.postId, route.slug)
 
         NetworkRoute.CreateOasis -> OasisFormScreen(slug = null)
 
@@ -65,6 +68,8 @@ fun NetworkScreen(route: NetworkRoute) {
         NetworkRoute.Statistics -> StatisticsScreen()
 
         NetworkRoute.TimeCapsules -> TimeCapsulesScreen()
+
+        NetworkRoute.CapsuleInvitations -> TimeCapsulesScreen(atInvitations = true)
 
         is NetworkRoute.Yearbook -> YearbookScreen(route.year)
 

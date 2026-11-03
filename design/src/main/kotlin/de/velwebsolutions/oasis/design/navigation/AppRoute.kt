@@ -41,8 +41,11 @@ sealed interface NetworkRoute : AppRoute {
     /** Oasen overview (/app/oasen). */
     @Serializable data object Oases : NetworkRoute
 
-    /** One oasis (/oasen/{slug}). */
-    @Serializable data class Oasis(val slug: String, val meetups: Boolean = false) : NetworkRoute
+    /** One oasis (/oasen/{slug}); [meetups] opens it at „Treffen“, [collection] with that collection chosen in „Sammlungen“. */
+    @Serializable data class Oasis(val slug: String, val meetups: Boolean = false, val collection: Int? = null) : NetworkRoute
+
+    /** „Zu Sammlung hinzufügen …“ for a Tropfen of the oasis [slug] (a sheet). */
+    @Serializable data class CollectPost(val postId: Int, val slug: String) : NetworkRoute
 
     /** Create an oasis (/app/oasen/neu). */
     @Serializable data object CreateOasis : NetworkRoute
@@ -70,6 +73,9 @@ sealed interface NetworkRoute : AppRoute {
 
     /** Zeitkapseln – Tropfen sealed for a later day (/app/zeitkapseln). */
     @Serializable data object TimeCapsules : NetworkRoute
+
+    /** Zeitkapseln at „Einladungen“ (capsule hints: /app/zeitkapseln#einladungen). */
+    @Serializable data object CapsuleInvitations : NetworkRoute
 
     /** Dein Jahrbuch – the own Tropfen of a year, the current one without [year] (/app/jahrbuch/{year?}). */
     @Serializable data class Yearbook(val year: Int? = null) : NetworkRoute

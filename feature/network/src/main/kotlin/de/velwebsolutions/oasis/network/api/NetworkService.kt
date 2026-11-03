@@ -3,6 +3,7 @@ package de.velwebsolutions.oasis.network.api
 import de.velwebsolutions.oasis.core.network.Confirmed
 import de.velwebsolutions.oasis.core.network.DataEnvelope
 import de.velwebsolutions.oasis.core.network.MessageResponse
+import de.velwebsolutions.oasis.core.network.Page
 import kotlinx.serialization.Serializable
 import okhttp3.MultipartBody
 import retrofit2.http.Body
@@ -116,6 +117,42 @@ internal interface NetworkService {
 
     @POST("network/posts/{id}/poll/close")
     suspend fun closePoll(@Path("id") id: Int): Confirmed<Post>
+
+    @GET("network/oases/{slug}/collections")
+    suspend fun collections(@Path("slug") slug: String): DataEnvelope<OasisCollections>
+
+    @POST("network/oases/{slug}/collections")
+    suspend fun createCollection(@Path("slug") slug: String, @Body body: CollectionInput): Confirmed<OasisCollection>
+
+    @PUT("network/collections/{id}")
+    suspend fun updateCollection(@Path("id") id: Int, @Body body: CollectionInput): Confirmed<OasisCollection>
+
+    @DELETE("network/collections/{id}")
+    suspend fun deleteCollection(@Path("id") id: Int): MessageResponse
+
+    @GET("network/collections/{id}/posts")
+    suspend fun collectionPosts(@Path("id") id: Int, @Query("page") page: Int): Page<Post>
+
+    @POST("network/collections/{id}/posts")
+    suspend fun collectPost(@Path("id") id: Int, @Body body: CollectPostBody): Confirmed<OasisCollection>
+
+    @DELETE("network/collections/{id}/posts/{post}")
+    suspend fun uncollectPost(@Path("id") id: Int, @Path("post") post: Int): Confirmed<OasisCollection>
+
+    @PUT("network/oases/{slug}/collection-settings")
+    suspend fun collectionSettings(@Path("slug") slug: String, @Body body: CollectionSettings): DataEnvelope<CollectionSettings>
+
+    @GET("network/time-capsules/invitees")
+    suspend fun capsuleInvitees(@Query("oasis_id") oasisId: Int?): DataEnvelope<List<Member>>
+
+    @PUT("network/time-capsules/invitations/{id}")
+    suspend fun contribute(@Path("id") id: Int, @Body body: ContributionBody): Confirmed<CapsuleInvitation>
+
+    @DELETE("network/time-capsules/invitations/{id}/contribution")
+    suspend fun removeContribution(@Path("id") id: Int): Confirmed<CapsuleInvitation>
+
+    @POST("network/time-capsules/invitations/{id}/decline")
+    suspend fun declineInvitation(@Path("id") id: Int): Confirmed<CapsuleInvitation>
 
     @GET("network/oases/{slug}/meetups")
     suspend fun meetups(@Path("slug") slug: String): DataEnvelope<OasisMeetups>
