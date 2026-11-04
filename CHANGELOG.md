@@ -18,6 +18,12 @@ Ab 22. Oktober 2026: Seitdem trägt jede Änderung in allen drei Projekten den V
 
 Was dabei gleich bleibt: Ein Mensch entscheidet, was in Oasis kommt, beauftragt jede Runde und prüft sie. Jede Änderung wird durch automatische Tests abgesichert, bevor sie ausgeliefert wird.
 
+## 0.25.3 – 2026-11-04 – Echte Oasen
+
+Eine Oase braucht jetzt einen echten Namen, eine echte Beschreibung und echte Hausregeln – Platzhalter werden abgelehnt.
+
+- **Verbessert:** Beim Gründen und Bearbeiten einer Oase prüft Oasis jetzt Name, Beschreibung und Hausregeln: Platzhalter wie „Test“, „asdf“ oder „Keine“ und beleidigende Texte werden abgelehnt. Das gilt auch in den Apps, weil der Server prüft.
+
 ## 0.25.2 – 2026-11-04 – Passt in jede Zeile
 
 Der Hinweis im leeren Chatfeld ist kürzer und passt jetzt auch auf schmale Handys.
