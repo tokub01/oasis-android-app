@@ -15,6 +15,9 @@ import kotlinx.serialization.json.longOrNull
 
 /** The seconds per local calendar day (`YYYY-MM-DD`) of one account, kept only on this device. */
 interface ScreenTimeStore {
+    /** Whether this device counts at all: off until the member switches it on in „Deine Zeit in Oasis“. */
+    var enabled: Boolean
+
     fun read(userId: Int): Map<String, Long>
 
     fun write(userId: Int, seconds: Map<String, Long>)
@@ -27,6 +30,12 @@ interface ScreenTimeStore {
 class PreferencesScreenTimeStore(context: Context) : ScreenTimeStore {
     private val preferences = context.getSharedPreferences("oasis.screenTime", Context.MODE_PRIVATE)
 
+    override var enabled: Boolean
+        get() = preferences.getBoolean(ENABLED, false)
+        set(value) {
+            preferences.edit { putBoolean(ENABLED, value) }
+        }
+
     override fun read(userId: Int): Map<String, Long> {
         val stored = preferences.getString(userId.toString(), null) ?: return emptyMap()
         val fields = runCatching { Json.parseToJsonElement(stored) as? JsonObject }.getOrNull() ?: return emptyMap()
@@ -38,8 +47,13 @@ class PreferencesScreenTimeStore(context: Context) : ScreenTimeStore {
         preferences.edit { putString(userId.toString(), json) }
     }
 
+    /** Every account's seconds and the switch (sign-out). */
     override fun clear() {
         preferences.edit { clear() }
+    }
+
+    private companion object {
+        const val ENABLED = "enabled"
     }
 }
 
@@ -50,10 +64,11 @@ data class ScreenTimeDay(val label: String, val minutes: Long)
 data class ScreenTimeWeek(val days: List<ScreenTimeDay>, val total: Long)
 
 /**
- * „Deine Zeit in Oasis“ (docs/oasis-privacy.md, „Bildschirmzeit“; resources/js/screen-time.js): a second counts while
- * Oasis is in the foreground with the screen on ([count] runs only then) and the member did something within the last
- * 60 seconds ([touched]); seconds go to the device's local calendar day, only 8 days are kept, written at most every
- * 15 seconds and when the app leaves the foreground. Per account and never sent anywhere.
+ * „Deine Zeit in Oasis“ (docs/oasis-privacy.md, „Bildschirmzeit“; resources/js/screen-time.js): only while the member
+ * switched counting on ([enabled], off by default, this device only), a second counts while Oasis is in the foreground
+ * with the screen on ([count] runs only then) and the member did something within the last 60 seconds ([touched]);
+ * seconds go to the device's local calendar day, only 8 days are kept, written at most every 15 seconds and when the
+ * app leaves the foreground. Per account and never sent anywhere.
  */
 class ScreenTime(
     private val store: ScreenTimeStore,
@@ -62,6 +77,13 @@ class ScreenTime(
 ) {
     @Volatile private var lastInput = 0L
     private var pending = 0L
+
+    /** The switch in „Deine Zeit in Oasis“: counting starts or stops with the next second. */
+    var enabled: Boolean
+        get() = store.enabled
+        set(value) {
+            store.enabled = value
+        }
 
     /** A tap, a key or a scroll. */
     fun touched() {
@@ -77,7 +99,7 @@ class ScreenTime(
         try {
             while (true) {
                 delay(tickMillis)
-                if (clock.millis() - lastInput <= IDLE_MS) {
+                if (store.enabled && clock.millis() - lastInput <= IDLE_MS) {
                     pending += 1
                     if (pending >= SAVE_EVERY) save()
                 }

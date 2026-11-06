@@ -31,11 +31,14 @@ import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import de.velwebsolutions.oasis.design.components.AsyncOasisButton
 import de.velwebsolutions.oasis.design.components.FieldError
+import de.velwebsolutions.oasis.design.components.LocalApiClient
 import de.velwebsolutions.oasis.design.components.OasisButton
 import de.velwebsolutions.oasis.design.components.OasisButtonKind
 import de.velwebsolutions.oasis.design.components.OasisTextButton
 import de.velwebsolutions.oasis.design.components.OasisTextField
 import de.velwebsolutions.oasis.design.components.SupportContacts
+import de.velwebsolutions.oasis.design.navigation.LocalNavigator
+import de.velwebsolutions.oasis.design.navigation.WebRoute
 import de.velwebsolutions.oasis.design.theme.OasisColors
 import de.velwebsolutions.oasis.design.theme.OasisRadius
 import de.velwebsolutions.oasis.design.theme.OasisType
@@ -48,12 +51,17 @@ import de.velwebsolutions.oasis.design.theme.OasisType
 @Composable
 internal fun ReportSheet(model: ReportModel, onDismiss: () -> Unit) {
     val state by model.state.collectAsStateWithLifecycle()
+    val navigator = LocalNavigator.current
+    // „Meldungen“ in the Datenschutzerklärung, on the server the app talks to (datenschutz.blade.php, id="meldungen").
+    val privacy = LocalApiClient.current?.absoluteUrl("/datenschutz#meldungen")?.toString()
     ModalBottomSheet(
         onDismissRequest = onDismiss,
         sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true),
         containerColor = OasisColors.Sand
     ) {
-        ReportContent(state, model::setCategory, model::setComment, model::send, model::block, onDismiss)
+        ReportContent(state, model::setCategory, model::setComment, model::send, model::block, onDismiss) {
+            if (privacy != null) navigator.open(WebRoute(privacy))
+        }
     }
 }
 
@@ -64,7 +72,8 @@ internal fun ReportContent(
     onComment: (String) -> Unit,
     onSend: suspend () -> Unit,
     onBlock: suspend () -> Unit,
-    onClose: () -> Unit
+    onClose: () -> Unit,
+    onPrivacy: () -> Unit = {}
 ) {
     Column(
         modifier = Modifier.fillMaxWidth().verticalScroll(rememberScrollState()).padding(20.dp),
@@ -149,6 +158,12 @@ internal fun ReportContent(
             OasisTextField("Möchtest du noch etwas dazu sagen? (freiwillig)", state.comment, onComment, lines = 3..10)
             state.error?.let { FieldError(it) }
             AsyncOasisButton("Melden", onSend, fullWidth = false, modifier = Modifier.testTag("chat.report.submit"))
+            Text(
+                "Wir speichern deine Meldung als Nachweis; Einzelheiten in der Datenschutzerklärung.",
+                style = OasisType.Small,
+                color = OasisColors.Ink2
+            )
+            OasisTextButton("Datenschutzerklärung", onPrivacy, Modifier.testTag("chat.report.privacy"))
         }
     }
 }

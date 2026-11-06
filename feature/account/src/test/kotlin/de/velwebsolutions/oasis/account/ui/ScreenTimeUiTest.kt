@@ -2,7 +2,10 @@ package de.velwebsolutions.oasis.account.ui
 
 import androidx.compose.ui.test.isRoot
 import androidx.compose.ui.test.junit4.createComposeRule
+import androidx.compose.ui.test.onNodeWithContentDescription
+import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.onNodeWithText
+import androidx.compose.ui.test.performClick
 import androidx.test.core.app.ApplicationProvider
 import com.github.takahirom.roborazzi.captureRoboImage
 import de.velwebsolutions.oasis.account.session
@@ -15,7 +18,10 @@ import de.velwebsolutions.oasis.core.screentime.ScreenTimeWeek
 import de.velwebsolutions.oasis.design.theme.OasisTheme
 import de.velwebsolutions.oasis.testing.StubTransport
 import kotlinx.coroutines.test.TestScope
+import org.junit.Assert.assertEquals
+import org.junit.Assert.assertFalse
 import org.junit.Assert.assertNull
+import org.junit.Assert.assertTrue
 import org.junit.Rule
 import org.junit.Test
 import org.junit.runner.RunWith
@@ -44,10 +50,20 @@ class ScreenTimeUiTest {
             ),
             total = 180
         )
-        compose.setContent { OasisTheme { ScreenTimeContent(week) } }
+        compose.setContent { OasisTheme { ScreenTimeContent(week, enabled = true, onEnabled = {}) } }
         compose.onNodeWithText("Zusammen 3 Std.").assertExists()
         compose.waitForIdle()
         compose.onAllNodes(isRoot())[0].captureRoboImage("build/outputs/roborazzi/account-screen-time.png")
+    }
+
+    @Test
+    fun switchedOffThereIsNoWeekAndTheSwitchAsksToCount() {
+        val switched = mutableListOf<Boolean>()
+        compose.setContent { OasisTheme { ScreenTimeContent(null, enabled = false, onEnabled = { switched += it }) } }
+        compose.onNodeWithTag("screenTime.off").assertExists()
+        compose.onNodeWithTag("screenTime.week").assertDoesNotExist()
+        compose.onNodeWithContentDescription("Zeit zählen").performClick()
+        assertEquals(listOf(true), switched)
     }
 
     @Test
@@ -56,5 +72,11 @@ class ScreenTimeUiTest {
         val model = ScreenTimeViewModel(ScreenTime(store, userId = { null }), session(StubTransport(), TestScope()))
         model.refresh()
         assertNull(model.week.value)
+        assertFalse("off by default", model.enabled.value)
+        model.setEnabled(true)
+        assertTrue(model.enabled.value)
+        assertTrue("kept on the device", PreferencesScreenTimeStore(ApplicationProvider.getApplicationContext()).enabled)
+        model.refresh()
+        assertTrue(model.enabled.value)
     }
 }

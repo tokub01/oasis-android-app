@@ -71,6 +71,7 @@ class AccountUiTest {
     @Test
     fun signInTypesTheCredentialsAndOffersRegistrationAndReset() {
         val typed = mutableListOf<String>()
+        val legal = mutableListOf<String>()
         var signIns = 0
         var registers = 0
         compose.setContent {
@@ -83,7 +84,8 @@ class AccountUiTest {
                     onForgotPassword = {},
                     onRegister = { registers += 1 },
                     onLoginCode = {},
-                    onPasskey = null
+                    onPasskey = null,
+                    onLegal = { legal += it }
                 )
             )
         }
@@ -95,6 +97,10 @@ class AccountUiTest {
         compose.onNodeWithText("Passwort vergessen?").performScrollTo().assertIsDisplayed()
         compose.onNodeWithText("Mitglied werden").performScrollTo().performClick()
         assertEquals(1, registers)
+        // § 5 DDG: Impressum and Datenschutz before anyone signs in.
+        compose.onNodeWithTag("signin.impressum").performScrollTo().performClick()
+        compose.onNodeWithTag("signin.datenschutz").performScrollTo().performClick()
+        assertEquals(listOf("impressum", "datenschutz"), legal)
     }
 
     @Test

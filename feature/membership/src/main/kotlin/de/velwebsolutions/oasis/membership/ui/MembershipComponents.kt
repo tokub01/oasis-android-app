@@ -18,6 +18,7 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.outlined.Shield
+import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.Text
@@ -42,6 +43,7 @@ import androidx.compose.ui.text.style.TextDecoration
 import androidx.compose.ui.text.withStyle
 import androidx.compose.ui.unit.dp
 import de.velwebsolutions.oasis.design.components.LocalApiClient
+import de.velwebsolutions.oasis.design.components.OasisTextButton
 import de.velwebsolutions.oasis.design.components.pressable
 import de.velwebsolutions.oasis.design.navigation.MembershipRoute
 import de.velwebsolutions.oasis.design.navigation.Navigator
@@ -185,4 +187,29 @@ fun backToOverview(navigator: Navigator) {
     } else {
         navigator.handle(MembershipRoute.Overview)
     }
+}
+
+/** A question before a step that ends something (the web's `wire:confirm`); [tag] marks the confirming button. */
+@Composable
+fun Question(
+    title: String,
+    confirmLabel: String,
+    onConfirm: () -> Unit,
+    message: String? = null,
+    tag: String = "perks.confirm",
+    onDismiss: () -> Unit
+) {
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        containerColor = OasisColors.Paper,
+        title = { Text(title, style = OasisType.heading(), color = OasisColors.Night) },
+        text = message?.let { { Text(it, style = OasisType.Body, color = OasisColors.Ink2) } },
+        confirmButton = {
+            OasisTextButton(confirmLabel, {
+                onDismiss()
+                onConfirm()
+            }, Modifier.testTag(tag), color = OasisColors.SunText)
+        },
+        dismissButton = { OasisTextButton("Abbrechen", onDismiss) }
+    )
 }

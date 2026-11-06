@@ -114,6 +114,7 @@ class AndroidPushTest {
         PushNotifications.show(app, PushContent("Oasis", "Neu", null))
         assertEquals(1, posted().size)
         assertEquals(PushAuthorization.Authorized, AndroidPushSystem(app).authorization())
+        assertTrue("without a system dialog the app asks itself", AndroidPushSystem(app).asksInApp)
         manager.let { shadowOf(it).setNotificationsEnabled(false) }
         assertEquals(PushAuthorization.Denied, AndroidPushSystem(app).authorization())
     }
@@ -121,6 +122,7 @@ class AndroidPushTest {
     @Test
     fun asksOnceForThePermissionFromAndroid13On() {
         val system = AndroidPushSystem(app)
+        assertFalse(system.asksInApp)
         assertEquals(PushAuthorization.NotDetermined, system.authorization())
         system.permissionAnswered(false)
         assertEquals(PushAuthorization.Denied, system.authorization())
@@ -152,6 +154,13 @@ class AndroidPushTest {
         assertTrue(again.optedOut)
         again.deviceId = null
         assertNull(PreferencesPushStore(app).deviceId)
+        assertNull("not asked yet", again.inAppConsent)
+        again.inAppConsent = false
+        assertEquals(false, PreferencesPushStore(app).inAppConsent)
+        again.inAppConsent = true
+        assertEquals(true, PreferencesPushStore(app).inAppConsent)
+        again.inAppConsent = null
+        assertNull(PreferencesPushStore(app).inAppConsent)
     }
 
     private class FakeCommonApi(val preview: PushPreview?) : CommonApi {

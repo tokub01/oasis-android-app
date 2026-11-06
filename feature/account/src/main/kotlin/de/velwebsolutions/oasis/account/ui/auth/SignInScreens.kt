@@ -54,7 +54,8 @@ internal fun SignInScreen(
     onTwoFactor: (String) -> Unit,
     onForgotPassword: () -> Unit,
     onRegister: () -> Unit,
-    onLoginCode: (LoginCodeChannel, String) -> Unit
+    onLoginCode: (LoginCodeChannel, String) -> Unit,
+    onLegal: (String) -> Unit
 ) {
     val viewModel: SignInViewModel = hiltViewModel()
     val ui by viewModel.ui.collectAsStateWithLifecycle()
@@ -71,13 +72,17 @@ internal fun SignInScreen(
                 onForgotPassword = onForgotPassword,
                 onRegister = onRegister,
                 onLoginCode = { channel -> onLoginCode(channel, ui.login) },
-                onPasskey = if (ui.offersPasskeys && passkeys.isAvailable) ({ viewModel.signInWithPasskey(passkeys) }) else null
+                onPasskey = if (ui.offersPasskeys && passkeys.isAvailable) ({ viewModel.signInWithPasskey(passkeys) }) else null,
+                onLegal = onLegal
             )
         )
     }
 }
 
-/** What the sign-in form can do; [onPasskey] is null while passkeys are not on offer. */
+/**
+ * What the sign-in form can do; [onPasskey] is null while passkeys are not on offer. [onLegal] opens a page of the website
+ * (`impressum`, `datenschutz`): § 5 DDG wants both reachable before anyone signs in.
+ */
 internal class SignInActions(
     val onLogin: (String) -> Unit,
     val onPassword: (String) -> Unit,
@@ -85,7 +90,8 @@ internal class SignInActions(
     val onForgotPassword: () -> Unit,
     val onRegister: () -> Unit,
     val onLoginCode: (LoginCodeChannel) -> Unit,
-    val onPasskey: (suspend () -> Unit)?
+    val onPasskey: (suspend () -> Unit)?,
+    val onLegal: (String) -> Unit = {}
 )
 
 @Composable
@@ -141,6 +147,10 @@ internal fun SignInContent(ui: SignInUiState, actions: SignInActions) {
             modifier = Modifier.testTag("register.button"),
             kind = OasisButtonKind.Accent
         )
+        Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(20.dp, Alignment.CenterHorizontally)) {
+            LinkText("Impressum", { actions.onLegal("impressum") }, Modifier.testTag("signin.impressum"), bold = false)
+            LinkText("Datenschutz", { actions.onLegal("datenschutz") }, Modifier.testTag("signin.datenschutz"), bold = false)
+        }
     }
 }
 

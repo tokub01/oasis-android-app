@@ -74,6 +74,61 @@ class MembershipViewModelTest {
     }
 
     @Test
+    fun `objecting to the AGB change and taking it back show the server's answer and its state`() = runTest {
+        val (repository, transport) = Fixtures.repository(
+            Stub("GET", "membership", json = Fixtures.termsChangeOverview),
+            Stub("POST", "membership/terms-objection", json = Fixtures.confirmed(Fixtures.OBJECTED, Fixtures.termsObjectedOverview)),
+            Stub(
+                "DELETE",
+                "membership/terms-objection",
+                json = Fixtures.confirmed(Fixtures.OBJECTION_WITHDRAWN, Fixtures.termsChangeOverview)
+            )
+        )
+        val viewModel = OverviewViewModel(repository, MembershipEvents())
+        viewModel.load()
+        assertEquals(false, viewModel.state.value.overview.valueOrNull?.termsChange?.objected)
+
+        viewModel.objectToTerms()
+        assertEquals(true, viewModel.state.value.overview.valueOrNull?.termsChange?.objected)
+        assertEquals(Fixtures.OBJECTED, viewModel.state.value.message)
+        assertEquals(false, viewModel.state.value.termsBusy)
+
+        viewModel.withdrawTermsObjection()
+        assertEquals(false, viewModel.state.value.overview.valueOrNull?.termsChange?.objected)
+        assertEquals(Fixtures.OBJECTION_WITHDRAWN, viewModel.state.value.message)
+        assertEquals(
+            listOf("POST", "DELETE"),
+            transport.requests.filter { it.path == "membership/terms-objection" }.map { it.request.method }
+        )
+    }
+
+    @Test
+    fun `a refused objection is a toast and reloads what the server knows`() = runTest {
+        val (repository, transport) = Fixtures.repository(
+            Stub("GET", "membership", json = Fixtures.termsChangeOverview),
+            Stub(
+                "POST",
+                "membership/terms-objection",
+                status = 422,
+                json = """{"message":"${Fixtures.ALREADY_OBJECTED}","reason":"already_objected"}"""
+            ),
+            Stub("DELETE", "membership/terms-objection", status = 500, json = """{"message":"Server Error"}""")
+        )
+        val viewModel = OverviewViewModel(repository, MembershipEvents())
+        viewModel.load()
+        transport.add("GET", "membership", json = Fixtures.termsObjectedOverview)
+
+        viewModel.objectToTerms()
+        assertEquals(Fixtures.ALREADY_OBJECTED, viewModel.state.value.error)
+        assertEquals("reloaded", true, viewModel.state.value.overview.valueOrNull?.termsChange?.objected)
+        assertNull(viewModel.state.value.message)
+
+        viewModel.withdrawTermsObjection()
+        assertEquals("other failures as usual", "Server Error", viewModel.state.value.error)
+        assertEquals(false, viewModel.state.value.termsBusy)
+    }
+
+    @Test
     fun `cancellation hands the outcome to the overview`() = runTest {
         val (repository, transport) = Fixtures.repository(
             Stub("GET", "membership/cancellation", json = Fixtures.cancellation),

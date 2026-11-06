@@ -12,12 +12,6 @@
    "median_seconds": 252000,
    "median_label": "2 Tg. 22 Std."
   },
-  "waiting_locks": {
-   "count": 0,
-   "oldest_hours": null,
-   "state": null,
-   "review_hours": 48
-  },
   "activity": [
    {
     "id": 9,

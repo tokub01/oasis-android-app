@@ -34,6 +34,7 @@ import de.velwebsolutions.oasis.core.screentime.ScreenTime
 import de.velwebsolutions.oasis.core.screentime.ScreenTimeWeek
 import de.velwebsolutions.oasis.design.components.OasisScreen
 import de.velwebsolutions.oasis.design.components.PageHeader
+import de.velwebsolutions.oasis.design.components.SettingToggle
 import de.velwebsolutions.oasis.design.theme.OasisColors
 import de.velwebsolutions.oasis.design.theme.OasisRadius
 import de.velwebsolutions.oasis.design.theme.OasisType
@@ -42,16 +43,29 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 
-/** „Deine Zeit in Oasis“: the signed-in account's last 7 days as counted on this device. */
+/**
+ * „Deine Zeit in Oasis“: the signed-in account's last 7 days as counted on this device, and the switch that lets the
+ * device count at all (off by default, kept only on the device).
+ */
 @HiltViewModel
 class ScreenTimeViewModel @Inject constructor(private val screenTime: ScreenTime, private val session: Session) : ViewModel() {
     private val mutableWeek = MutableStateFlow<ScreenTimeWeek?>(null)
     val week: StateFlow<ScreenTimeWeek?> = mutableWeek.asStateFlow()
 
+    private val mutableEnabled = MutableStateFlow(screenTime.enabled)
+    val enabled: StateFlow<Boolean> = mutableEnabled.asStateFlow()
+
     /** The week as it stands, the seconds of this very visit included. */
     fun refresh() {
         screenTime.save()
+        mutableEnabled.value = screenTime.enabled
         mutableWeek.value = (session.state.value as? SessionState.SignedIn)?.me?.id?.let(screenTime::week)
+    }
+
+    /** The switch: counting starts or stops at once, on this device only. */
+    fun setEnabled(on: Boolean) {
+        screenTime.enabled = on
+        mutableEnabled.value = on
     }
 }
 
@@ -59,23 +73,45 @@ class ScreenTimeViewModel @Inject constructor(private val screenTime: ScreenTime
 @Composable
 internal fun ScreenTimeScreen(viewModel: ScreenTimeViewModel = hiltViewModel()) {
     val week by viewModel.week.collectAsStateWithLifecycle()
+    val enabled by viewModel.enabled.collectAsStateWithLifecycle()
     LifecycleEventEffect(Lifecycle.Event.ON_RESUME) { viewModel.refresh() }
-    OasisScreen(title = "Deine Zeit") { ScreenTimeContent(week) }
+    OasisScreen(title = "Deine Zeit") { ScreenTimeContent(week, enabled, viewModel::setEnabled) }
 }
 
 /** The page without view model (Robolectric tests). */
 @Composable
-internal fun ScreenTimeContent(week: ScreenTimeWeek?) {
+internal fun ScreenTimeContent(week: ScreenTimeWeek?, enabled: Boolean, onEnabled: (Boolean) -> Unit) {
     AccountPage {
         PageHeader(
             "Deine Zeit in Oasis",
             eyebrow = "Nur für dich",
-            lead = "Wie viele Minuten du an den letzten sieben Tagen in Oasis warst – " +
-                "gezählt nur, solange Oasis vorne ist und du etwas tust."
+            lead = "Wie viele Minuten du an den letzten sieben Tagen in Oasis warst – gezählt nur, wenn du das hier einschaltest, " +
+                "und nur, solange Oasis vorne ist und du etwas tust."
         )
-        week?.let { WeekCard(it) }
+        Column(
+            Modifier.fillMaxWidth().background(OasisColors.Paper, RoundedCornerShape(OasisRadius.M.dp)).padding(20.dp)
+        ) {
+            SettingToggle(
+                "Zeit zählen",
+                enabled,
+                onEnabled,
+                Modifier.testTag("screenTime.toggle"),
+                detail = "Standard: aus. Der Schalter gilt nur für dieses Gerät und wird nirgendwohin übertragen."
+            )
+        }
+        if (enabled) {
+            week?.let { WeekCard(it) }
+        } else {
+            Text(
+                "Das Zählen ist aus. Schalte es ein, wenn du sehen möchtest, wie viel Zeit du hier verbringst.",
+                style = OasisType.Body,
+                color = OasisColors.Ink2,
+                modifier = Modifier.testTag("screenTime.off")
+            )
+        }
         Text(
-            "Gezählt wird nur auf diesem Gerät, in dieser App. Oasis bekommt davon nichts. Im Browser und auf anderen Geräten zählt jedes Gerät für sich.",
+            "Gezählt wird nur auf diesem Gerät, in dieser App, und nur, solange der Schalter an ist. Oasis bekommt davon nichts. " +
+                "Im Browser und auf anderen Geräten zählt jedes Gerät für sich.",
             style = OasisType.Body,
             color = OasisColors.Ink,
             modifier = Modifier

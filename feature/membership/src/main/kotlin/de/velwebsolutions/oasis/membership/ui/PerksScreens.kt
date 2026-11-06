@@ -12,7 +12,6 @@ import androidx.compose.foundation.text.selection.SelectionContainer
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.outlined.Check
 import androidx.compose.material.icons.outlined.Share
-import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Icon
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -36,7 +35,6 @@ import de.velwebsolutions.oasis.design.components.OasisButton
 import de.velwebsolutions.oasis.design.components.OasisButtonKind
 import de.velwebsolutions.oasis.design.components.OasisLogo
 import de.velwebsolutions.oasis.design.components.OasisScreen
-import de.velwebsolutions.oasis.design.components.OasisTextButton
 import de.velwebsolutions.oasis.design.components.PageHeader
 import de.velwebsolutions.oasis.design.components.Panel
 import de.velwebsolutions.oasis.design.components.PanelTone
@@ -235,24 +233,6 @@ private fun CompanionSeats(perks: MembershipPerks, callbacks: PerksCallbacks) {
             if (name != null) "$name verliert dann den Zugang, außer mit eigener Mitgliedschaft." else "Der Link gilt dann nicht mehr."
         ) { releasing = null }
     }
-}
-
-/** A question before a step that ends something (the web's `wire:confirm`). */
-@Composable
-private fun Question(title: String, confirmLabel: String, onConfirm: () -> Unit, message: String? = null, onDismiss: () -> Unit) {
-    AlertDialog(
-        onDismissRequest = onDismiss,
-        containerColor = OasisColors.Paper,
-        title = { Text(title, style = OasisType.heading(), color = OasisColors.Night) },
-        text = message?.let { { Text(it, style = OasisType.Body, color = OasisColors.Ink2) } },
-        confirmButton = {
-            OasisTextButton(confirmLabel, {
-                onDismiss()
-                onConfirm()
-            }, Modifier.testTag("perks.confirm"), color = OasisColors.SunText)
-        },
-        dismissButton = { OasisTextButton("Abbrechen", onDismiss) }
-    )
 }
 
 /** /app/mitgliedschaft/mitkommen/{token} (App\Livewire\Membership\CompanionLanding) in the app. */

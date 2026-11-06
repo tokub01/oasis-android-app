@@ -31,6 +31,7 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.outlined.Close
 import androidx.compose.material.icons.outlined.Forum
 import androidx.compose.material.icons.outlined.Notifications
+import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.Text
@@ -55,6 +56,7 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import dagger.hilt.android.lifecycle.HiltViewModel
 import de.velwebsolutions.oasis.design.components.CountBadge
+import de.velwebsolutions.oasis.design.components.OasisTextButton
 import de.velwebsolutions.oasis.design.navigation.ChatRoute
 import de.velwebsolutions.oasis.design.navigation.LiveRoute
 import de.velwebsolutions.oasis.design.navigation.LocalNavigator
@@ -87,18 +89,36 @@ fun HintsButton(live: LiveCoordinator = hiltViewModel<LiveShellViewModel>().live
 }
 
 /**
- * Android's notification prompt, once after sign-in like on iOS (the bell is in the shell of every signed-in member).
- * Before Android 13 notifications need no permission.
+ * The notification prompt, once after sign-in like on iOS (the bell is in the shell of every signed-in member): Android's
+ * POST_NOTIFICATIONS dialog from Android 13 on. Before that notifications need no permission, so the app asks itself
+ * („Push-Hinweise einschalten?“, Ja / Später) before it registers the device; the answer is kept on the device.
  */
 @Composable
 private fun NotificationPrompt(live: LiveCoordinator) {
     val asks by live.asksForPushPermission.collectAsStateWithLifecycle()
     val scope = rememberCoroutineScope()
-    val prompt = rememberLauncherForActivityResult(ActivityResultContracts.RequestPermission()) { granted ->
-        scope.launch { live.pushPermissionAnswered(granted) }
-    }
+    val answer: (Boolean) -> Unit = { granted -> scope.launch { live.pushPermissionAnswered(granted) } }
+    val prompt = rememberLauncherForActivityResult(ActivityResultContracts.RequestPermission(), answer)
+    val inApp = live.pushAsksInApp
     LaunchedEffect(asks) {
-        if (asks && Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) prompt.launch(Manifest.permission.POST_NOTIFICATIONS)
+        if (asks && !inApp && Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) prompt.launch(Manifest.permission.POST_NOTIFICATIONS)
+    }
+    if (asks && inApp) {
+        AlertDialog(
+            onDismissRequest = { answer(false) },
+            confirmButton = { OasisTextButton("Ja", { answer(true) }, Modifier.testTag("push.ask.yes")) },
+            dismissButton = { OasisTextButton("Später", { answer(false) }, Modifier.testTag("push.ask.later")) },
+            title = { Text("Push-Hinweise einschalten?", style = OasisType.heading(), color = OasisColors.Night) },
+            text = {
+                Text(
+                    "Ein kurzer Hinweis auf diesem Gerät, wenn es Neues gibt – nie mit dem Text eines Tropfens oder einer Nachricht. " +
+                        "Du kannst das jederzeit unter „Hinweise einstellen“ ändern.",
+                    style = OasisType.Body,
+                    color = OasisColors.Ink2
+                )
+            },
+            containerColor = OasisColors.Paper
+        )
     }
 }
 

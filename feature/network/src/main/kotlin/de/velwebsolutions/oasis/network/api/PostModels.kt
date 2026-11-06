@@ -140,6 +140,7 @@ data class Post(
         data class Original(val id: Int, val author: Member, val body: String, val segments: List<TextSegment> = emptyList())
     }
 
+    /** A Tropfen the automated check holds for a human review: only its author sees it, and the account stays open. */
     @Serializable
     data class Held(val reason: String, val checkReason: String? = null, val reviewHours: Int = 24)
 
@@ -248,7 +249,7 @@ object ImageEdge {
     const val DEFAULT = 2048
 }
 
-/** The answer after publishing. */
+/** The answer after publishing; `suspended` reflects a lock from a human decision, never the held Tropfen itself. */
 @Serializable
 data class PublishResult(val message: String, val suspended: Boolean = false, val data: Post)
 

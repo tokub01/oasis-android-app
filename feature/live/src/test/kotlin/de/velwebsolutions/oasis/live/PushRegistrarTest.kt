@@ -236,6 +236,44 @@ class PushRegistrarTest {
     }
 
     @Test
+    fun beforeAndroid13TheAppAsksItselfAndRegistersOnlyAfterAYes() = runTest {
+        val transport = transport()
+        val system = FakePushSystem(asksInApp = true)
+        val store = MemoryPushStore()
+        val registrar = registrar(system, store)
+        assertTrue(registrar.asksInApp)
+        registrar.signedIn(repository(transport))
+        assertTrue("nothing is registered before the member said yes", transport.requests.none { it.path == "push/devices" })
+        assertTrue(registrar.asksForPermission.value)
+        registrar.promptAnswered(false)
+        assertEquals(false, store.inAppConsent)
+        assertFalse(registrar.asksForPermission.value)
+        assertNull(store.deviceId)
+        assertTrue("the system dialog is not involved", system.answers.isEmpty())
+
+        registrar.signedIn(repository(transport))
+        assertFalse("„Später“ is remembered", registrar.asksForPermission.value)
+        assertNull(store.deviceId)
+
+        // „Auf diesem Gerät einschalten“ is the yes the question asked for.
+        registrar.enableOnThisDevice()
+        assertEquals(true, store.inAppConsent)
+        assertEquals(5, store.deviceId)
+
+        val yes = MemoryPushStore()
+        val saying = registrar(FakePushSystem(asksInApp = true), yes)
+        saying.signedIn(repository(transport))
+        saying.promptAnswered(true)
+        assertEquals(true, yes.inAppConsent)
+        assertEquals(5, yes.deviceId)
+
+        // Notifications switched off in Android: nothing to ask, nothing to register.
+        val denied = registrar(FakePushSystem(status = PushAuthorization.Denied, asksInApp = true))
+        denied.signedIn(repository(transport))
+        assertFalse(denied.asksForPermission.value)
+    }
+
+    @Test
     fun asksNotWhenAllowedRefusedSwitchedOffUnsupportedOrWithoutServerPush() = runTest {
         val noPush =
             StubTransport(StubTransport.Stub("GET", "app-config", json = """{"data":{"reverb":null,"push":{"available":false}}}"""))

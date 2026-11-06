@@ -34,6 +34,7 @@ import de.velwebsolutions.oasis.design.theme.OasisType
 import de.velwebsolutions.oasis.staff.api.ComplaintDetail
 import de.velwebsolutions.oasis.staff.api.Labelled
 import de.velwebsolutions.oasis.staff.api.StatementOfReasons
+import de.velwebsolutions.oasis.staff.api.durationLabel
 import de.velwebsolutions.oasis.staff.ui.components.ConfirmDialog
 import de.velwebsolutions.oasis.staff.ui.components.RadioList
 import de.velwebsolutions.oasis.staff.ui.components.StaffDate
@@ -106,8 +107,9 @@ fun ComplaintReviewContent(
                     color = OasisColors.Ink2
                 )
                 SectionCard("Ursprüngliche Entscheidung") {
+                    val duration = complaint.decision.suspensionDays?.let { " (${durationLabel(it)})" }.orEmpty()
                     Text(
-                        "${complaint.decision.outcome.label} · ${complaint.decision.ground.label}",
+                        "${complaint.decision.outcome.label}$duration · ${complaint.decision.ground.label}",
                         style = OasisType.BodyBold,
                         color = OasisColors.Ink
                     )
@@ -139,9 +141,13 @@ fun ComplaintReviewContent(
                     }
 
                     complaint.canReview -> ReviewForm(complaint, state, onResult, onExplanation, onStatement) {
-                        // A chosen result is confirmed first; without one the server names what is missing.
+                        // A chosen result is confirmed first; without one (or a new decision without measure, ground or the duration of
+                        // a lock) the server names what is missing.
                         val incomplete = state.result.isEmpty() ||
-                            (state.result == "overturned" && (state.statement.outcome.isEmpty() || state.statement.ground.isEmpty()))
+                            (
+                                state.result == "overturned" &&
+                                    (state.statement.outcome.isEmpty() || state.statement.ground.isEmpty() || state.statement.lacksDuration)
+                                )
                         if (incomplete) onReview() else confirmReview = complaint
                     }
 
@@ -176,7 +182,7 @@ internal fun reviewSummary(state: ComplaintReviewUiState, complaint: ComplaintDe
     if (state.result != "overturned") {
         return "Die Entscheidung bleibt bestehen. Die Person, die widersprochen hat, bekommt die Begründung per E-Mail."
     }
-    val outcome = complaint.outcomes.firstOrNull { it.value == state.statement.outcome }?.label.orEmpty()
+    val outcome = state.statement.outcomeLabel(complaint.outcomes)
     val ground = complaint.grounds.firstOrNull { it.value == state.statement.ground }?.label.orEmpty()
     return "Die Entscheidung wird geändert: $outcome · $ground. Die Betroffenen bekommen die Begründung per E-Mail."
 }
@@ -210,7 +216,15 @@ private fun ReviewForm(
                     style = OasisType.Caption,
                     color = OasisColors.Muted
                 )
-                DecisionFields(state.statement, onStatement, complaint.outcomes, complaint.grounds, state.fieldErrors, "review")
+                DecisionFields(
+                    state.statement,
+                    onStatement,
+                    complaint.outcomes,
+                    complaint.suspension,
+                    complaint.grounds,
+                    state.fieldErrors,
+                    "review"
+                )
             }
         } else {
             OasisTextField(

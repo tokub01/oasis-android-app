@@ -149,6 +149,11 @@ class CommonApiTest {
             ApiError.Validation("x", mapOf("a" to emptyList())),
             ApiClient.errorFor(422, """{"message":"x","errors":{"a":"y"}}""", null)
         )
+        assertEquals(
+            "a refusal's fixed code comes along",
+            ApiError.Validation("Schon widersprochen.", emptyMap(), "already_objected"),
+            ApiClient.errorFor(422, """{"message":"Schon widersprochen.","reason":"already_objected"}""", null)
+        )
         assertEquals(ApiError.NotFound, ApiClient.map(ApiError.NotFound))
         assertEquals(ApiError.Decoding("kaputt"), ApiClient.map(SerializationException("kaputt")))
         assertEquals(ApiError.Decoding("Unerwartete Antwort"), ApiClient.map(SerializationException()))

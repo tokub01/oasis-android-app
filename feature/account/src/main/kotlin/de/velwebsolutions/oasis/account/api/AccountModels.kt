@@ -91,23 +91,32 @@ data class ProfileChange(val message: String? = null, val data: Me)
 
 // Lock screen and complaints.
 
-/** The active lock (/app/gesperrt). */
+/**
+ * The active lock (/app/gesperrt): `suspension` from a decision "Konto gesperrt" with its planned end, or `ban` after
+ * [strikeLimit] confirmed violations within [strikeMonths] months. Since 6 November 2026 a lock is always a human
+ * decision – the automated check only holds content – so there is no provisional lock any more.
+ */
 @Serializable
 data class Suspension(
     val type: String,
     val label: String,
     val startedAt: OasisInstant,
+    /** The planned end of a lock with a duration; null for a ban. */
+    val endsAt: OasisInstant? = null,
+    /** The planned end as the web shows it ("12.11.2026, 14:05 Uhr"); null for a ban. */
+    val endsAtLabel: String? = null,
     val accusation: String,
     val excerpt: String? = null,
     val statement: String? = null,
     val statementAt: OasisInstant? = null,
+    /** Confirmed violations of the last [strikeMonths] months. */
     val strikes: Int = 0,
     val strikeLimit: Int = 3,
-    val reviewHours: Int = 24,
+    /** Months a confirmed violation counts towards the permanent ban. */
+    val strikeMonths: Int = 12,
     val statementMax: Int = 3000
 ) {
     val isBan: Boolean get() = type == "ban"
-    val isProvisional: Boolean get() = type == "provisional"
 }
 
 @Serializable

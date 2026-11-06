@@ -1,6 +1,7 @@
 package de.velwebsolutions.oasis.membership.data
 
 import de.velwebsolutions.oasis.core.network.ApiClient
+import de.velwebsolutions.oasis.core.network.ApiError
 import de.velwebsolutions.oasis.core.network.Confirmed
 import de.velwebsolutions.oasis.membership.api.CancellationDetails
 import de.velwebsolutions.oasis.membership.api.FinanceReport
@@ -39,6 +40,15 @@ interface MembershipRepository {
     suspend fun withdrawal(): WithdrawalDetails
 
     suspend fun withdraw(): Confirmed<MembershipOverview>
+
+    /**
+     * „Ich widerspreche dieser Änderung“ (`POST membership/terms-objection`, AGB § 19): the overview with the objection
+     * and the server's confirmation; throws [TermsObjectionRefused] when the server refuses, other failures as `ApiError`.
+     */
+    suspend fun objectToTerms(): Confirmed<MembershipOverview>
+
+    /** „Widerspruch zurücknehmen“ (`DELETE membership/terms-objection`); fails like [objectToTerms]. */
+    suspend fun withdrawTermsObjection(): Confirmed<MembershipOverview>
 
     /**
      * The data export ZIP (`oasis-daten.zip`) – the same endpoint as „Daten herunterladen“ in Einstellungen, offered on
@@ -91,6 +101,25 @@ class DefaultMembershipRepository @Inject constructor(private val client: ApiCli
 
     override suspend fun withdraw() = service.withdraw()
 
+    override suspend fun objectToTerms() = termsObjection(service::objectToTerms)
+
+    override suspend fun withdrawTermsObjection() = termsObjection(service::withdrawTermsObjection)
+
+    /**
+     * Runs an objection call and turns the server's refusal into [TermsObjectionRefused]: the 404 of a change that is no
+     * longer announced (the server's `no_announcement`, whose message a 404 does not carry) and the 422 with its `reason`.
+     */
+    private suspend fun termsObjection(call: suspend () -> Confirmed<MembershipOverview>): Confirmed<MembershipOverview> = try {
+        call()
+    } catch (error: ApiError.NotFound) {
+        throw TermsObjectionRefused(
+            TermsObjectionRefused.NO_ANNOUNCEMENT,
+            "Derzeit ist keine Änderung unserer AGB angekündigt, der du widersprechen könntest."
+        )
+    } catch (error: ApiError.Validation) {
+        throw TermsObjectionRefused(error.reason, error.summary)
+    }
+
     override suspend fun export() = client.download(client.url("account/export").toString())
 
     override suspend fun perks() = service.perks().data
@@ -106,4 +135,16 @@ class DefaultMembershipRepository @Inject constructor(private val client: ApiCli
     override suspend fun leaveSeat() = service.leaveSeat().message
 
     override suspend fun updateSupporter(input: SupporterInput) = service.updateSupporter(input).message
+}
+
+/**
+ * The server refused the objection or its withdrawal (AGB § 19): [message] says why in German, [reason] is its fixed code
+ * – [NO_ANNOUNCEMENT] (404), [ALREADY_OBJECTED] or [NOT_OBJECTED] (422); null for a 422 without one.
+ */
+class TermsObjectionRefused(val reason: String?, override val message: String) : Exception(message) {
+    companion object {
+        const val NO_ANNOUNCEMENT = "no_announcement"
+        const val ALREADY_OBJECTED = "already_objected"
+        const val NOT_OBJECTED = "not_objected"
+    }
 }

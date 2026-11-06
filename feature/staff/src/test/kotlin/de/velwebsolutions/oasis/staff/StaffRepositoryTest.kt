@@ -15,6 +15,7 @@ import de.velwebsolutions.oasis.staff.api.PaymentPage
 import de.velwebsolutions.oasis.staff.api.RolePage
 import de.velwebsolutions.oasis.staff.api.SuspensionList
 import de.velwebsolutions.oasis.staff.api.SystemStatus
+import java.time.Instant
 import kotlinx.serialization.KSerializer
 import kotlinx.serialization.builtins.ListSerializer
 import org.junit.Assert.assertEquals
@@ -42,10 +43,18 @@ class StaffDecodingTest {
         val plain = decode(Fixtures.caseDetail, Confirmed.serializer(ModerationCaseDetail.serializer())).data
         assertEquals("content_report", plain.report.kind)
         assertNull(plain.escalation)
-        assertEquals(5, plain.outcomes.size)
+        assertEquals(6, plain.outcomes.size)
+        assertEquals("Warnung", plain.outcomes.first { it.value == "warning" }.label)
+        assertTrue(plain.outcomes.first { it.value == "warning" }.hint!!.startsWith("Zählt als bestätigter Verstoß."))
+        assertNull(plain.outcomes.first { it.value == "no_action" }.hint)
+        assertFalse("not warned yet: the lock is not available", plain.suspension.allowed)
+        assertTrue(plain.suspension.blockedReason!!.startsWith("Erst nach einer Warnung"))
+        assertEquals(listOf(3, 7, 30), plain.suspension.days)
 
         val escalated = data(Fixtures.caseEscalated, ModerationCaseDetail.serializer())
         assertEquals("child_abuse", escalated.escalation?.type?.value)
+        assertTrue("a severe case allows the lock without a warning", escalated.suspension.allowed)
+        assertNull(escalated.suspension.blockedReason)
         assertEquals(true, escalated.escalation?.quarantined)
         assertEquals(2, escalated.escalation?.evidence?.size)
         assertEquals(5, escalated.escalation?.checklist?.size)
@@ -58,6 +67,8 @@ class StaffDecodingTest {
         val complaint = data(Fixtures.complaint, ComplaintDetail.serializer())
         assertTrue(complaint.canReview)
         assertNull(complaint.result)
+        assertNull("the original decision was no lock", complaint.decision.suspensionDays)
+        assertEquals(listOf(3, 7, 30), complaint.suspension.days)
 
         val roles = decode(Fixtures.roles, RolePage.serializer())
         assertEquals(listOf("member", "moderator", "admin"), roles.roles.map { it.value })
@@ -65,7 +76,13 @@ class StaffDecodingTest {
 
         val locks = data(Fixtures.suspensions, SuspensionList.serializer())
         assertEquals("Es tut mir leid.", locks.active.first().statement)
-        assertEquals("ok", locks.active.first().deadlineState)
+        assertEquals("suspension", locks.active.first().type)
+        assertEquals("29.10.2026, 17:49 Uhr", locks.active.first().endsAtLabel)
+        assertEquals(Instant.parse("2026-10-29T15:49:00Z"), locks.active.first().endsAt)
+        assertEquals(2, locks.active.first().user.activeStrikes)
+        assertEquals("Dauer abgelaufen", locks.ended.first().resultLabel)
+        assertEquals(3, locks.strikesForBan)
+        assertEquals(12, locks.strikeMonths)
     }
 
     @Test

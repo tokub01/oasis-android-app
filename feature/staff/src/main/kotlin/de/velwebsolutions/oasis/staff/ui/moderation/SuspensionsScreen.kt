@@ -11,7 +11,6 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.width
-import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -40,7 +39,6 @@ import de.velwebsolutions.oasis.design.theme.OasisRadius
 import de.velwebsolutions.oasis.design.theme.OasisType
 import de.velwebsolutions.oasis.staff.api.Suspension
 import de.velwebsolutions.oasis.staff.ui.components.ConfirmDialog
-import de.velwebsolutions.oasis.staff.ui.components.DeadlineLook
 import de.velwebsolutions.oasis.staff.ui.components.StaffDate
 import de.velwebsolutions.oasis.staff.ui.components.StaffLoadable
 import de.velwebsolutions.oasis.staff.ui.components.StaffPage
@@ -50,8 +48,9 @@ import de.velwebsolutions.oasis.staff.ui.retry
 import kotlinx.coroutines.launch
 
 /**
- * Locked accounts (web: livewire.moderation.suspensions): accusation, excerpt, the member's statement, strikes and
- * "Freigeben" (a permanent ban only by admins).
+ * Locked accounts (web: livewire.moderation.suspensions): every lock is a human decision with a planned end (or a ban);
+ * accusation, excerpt, the member's statement, the strikes of the last months and "Freigeben" before the end (a
+ * permanent ban only by admins).
  */
 @Composable
 fun SuspensionsScreen(viewModel: SuspensionsViewModel = hiltViewModel()) {
@@ -81,9 +80,10 @@ fun SuspensionsContent(
             StaffPage(onRefresh, spacing = 14) {
                 StaffTitle("Sperren")
                 Text(
-                    "Konten, die gerade gesperrt sind. Eine vorläufige Sperre beginnt automatisch, wenn die Prüfung einen Tropfen " +
-                        "zurückhält. Entscheide den verknüpften Fall oder gib das Konto hier frei. Nach ${list.strikesForBan} " +
-                        "bestätigten Verstößen wird ein Konto dauerhaft gesperrt; das hebt nur ein Admin auf.",
+                    "Konten, die gerade gesperrt sind – immer durch eine menschliche Entscheidung, nie durch die automatische Prüfung. " +
+                        "Eine Sperre mit Dauer endet von selbst; hier kannst du sie vorher aufheben. Nach ${list.strikesForBan} " +
+                        "bestätigten Verstößen innerhalb von ${list.strikeMonths} Monaten wird ein Konto dauerhaft gesperrt; das hebt " +
+                        "nur ein Admin auf.",
                     style = OasisType.Small,
                     color = OasisColors.Ink2
                 )
@@ -98,7 +98,7 @@ fun SuspensionsContent(
                         ).padding(18.dp)
                     )
                 }
-                list.active.forEach { lock -> LockCard(lock, list.strikesForBan, list.reviewHours) { confirmRelease = lock } }
+                list.active.forEach { lock -> LockCard(lock, list.strikesForBan) { confirmRelease = lock } }
                 if (list.ended.isNotEmpty()) {
                     Text(
                         "Zuletzt beendet",
@@ -135,9 +135,9 @@ fun SuspensionsContent(
     }
 }
 
-/** One active lock. */
+/** One active lock: kind, start, planned end ("bis …" for a lock with a duration) and the strikes of the last months. */
 @Composable
-private fun LockCard(lock: Suspension, limit: Int, reviewHours: Int, onRelease: () -> Unit) {
+private fun LockCard(lock: Suspension, limit: Int, onRelease: () -> Unit) {
     val navigator = LocalNavigator.current
     OasisCard(padding = 16) {
         Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
@@ -150,25 +150,15 @@ private fun LockCard(lock: Suspension, limit: Int, reviewHours: Int, onRelease: 
                 color = OasisColors.Ink
             )
             Text(
-                "${lock.label} · seit ${StaffDate.withUhr(lock.startedAt)} · Verstöße ${lock.user.activeStrikes ?: 0} von $limit",
+                "${lock.label} · seit ${StaffDate.withUhr(lock.startedAt)}" +
+                    (lock.endsAtLabel?.let { " · bis $it" } ?: "") +
+                    " · Verstöße ${lock.user.activeStrikes ?: 0} von $limit",
                 style = OasisType.Caption,
                 color = OasisColors.Ink2
             )
-            lock.deadlineState?.let { state ->
-                Text(
-                    "Wartet seit ${lock.waitingHours ?: 0} Std. von höchstens $reviewHours" +
-                        if (state == "overdue") " – Frist überschritten" else "",
-                    style = OasisType.Caption.copy(fontWeight = FontWeight.Bold),
-                    color = DeadlineLook.foreground(state),
-                    modifier = Modifier.background(
-                        DeadlineLook.background(state),
-                        CircleShape
-                    ).padding(horizontal = 10.dp, vertical = 3.dp)
-                )
-            }
             Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                 lock.caseId?.let { caseId ->
-                    OasisButton("Fall entscheiden", {
+                    OasisButton("Zum Fall", {
                         navigator.open(StaffRoute.ModerationCase(caseId))
                     }, kind = OasisButtonKind.Secondary, fullWidth = false)
                 }

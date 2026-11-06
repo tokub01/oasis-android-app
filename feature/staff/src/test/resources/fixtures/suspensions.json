@@ -3,28 +3,43 @@
   "active": [
    {
     "id": 1,
-    "type": "provisional",
-    "label": "Vorläufige Sperre bis zur Prüfung",
+    "type": "suspension",
+    "label": "Sperre durch das Moderationsteam",
     "user": {
      "display_name": "Frau Valerie Reimann",
      "username": "user_0m0md8er1lyg7yk3",
-     "active_strikes": 0
+     "active_strikes": 2
     },
     "started_at": "2026-10-22T15:49:00.000000Z",
+    "ends_at": "2026-10-29T15:49:00.000000Z",
+    "ends_at_label": "29.10.2026, 17:49 Uhr",
     "ended_at": null,
     "result_label": null,
-    "waiting_hours": 0,
-    "deadline_state": "ok",
     "case_id": 2,
-    "accusation": "Verdacht auf eine Beleidigung in deinem Tropfen vom 22.10.2026, 17:49 Uhr (Community-Regeln). Begründung der automatischen Prüfung: „Grobe Beleidigung einer Person.“",
+    "accusation": "Beleidigung in deinem Tropfen vom 22.10.2026, 17:49 Uhr (Community-Regeln). Sperre für 7 Tage.",
     "excerpt": "Du bist ein Vollidiot",
     "statement": "Es tut mir leid.",
     "statement_at": "2026-10-22T15:49:00.000000Z",
     "can_release": true
    }
   ],
-  "ended": [],
+  "ended": [
+   {
+    "id": 3,
+    "type": "suspension",
+    "label": "Sperre durch das Moderationsteam",
+    "user": {
+     "display_name": "Herr Jonas Albers",
+     "username": "user_k2n4p8qz"
+    },
+    "started_at": "2026-10-12T09:00:00.000000Z",
+    "ends_at": "2026-10-15T09:00:00.000000Z",
+    "ends_at_label": "15.10.2026, 11:00 Uhr",
+    "ended_at": "2026-10-15T09:00:00.000000Z",
+    "result_label": "Dauer abgelaufen"
+   }
+  ],
   "strikes_for_ban": 3,
-  "review_hours": 48
+  "strike_months": 12
  }
 }

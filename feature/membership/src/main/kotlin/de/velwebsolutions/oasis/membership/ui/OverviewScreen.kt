@@ -22,6 +22,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -37,6 +38,7 @@ import androidx.lifecycle.compose.LifecycleEventEffect
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import de.velwebsolutions.oasis.design.components.LoadableView
 import de.velwebsolutions.oasis.design.components.OasisButton
+import de.velwebsolutions.oasis.design.components.OasisButtonKind
 import de.velwebsolutions.oasis.design.components.OasisScreen
 import de.velwebsolutions.oasis.design.components.OasisTextButton
 import de.velwebsolutions.oasis.design.components.PageHeader
@@ -55,6 +57,7 @@ import de.velwebsolutions.oasis.design.theme.OasisRadius
 import de.velwebsolutions.oasis.design.theme.OasisType
 import de.velwebsolutions.oasis.membership.api.MembershipFormat
 import de.velwebsolutions.oasis.membership.api.MembershipOverview
+import kotlinx.coroutines.launch
 
 /**
  * /app/mitgliedschaft (App\Livewire\Membership\Overview) in the app: status, vouchers bought on the web and the aside
@@ -68,7 +71,9 @@ fun OverviewScreen(viewModel: OverviewViewModel = hiltViewModel()) {
         onRefresh = viewModel.retry(viewModel::load),
         onDismissMessage = viewModel::dismissMessage,
         onDismissError = viewModel::dismissError,
-        onSubscriptionManaged = viewModel::subscriptionManaged
+        onSubscriptionManaged = viewModel::subscriptionManaged,
+        onObjectToTerms = viewModel::objectToTerms,
+        onWithdrawTermsObjection = viewModel::withdrawTermsObjection
     )
 }
 
@@ -79,7 +84,9 @@ fun OverviewContent(
     onRefresh: suspend () -> Unit,
     onDismissMessage: () -> Unit = {},
     onDismissError: () -> Unit = {},
-    onSubscriptionManaged: () -> Unit = {}
+    onSubscriptionManaged: () -> Unit = {},
+    onObjectToTerms: suspend () -> Unit = {},
+    onWithdrawTermsObjection: suspend () -> Unit = {}
 ) {
     OasisScreen(
         title = "Mitgliedschaft",
@@ -90,17 +97,27 @@ fun OverviewContent(
     ) {
         MembershipPage(onRefresh) {
             PageHeader("Mitgliedschaft", eyebrow = "Konto", lead = "Verwalte deinen Beitrag, deine Rechnungen und deinen Status bei Oasis.")
-            LoadableView(state.overview, onRetry = onRefresh) { overview -> OverviewSections(overview, onSubscriptionManaged) }
+            LoadableView(state.overview, onRetry = onRefresh) { overview ->
+                OverviewSections(overview, onSubscriptionManaged) {
+                    TermsChangeCard(it, state.termsBusy, onObjectToTerms, onWithdrawTermsObjection)
+                }
+            }
         }
     }
 }
 
 @Composable
-private fun OverviewSections(overview: MembershipOverview, onSubscriptionManaged: () -> Unit) {
+private fun OverviewSections(
+    overview: MembershipOverview,
+    onSubscriptionManaged: () -> Unit,
+    termsChange: @Composable (MembershipOverview.TermsChange) -> Unit
+) {
     val navigator = LocalNavigator.current
     val openWebsite = rememberOpenWebsite(navigator)
     val context = LocalContext.current
     Column(verticalArrangement = Arrangement.spacedBy(18.dp)) {
+        // An announced change of the AGB comes first, like the withdrawal notice of the web: it has a deadline.
+        overview.termsChange?.let { termsChange(it) }
         StatusCard(overview, onSubscriptionManaged)
         PerksCard(overview, navigator)
         if (overview.purchasedGifts.isNotEmpty()) {
@@ -331,5 +348,73 @@ private fun Tile(label: String, value: String, modifier: Modifier) {
     ) {
         Text(label, style = OasisType.Caption.copy(fontWeight = FontWeight.Bold), color = OasisColors.Muted)
         Text(value, style = OasisType.BodyBold, color = OasisColors.Night)
+    }
+}
+
+/**
+ * „Unsere AGB ändern sich am …“ (overview.blade.php, AGB § 19): what changes and why, the way to the new version and
+ * the button to object – or, once objected, the standing objection with the way to take it back. Both ask first, like
+ * the web's `wire:confirm`; [busy] holds the button while the server answers.
+ */
+@Composable
+fun TermsChangeCard(change: MembershipOverview.TermsChange, busy: Boolean, onObject: suspend () -> Unit, onWithdraw: suspend () -> Unit) {
+    val navigator = LocalNavigator.current
+    val scope = rememberCoroutineScope()
+    val day = MembershipFormat.calendarDay(change.effectiveOn)
+    var asking by remember { mutableStateOf(false) }
+    SectionCard("Unsere AGB ändern sich am $day", Modifier.testTag("membership.termsChange"), tone = PanelTone.Warning) {
+        Text("${change.summary} Grund: ${change.reason}", style = OasisType.Body, color = OasisColors.Night)
+        if (change.objected) {
+            Text(
+                "Du hast am ${MembershipFormat.moment(change.objectedAt)} widersprochen. Für dich gilt die bisherige Fassung weiter; " +
+                    "wir melden uns, falls wir deshalb kündigen müssen (AGB § 7).",
+                style = OasisType.BodyBold,
+                color = OasisColors.Night,
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .background(OasisColors.Paper, RoundedCornerShape(OasisRadius.CHIP.dp))
+                    .padding(14.dp)
+                    .testTag("membership.termsObjected")
+            )
+            OasisButton(
+                "Widerspruch zurücknehmen",
+                { asking = true },
+                Modifier.testTag("membership.withdrawTermsObjection"),
+                kind = OasisButtonKind.Secondary,
+                enabled = !busy
+            )
+        } else {
+            Text(
+                "Wenn du bis zum $day nicht widersprichst, gilt die neue Fassung auch für deinen Vertrag. Widersprichst du, gilt für " +
+                    "dich die bisherige Fassung weiter; wir können den Vertrag dann mit einer Frist von einem Monat zum Ende des " +
+                    "bezahlten Zeitraums kündigen (AGB § 7).",
+                style = OasisType.Body,
+                color = OasisColors.Night
+            )
+            OasisButton("Ich widerspreche dieser Änderung", {
+                asking = true
+            }, Modifier.testTag("membership.objectToTerms"), enabled = !busy)
+        }
+        change.url?.let { url ->
+            InlineLink("Neue Fassung lesen", { navigator.open(WebRoute(url)) }, Modifier.testTag("membership.termsUrl"), OasisColors.Night)
+        }
+    }
+    if (asking && change.objected) {
+        Question(
+            "Widerspruch zurücknehmen?",
+            "Zurücknehmen",
+            { scope.launch { onWithdraw() } },
+            "Die neue Fassung gilt dann ab dem $day auch für deinen Vertrag.",
+            "membership.termsConfirm"
+        ) { asking = false }
+    } else if (asking) {
+        Question(
+            "Der Änderung zum $day widersprechen?",
+            "Widersprechen",
+            { scope.launch { onObject() } },
+            "Für dich gilt dann die bisherige Fassung weiter; wir können den Vertrag deshalb zum Ende des bezahlten Zeitraums " +
+                "kündigen (AGB § 7).",
+            "membership.termsConfirm"
+        ) { asking = false }
     }
 }

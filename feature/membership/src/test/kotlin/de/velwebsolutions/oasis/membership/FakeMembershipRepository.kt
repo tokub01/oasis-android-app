@@ -69,6 +69,15 @@ class FakeMembershipRepository : MembershipRepository {
 
     override suspend fun export() = export.getOrThrow()
 
+    /** The answer to the objection and to its withdrawal (both return the overview the server knows). */
+    var termsObjection: Result<Confirmed<MembershipOverview>> = Result.success(
+        Confirmed(Fixtures.overview(Fixtures.termsObjectedOverview), Fixtures.OBJECTED)
+    )
+
+    override suspend fun objectToTerms() = termsObjection.also { calls += "objectToTerms" }.getOrThrow()
+
+    override suspend fun withdrawTermsObjection() = termsObjection.also { calls += "withdrawTermsObjection" }.getOrThrow()
+
     var perks: Result<MembershipPerks> = Result.success(Fixtures.perks())
     var companionSponsor: Result<String?> = Result.success("Mia Mäzen")
     var action: Result<String> = Result.success("Gespeichert.")

@@ -45,6 +45,9 @@ class LiveCoordinator internal constructor(
     /** Whether the shell should show Android's notification prompt now (once after sign-in, like iOS). */
     val asksForPushPermission: StateFlow<Boolean> get() = push.asksForPermission
 
+    /** Before Android 13 the shell asks „Push-Hinweise einschalten?“ itself instead of the system dialog. */
+    val pushAsksInApp: Boolean get() = push.asksInApp
+
     /** The member answered the notification prompt of the shell. */
     suspend fun pushPermissionAnswered(granted: Boolean) = push.promptAnswered(granted)
 

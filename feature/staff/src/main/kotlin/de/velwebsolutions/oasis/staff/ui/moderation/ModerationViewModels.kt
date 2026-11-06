@@ -48,7 +48,7 @@ data class ModerationOverviewUiState(
 )
 
 /**
- * The moderation start page: figures, waiting locks, activity and the filterable queue (like /moderation). Reloads of the
+ * The moderation start page: figures, activity and the filterable queue (like /moderation). Reloads of the
  * queue are numbered: an older one never replaces the queue a newer one already showed, and a further page asked for
  * before the queue was replaced is dropped. A request that was cancelled (another filter, the page left) ends its
  * loading state and leaves the queue and its filter as they were.

@@ -66,7 +66,6 @@ import de.velwebsolutions.oasis.core.format.GermanTime
 import de.velwebsolutions.oasis.core.model.Loadable
 import de.velwebsolutions.oasis.core.network.ApiError
 import de.velwebsolutions.oasis.design.components.AsyncOasisButton
-import de.velwebsolutions.oasis.design.components.CountBadge
 import de.velwebsolutions.oasis.design.components.EmptyStateView
 import de.velwebsolutions.oasis.design.components.FieldError
 import de.velwebsolutions.oasis.design.components.LoadableView
@@ -106,7 +105,10 @@ object StaffDate {
     fun dayMonth(instant: Instant): String = GermanTime.format(instant, "d. MMM")
 }
 
-/** The waiting-time state of a provisional lock (`ok`, `soon`, `overdue`) as the web colours it. */
+/**
+ * A waiting-time state (`ok`, `soon`, `overdue`) as the web colours it. Since 6 November 2026 no lock waits for a
+ * decision any more (a lock is always a human decision with a duration), so no screen shows it at the moment.
+ */
 object DeadlineLook {
     /** The banner colour for a waiting time state. */
     fun background(state: String?): Color = when (state) {
@@ -136,9 +138,9 @@ enum class StaffArea(val key: String, val title: String, val icon: ImageVector, 
     }
 }
 
-/** Links to staff pages, one row each; Sperren carries the number of locks waiting for a decision. */
+/** Links to staff pages, one row each. */
 @Composable
-fun StaffAreaLinks(areas: List<StaffArea>, waitingLocks: Int = 0) {
+fun StaffAreaLinks(areas: List<StaffArea>) {
     val navigator = LocalNavigator.current
     Column {
         areas.forEach { area ->
@@ -153,9 +155,6 @@ fun StaffAreaLinks(areas: List<StaffArea>, waitingLocks: Int = 0) {
             ) {
                 Icon(area.icon, contentDescription = null, tint = OasisColors.Night, modifier = Modifier.size(20.dp))
                 Text(area.title, style = OasisType.BodyBold, color = OasisColors.Night)
-                if (area == StaffArea.Suspensions && waitingLocks > 0) {
-                    CountBadge(waitingLocks, Modifier.semantics { contentDescription = "$waitingLocks warten auf Entscheidung" })
-                }
                 Box(Modifier.weight(1f))
                 Icon(Icons.AutoMirrored.Outlined.KeyboardArrowRight, contentDescription = null, tint = OasisColors.Muted)
             }

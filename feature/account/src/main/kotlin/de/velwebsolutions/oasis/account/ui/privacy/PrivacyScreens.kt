@@ -245,7 +245,7 @@ private fun MoreControls(counts: PrivacyCounts, onLimit: (Int) -> Unit, open: (A
         }
         LinkCard(
             "Deine Zeit in Oasis",
-            "Wie viele Minuten du an den letzten sieben Tagen hier warst – gezählt nur auf diesem Gerät.",
+            "Wie viele Minuten du an den letzten sieben Tagen hier warst – nur, wenn du es einschaltest, und nur auf diesem Gerät.",
             "privacy.time"
         ) { open(AccountRoute.ScreenTime) }
         LinkCard(

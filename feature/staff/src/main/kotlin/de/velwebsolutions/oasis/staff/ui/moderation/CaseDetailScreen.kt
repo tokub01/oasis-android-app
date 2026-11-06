@@ -53,6 +53,7 @@ import de.velwebsolutions.oasis.staff.api.Decision
 import de.velwebsolutions.oasis.staff.api.Labelled
 import de.velwebsolutions.oasis.staff.api.ModerationCaseDetail
 import de.velwebsolutions.oasis.staff.api.StatementOfReasons
+import de.velwebsolutions.oasis.staff.api.durationLabel
 import de.velwebsolutions.oasis.staff.ui.components.ConfirmDialog
 import de.velwebsolutions.oasis.staff.ui.components.Disclosure
 import de.velwebsolutions.oasis.staff.ui.components.FactRow
@@ -196,13 +197,23 @@ fun CaseDetailContent(caseId: Int, state: CaseDetailUiState, actions: CaseDetail
                 }
                 if (detail.can.decide) {
                     SectionCard("Entscheidung") {
-                        DecisionFields(state.statement, actions.onStatement, detail.outcomes, detail.grounds, state.fieldErrors, "case")
-                        // A chosen measure is confirmed first; an incomplete form goes straight to the server, which names what is missing.
+                        DecisionFields(
+                            state.statement,
+                            actions.onStatement,
+                            detail.outcomes,
+                            detail.suspension,
+                            detail.grounds,
+                            state.fieldErrors,
+                            "case"
+                        )
+                        // A chosen measure is confirmed first; an incomplete form (no measure, no ground, or "Konto gesperrt" without
+                        // its duration) goes straight to the server, which names what is missing.
                         AsyncOasisButton(
                             "Entscheidung speichern und mitteilen",
                             {
                                 if (state.statement.outcome.isEmpty() ||
-                                    state.statement.ground.isEmpty()
+                                    state.statement.ground.isEmpty() ||
+                                    state.statement.lacksDuration
                                 ) {
                                     actions.onDecide()
                                 } else {
@@ -232,7 +243,7 @@ fun CaseDetailContent(caseId: Int, state: CaseDetailUiState, actions: CaseDetail
     }
     if (confirmDecision) {
         val detail = state.detail.valueOrNull
-        val outcome = detail?.outcomes?.firstOrNull { it.value == state.statement.outcome }?.label.orEmpty()
+        val outcome = state.statement.outcomeLabel(detail?.outcomes.orEmpty())
         val ground = detail?.grounds?.firstOrNull { it.value == state.statement.ground }?.label.orEmpty()
         ConfirmDialog(
             "Entscheidung mitteilen?",
@@ -302,7 +313,7 @@ private fun ReportSection(detail: ModerationCaseDetail, state: CaseDetailUiState
                 if (!check.reason.isNullOrEmpty()) Text(check.reason, style = OasisType.Small, color = OasisColors.Ink2)
                 check.heldAt?.let { held ->
                     Text(
-                        "Vorläufig ausgeblendet seit ${StaffDate.short(held)}. „Keine Maßnahme“ macht ihn wieder sichtbar.",
+                        "Zurückgehalten seit ${StaffDate.short(held)}. „Keine Maßnahme“ macht ihn wieder sichtbar.",
                         style = OasisType.SmallBold,
                         color = OasisColors.SunText
                     )
@@ -485,7 +496,12 @@ private fun DecisionsSection(decisions: List<Decision>) {
                 verticalArrangement = Arrangement.spacedBy(6.dp)
             ) {
                 Row(horizontalArrangement = Arrangement.spacedBy(8.dp), verticalAlignment = Alignment.CenterVertically) {
-                    Text("${decision.outcome.label} · ${decision.ground.label}", style = OasisType.BodyBold, color = OasisColors.Ink)
+                    Text(
+                        "${decision.outcome.label}${decision.suspensionDays?.let { " (${durationLabel(it)})" }.orEmpty()} · " +
+                            decision.ground.label,
+                        style = OasisType.BodyBold,
+                        color = OasisColors.Ink
+                    )
                     if (decision.isComplaintReview) Pill("nach Widerspruch", tone = PillTone.Sand)
                 }
                 Text(

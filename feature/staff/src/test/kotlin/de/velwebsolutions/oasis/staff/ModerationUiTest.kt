@@ -41,7 +41,6 @@ import de.velwebsolutions.oasis.core.network.ApiError
 import de.velwebsolutions.oasis.design.navigation.StaffRoute
 import de.velwebsolutions.oasis.staff.api.Labelled
 import de.velwebsolutions.oasis.staff.api.ModerationCaseDetail
-import de.velwebsolutions.oasis.staff.api.ModerationOverview
 import de.velwebsolutions.oasis.staff.api.QueueFilter
 import de.velwebsolutions.oasis.staff.api.StatementOfReasons
 import de.velwebsolutions.oasis.staff.data.StaffFiles
@@ -98,18 +97,17 @@ class ModerationUiTest {
     private val statement = StatementOfReasons("no_action", "community_rules", "Regel 1", "Tatsachen", "Begründung")
 
     @Test
-    fun `the start page with waiting locks, figures, areas, queue and activity`() {
-        val overview = Decoded.overview.copy(
-            waitingLocks = ModerationOverview.WaitingLocks(count = 2, oldestHours = 50, state = "overdue", reviewHours = 48)
-        )
+    fun `the start page with figures, areas, queue and activity`() {
+        val overview = Decoded.overview
         val filters = mutableListOf<QueueFilter>()
         var state by mutableStateOf(ModerationOverviewUiState(Loadable.Loaded(overview), Decoded.cases.data, hasMore = true))
         var more = 0
         ui.show { ModerationOverviewContent(state, {}, { filters += it }, { more++ }) }
-        compose.onNodeWithText("2 vorläufige Sperren warten auf eine Entscheidung").assertIsDisplayed()
-        compose.onNodeWithText("Die älteste wartet seit 50 Std. – zugesagt sind höchstens 48 Std. Frist überschritten.").assertIsDisplayed()
+        // Since 6 November 2026 no lock waits for a decision: the start page has no banner about provisional locks.
+        compose.onNodeWithText("vorläufige Sperre", substring = true).assertDoesNotExist()
+        compose.onNodeWithText("warten auf eine Entscheidung", substring = true).assertDoesNotExist()
         ui.shot("moderation")
-        compose.onNodeWithTag("moderation.waitingLocks").performClick()
+        compose.onNodeWithTag("staff.nav.suspensions").performScrollTo().performClick()
         assertEquals(StaffRoute.Suspensions, ui.top)
         compose.onNodeWithText("Ohne Zuständigkeit").performScrollTo().performClick()
         assertEquals(QueueFilter(status = "open"), filters.last())
@@ -134,11 +132,7 @@ class ModerationUiTest {
         assertEquals(StaffRoute.ModerationCase(overview.activity.first().caseId), ui.top)
         ui.shot("moderation-queue")
 
-        state = ModerationOverviewUiState(
-            Loadable.Loaded(overview.copy(waitingLocks = ModerationOverview.WaitingLocks(1, 3, "soon", 48), activity = emptyList())),
-            emptyList()
-        )
-        compose.onNodeWithText("1 vorläufige Sperre wartet auf eine Entscheidung").assertExists()
+        state = ModerationOverviewUiState(Loadable.Loaded(overview.copy(activity = emptyList())), emptyList())
         compose.onNodeWithText("Keine Fälle für diese Auswahl. Gute Arbeit.").performScrollTo().assertIsDisplayed()
         compose.onNodeWithText("Noch keine Aktivität.").performScrollTo().assertIsDisplayed()
         ui.shot("moderation-empty")
@@ -162,7 +156,6 @@ class ModerationUiTest {
         }
         val viewModel = ModerationOverviewViewModel(repository.apply { this.overview = Result.success(overview) })
         ui.show { ModerationOverviewScreen(viewModel) }
-        compose.onNodeWithTag("moderation.waitingLocks").assertDoesNotExist()
         compose.onNodeWithTag("staff.nav.roles").assertDoesNotExist()
         compose.onNodeWithTag("staff.nav.admin").assertDoesNotExist()
         compose.onNodeWithTag("staff.nav.suspensions").performScrollTo().assertIsDisplayed()
@@ -198,7 +191,7 @@ class ModerationUiTest {
             )
         }
         compose.onNodeWithText("Einschätzung").performScrollTo().assertIsDisplayed()
-        compose.onNodeWithText("Vorläufig ausgeblendet seit", substring = true).performScrollTo().assertIsDisplayed()
+        compose.onNodeWithText("Zurückgehalten seit", substring = true).performScrollTo().assertIsDisplayed()
         ui.shot("case-check")
         compose.onNodeWithText("Bitte jemanden wählen.").performScrollTo().assertIsDisplayed()
         compose.onNodeWithTag("case.assignee").performScrollTo().performClick()
@@ -437,6 +430,96 @@ class ModerationUiTest {
         assertEquals(1, decided)
     }
 
+    /** "Warnung" is a measure of its own with the web's hint; "Konto gesperrt" asks for the duration (Art. 17 Abs. 3 lit. a DSA). */
+    @Test
+    fun `a warning shows its hint, and a lock asks for its duration before it goes out`() {
+        val severe = Decoded.caseEscalated
+        var decided = 0
+        var state by mutableStateOf(CaseDetailUiState(Loadable.Loaded(severe), statement = statement))
+        ui.show {
+            CaseDetailContent(
+                severe.id,
+                state,
+                CaseDetailActions(onDecide = { decided++ }, onStatement = { state = state.copy(statement = it) })
+            )
+        }
+        compose.onNodeWithText("Zählt als bestätigter Verstoß.", substring = true).performScrollTo().assertIsDisplayed()
+        compose.onNodeWithText("Sperre mit fester Dauer.", substring = true).performScrollTo().assertIsDisplayed()
+        compose.onNodeWithText("Dauer der Sperre").assertDoesNotExist()
+        compose.onNodeWithTag("case.outcome.warning").performScrollTo().performClick()
+        assertEquals("warning", state.statement.outcome)
+        compose.onNodeWithText("Dauer der Sperre").assertDoesNotExist()
+
+        compose.onNodeWithTag("case.outcome.account_suspended").performScrollTo().performClick()
+        assertEquals("account_suspended", state.statement.outcome)
+        compose.onNodeWithText("Dauer der Sperre").performScrollTo().assertIsDisplayed()
+        compose.onNodeWithText("Die Sperre endet danach von selbst.", substring = true).performScrollTo().assertIsDisplayed()
+        ui.shot("case-decide-duration")
+        // Without the duration the server names what is missing: no confirmation dialog.
+        compose.onNodeWithTag("case.decide").performScrollTo().performClick()
+        compose.waitForIdle()
+        assertEquals(1, decided)
+        compose.onNodeWithTag("case.days.7").performScrollTo().performClick()
+        assertEquals(7, state.statement.suspensionDays)
+        compose.onNodeWithTag("case.decide").performScrollTo().performClick()
+        compose.onNodeWithText("Konto gesperrt (7 Tage) · Community-Regeln. Die betroffene Person bekommt die Begründung per E-Mail.")
+            .assertIsDisplayed()
+        compose.onNodeWithTag("case.decide.confirm").performClick()
+        compose.waitForIdle()
+        assertEquals(2, decided)
+        // Another measure drops the duration.
+        compose.onNodeWithTag("case.outcome.content_removed").performScrollTo().performClick()
+        assertEquals("content_removed", state.statement.outcome)
+        assertNull(state.statement.suspensionDays)
+        compose.onNodeWithText("Dauer der Sperre").assertDoesNotExist()
+    }
+
+    /** Without a warning within the last months (and no severe case) "Konto gesperrt" cannot be chosen; the row says why. */
+    @Test
+    fun `a lock without a warning first is not available and says why`() {
+        val unwarned = Decoded.caseDetail
+        assertFalse(unwarned.suspension.allowed)
+        var chosen: StatementOfReasons? = null
+        ui.show {
+            CaseDetailContent(unwarned.id, CaseDetailUiState(Loadable.Loaded(unwarned)), CaseDetailActions(onStatement = { chosen = it }))
+        }
+        compose.onNodeWithText("Nicht wählbar. Erst nach einer Warnung:", substring = true).performScrollTo().assertIsDisplayed()
+        compose.onNodeWithTag("case.outcome.account_suspended").assertIsNotEnabled()
+        compose.onNodeWithTag("case.outcome.account_suspended").performScrollTo().performClick()
+        assertNull("the blocked measure cannot be chosen", chosen)
+        compose.onNodeWithText("Dauer der Sperre").assertDoesNotExist()
+        ui.shot("case-lock-blocked")
+        compose.onNodeWithTag("case.outcome.warning").performScrollTo().performClick()
+        assertEquals("warning", chosen?.outcome)
+    }
+
+    /** The replacement decision of an overturned complaint takes the same duration. */
+    @Test
+    fun `an overturned complaint can replace the decision by a lock with a duration`() {
+        var state by mutableStateOf(ComplaintReviewUiState(Loadable.Loaded(Decoded.complaint), result = "overturned"))
+        var reviewed = 0
+        ui.show {
+            ComplaintReviewContent(state, {}, {}, {}, { state = state.copy(statement = it) }, { reviewed++ })
+        }
+        compose.onNodeWithTag("review.outcome.account_suspended").performScrollTo().performClick()
+        assertEquals("account_suspended", state.statement.outcome)
+        compose.onNodeWithText("Dauer der Sperre").performScrollTo().assertIsDisplayed()
+        state = state.copy(
+            statement = state.statement.copy(ground = "community_rules", ruleReference = "R", facts = "F", explanation = "E")
+        )
+        compose.onNodeWithTag("complaint.save").performScrollTo().performClick()
+        compose.waitForIdle()
+        assertEquals("a lock without duration goes straight to the server", 1, reviewed)
+        compose.onNodeWithTag("review.days.30").performScrollTo().performClick()
+        assertEquals(30, state.statement.suspensionDays)
+        compose.onNodeWithTag("complaint.save").performScrollTo().performClick()
+        compose.onNodeWithText("Die Entscheidung wird geändert: Konto gesperrt (30 Tage) · Community-Regeln.", substring = true)
+            .assertIsDisplayed()
+        compose.onNodeWithTag("complaint.save.confirm").performClick()
+        compose.waitForIdle()
+        assertEquals(2, reviewed)
+    }
+
     @Test
     fun `a case for staff who may not decide or assign`() {
         val readOnly = Decoded.caseDetail.copy(can = Decoded.caseDetail.can.copy(decide = false, assign = false))
@@ -562,23 +645,38 @@ class ModerationUiTest {
         val list = Decoded.suspensions
         val lock = list.active.first()
         val ended = lock.copy(id = 9, endedAt = Instant.parse("2026-10-23T10:00:00Z"), resultLabel = null)
-        val waiting = lock.copy(
+        val replaced = list.ended.first().copy(id = 10, resultLabel = "durch eine neue Sperre ersetzt")
+        val ban = lock.copy(
             id = 5,
-            deadlineState = "overdue",
-            waitingHours = 50,
+            type = "ban",
+            label = "Dauerhafte Sperre",
+            endsAt = null,
+            endsAtLabel = null,
             caseId = null,
             canRelease = false,
             excerpt = null,
             statement = null,
             user = lock.user.copy(activeStrikes = null)
         )
-        var state by mutableStateOf(SuspensionsUiState(Loadable.Loaded(list.copy(active = list.active + waiting, ended = listOf(ended)))))
+        var state by mutableStateOf(
+            SuspensionsUiState(Loadable.Loaded(list.copy(active = list.active + ban, ended = listOf(ended, replaced) + list.ended)))
+        )
         val released = mutableListOf<Int>()
         ui.show { SuspensionsContent(state, {}, { released += it.id }) }
+        compose.onNodeWithText("immer durch eine menschliche Entscheidung", substring = true).assertIsDisplayed()
+        compose.onNodeWithText("Nach 3 bestätigten Verstößen innerhalb von 12 Monaten", substring = true).assertIsDisplayed()
+        compose.onNodeWithText("vorläufig", substring = true).assertDoesNotExist()
+        compose.onNodeWithText("Wartet seit", substring = true).assertDoesNotExist()
+        // The planned end of a lock with a duration, none for the ban.
+        compose.onNodeWithText("· bis ${lock.endsAtLabel} · Verstöße 2 von 3", substring = true).performScrollTo().assertIsDisplayed()
+        compose.onNodeWithText("Dauerhafte Sperre · seit ", substring = true).performScrollTo().assertIsDisplayed()
+        compose.onNodeWithText("Dauerhafte Sperre · seit 22.10.2026, 17:49 Uhr · Verstöße 0 von 3").assertExists()
         compose.onNodeWithText("Zuletzt beendet").performScrollTo().assertIsDisplayed()
+        compose.onNodeWithText("Dauer abgelaufen", substring = true).performScrollTo().assertIsDisplayed()
+        compose.onNodeWithText("durch eine neue Sperre ersetzt", substring = true).performScrollTo().assertIsDisplayed()
         compose.onNodeWithText("Noch keine.").performScrollTo().assertIsDisplayed()
         ui.shot("suspensions")
-        compose.onNodeWithText("Fall entscheiden").performScrollTo().performClick()
+        compose.onNodeWithText("Zum Fall").performScrollTo().performClick()
         assertEquals(StaffRoute.ModerationCase(lock.caseId!!), ui.top)
         compose.onNodeWithTag("suspension.release.${lock.id}").performScrollTo().performClick()
         ui.shotDialog("suspension-release")
@@ -600,7 +698,7 @@ class ModerationUiTest {
     @Test
     fun `decisions and complaints of a case, and the admin steps without evidence`() {
         val decision = de.velwebsolutions.oasis.staff.api.Decision(
-            outcome = Decoded.complaint.outcomes.first(),
+            outcome = Decoded.complaint.outcomes.first().let { Labelled(it.value, it.label) },
             ground = Decoded.complaint.grounds.first(),
             isComplaintReview = true,
             decidedAt = Instant.parse("2026-10-22T13:49:00Z"),
@@ -615,13 +713,19 @@ class ModerationUiTest {
         )
         val escalation = Decoded.caseEscalated.escalation!!.copy(evidence = emptyList(), quarantined = true)
         val detail = Decoded.caseEscalated.copy(
-            decisions = listOf(decision, decision.copy(isComplaintReview = false, deciderName = "Mo", notifiedAt = null)),
+            decisions = listOf(
+                decision,
+                decision.copy(isComplaintReview = false, deciderName = "Mo", notifiedAt = null),
+                decision.copy(outcome = Labelled("account_suspended", "Konto gesperrt"), suspensionDays = 7, isComplaintReview = false)
+            ),
             complaints = complaints,
             escalation = escalation
         )
         var shown by mutableStateOf(detail)
         ui.show { CaseDetailContent(4, CaseDetailUiState(Loadable.Loaded(shown)), CaseDetailActions()) }
         compose.onNodeWithText("nach Widerspruch").performScrollTo().assertIsDisplayed()
+        // A lock names its duration (Art. 17 Abs. 3 lit. a DSA).
+        compose.onNodeWithText("Konto gesperrt (7 Tage) · ", substring = true).performScrollTo().assertIsDisplayed()
         compose.onNodeWithText("noch nicht", substring = true).performScrollTo().assertIsDisplayed()
         compose.onNodeWithText("geprüft von Mo", substring = true).performScrollTo().assertIsDisplayed()
         ui.shot("case-decisions")
@@ -712,14 +816,15 @@ class ModerationUiTest {
     }
 
     @Test
-    fun `a lock without deadline, waiting time or accusation`() {
+    fun `a lock without planned end or accusation`() {
         val lock = Decoded.suspensions.active.first()
-        val bare = lock.copy(deadlineState = null, accusation = null)
-        val unknownWait = lock.copy(id = 7, waitingHours = null)
+        val bare = lock.copy(endsAt = null, endsAtLabel = null, accusation = null)
+        val unknownStrikes = lock.copy(id = 7, user = lock.user.copy(activeStrikes = null))
         ui.show {
-            SuspensionsContent(SuspensionsUiState(Loadable.Loaded(Decoded.suspensions.copy(active = listOf(bare, unknownWait)))), {}, {})
+            SuspensionsContent(SuspensionsUiState(Loadable.Loaded(Decoded.suspensions.copy(active = listOf(bare, unknownStrikes)))), {}, {})
         }
-        compose.onNodeWithText("Wartet seit 0 Std. von höchstens 48").performScrollTo().assertIsDisplayed()
+        compose.onNodeWithText("Sperre durch das Moderationsteam · seit 22.10.2026, 17:49 Uhr · Verstöße 2 von 3").assertExists()
+        compose.onNodeWithText("· bis 29.10.2026, 17:49 Uhr · Verstöße 0 von 3", substring = true).assertExists()
         compose.onAllNodesWithText("Vorwurf: ", substring = true)[0].assertExists()
     }
 

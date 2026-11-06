@@ -2,13 +2,17 @@ package de.velwebsolutions.oasis.membership
 
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
+import androidx.compose.ui.semantics.SemanticsActions
+import androidx.compose.ui.test.SemanticsNodeInteraction
 import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.assertIsNotEnabled
+import androidx.compose.ui.test.hasText
 import androidx.compose.ui.test.junit4.createComposeRule
 import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
 import androidx.compose.ui.test.performScrollTo
+import androidx.compose.ui.test.performSemanticsAction
 import de.velwebsolutions.oasis.core.model.Loadable
 import de.velwebsolutions.oasis.design.navigation.LocalNavigator
 import de.velwebsolutions.oasis.design.navigation.MainTab
@@ -64,6 +68,90 @@ class MembershipScreensTest {
         ).assertIsDisplayed()
         compose.onNodeWithTag("membership.choose").performScrollTo().performClick()
         assertEquals(MembershipRoute.Checkout, navigator.stack(MainTab.Profile).last())
+    }
+
+    private fun waitFor(text: String) = compose.waitUntil(5_000) {
+        compose.onAllNodes(hasText(text, substring = true)).fetchSemanticsNodes().isNotEmpty()
+    }
+
+    /** Clicks through the semantics, so the snackbar of a toast over the node cannot catch the tap. */
+    private fun SemanticsNodeInteraction.tap() = performScrollTo().performSemanticsAction(SemanticsActions.OnClick)
+
+    @Test
+    fun `an announced change of the AGB is objected to after a question`() {
+        val web = mutableListOf<String>()
+        navigator.openWeb = { web += it }
+        var objected = 0
+        var withdrawn = 0
+        show {
+            OverviewContent(
+                OverviewUiState(Loadable.Loaded(Fixtures.overview(Fixtures.termsChangeOverview))),
+                onRefresh = {},
+                onObjectToTerms = { objected++ },
+                onWithdrawTermsObjection = { withdrawn++ }
+            )
+        }
+        compose.onNodeWithText("Unsere AGB ändern sich am 21.12.2026").assertIsDisplayed()
+        compose.onNodeWithText("Wir fassen § 14 neu. Grund: Das Gesetz verlangt es.").assertIsDisplayed()
+        compose.onNodeWithText(
+            "Wenn du bis zum 21.12.2026 nicht widersprichst, gilt die neue Fassung auch für deinen Vertrag.",
+            substring = true
+        )
+            .assertIsDisplayed()
+        compose.onNodeWithTag("membership.withdrawTermsObjection").assertDoesNotExist()
+        compose.onNodeWithTag("membership.termsUrl").performClick()
+        assertEquals(listOf("http://localhost/agb"), web)
+
+        compose.onNodeWithTag("membership.objectToTerms").tap()
+        waitFor("Der Änderung zum 21.12.2026 widersprechen?")
+        compose.onNodeWithText("Abbrechen").performClick()
+        compose.waitForIdle()
+        assertEquals("cancelled", 0, objected)
+        compose.onNodeWithTag("membership.objectToTerms").tap()
+        waitFor("Für dich gilt dann die bisherige Fassung weiter")
+        compose.onNodeWithTag("membership.termsConfirm").performClick()
+        compose.waitForIdle()
+        assertEquals(1, objected)
+        assertEquals(0, withdrawn)
+    }
+
+    @Test
+    fun `a standing objection is taken back after a question, and a refusal is shown`() {
+        var withdrawn = 0
+        show {
+            OverviewContent(
+                OverviewUiState(Loadable.Loaded(Fixtures.overview(Fixtures.termsObjectedOverview)), error = Fixtures.ALREADY_OBJECTED),
+                onRefresh = {},
+                onWithdrawTermsObjection = { withdrawn++ }
+            )
+        }
+        compose.onNodeWithText(
+            "Du hast am 06.11.2026 um 14:32 Uhr widersprochen. Für dich gilt die bisherige Fassung weiter; wir melden uns, falls wir " +
+                "deshalb kündigen müssen (AGB § 7)."
+        ).assertIsDisplayed()
+        compose.onNodeWithTag("membership.objectToTerms").assertDoesNotExist()
+        waitFor(Fixtures.ALREADY_OBJECTED)
+
+        compose.onNodeWithTag("membership.withdrawTermsObjection").tap()
+        waitFor("Die neue Fassung gilt dann ab dem 21.12.2026 auch für deinen Vertrag.")
+        compose.onNodeWithTag("membership.termsConfirm").performClick()
+        compose.waitForIdle()
+        assertEquals(1, withdrawn)
+    }
+
+    @Test
+    fun `while the objection is on its way the button waits`() {
+        show {
+            OverviewContent(
+                OverviewUiState(
+                    Loadable.Loaded(Fixtures.overview(Fixtures.termsChangeOverview)),
+                    termsBusy = true
+                ),
+                onRefresh = {
+                }
+            )
+        }
+        compose.onNodeWithTag("membership.objectToTerms").assertIsNotEnabled()
     }
 
     @Test

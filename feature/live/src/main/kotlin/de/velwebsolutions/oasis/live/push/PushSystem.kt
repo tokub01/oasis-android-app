@@ -25,6 +25,13 @@ interface PushSystem {
     /** Whether Firebase is set up in this build (the app ships a google-services.json). */
     val isConfigured: Boolean
 
+    /**
+     * Whether the app itself must ask before push goes on: before Android 13 there is no POST_NOTIFICATIONS dialog, so
+     * registering the device right after sign-in would switch push on without anyone's consent. The shell then asks
+     * „Push-Hinweise einschalten?“ and the registrar remembers the answer in the [PushStore].
+     */
+    val asksInApp: Boolean
+
     /** The permission state; the prompt itself is shown by the screen (it needs an activity). */
     fun authorization(): PushAuthorization
 
@@ -45,6 +52,9 @@ interface PushSystem {
 interface PushStore {
     var deviceId: Int?
     var optedOut: Boolean
+
+    /** The answer to the app's own question „Push-Hinweise einschalten?“ (before Android 13); null until asked. */
+    var inAppConsent: Boolean?
 }
 
 /** [PushStore] in private preferences. */
@@ -63,9 +73,16 @@ class PreferencesPushStore(context: Context) : PushStore {
             preferences.edit { putBoolean(OPTED_OUT, value) }
         }
 
+    override var inAppConsent: Boolean?
+        get() = if (preferences.contains(IN_APP_CONSENT)) preferences.getBoolean(IN_APP_CONSENT, false) else null
+        set(value) {
+            preferences.edit { if (value == null) remove(IN_APP_CONSENT) else putBoolean(IN_APP_CONSENT, value) }
+        }
+
     private companion object {
         const val DEVICE_ID = "device-id"
         const val OPTED_OUT = "opted-out"
+        const val IN_APP_CONSENT = "in-app-consent"
     }
 }
 
@@ -81,6 +98,9 @@ class AndroidPushSystem(private val context: Context) : PushSystem {
 
     override val isConfigured: Boolean
         get() = FirebaseApp.getApps(context).isNotEmpty()
+
+    override val asksInApp: Boolean
+        get() = Build.VERSION.SDK_INT < Build.VERSION_CODES.TIRAMISU
 
     override fun authorization(): PushAuthorization {
         val allowed = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {

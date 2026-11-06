@@ -9,14 +9,34 @@ import kotlinx.serialization.Serializable
 @Serializable
 data class Labelled(val value: String, val label: String)
 
+/**
+ * A measure for the decision picker: the value, the German label and – for "Warnung" and "Konto gesperrt" – the one
+ * sentence the web shows under the option (`StaffJson::outcomes`).
+ */
+@Serializable
+data class OutcomeOption(val value: String, val label: String, val hint: String? = null) {
+    /** Whether this is "Konto gesperrt", the only measure with a duration and a condition. */
+    val isSuspension: Boolean get() = value == ACCOUNT_SUSPENDED
+
+    companion object {
+        const val ACCOUNT_SUSPENDED = "account_suspended"
+        const val WARNING = "warning"
+    }
+}
+
+/**
+ * Whether "Konto gesperrt" may be chosen on a case (`SuspensionRule`: a warning or lock within `strike_months` first,
+ * except in severe cases), why not, and the durations in days to choose from (`oasis.moderation.suspension_days`).
+ */
+@Serializable
+data class SuspensionOption(val allowed: Boolean = true, val blockedReason: String? = null, val days: List<Int> = emptyList())
+
+/** "1 Tag" or "n Tage", as the web writes the duration of a lock (`SuspensionRule::durationLabel`). */
+fun durationLabel(days: Int): String = if (days == 1) "1 Tag" else "$days Tage"
+
 /** `GET staff/moderation/overview` – the moderation start page. */
 @Serializable
-data class ModerationOverview(
-    val figures: Figures,
-    val waitingLocks: WaitingLocks,
-    val activity: List<Activity> = emptyList(),
-    val navigation: Navigation
-) {
+data class ModerationOverview(val figures: Figures, val activity: List<Activity> = emptyList(), val navigation: Navigation) {
     /** The figure cards. */
     @Serializable
     data class Figures(
@@ -28,16 +48,6 @@ data class ModerationOverview(
         val decidedWeek: Int,
         val oldestWaitingLabel: String,
         val medianLabel: String
-    )
-
-    /** Provisional locks waiting for a decision. */
-    @Serializable
-    data class WaitingLocks(
-        val count: Int,
-        val oldestHours: Int? = null,
-        /** ok | soon | overdue */
-        val state: String? = null,
-        val reviewHours: Int
     )
 
     /** One recent event of a case. */
@@ -91,6 +101,8 @@ data class QueueFilter(
 @Serializable
 data class Decision(
     val outcome: Labelled,
+    /** Days of the lock for "Konto gesperrt" (Art. 17 Abs. 3 lit. a DSA), null for every other measure. */
+    val suspensionDays: Int? = null,
     val ground: Labelled,
     val isComplaintReview: Boolean = false,
     val deciderName: String? = null,
@@ -120,7 +132,9 @@ data class ModerationCaseDetail(
     val escalation: Escalation? = null,
     val escalationOptions: List<EscalationOption> = emptyList(),
     val evidenceDays: Int,
-    val outcomes: List<Labelled> = emptyList(),
+    val outcomes: List<OutcomeOption> = emptyList(),
+    /** Whether "Konto gesperrt" is available on this case and the durations to choose from. */
+    val suspension: SuspensionOption = SuspensionOption(),
     val grounds: List<Labelled> = emptyList(),
     val can: Permissions,
     /** The viewer is a party of the case (affected account or reporter), so another person decides it. */
@@ -250,15 +264,32 @@ data class ModerationCaseDetail(
     data class Permissions(val assign: Boolean, val decide: Boolean, val administrate: Boolean)
 }
 
-/** The five parts of a statement of reasons, as the decision form sends them (empty parts too, so the server names them). */
+/**
+ * The five parts of a statement of reasons, as the decision form sends them (empty parts too, so the server names
+ * them), plus the duration in days for "Konto gesperrt" (`suspension_days`, required with that measure).
+ */
 @Serializable
 data class StatementOfReasons(
     @EncodeDefault val outcome: String = "",
     @EncodeDefault val ground: String = "",
     @EncodeDefault val ruleReference: String = "",
     @EncodeDefault val facts: String = "",
-    @EncodeDefault val explanation: String = ""
-)
+    @EncodeDefault val explanation: String = "",
+    val suspensionDays: Int? = null
+) {
+    /** "Konto gesperrt" is chosen. */
+    val isSuspension: Boolean get() = outcome == OutcomeOption.ACCOUNT_SUSPENDED
+
+    /** "Konto gesperrt" without its duration: the server refuses it, naming `suspension_days`. */
+    val lacksDuration: Boolean get() = isSuspension && suspensionDays == null
+
+    /** The chosen measure with its duration, as the web's case page writes it: "Konto gesperrt (7 Tage)". */
+    fun outcomeLabel(outcomes: List<OutcomeOption>): String {
+        val label = outcomes.firstOrNull { it.value == outcome }?.label.orEmpty()
+        val days = suspensionDays?.takeIf { isSuspension } ?: return label
+        return "$label (${durationLabel(days)})"
+    }
+}
 
 /** A complaint for review (`GET staff/moderation/complaints/{id}`). */
 @Serializable
@@ -270,13 +301,17 @@ data class ComplaintDetail(
     val reason: String,
     val canReview: Boolean,
     val result: Result? = null,
-    val outcomes: List<Labelled> = emptyList(),
+    val outcomes: List<OutcomeOption> = emptyList(),
+    /** Whether "Konto gesperrt" is available as the replacement decision and the durations to choose from. */
+    val suspension: SuspensionOption = SuspensionOption(),
     val grounds: List<Labelled> = emptyList()
 ) {
     /** The decision the complaint is against. */
     @Serializable
     data class OriginalDecision(
         val outcome: Labelled,
+        /** Days of the lock for "Konto gesperrt", null for every other measure (and in older answers). */
+        val suspensionDays: Int? = null,
         val ground: Labelled,
         val deciderName: String? = null,
         val decidedAt: OasisInstant,
@@ -298,6 +333,7 @@ data class ComplaintReview(
     val result: String,
     val explanation: String? = null,
     val outcome: String? = null,
+    val suspensionDays: Int? = null,
     val ground: String? = null,
     val ruleReference: String? = null,
     val facts: String? = null
@@ -310,6 +346,7 @@ data class ComplaintReview(
                 result,
                 explanation = replacement.explanation,
                 outcome = replacement.outcome,
+                suspensionDays = replacement.suspensionDays,
                 ground = replacement.ground,
                 ruleReference = replacement.ruleReference,
                 facts = replacement.facts
@@ -342,26 +379,31 @@ data class RolePage(val data: List<RoleUser>, val meta: Page.Meta? = null, val r
     val page: Page<RoleUser> get() = Page(data, meta)
 }
 
-/** `GET staff/moderation/suspensions`. */
+/** `GET staff/moderation/suspensions`: the locks in force and the lately ended ones, with the strike rule. */
 @Serializable
 data class SuspensionList(
     val active: List<Suspension> = emptyList(),
     val ended: List<Suspension> = emptyList(),
     val strikesForBan: Int,
-    val reviewHours: Int
+    /** Months a confirmed violation counts towards the ban and as the warning before a lock. */
+    val strikeMonths: Int = 12
 )
 
-/** A lock (active or ended). */
+/** A lock (active or ended): `suspension` from a decision with its planned end, or `ban`. */
 @Serializable
 data class Suspension(
     val id: Int,
+    val type: String = "suspension",
     val label: String,
     val user: Account,
     val startedAt: OasisInstant,
+    /** The planned end of a lock with a duration; null for a ban. */
+    val endsAt: OasisInstant? = null,
+    /** The planned end as the web shows it ("12.11.2026, 14:05 Uhr"); null for a ban. */
+    val endsAtLabel: String? = null,
     val endedAt: OasisInstant? = null,
+    /** Why an ended lock ended ("Dauer abgelaufen", "durch eine neue Sperre ersetzt", …); null while in force. */
     val resultLabel: String? = null,
-    val waitingHours: Int? = null,
-    val deadlineState: String? = null,
     val caseId: Int? = null,
     val accusation: String? = null,
     val excerpt: String? = null,
@@ -369,7 +411,7 @@ data class Suspension(
     val statementAt: OasisInstant? = null,
     val canRelease: Boolean? = null
 ) {
-    /** The locked account. */
+    /** The locked account; [activeStrikes] counts the confirmed violations of the last `strike_months`. */
     @Serializable
     data class Account(val displayName: String, val username: String, val activeStrikes: Int? = null)
 }

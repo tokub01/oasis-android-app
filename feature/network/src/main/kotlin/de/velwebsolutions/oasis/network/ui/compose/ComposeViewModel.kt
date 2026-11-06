@@ -315,7 +315,8 @@ class ComposeViewModel @AssistedInject constructor(
         }
         saveDraft()
         NetworkSignals.didPublish(result.data, result.message)
-        // A held Tropfen locks the account at once; the app then shows why (account area).
+        // A held Tropfen never locks the account (since 6 November 2026 only a human decision does); `suspended` is true when
+        // such a lock is in force, and the app then shows why (account area).
         if (result.suspended) session.refreshMe()
         return result
     }

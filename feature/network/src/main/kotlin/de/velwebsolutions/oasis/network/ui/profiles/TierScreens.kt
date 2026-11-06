@@ -115,7 +115,7 @@ fun TimeCapsulesScreen(
                     "Zeitkapseln",
                     info.lockedMessage ?: FROM_OASE,
                     feature = "Schreib heute einen Tropfen, der erst an einem Tag deiner Wahl erscheint: zum Geburtstag, zum " +
-                        "Jahrestag oder für dein künftiges Ich. Bis dahin sieht ihn niemand außer dir."
+                        "Jahrestag oder für dein künftiges Ich. Bis dahin sieht ihn kein anderes Mitglied."
                 )
             } else {
                 NetworkPage(state = listState, onRefresh = viewModel::load) {
@@ -125,7 +125,7 @@ fun TimeCapsulesScreen(
                             eyebrow = "Für später",
                             lead =
                                 "Schreib heute, was erst an einem bestimmten Tag erscheinen soll: zum Geburtstag, zum Jahrestag oder für " +
-                                    "dein künftiges Ich. Bis dahin sieht die Zeitkapsel niemand außer dir."
+                                    "dein künftiges Ich. Bis dahin sieht die Zeitkapsel kein anderes Mitglied."
                         )
                     }
                     invitationsSection(info.invitations, texts, textErrors, viewModel)

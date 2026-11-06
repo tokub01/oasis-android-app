@@ -23,15 +23,22 @@ import org.robolectric.annotation.GraphicsMode
 @Config(application = HiltTestApplication::class)
 @GraphicsMode(GraphicsMode.Mode.NATIVE)
 class MemberScreensHiltTest : HiltScreenTest() {
-    private fun suspension(type: String, statement: String = "null", statementAt: String = "null", excerpt: String = "\"Du bist doch …\"") =
-        """{"data":{"type":"$type","label":"Vorläufig gesperrt","started_at":"2026-10-22T10:00:00.000000Z",""" +
-            """"accusation":"Beleidigung in einer Antwort","excerpt":$excerpt,"statement":$statement,"statement_at":$statementAt,""" +
-            """"strikes":1,"strike_limit":3,"review_hours":24,"statement_max":3000}}"""
+    /** The lock as `GET suspension` answers it: a lock with a duration ([endsAt] set) or a ban (null). */
+    private fun suspension(
+        type: String,
+        statement: String = "null",
+        statementAt: String = "null",
+        excerpt: String = "\"Du bist doch …\"",
+        endsAt: String? = "2026-10-29T10:00:00.000000Z"
+    ) = """{"data":{"type":"$type","label":"Sperre durch das Moderationsteam","started_at":"2026-10-22T10:00:00.000000Z",""" +
+        """"ends_at":${endsAt?.let { "\"$it\"" }},"ends_at_label":${endsAt?.let { "\"29.10.2026, 11:00 Uhr\"" }},""" +
+        """"accusation":"Beleidigung in einer Antwort","excerpt":$excerpt,"statement":$statement,"statement_at":$statementAt,""" +
+        """"strikes":1,"strike_limit":3,"strike_months":12,"statement_max":3000}}"""
 
     @Test
-    fun theProvisionalLockTakesAStatementAndOffersTheWayOut() {
+    fun theLockWithADurationTakesAStatementAndOffersTheWayOut() {
         signIn(MIRA.copy(isSuspended = true))
-        stub("GET", "suspension", suspension("provisional"))
+        stub("GET", "suspension", suspension("suspension"))
         stub(
             "PUT",
             "suspension/statement",
@@ -41,9 +48,13 @@ class MemberScreensHiltTest : HiltScreenTest() {
         stub("GET", "auth/me", """{"data":${Fixtures.ME}}""")
         stub("POST", "auth/logout", "{}")
         show { AccountScreen(AccountRoute.Suspended) }
-        waitForTag("suspended.title")
-        compose.onNodeWithText("Erkannt hat das ein automatisiertes Verfahren", substring = true).assertExists()
-        shot("suspended-provisional")
+        waitForText("Dein Konto ist bis zum 29.10.2026, 11:00 Uhr gesperrt")
+        compose.onNodeWithText("Die Sperre endet am 29.10.2026, 11:00 Uhr von selbst.", substring = true).assertExists()
+        compose.onNodeWithText("Entschieden hat das ein Mensch aus dem Moderationsteam", substring = true).assertExists()
+        compose.onNodeWithText("Bestätigte Verstöße in den letzten 12 Monaten: ", substring = true).assertExists()
+        compose.onNodeWithText("innerhalb von 12 Monaten sperren wir ein Konto dauerhaft.", substring = true).assertExists()
+        compose.onNodeWithText("vorläufig", substring = true).assertDoesNotExist()
+        shot("suspended-duration")
         type("Stellungnahme", "Es tut mir leid.")
         compose.onNodeWithTag("suspended.send").tap()
         waitForText("Zuletzt gesendet am", substring = true)
@@ -64,23 +75,27 @@ class MemberScreensHiltTest : HiltScreenTest() {
         stub(
             "GET",
             "suspension",
-            suspension("ban", statement = "\"Falsch.\"", statementAt = "\"2026-10-22T11:00:00.000000Z\"", excerpt = "null")
+            suspension("ban", statement = "\"Falsch.\"", statementAt = "\"2026-10-22T11:00:00.000000Z\"", excerpt = "null", endsAt = null)
         )
         stub("PUT", "suspension/statement", """{"message":"x","errors":{"statement":["Höchstens 3000 Zeichen."]}}""", status = 422)
         show { AccountScreen(AccountRoute.Suspended) }
         waitForText("Dein Konto ist dauerhaft gesperrt")
+        compose.onNodeWithText("Du kannst Oasis nicht mehr nutzen.", substring = true).assertExists()
+        compose.onNodeWithText("bis zum", substring = true).assertDoesNotExist()
         shot("suspended-ban")
         compose.onNodeWithTag("suspended.send").tap()
         waitForText("Höchstens 3000 Zeichen.")
     }
 
+    /** An older answer without `ends_at` (or a lock staff released early) still decodes and reads as a plain lock. */
     @Test
-    fun aTemporaryLockAndALiftedOne() {
+    fun aLockWithoutAPlannedEndAndALiftedOne() {
         signIn()
-        stub("GET", "suspension", suspension("temporary"))
+        stub("GET", "suspension", suspension("suspension", endsAt = null).replace(""""strike_months":12,""", """"review_hours":24,"""))
         stub("PUT", "suspension/statement", """{"message":"Server Error"}""", status = 500)
         show { AccountScreen(AccountRoute.Suspended) }
-        waitForText("Dein Konto ist vorübergehend gesperrt")
+        waitForText("Dein Konto ist gesperrt")
+        compose.onNodeWithText("Das Moderationsteam hebt die Sperre auf", substring = true).assertExists()
         compose.onNodeWithTag("suspended.send").tap()
         waitForRequest("PUT", "suspension/statement")
         stub("GET", "suspension", """{"message":"Not Found"}""", status = 404)

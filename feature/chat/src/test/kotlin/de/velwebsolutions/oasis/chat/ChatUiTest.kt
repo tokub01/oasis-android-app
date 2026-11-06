@@ -159,7 +159,7 @@ class ChatUiTest {
         compose.onNodeWithTag("chat.setup.passphraseToggle").assertDoesNotExist()
         switchTo { Setup(ChatAccessState(deviceAvailable = true)) }
         compose.onNodeWithText("Deine Chats sind privat").assertExists()
-        compose.onNodeWithText("Nur ihr könnt eure Nachrichten lesen – nicht einmal Oasis. Das Einrichten dauert ein paar Sekunden.")
+        compose.onNodeWithText("Oasis speichert sie nur verschlüsselt und hat keinen Schlüssel dazu.", substring = true)
             .assertExists()
         compose.onNodeWithText("Mit Fingerabdruck einrichten").assertExists()
         switchTo { Setup(ChatAccessState(busy = true, formError = "Die Passphrase braucht mindestens 12 Zeichen.")) }
@@ -724,11 +724,12 @@ class ChatUiTest {
             ReportContent(ReportState(quote = "Jonas: Hallo", error = "Wähl bitte aus, was nicht stimmt."), { calls += "category" }, {}, {
                 calls +=
                     "send"
-            }, {}, { calls += "close" })
+            }, {}, { calls += "close" }, onPrivacy = { calls += "privacy" })
         }
         capture("report-form")
         tap(ReportModel.categories.first())
         tapTag("chat.report.submit")
+        tapTag("chat.report.privacy")
         tap("Abbrechen")
         switchTo {
             ReportContent(ReportState(category = ReportModel.categories.first(), sent = true, error = "Da ist etwas schiefgegangen."), {
@@ -742,7 +743,7 @@ class ChatUiTest {
         switchTo { ReportContent(ReportState(sent = true, blocked = true), {}, {}, {}, {}, { calls += "close" }) }
         capture("report-blocked")
         compose.onAllNodes(hasText("Schließen"))[1].performScrollTo().performClick()
-        assertEquals(listOf("category", "send", "close", "block", "close"), calls)
+        assertEquals(listOf("category", "send", "privacy", "close", "block", "close"), calls)
     }
 
     @Test
@@ -753,6 +754,8 @@ class ChatUiTest {
         show { ReportSheet(ReportModel(mira, "7", item, "Jonas"), onDismiss = { calls += "dismiss" }) }
         compose.waitUntilAtLeastOneExists(hasText("Jonas: Hallo"), 5_000)
         capture("report-sheet")
+        // Without an API client in the test there is no page to open; the link does nothing.
+        tapTag("chat.report.privacy")
         tap("Abbrechen")
         assertEquals(listOf("dismiss"), calls)
     }

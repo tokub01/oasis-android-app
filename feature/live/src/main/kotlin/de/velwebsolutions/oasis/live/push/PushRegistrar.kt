@@ -19,6 +19,10 @@ class PushFailure(override val message: String) : Exception(message)
  * Gerät ausschalten" in Hinweise einstellen removes it and remembers the choice, and so does "Entfernen" of this
  * installation in the device list; "einschalten" undoes that.
  *
+ * Before Android 13 there is no system dialog, so nothing is registered until the member answered the shell's own question
+ * „Push-Hinweise einschalten?“ with yes ([PushStore.inAppConsent]); „Später“ is remembered too, and "einschalten" in the
+ * settings counts as that yes. From Android 13 on the POST_NOTIFICATIONS dialog is the consent.
+ *
  * A build without google-services.json has no Firebase: [isSupported] is false, nothing is sent, and the settings say
  * that the app gets no push hints.
  */
@@ -29,10 +33,14 @@ class PushRegistrar(private val system: PushSystem, private val store: PushStore
     private val mutableAsksForPermission = MutableStateFlow(false)
 
     /**
-     * After sign-in Android asks once for notifications, like iOS: true while the server sends app pushes, this build has
-     * Firebase, the member has not switched push off here and Android has not asked yet. The app shell shows the prompt.
+     * After sign-in the shell asks once for notifications, like iOS: true while the server sends app pushes, this build has
+     * Firebase, the member has not switched push off here and nobody has asked yet – Android 13+ with its dialog, older
+     * versions with the app's own question ([asksInApp]).
      */
     val asksForPermission: StateFlow<Boolean> = mutableAsksForPermission.asStateFlow()
+
+    /** Whether this device needs the app's own question „Push-Hinweise einschalten?“ instead of the system dialog. */
+    val asksInApp: Boolean get() = system.asksInApp
 
     /** Whether the server sends app pushes at all (`app-config` → `push.available`). */
     var isAvailable = false
@@ -49,14 +57,23 @@ class PushRegistrar(private val system: PushSystem, private val store: PushStore
     /** Whether this build can get push hints at all (Firebase set up). */
     val isSupported: Boolean get() = system.isConfigured
 
+    /** The member said yes to the app's own question; from Android 13 on the system dialog is the consent. */
+    private val consented: Boolean get() = !system.asksInApp || store.inAppConsent == true
+
     /** After sign-in (and at every start while signed in): register when allowed. */
     suspend fun signedIn(repository: LiveRepository) {
         this.repository = repository
         isAvailable = catching { repository.appConfig().push.available }.getOrDefault(false)
         refreshAuthorization()
-        mutableAsksForPermission.value =
-            isAvailable && isSupported && !isOptedOut && authorization.value == PushAuthorization.NotDetermined
+        mutableAsksForPermission.value = isAvailable && isSupported && !isOptedOut && nobodyAskedYet()
         registerIfAllowed()
+    }
+
+    /** Android 13+: the system has not asked yet. Before: the app has not asked yet and Android allows notifications. */
+    private fun nobodyAskedYet(): Boolean = if (system.asksInApp) {
+        store.inAppConsent == null && authorization.value == PushAuthorization.Authorized
+    } else {
+        authorization.value == PushAuthorization.NotDetermined
     }
 
     /** The answer to the prompt after sign-in: registers right away when notifications are allowed now. */
@@ -74,9 +91,9 @@ class PushRegistrar(private val system: PushSystem, private val store: PushStore
         repository = null
     }
 
-    /** The screen asked for the notification permission. */
+    /** The screen asked for the notification permission – the system dialog, or the app's own question before Android 13. */
     fun permissionAnswered(granted: Boolean) {
-        system.permissionAnswered(granted)
+        if (system.asksInApp) store.inAppConsent = granted else system.permissionAnswered(granted)
         mutableAsksForPermission.value = false
         refreshAuthorization()
     }
@@ -84,6 +101,8 @@ class PushRegistrar(private val system: PushSystem, private val store: PushStore
     /** "Auf diesem Gerät einschalten": permission (asked by the screen before), FCM, server. Returns the confirmation. */
     suspend fun enableOnThisDevice(): String {
         store.optedOut = false
+        // "einschalten" is the consent the app's own question asks for before Android 13.
+        if (system.asksInApp) store.inAppConsent = true
         refreshAuthorization()
         if (authorization.value != PushAuthorization.Authorized) throw PushFailure(DENIED_TEXT)
         if (!register()) throw PushFailure(FAILED_TEXT)
@@ -124,9 +143,9 @@ class PushRegistrar(private val system: PushSystem, private val store: PushStore
         mutableAuthorization.value = system.authorization()
     }
 
-    /** Registers when the server sends app pushes, the member wants them here and Android allows them. */
+    /** Registers when the server sends app pushes, the member wants them here (and said so) and Android allows them. */
     private suspend fun registerIfAllowed() {
-        if (isAvailable && !isOptedOut && authorization.value == PushAuthorization.Authorized) register()
+        if (isAvailable && !isOptedOut && consented && authorization.value == PushAuthorization.Authorized) register()
     }
 
     /** Sends this installation's token; false without sign-in, support, token or a working server. */

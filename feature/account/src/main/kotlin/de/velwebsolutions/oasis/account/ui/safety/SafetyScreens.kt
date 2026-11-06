@@ -44,6 +44,7 @@ import de.velwebsolutions.oasis.account.ui.components.FlowChoices
 import de.velwebsolutions.oasis.account.ui.components.GermanDate
 import de.velwebsolutions.oasis.account.ui.components.LinkText
 import de.velwebsolutions.oasis.account.ui.components.ListRow
+import de.velwebsolutions.oasis.account.ui.components.webUrl
 import de.velwebsolutions.oasis.account.ui.retry
 import de.velwebsolutions.oasis.design.components.AsyncOasisButton
 import de.velwebsolutions.oasis.design.components.AvatarView
@@ -63,6 +64,7 @@ import de.velwebsolutions.oasis.design.navigation.AccountRoute
 import de.velwebsolutions.oasis.design.navigation.ChatRoute
 import de.velwebsolutions.oasis.design.navigation.LocalNavigator
 import de.velwebsolutions.oasis.design.navigation.NetworkRoute
+import de.velwebsolutions.oasis.design.navigation.WebRoute
 import de.velwebsolutions.oasis.design.theme.OasisColors
 import de.velwebsolutions.oasis.design.theme.OasisRadius
 import de.velwebsolutions.oasis.design.theme.OasisType
@@ -420,9 +422,17 @@ internal fun ReportScreen(url: String?) {
     val viewModel = hiltViewModel<ReportViewModel, ReportViewModel.Factory>(creationCallback = { it.create(url) })
     val navigator = LocalNavigator.current
     val ui by viewModel.ui.collectAsStateWithLifecycle()
+    val privacyUrl = webUrl("datenschutz#meldungen")
     OasisScreen(title = "Melden", error = ui.error, onDismissError = viewModel::dismissError) {
         AccountPage(maxWidth = 640) {
-            ReportContent(ui, viewModel::choose, viewModel::setComment, viewModel::send, viewModel.retry(viewModel::load)) {
+            ReportContent(
+                ui,
+                viewModel::choose,
+                viewModel::setComment,
+                viewModel::send,
+                viewModel.retry(viewModel::load),
+                onPrivacy = { navigator.open(WebRoute(privacyUrl)) }
+            ) {
                 if (navigator.sheet != null) navigator.dismissSheet() else navigator.handle(NetworkRoute.Source)
             }
         }
@@ -436,6 +446,7 @@ internal fun ReportContent(
     onComment: (String) -> Unit,
     onSend: suspend () -> Unit,
     onRetry: suspend () -> Unit,
+    onPrivacy: () -> Unit = {},
     onDone: () -> Unit
 ) {
     LoadableView(ui.state, onRetry = onRetry) { form ->
@@ -467,6 +478,12 @@ internal fun ReportContent(
                         color = OasisColors.Muted
                     )
                     AsyncOasisButton("Melden", onSend, modifier = Modifier.testTag("report.send"), fullWidth = false)
+                    Text(
+                        "Wir speichern deine Meldung als Nachweis; Einzelheiten in der Datenschutzerklärung.",
+                        style = OasisType.Caption,
+                        color = OasisColors.Muted
+                    )
+                    LinkText("Datenschutzerklärung", onPrivacy, Modifier.testTag("report.privacy"), bold = false)
                 }
                 SupportContacts()
             }

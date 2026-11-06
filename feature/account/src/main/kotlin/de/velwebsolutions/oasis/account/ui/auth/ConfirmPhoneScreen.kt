@@ -72,7 +72,9 @@ internal fun ConfirmPhoneContent(ui: PhoneNumberUiState, status: PhoneNumberStat
     val pending = status.pending
     AuthCard("Noch ein Schritt.", "Bitte bestätige deine Handynummer.") {
         Text(
-            "Jedes Oasis-Konto gehört zu einer Handynummer. So bleibt Oasis frei von Zweitkonten und Bots. Wir schicken dir einen Code per SMS, deine Nummer sieht niemand außer dir.",
+            "Jedes Oasis-Konto gehört zu einer Handynummer. So bleibt Oasis frei von Zweitkonten und Bots. Wir schicken dir einen " +
+                "Code per SMS. Deine Nummer zeigen wir keinem anderen Mitglied; unser SMS-Dienstleister erhält sie nur für den Code " +
+                "(Datenschutzerklärung).",
             style = OasisType.Body,
             color = OasisColors.Ink2
         )

@@ -153,7 +153,9 @@ internal fun SettingsContent(
                 SectionCard(
                     "Deine Daten",
                     detail =
-                        "Lade deine Daten herunter: Konto, Profil, Tropfen mit Bildern, wem du folgst, Oasen und Gemerktes – als ZIP-Datei. Verschlüsselte Chat-Nachrichten können wir nicht lesen und deshalb nicht exportieren."
+                        "Lade deine Daten herunter: Konto, Profil mit Statuszeile, Tropfen mit Bildern, Zeitkapseln, wem du folgst, " +
+                            "Oasen und Gemerktes – als ZIP-Datei. Verschlüsselte Chat-Nachrichten können wir nicht lesen und deshalb " +
+                            "nicht exportieren. Was genau enthalten ist, steht in der Datenschutzerklärung."
                 ) {
                     DataExportButton(viewModel::export, viewModel::showError)
                 }
@@ -472,12 +474,16 @@ private fun SecureWindow() {
 @Composable
 private fun DeleteSection(ui: SettingsUiState, viewModel: SettingsViewModel, open: (AppRoute) -> Unit) {
     val cancelUrl = webUrl("vertraege-kuendigen")
+    val privacyUrl = webUrl("datenschutz")
     SectionCard("Konto löschen", tone = PanelTone.Warning) {
         Text(
-            "Dein Konto und alle Daten dazu werden endgültig gelöscht. Eine laufende Mitgliedschaft kündigst du vorher über „Verträge hier kündigen“.",
+            "Dein Konto wird gelöscht. Was wie lange bleibt (Zahlungsbelege, Sicherungen, frühere Bildversionen), steht in der " +
+                "Datenschutzerklärung. Eine laufende Mitgliedschaft kündigst du vorher – über „Verträge hier kündigen“, bei einem " +
+                "Abo über Google Play dort.",
             style = OasisType.Small,
             color = OasisColors.Ink2
         )
+        LinkText("Datenschutzerklärung", { open(WebRoute(privacyUrl)) }, Modifier.testTag("settings.deletePrivacy"))
         LinkText("Verträge hier kündigen", { open(WebRoute(cancelUrl)) })
         ConsentCheck(ui.deleteConfirmed, { checked ->
             viewModel.edit { it.copy(deleteConfirmed = checked) }

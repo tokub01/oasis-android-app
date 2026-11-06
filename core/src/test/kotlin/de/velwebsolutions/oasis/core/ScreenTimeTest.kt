@@ -14,6 +14,7 @@ import kotlinx.coroutines.test.advanceTimeBy
 import kotlinx.coroutines.test.runCurrent
 import kotlinx.coroutines.test.runTest
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertFalse
 import org.junit.Assert.assertTrue
 import org.junit.Test
 import org.junit.runner.RunWith
@@ -40,6 +41,9 @@ class ScreenTimeTest {
     @Test
     fun countsOnlyWhileUsedAndSplitsAtMidnight() = runTest {
         val time = ScreenTime(store, userId = { 7 }, clock = clock())
+        assertFalse("off until switched on", time.enabled)
+        time.enabled = true
+        assertTrue(PreferencesScreenTimeStore(context).enabled)
         val counting = backgroundScope.launch { time.count() }
         // 60 s after coming to the front still count, then nothing until the next tap.
         advanceTimeBy(90_500)
@@ -84,6 +88,7 @@ class ScreenTimeTest {
     fun onlyEightDaysAreKeptAndSignOutForgetsAll() = runTest {
         store.write(7, mapOf("2026-10-27" to 60L, "2026-10-28" to 60L))
         val time = ScreenTime(store, userId = { 7 }, clock = clock(Instant.parse("2026-11-04T10:00:00Z")))
+        time.enabled = true
         val counting = backgroundScope.launch { time.count() }
         advanceTimeBy(15_500)
         assertEquals("written every 15 seconds", mapOf("2026-10-28" to 60L, "2026-11-04" to 15L), store.read(7))
@@ -91,16 +96,26 @@ class ScreenTimeTest {
         runCurrent()
         time.clear()
         assertTrue(store.read(7).isEmpty())
+        assertFalse("sign-out resets the switch", time.enabled)
     }
 
     @Test
     fun withoutAnAccountOrSecondsNothingIsWritten() = runTest {
         val time = ScreenTime(store, userId = { null }, clock = clock())
+        time.enabled = true
         val counting = backgroundScope.launch { time.count() }
         advanceTimeBy(20_500)
         counting.cancel()
         runCurrent()
         ScreenTime(store, userId = { 7 }).save()
+        assertTrue(store.read(7).isEmpty())
+        // Switched off (the default), nothing counts even with an account.
+        val off = ScreenTime(store, userId = { 7 }, clock = clock())
+        off.enabled = false
+        val idle = backgroundScope.launch { off.count() }
+        advanceTimeBy(20_500)
+        idle.cancel()
+        runCurrent()
         assertTrue(store.read(7).isEmpty())
         // Something unreadable stored counts as nothing.
         context.getSharedPreferences("oasis.screenTime", Context.MODE_PRIVATE).edit()

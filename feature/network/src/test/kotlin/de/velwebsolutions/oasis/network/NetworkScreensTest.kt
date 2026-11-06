@@ -139,6 +139,9 @@ class NetworkScreensTest {
 
         compose.onNodeWithText("Frage an meine Karawane").assertIsDisplayed()
         compose.onNodeWithText("Zurückgehalten und dem Moderationsteam gemeldet").assertIsDisplayed()
+        // Holding never locks the account (since 6 November 2026 only a human decision does).
+        compose.onNodeWithText("dein Konto bleibt offen", substring = true).assertExists()
+        compose.onNodeWithText("Konto gesperrt", substring = true).assertDoesNotExist()
         capture("card-author")
         scrollTo("Nur du siehst diese Zahlen:")
         scrollTo("3 Menschen haben geantwortet")

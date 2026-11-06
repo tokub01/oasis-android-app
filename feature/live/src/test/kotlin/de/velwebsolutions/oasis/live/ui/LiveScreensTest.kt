@@ -497,4 +497,52 @@ class LiveScreensTest {
         compose.waitForIdle()
         assertEquals(null, shadowOf(compose.activity).lastRequestedPermission)
     }
+
+    /** A coordinator on a device without the system dialog (before Android 13), whose shell asks itself. */
+    private fun inAppAskingCoordinator(
+        store: de.velwebsolutions.oasis.live.MemoryPushStore
+    ): Pair<de.velwebsolutions.oasis.live.LiveCoordinator, StubTransport> {
+        val transport = StubTransport(
+            StubTransport.Stub("GET", "live/counts", json = LiveJson.COUNTS),
+            StubTransport.Stub("GET", "app-config", json = LiveJson.CONFIG),
+            StubTransport.Stub("POST", "push/devices", json = LiveJson.DEVICE)
+        )
+        val push = registrar(FakePushSystem(asksInApp = true), store)
+        val live = de.velwebsolutions.oasis.live.LiveCoordinator(
+            repository(transport),
+            de.velwebsolutions.oasis.live.FakeRealtime(),
+            push,
+            scope
+        )
+        kotlinx.coroutines.runBlocking { live.start(1) }
+        return live to transport
+    }
+
+    @Test
+    @Config(sdk = [32])
+    fun beforeAndroid13TheShellAsksItselfAndLaterRegistersNothing() {
+        val store = de.velwebsolutions.oasis.live.MemoryPushStore()
+        val (live, transport) = inAppAskingCoordinator(store)
+        assertTrue(live.asksForPushPermission.value)
+        show { HintsButton(live) }
+        compose.onNodeWithText("Push-Hinweise einschalten?").assertIsDisplayed()
+        compose.onNodeWithTag("push.ask.later").performClick()
+        compose.waitUntil(5_000) { !live.asksForPushPermission.value }
+        compose.onNodeWithText("Push-Hinweise einschalten?").assertDoesNotExist()
+        assertEquals(false, store.inAppConsent)
+        assertEquals("no system dialog before Android 13", null, shadowOf(compose.activity).lastRequestedPermission)
+        assertTrue(transport.requests.none { it.path == "push/devices" })
+    }
+
+    @Test
+    @Config(sdk = [32])
+    fun beforeAndroid13AYesToTheShellsQuestionRegistersTheDevice() {
+        val store = de.velwebsolutions.oasis.live.MemoryPushStore()
+        val (live, transport) = inAppAskingCoordinator(store)
+        show { HintsButton(live) }
+        compose.onNodeWithTag("push.ask.yes").performClick()
+        compose.waitUntil(5_000) { transport.requests.any { it.path == "push/devices" } }
+        assertEquals(true, store.inAppConsent)
+        assertFalse(live.asksForPushPermission.value)
+    }
 }

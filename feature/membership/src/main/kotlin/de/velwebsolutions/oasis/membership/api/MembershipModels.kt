@@ -1,5 +1,6 @@
 package de.velwebsolutions.oasis.membership.api
 
+import de.velwebsolutions.oasis.core.network.OasisDay
 import de.velwebsolutions.oasis.core.network.OasisInstant
 import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
@@ -28,7 +29,12 @@ data class MembershipOverview(
      * The place of a Mäzen, while it gives access (`companion_seat`). [state] stays [State.Expired] for it; the status
      * card then shows the place instead (status.blade.php).
      */
-    val companionSeat: CompanionSeat? = null
+    val companionSeat: CompanionSeat? = null,
+    /**
+     * An announced change of the AGB whose objection period still runs (`terms_change`, AGB § 19); null without one and
+     * from servers before announcements existed.
+     */
+    val termsChange: TermsChange? = null
 ) {
     /** Paid or gifted: a held companion place is not shown then (Perks.php `isPaying`). */
     val isPaying: Boolean get() = state != State.Expired
@@ -36,6 +42,24 @@ data class MembershipOverview(
     /** A Mäzen's place: who gives it and the tier it brings (TierFeatures::COMPANION_TIER). */
     @Serializable
     data class CompanionSeat(val sponsor: String, val tier: String? = null, val tierName: String = "Oase")
+
+    /**
+     * An announced change of the AGB (`oasis:terms-announce`): the day it takes effect, what changes and why, and the
+     * member's own objection ([objectedAt], null until they object; POST/DELETE membership/terms-objection). [url] is the
+     * new version to read.
+     */
+    @Serializable
+    data class TermsChange(
+        val effectiveOn: OasisDay? = null,
+        val summary: String = "",
+        val reason: String = "",
+        val announcedAt: OasisInstant? = null,
+        val objectedAt: OasisInstant? = null,
+        val url: String? = null
+    ) {
+        /** Whether this member has objected to the change. */
+        val objected: Boolean get() = objectedAt != null
+    }
 
     /** Which status card the web shows. */
     @Serializable

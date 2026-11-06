@@ -252,6 +252,8 @@ class SettingsScreensHiltTest : HiltScreenTest() {
         compose.waitUntil(5_000) { java.io.File(activity.cacheDir, "oasis-daten.zip").exists() }
         compose.onAllNodesText("Verträge hier kündigen").first().tap()
         assertTrue(web.last().endsWith("/vertraege-kuendigen"))
+        compose.onNodeWithTag("settings.deletePrivacy").tap()
+        assertTrue(web.last().endsWith("/datenschutz"))
         compose.onNodeWithTag("settings.deleteConfirm").tap()
         compose.onNodeWithTag("settings.delete").tap()
         waitForRequest("POST", "auth/logout")

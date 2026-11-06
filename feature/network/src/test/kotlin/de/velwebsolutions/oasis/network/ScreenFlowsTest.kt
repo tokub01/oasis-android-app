@@ -460,9 +460,11 @@ class ScreenFlowsTest {
         text("Link kopieren").performClick()
         text("Kopiert").assertIsDisplayed()
         text("Abgelaufen").assertIsDisplayed()
-        text("Freimonat verdient – wir rechnen ihn auf deine laufende Mitgliedschaft an.").assertIsDisplayed()
+        text("Freimonat verdient – wir verschieben deine nächste Abbuchung über die Website um einen Monat", substring = true)
+            .assertIsDisplayed()
         text("Freimonat gutgeschrieben am", substring = true).assertIsDisplayed()
-        text("1 wartet auf eine laufende Mitgliedschaft.").assertIsDisplayed()
+        text("1 wartet auf eine laufende, über die Website bezahlte Mitgliedschaft.").assertIsDisplayed()
+        text("Freimonate gelten nur für Mitgliedschaften, die über die Website (Mollie) bezahlt werden", substring = true).assertExists()
         capture("invitations")
 
         val model20 = models.keep(InvitationViewModel("abc", network.repository))

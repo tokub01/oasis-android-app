@@ -16,7 +16,8 @@ class ModelConstructionTest {
     private val models = listOf(
         "StatTile", "AdminDashboard", "PaymentRecord", "PaymentPage", "MolliePayment", "MollieCustomer",
         "MollieLookup", "DataBreach", "BreachRegister", "NewBreach", "SystemStatus", "Labelled", "ModerationOverview", "CaseSummary",
-        "QueueFilter", "Decision", "ModerationCaseDetail", "StatementOfReasons", "ComplaintDetail", "ComplaintReview", "RoleUser",
+        "QueueFilter", "OutcomeOption", "SuspensionOption", "Decision", "ModerationCaseDetail", "StatementOfReasons", "ComplaintDetail",
+        "ComplaintReview", "RoleUser",
         "RolePage", "SuspensionList", "Suspension", "AssignBody", "TypeBody", "ReferenceBody", "RoleBody", "SearchBody",
         "RefundBody", "NoteBody"
     ).map { Class.forName("de.velwebsolutions.oasis.staff.api.$it") }

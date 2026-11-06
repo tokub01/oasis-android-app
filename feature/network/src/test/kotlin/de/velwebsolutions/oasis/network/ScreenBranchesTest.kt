@@ -721,7 +721,7 @@ class ScreenBranchesTest {
         val invitations = models.keep(InvitationsViewModel(network.repository))
         switchTo { InvitationsScreen(invitations) }
         text("Du hast noch keine Einladungslinks erstellt.")
-        text("2 warten auf eine laufende Mitgliedschaft.")
+        text("2 warten auf eine laufende, über die Website bezahlte Mitgliedschaft.")
         val opened = mutableListOf<String>()
         navigator.openWeb = { opened += it }
         compose.onNodeWithTag("invitations.terms").performClick()

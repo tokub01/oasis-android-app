@@ -6,14 +6,19 @@ import android.content.ContextWrapper
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.semantics.SemanticsActions
+import androidx.compose.ui.test.SemanticsNodeInteraction
 import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.junit4.createComposeRule
+import androidx.compose.ui.test.onAllNodesWithTag
 import androidx.compose.ui.test.onNodeWithContentDescription
 import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
 import androidx.compose.ui.test.performScrollTo
+import androidx.compose.ui.test.performSemanticsAction
 import androidx.test.core.app.ApplicationProvider
+import de.velwebsolutions.oasis.core.network.Confirmed
 import de.velwebsolutions.oasis.design.navigation.LocalNavigator
 import de.velwebsolutions.oasis.design.navigation.MainTab
 import de.velwebsolutions.oasis.design.navigation.MembershipRoute
@@ -59,11 +64,31 @@ class MembershipScreensWiringTest {
         compose.setContent { OasisTheme { CompositionLocalProvider(LocalNavigator provides navigator) { content() } } }
     }
 
+    /** Clicks through the semantics, so the snackbar of a confirmation over the node cannot catch the tap. */
+    private fun SemanticsNodeInteraction.tap() = performScrollTo().performSemanticsAction(SemanticsActions.OnClick)
+
     @Test
     fun `the overview shows the loaded membership`() {
         val viewModel = OverviewViewModel(repository, events)
         show { OverviewScreen(viewModel) }
         compose.onNodeWithTag("membership.active").assertIsDisplayed()
+    }
+
+    @Test
+    fun `the overview objects to the AGB change and takes it back through its view model`() {
+        repository.overview = Result.success(Fixtures.overview(Fixtures.termsChangeOverview))
+        val viewModel = OverviewViewModel(repository, events)
+        show { OverviewScreen(viewModel) }
+        compose.onNodeWithTag("membership.objectToTerms").tap()
+        compose.onNodeWithTag("membership.termsConfirm").performClick()
+        compose.waitUntil(5_000) { compose.onAllNodesWithTag("membership.termsObjected").fetchSemanticsNodes().isNotEmpty() }
+        assertEquals(listOf("objectToTerms"), repository.calls)
+
+        repository.termsObjection = Result.success(Confirmed(Fixtures.overview(Fixtures.termsChangeOverview), Fixtures.OBJECTION_WITHDRAWN))
+        compose.onNodeWithTag("membership.withdrawTermsObjection").tap()
+        compose.onNodeWithTag("membership.termsConfirm").performClick()
+        compose.waitUntil(5_000) { compose.onAllNodesWithTag("membership.objectToTerms").fetchSemanticsNodes().isNotEmpty() }
+        assertEquals(listOf("objectToTerms", "withdrawTermsObjection"), repository.calls)
     }
 
     @Test

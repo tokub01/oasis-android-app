@@ -320,6 +320,14 @@ fun InvitationsScreen(viewModel: InvitationsViewModel = hiltViewModel<Invitation
                             style = OasisType.Body,
                             color = OasisColors.Ink2
                         )
+                        Text(
+                            "Freimonate gelten nur für Mitgliedschaften, die über die Website (Mollie) bezahlt werden: Wir verschieben " +
+                                "deine nächste Abbuchung um einen Monat. Bei einem Abo über Google Play oder den App Store wartet der " +
+                                "Monat, bis eine über die Website bezahlte Mitgliedschaft läuft. Geschenk-Mitgliedschaften der " +
+                                "eingeladenen Person zählen nicht; eine Auszahlung gibt es nicht.",
+                            style = OasisType.Small,
+                            color = OasisColors.Ink2
+                        )
                         // The conditions of the free months in the AGB (invitations.blade.php).
                         rememberBaseUrl()?.resolve("/agb#freimonate")?.toString()?.let { terms ->
                             UnderlinedLink("Bedingungen", { navigator.open(WebRoute(terms)) }, Modifier.testTag("invitations.terms"))
@@ -351,7 +359,7 @@ fun InvitationsScreen(viewModel: InvitationsViewModel = hiltViewModel<Invitation
                         Text("von ${info.freeMonthsPerYear} in diesem Jahr verdient")
                         if (info.freeMonthsWaiting > 0) {
                             Text(
-                                "${info.freeMonthsWaiting} ${if (info.freeMonthsWaiting == 1) "wartet" else "warten"} auf eine laufende Mitgliedschaft."
+                                "${info.freeMonthsWaiting} ${if (info.freeMonthsWaiting == 1) "wartet" else "warten"} auf eine laufende, über die Website bezahlte Mitgliedschaft."
                             )
                         }
                     }
@@ -392,7 +400,7 @@ private fun InvitationRow(link: InvitationOverview.Link) {
                         if (applied != null) {
                             "Freimonat gutgeschrieben am ${longDate(applied)}"
                         } else {
-                            "Freimonat verdient – wir rechnen ihn auf deine laufende Mitgliedschaft an."
+                            "Freimonat verdient – wir verschieben deine nächste Abbuchung über die Website um einen Monat; bei einem Abo über Google Play wartet er."
                         },
                         style = OasisType.Small,
                         color = OasisColors.Ink2

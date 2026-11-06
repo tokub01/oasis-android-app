@@ -4,6 +4,7 @@ import de.velwebsolutions.oasis.account.api.PrivacyValue
 import de.velwebsolutions.oasis.account.api.TwoFactorState
 import de.velwebsolutions.oasis.core.auth.RegistrationForm
 import de.velwebsolutions.oasis.testing.StubTransport
+import java.time.Instant
 import kotlinx.coroutines.test.runTest
 import kotlinx.serialization.json.JsonObject
 import kotlinx.serialization.json.JsonPrimitive
@@ -78,7 +79,7 @@ class AccountRepositoryTest {
             .stub(
                 "GET",
                 "suspension",
-                """{"data":{"type":"provisional","label":"Vorläufige Sperre bis zur Prüfung","started_at":"2026-10-22T10:00:00.000000Z","accusation":"Verdacht auf eine Beleidigung","excerpt":"Du bist ein Vollidiot","statement":null,"statement_at":null,"strikes":0,"strike_limit":3,"review_hours":24,"statement_max":3000}}"""
+                """{"data":{"type":"suspension","label":"Sperre durch das Moderationsteam","started_at":"2026-10-22T10:00:00.000000Z","ends_at":"2026-10-29T10:00:00.000000Z","ends_at_label":"29.10.2026, 11:00 Uhr","accusation":"Beleidigung in deinem Tropfen","excerpt":"Du bist ein Vollidiot","statement":null,"statement_at":null,"strikes":1,"strike_limit":3,"strike_months":12,"statement_max":3000}}"""
             )
             .stub(
                 "GET",
@@ -87,9 +88,11 @@ class AccountRepositoryTest {
             )
         val api = repository(transport)
         val suspension = api.suspension()
-        assertTrue(suspension.isProvisional)
         assertFalse(suspension.isBan)
+        assertEquals("29.10.2026, 11:00 Uhr", suspension.endsAtLabel)
+        assertEquals(Instant.parse("2026-10-29T10:00:00Z"), suspension.endsAt)
         assertEquals(3, suspension.strikeLimit)
+        assertEquals(12, suspension.strikeMonths)
         assertEquals("Regel 1", api.complaintDecision(7).ruleReference)
     }
 

@@ -66,8 +66,29 @@ object Fixtures {
 
     const val CANCELLED = "Deine Kündigung wurde erfolgreich erfasst. Wir haben dir eine Bestätigung per E-Mail geschickt."
 
-    /** The subscription overview as the answer of an action (`{message, data}`). */
-    fun confirmed(message: String) = subscriptionOverview.replaceFirst("""{"data":""", """{"message":"$message","data":""")
+    /** An overview as the answer of an action (`{message, data}`). */
+    fun confirmed(message: String, overview: String = subscriptionOverview) =
+        overview.replaceFirst("""{"data":""", """{"message":"$message","data":""")
+
+    /** The `terms_change` block of an announced change of the AGB (AGB § 19), with or without this member's objection. */
+    fun termsChange(objectedAt: String? = null) =
+        """{"effective_on":"2026-12-21","summary":"Wir fassen § 14 neu.","reason":"Das Gesetz verlangt es.",""" +
+            """"announced_at":"2026-11-01T09:00:00.000000Z","objected_at":${objectedAt?.let { "\"$it\"" } ?: "null"},""" +
+            """"url":"http:\/\/localhost\/agb"}"""
+
+    /** The running subscription while a change of the AGB is announced and not yet objected to. */
+    val termsChangeOverview = subscriptionOverview.replaceFirst("""{"data":{""", """{"data":{"terms_change":${termsChange()},""")
+
+    /** … after this member objected (13:32 UTC is 14:32 in Berlin). */
+    val termsObjectedOverview =
+        subscriptionOverview.replaceFirst("""{"data":{""", """{"data":{"terms_change":${termsChange("2026-11-06T13:32:00.000000Z")},""")
+
+    const val OBJECTED = "Dein Widerspruch ist am 06.11.2026 um 14:32 Uhr eingegangen. Für dich gilt die bisherige Fassung weiter."
+
+    const val OBJECTION_WITHDRAWN =
+        "Du hast deinen Widerspruch zurückgenommen. Die neue Fassung gilt ab dem 21.12.2026 auch für deinen Vertrag."
+
+    const val ALREADY_OBJECTED = "Du hast dieser Änderung bereits widersprochen."
 
     /** Deine Vorteile of a Mäzen with one taken and one open place (as PerksController answers). */
     val maezenPerks = """

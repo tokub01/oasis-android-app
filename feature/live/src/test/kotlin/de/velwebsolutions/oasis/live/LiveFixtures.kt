@@ -56,7 +56,8 @@ class HookedRepository(inner: LiveRepository, var whileSaving: suspend () -> Uni
 class FakePushSystem(
     var status: PushAuthorization = PushAuthorization.Authorized,
     override var isConfigured: Boolean = true,
-    var token: String? = "fcm-token"
+    var token: String? = "fcm-token",
+    override var asksInApp: Boolean = false
 ) : PushSystem {
     var answers = mutableListOf<Boolean>()
     var tokenRequests = 0
@@ -85,7 +86,11 @@ class FakePushSystem(
     }
 }
 
-class MemoryPushStore(override var deviceId: Int? = null, override var optedOut: Boolean = false) : PushStore
+class MemoryPushStore(
+    override var deviceId: Int? = null,
+    override var optedOut: Boolean = false,
+    override var inAppConsent: Boolean? = null
+) : PushStore
 
 fun registrar(system: FakePushSystem = FakePushSystem(), store: PushStore = MemoryPushStore()) = PushRegistrar(system, store)
 

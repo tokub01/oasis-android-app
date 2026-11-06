@@ -208,7 +208,9 @@ class MembershipCancellationTest {
         repository.cancellation = cancelled
         repository.end = cancelled
         repository.export = cancelled
+        repository.termsObjection = cancelled
         assertCancels { overview.load() }
+        assertCancels { overview.objectToTerms() }
         assertCancels { portal.load() }
         assertCancels { invoice.load() }
         assertCancels { cancel.load() }

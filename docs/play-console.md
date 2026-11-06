@@ -75,8 +75,7 @@ stehen in den Testdaten des Laravel-Projekts (`database/seeders/DemoContentSeede
 - Moderation: Meldefunktion, Sperren und Blockieren vorhanden.
 
 ### Zielgruppe und Inhalte
-- Altersgruppen: **16–17** und **18 und älter** (Oasis ist ab 16; unter 18 braucht eine Mitgliedschaft die Zustimmung
-  der Eltern, siehe AGB).
+- Altersgruppen: nur **18 und älter** (Oasis ist ab 18, AGB § 3; keine Altersgruppe unter 18 ankreuzen).
 - Die App richtet sich nicht an Kinder; der Store-Eintrag spricht keine Kinder an.
 
 ### Datensicherheit
@@ -88,26 +87,32 @@ Alle Übertragungen sind verschlüsselt (HTTPS/TLS). Konto und Daten lassen sich
 |---|---|---|---|---|
 | Name (Anzeigename) | ja | nein | nein | App-Funktionen, Kontoverwaltung |
 | E-Mail-Adresse | ja | nein | nein | Kontoverwaltung, Kommunikation durch den Entwickler |
+| Telefonnummer (Handynummer) | ja | nein | nein | Kontoverwaltung (Bestätigung per SMS-Code, Schutz vor Zweitkonten und Bots); der SMS-Dienstleister seven.io erhält sie nur für den Code, kein anderes Mitglied sieht sie |
 | Nutzer-IDs (Benutzername, Konto-ID) | ja | nein | nein | App-Funktionen, Kontoverwaltung |
-| Sonstige Angaben: Geburtsdatum | ja | nein | nein | Kontoverwaltung (Mindestalter 16, Jugendschutz) |
+| Sonstige Angaben: Geburtsdatum | ja | nein | nein | Kontoverwaltung (Mindestalter 18) |
 | Fotos (Profilbild, Banner, Bilder in Tropfen) | ja | nein | ja | App-Funktionen |
 | Sonstige nutzergenerierte Inhalte (Tropfen, Antworten, Oasen, Meldungen) | ja | nein | ja | App-Funktionen |
 | Kaufverlauf (Mitgliedschaft) | ja | nein | ja | App-Funktionen, Kontoverwaltung |
-| Geräte- oder andere IDs (Push-Token von FCM) | ja | nein | ja | App-Funktionen (Push-Hinweise) |
+| Geräte- oder andere IDs (Push-Token von FCM) | ja | nein | ja | App-Funktionen (Push-Hinweise; nur nach Zustimmung, siehe unten) |
 
 - **Nachrichten im Chat nicht angeben:** Sie sind Ende-zu-Ende-verschlüsselt, Oasis kann sie nicht lesen (Googles
   Ausnahme für Ende-zu-Ende-verschlüsselte Daten).
 - **Nicht erhoben:** Standort, Kontakte, Kalender, Gesundheit, Zahlungsdaten (Karten/Konten), Browserverlauf, Analysen,
   Absturzberichte.
 - **„Geteilt“ ist überall nein:** Dienstleister, die im Auftrag arbeiten (Firebase Cloud Messaging für die Zustellung,
-  Mistral für die automatische Textprüfung, Mollie für Zahlungen im Web), zählen bei Google nicht als Weitergabe. Die
-  Push-Nachricht selbst enthält nur eine zufällige Kennung, die Art und einen Link – Namen und Texte holt die App über
-  die eigene Verbindung vom Oasis-Server.
+  seven.io für SMS-Codes, Mistral für die automatische Textprüfung, Mollie für Zahlungen im Web), zählen bei Google
+  nicht als Weitergabe.
+- **Push-Nachricht:** Sie enthält nur einen allgemeinen Text („Es gibt Neues.“), den Zähler für das App-Symbol, die
+  Zieladresse in der App und eine zufällige Kennung – keine Namen und keine Texte. Mit der Kennung holt die App den
+  Hinweis selbst über die eigene Verbindung vom Oasis-Server und baut die Benachrichtigung auf dem Gerät.
 
 ### Weitere Erklärungen
 - Behörden-App: nein. Finanzfunktionen: nein. Gesundheits-App: nein. Nachrichten-App (News): nein.
-- Berechtigungen: `INTERNET`, `POST_NOTIFICATIONS` (Push-Hinweise, erst nach Zustimmung in den Hinweis-Einstellungen),
-  Kamera nur über den System-Dialog „Foto aufnehmen“, Biometrie für das Entsperren des Chats.
+- Berechtigungen: `INTERNET`, `POST_NOTIFICATIONS` (Push-Hinweise: der Systemdialog wird direkt nach der Anmeldung
+  erfragt, ab Android 13; auf älteren Geräten ohne diesen Dialog fragt die App stattdessen selbst „Push-Hinweise
+  einschalten?“ mit Ja/Später und registriert das Gerät erst nach einem Ja; „Später“ merkt sie sich, einschalten geht
+  dann in den Hinweis-Einstellungen), Kamera nur über den System-Dialog „Foto aufnehmen“, Biometrie für das Entsperren
+  des Chats.
 
 ## Version und Build
 - `versionCode` = Commit-Zeit in UTC als `yyDDDHHmm` (Jahr, Tag im Jahr, Stunde, Minute), z. B. 262980815 für

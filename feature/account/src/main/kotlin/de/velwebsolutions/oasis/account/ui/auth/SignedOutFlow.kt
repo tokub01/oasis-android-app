@@ -154,7 +154,8 @@ internal fun SignedOutFlow() {
                     onTwoFactor = { steps.add(SignedOutStep.TwoFactor(it)) },
                     onForgotPassword = { steps.add(SignedOutStep.ForgotPassword) },
                     onRegister = { steps.add(SignedOutStep.Register) },
-                    onLoginCode = { channel, login -> steps.add(SignedOutStep.LoginCode(channel, login)) }
+                    onLoginCode = { channel, login -> steps.add(SignedOutStep.LoginCode(channel, login)) },
+                    onLegal = { path -> legal(baseUrl + path) }
                 )
 
                 SignedOutStep.Register -> RegisterScreen(onSignIn = { steps.clear() }, onLegal = { path -> legal(baseUrl + path) })

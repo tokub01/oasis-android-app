@@ -135,7 +135,10 @@ class ApiClient(
     }
 
     companion object {
-        /** Maps an error answer to [ApiError] (Laravel JSON: `{ "message": "…", "errors": { field: [..] } }`). */
+        /**
+         * Maps an error answer to [ApiError] (Laravel JSON: `{ "message": "…", "errors": { field: [..] } }`; a 422 may
+         * also carry a fixed code `reason`).
+         */
         fun errorFor(status: Int, body: String?, retryAfter: String?): ApiError {
             val parsed = runCatching { body?.let { OasisJson.verbatim.parseToJsonElement(it).jsonObject } }.getOrNull()
             val message = parsed?.get("message")?.jsonPrimitive?.contentOrNull.orEmpty()
@@ -145,7 +148,7 @@ class ApiClient(
                 404 -> ApiError.NotFound
                 409 -> ApiError.Conflict(message)
                 413 -> ApiError.PayloadTooLarge
-                422 -> ApiError.Validation(message, fieldErrors(parsed))
+                422 -> ApiError.Validation(message, fieldErrors(parsed), parsed?.get("reason")?.jsonPrimitive?.contentOrNull)
                 429 -> ApiError.TooManyRequests(retryAfter?.toIntOrNull(), message)
                 else -> ApiError.Server(status, message.ifEmpty { null })
             }

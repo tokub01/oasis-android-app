@@ -49,6 +49,16 @@ interface MembershipService {
     @POST("membership/withdrawal")
     suspend fun withdraw(): Confirmed<MembershipOverview>
 
+    // An announced change of the AGB (AGB § 19): the objection and its withdrawal. Both answer with the overview
+    // (`terms_change.objected_at` set or null) and a message; 404 `reason: no_announcement` without a running
+    // announcement, 422 `reason: already_objected | not_objected`.
+
+    @POST("membership/terms-objection")
+    suspend fun objectToTerms(): Confirmed<MembershipOverview>
+
+    @DELETE("membership/terms-objection")
+    suspend fun withdrawTermsObjection(): Confirmed<MembershipOverview>
+
     // Deine Vorteile: companion places and the supporter mark
 
     @GET("membership/perks")

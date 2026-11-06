@@ -54,6 +54,10 @@ class StaffRepositoryCallsTest {
         assertEquals("7", field(transport.lastObject("staff/moderation/cases/2/assign"), "assigned_to"))
         repository.decide(2, statement)
         assertEquals("Regel 2", field(transport.lastObject("staff/moderation/cases/2/decision"), "rule_reference"))
+        assertNull("no duration without a lock", transport.lastObject("staff/moderation/cases/2/decision")?.get("suspension_days"))
+        repository.decide(2, statement.copy(outcome = "account_suspended", suspensionDays = 7))
+        assertEquals("7", field(transport.lastObject("staff/moderation/cases/2/decision"), "suspension_days"))
+        assertEquals("account_suspended", field(transport.lastObject("staff/moderation/cases/2/decision"), "outcome"))
         repository.escalate(2, "terror")
         assertEquals("terror", field(transport.lastObject("staff/moderation/cases/2/escalate"), "type"))
         repository.recordAuthorityReport(2, "LKA 1/26")
@@ -93,6 +97,9 @@ class StaffRepositoryCallsTest {
         assertEquals("Begründung", overturned.explanation)
         assertEquals("content_removed", overturned.outcome)
         assertEquals("Tatsachen", overturned.facts)
+        assertNull(overturned.suspensionDays)
+        val lock = ComplaintReview.of("overturned", "ignored", statement.copy(outcome = "account_suspended", suspensionDays = 30))
+        assertEquals(30, lock.suspensionDays)
         assertEquals(ComplaintReview(""), ComplaintReview.of("", "ignored", statement))
     }
 

@@ -6,8 +6,12 @@ package de.velwebsolutions.oasis.core.network
  * `APIError`.
  */
 sealed class ApiError(message: String) : Exception(message) {
-    /** 422: Laravel validation errors per field (`errors.login`, `errors.body`, …) plus the summary message. */
-    data class Validation(val summary: String, val fields: Map<String, List<String>>) : ApiError(summary)
+    /**
+     * 422: Laravel validation errors per field (`errors.login`, `errors.body`, …) plus the summary message. Some refusals
+     * carry a fixed code [reason] next to the message (`already_objected`, `not_objected` of the terms objection) that lets
+     * the app decide what to do; null for ordinary validation answers.
+     */
+    data class Validation(val summary: String, val fields: Map<String, List<String>>, val reason: String? = null) : ApiError(summary)
 
     /** 401: the token is missing, revoked or expired – the app signs out. */
     data object Unauthenticated : ApiError("unauthenticated")

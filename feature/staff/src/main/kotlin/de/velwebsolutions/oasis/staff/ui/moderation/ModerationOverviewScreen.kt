@@ -46,7 +46,6 @@ import de.velwebsolutions.oasis.design.theme.OasisType
 import de.velwebsolutions.oasis.staff.api.CaseSummary
 import de.velwebsolutions.oasis.staff.api.ModerationOverview
 import de.velwebsolutions.oasis.staff.api.QueueFilter
-import de.velwebsolutions.oasis.staff.ui.components.DeadlineLook
 import de.velwebsolutions.oasis.staff.ui.components.LoadMoreButton
 import de.velwebsolutions.oasis.staff.ui.components.OptionPicker
 import de.velwebsolutions.oasis.staff.ui.components.StaffArea
@@ -78,10 +77,9 @@ fun ModerationOverviewContent(
     OasisScreen("Moderation", error = state.error, onDismissError = onDismissError) {
         StaffLoadable(state.overview, onRefresh) { overview ->
             StaffPage(onRefresh, spacing = 20) {
-                if (overview.waitingLocks.count > 0) WaitingLocksBanner(overview.waitingLocks)
                 Header(overview.figures)
                 FigureGrid(overview.figures, onFilter)
-                StaffAreas(overview.navigation, overview.waitingLocks.count)
+                StaffAreas(overview.navigation)
                 QueueSection(state, onFilter, onLoadMore)
                 ActivitySection(overview.activity)
             }
@@ -106,35 +104,6 @@ private fun Header(figures: ModerationOverview.Figures) {
 private fun mutedLead(lead: String, value: String) = buildAnnotatedString {
     withStyle(SpanStyle(color = OasisColors.Muted)) { append(lead) }
     withStyle(SpanStyle(fontWeight = FontWeight.Bold, color = OasisColors.Ink)) { append(value) }
-}
-
-/** "n vorläufige Sperren warten auf eine Entscheidung" with the deadline state, links to the locks. */
-@Composable
-private fun WaitingLocksBanner(locks: ModerationOverview.WaitingLocks) {
-    val navigator = LocalNavigator.current
-    val color = DeadlineLook.foreground(locks.state)
-    Column(
-        Modifier
-            .fillMaxWidth()
-            .background(DeadlineLook.background(locks.state), RoundedCornerShape(OasisRadius.S.dp))
-            .pressable({ navigator.open(StaffRoute.Suspensions) })
-            .padding(16.dp)
-            .testTag("moderation.waitingLocks"),
-        verticalArrangement = Arrangement.spacedBy(4.dp)
-    ) {
-        Text(
-            "${locks.count} ${if (locks.count == 1) "vorläufige Sperre wartet" else "vorläufige Sperren warten"} auf eine Entscheidung",
-            style = OasisType.BodyBold,
-            color = OasisColors.Night
-        )
-        Text(
-            "Die älteste wartet seit ${locks.oldestHours ?: 0} Std. – zugesagt sind höchstens ${locks.reviewHours} Std." +
-                if (locks.state == "overdue") " Frist überschritten." else "",
-            style = OasisType.Small,
-            color = color
-        )
-        Text("Zu den Sperren", style = OasisType.SmallBold.copy(textDecoration = TextDecoration.Underline), color = OasisColors.Night)
-    }
 }
 
 /** The six figure cards; each opens the queue with the matching filter like the web's links. */
@@ -183,15 +152,15 @@ private fun FigureGrid(figures: ModerationOverview.Figures, onFilter: (QueueFilt
     }
 }
 
-/** The staff navigation of the web layout: Sperren (with the waiting count), Rollen and the admin pages. */
+/** The staff navigation of the web layout: Sperren, Rollen and the admin pages. */
 @Composable
-private fun StaffAreas(navigation: ModerationOverview.Navigation, waitingLocks: Int) {
+private fun StaffAreas(navigation: ModerationOverview.Navigation) {
     val areas = listOf(StaffArea.Suspensions) +
         (if (navigation.canManageRoles) listOf(StaffArea.Roles) else emptyList()) +
         (if (navigation.canAdministrate) listOf(StaffArea.Admin) + StaffArea.adminPages else emptyList())
     Panel(spacing = 6) {
         Text("${navigation.displayName} · ${navigation.role.label}", style = OasisType.Caption, color = OasisColors.Muted)
-        StaffAreaLinks(areas, waitingLocks)
+        StaffAreaLinks(areas)
     }
 }
 

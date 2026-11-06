@@ -18,6 +18,7 @@ import de.velwebsolutions.oasis.account.Fixtures
 import de.velwebsolutions.oasis.design.navigation.AccountRoute
 import de.velwebsolutions.oasis.design.navigation.LiveRoute
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertFalse
 import org.junit.Assert.assertTrue
 import org.junit.Test
 import org.junit.runner.RunWith
@@ -78,17 +79,23 @@ class PrivacyScreensHiltTest : HiltScreenTest() {
     fun deineZeitShowsTheWeekCountedOnThisDevice() {
         signIn()
         val today = java.time.LocalDate.now()
-        de.velwebsolutions.oasis.core.screentime.PreferencesScreenTimeStore(
+        val store = de.velwebsolutions.oasis.core.screentime.PreferencesScreenTimeStore(
             androidx.test.core.app.ApplicationProvider.getApplicationContext()
-        ).write(
+        )
+        store.write(
             MIRA.id,
             mapOf(today.toString() to 2_700L, today.minusDays(1).toString() to 3_900L)
         )
+        store.enabled = true
         show { AccountScreen(AccountRoute.ScreenTime) }
         waitForTag("screenTime.week")
         compose.onNodeWithText("Zusammen 1 Std. 50 Min.").assertExists()
         compose.onNodeWithContentDescription("Heute: 45 Min.").assertExists()
-        compose.onNodeWithText("Gezählt wird nur auf diesem Gerät, in dieser App.", substring = true).assertExists()
+        compose.onNodeWithText("Gezählt wird nur auf diesem Gerät, in dieser App", substring = true).assertExists()
+        // The switch is the member's: off stops counting and hides the week.
+        compose.onNodeWithContentDescription("Zeit zählen").tap()
+        waitForTag("screenTime.off")
+        assertFalse(store.enabled)
     }
 
     @Test

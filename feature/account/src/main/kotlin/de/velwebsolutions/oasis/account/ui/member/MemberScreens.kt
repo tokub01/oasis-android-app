@@ -70,8 +70,9 @@ private fun bold(before: String, bold: String, after: String = "") = buildAnnota
 }
 
 /**
- * Konto gesperrt (/app/gesperrt): the accusation, how it was detected, the strike count and the statement; plus what
- * the member can still do. Without an active lock the app goes back to the Quelle.
+ * Konto gesperrt (/app/gesperrt): a lock with a duration ("bis zum …") or the permanent ban, the accusation, the strike
+ * count of the last months and the statement; plus what the member can still do. Without an active lock the app goes
+ * back to the Quelle.
  */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -141,18 +142,20 @@ internal fun SuspendedContent(
     Column(verticalArrangement = Arrangement.spacedBy(22.dp)) {
         Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
             Eyebrow(suspension.label)
+            val endsAt = suspension.endsAtLabel
             Text(
-                if (suspension.isBan) "Dein Konto ist dauerhaft gesperrt" else "Dein Konto ist vorübergehend gesperrt",
+                when {
+                    suspension.isBan -> "Dein Konto ist dauerhaft gesperrt"
+                    endsAt != null -> "Dein Konto ist bis zum $endsAt gesperrt"
+                    else -> "Dein Konto ist gesperrt"
+                },
                 style = OasisType.display(30),
                 color = OasisColors.Night,
                 modifier = Modifier.semantics { heading() }.testTag("suspended.title")
             )
             val next = when {
-                suspension.isProvisional ->
-                    "Ein Mensch aus dem Moderationsteam prüft das, in der Regel innerhalb von ${suspension.reviewHours} Stunden. Bis dahin kannst du nichts schreiben und Oasis nicht lesen."
-
                 suspension.isBan -> "Du kannst Oasis nicht mehr nutzen."
-
+                endsAt != null -> "Die Sperre endet am $endsAt von selbst. Bis dahin kannst du nichts schreiben und Oasis nicht lesen."
                 else -> "Das Moderationsteam hebt die Sperre auf, wenn es dein Konto wieder freigibt."
             }
             Text("Seit ${GermanTime.dayAndTime(suspension.startedAt)}. $next", style = OasisType.Body, color = OasisColors.Ink2)
@@ -170,18 +173,17 @@ internal fun SuspendedContent(
                     Text("„$excerpt“", style = OasisType.Body, color = OasisColors.Ink2, modifier = Modifier.padding(start = 12.dp))
                 }
             }
-            if (suspension.isProvisional) {
-                Text(
-                    "Erkannt hat das ein automatisiertes Verfahren (Sprachmodell). Ob wirklich ein Verstoß vorliegt, entscheidet ein Mensch.",
-                    style = OasisType.Small,
-                    color = OasisColors.Ink2
-                )
-            }
+            Text(
+                "Entschieden hat das ein Mensch aus dem Moderationsteam; die Begründung hast du per E-Mail bekommen.",
+                style = OasisType.Small,
+                color = OasisColors.Ink2
+            )
             Text(
                 bold(
-                    "Bestätigte Verstöße bisher: ",
+                    "Bestätigte Verstöße in den letzten ${suspension.strikeMonths} Monaten: ",
                     "${suspension.strikes} von ${suspension.strikeLimit}",
-                    ". Nach ${suspension.strikeLimit} bestätigten Verstößen sperren wir ein Konto dauerhaft."
+                    ". Nach ${suspension.strikeLimit} bestätigten Verstößen innerhalb von ${suspension.strikeMonths} Monaten " +
+                        "sperren wir ein Konto dauerhaft."
                 ),
                 style = OasisType.Small,
                 color = OasisColors.Ink2
@@ -194,7 +196,8 @@ internal fun SuspendedContent(
                 if (suspension.isBan) {
                     "Hältst du die Sperre für falsch? Schreib uns, warum – das ist deine Beschwerde gegen die Entscheidung."
                 } else {
-                    "Du kannst dich entschuldigen, den Zusammenhang erklären oder widersprechen. Das Moderationsteam liest es, bevor es entscheidet."
+                    "Du kannst dich entschuldigen, den Zusammenhang erklären oder widersprechen. Das Moderationsteam liest es; gegen die " +
+                        "Entscheidung kannst du außerdem über den Link in der E-Mail Beschwerde einlegen."
                 },
                 style = OasisType.Body,
                 color = OasisColors.Ink2
@@ -207,7 +210,7 @@ internal fun SuspendedContent(
                 error = ui.statementError,
                 hint =
                     suspension.statementAt?.let {
-                        "Zuletzt gesendet am ${GermanTime.dayAndTime(it)}. Du kannst sie bis zur Entscheidung ändern."
+                        "Zuletzt gesendet am ${GermanTime.dayAndTime(it)}. Du kannst sie während der Sperre ändern."
                     }
                         ?: "Höchstens ${suspension.statementMax} Zeichen.",
                 lines = 6..12

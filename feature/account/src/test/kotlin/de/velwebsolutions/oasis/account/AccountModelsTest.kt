@@ -60,8 +60,8 @@ class AccountModelsTest {
         roundTrip(ProfileChange.serializer(), ProfileChange(data = me), ProfileChange("ok", me))
         roundTrip(
             Suspension.serializer(),
-            Suspension("ban", "Gesperrt", at, "Beleidigung"),
-            Suspension("provisional", "Vorläufig", at, "x", "y", "z", at, 1, 2, 3, 4)
+            Suspension("ban", "Gesperrt", at, accusation = "Beleidigung"),
+            Suspension("suspension", "Sperre", at, at, "29.10.2026, 11:00 Uhr", "x", "y", "z", at, 1, 2, 3, 4)
         )
         roundTrip(StatementSaved.serializer(), StatementSaved("ok", at))
         roundTrip(
@@ -70,6 +70,8 @@ class AccountModelsTest {
             ComplaintDecision(7, "a", "b", "c", "d", at)
         )
         assertEquals(7, ComplaintDecision(7, "a", "b", deadline = at).id)
+        assertTrue(Suspension("ban", "Gesperrt", at, accusation = "x").isBan)
+        assertFalse(Suspension("suspension", "Sperre", at, accusation = "x").isBan)
     }
 
     @Test

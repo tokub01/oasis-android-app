@@ -140,6 +140,8 @@ class SafetyScreensHiltTest : HiltScreenTest() {
         show { AccountScreen(AccountRoute.Report("http://localhost/profil/jonas")) }
         waitForTag("report.send")
         shot("report")
+        compose.onNodeWithTag("report.privacy").tap()
+        assertTrue(web.last().endsWith("/datenschutz#meldungen"))
         stub("POST", "report", """{"message":"x","errors":{"category":["Bitte wähle aus, was nicht stimmt."]}}""", status = 422)
         compose.onNodeWithTag("report.send").tap()
         waitForText("Bitte wähle aus, was nicht stimmt.")

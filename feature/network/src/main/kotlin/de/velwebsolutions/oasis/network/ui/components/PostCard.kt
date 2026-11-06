@@ -620,7 +620,10 @@ private fun Stats(post: Post) {
     }
 }
 
-/** "Zurückgehalten und dem Moderationsteam gemeldet" for the author of a held Tropfen. */
+/**
+ * "Zurückgehalten und dem Moderationsteam gemeldet" for the author of a held Tropfen. Holding never locks the account
+ * (a lock is always a human decision), so the notice speaks only about the Tropfen.
+ */
 @Composable
 private fun HeldNotice(held: Post.Held) {
     val shape = RoundedCornerShape(OasisRadius.TILE.dp)
@@ -641,7 +644,7 @@ private fun HeldNotice(held: Post.Held) {
         )
         held.checkReason?.let { Text("Begründung der Prüfung: „$it“", style = OasisType.Small, color = OasisColors.Ink2) }
         Text(
-            "Ist alles in Ordnung, wird er für alle sichtbar. Du kannst ihn jederzeit selbst löschen.",
+            "Ist alles in Ordnung, wird er für alle sichtbar. Du kannst ihn jederzeit selbst löschen; dein Konto bleibt offen.",
             style = OasisType.Small,
             color = OasisColors.Ink2
         )

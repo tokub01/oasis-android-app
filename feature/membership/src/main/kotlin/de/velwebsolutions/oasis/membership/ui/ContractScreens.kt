@@ -89,7 +89,7 @@ fun CancelContent(
                                 "Deine Mitgliedschaft bleibt bis zum $date vollständig aktiv.",
                                 "Danach endet dein Zugang: Du kannst **nichts mehr lesen oder schreiben**.",
                                 "Du hast anschließend **30 Tage Zeit**, um deine Daten herunterzuladen oder dein Konto zu löschen. Danach löschen wir dein Konto.",
-                                "Wir senden dir unmittelbar eine Eingangsbestätigung in Textform per E-Mail mit Datum und Uhrzeit."
+                                "Wir senden dir sofort eine Eingangsbestätigung in Textform per E-Mail – mit Inhalt, Datum, Uhrzeit und dem Zeitpunkt, zu dem dein Vertrag endet."
                             )
                         )
                         ContractActions("Jetzt kündigen", "cancel.confirm", onConfirm)
@@ -148,7 +148,7 @@ fun WithdrawContent(
                         RichBullets(
                             listOf(
                                 "Deine Mitgliedschaft wird **mit sofortiger Wirkung** beendet.",
-                                "Etwaige bereits gezahlte Beträge werden dir unverzüglich über dein ursprüngliches Zahlungsmittel erstattet.",
+                                "Bereits gezahlte Beiträge erstatten wir **vollständig** an dein ursprüngliches Zahlungsmittel; einen Betrag für die Zeit bis zum Widerruf verlangen wir nicht.",
                                 "Dein Zugang endet sofort. 30 Tage lang kannst du noch deine Daten herunterladen oder dein Konto löschen, danach löschen wir es."
                             )
                         )
