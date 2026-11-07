@@ -69,7 +69,8 @@ class AccountRepositoryTest {
         assertTrue(tour.oases.isNotEmpty())
         assertEquals("Tropfen", api.glossary().first().term)
         val report = api.reportForm("http://localhost/profil/jonas")
-        assertEquals(8, report.categories.size)
+        assertEquals(9, report.categories.size)
+        assertEquals("dienste", report.categories[3].value)
         assertEquals("http://localhost/profil/jonas", transport.requests.last().request.url.queryParameter("url"))
     }
 

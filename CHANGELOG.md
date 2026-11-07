@@ -18,6 +18,20 @@ Ab 22. Oktober 2026: Seitdem trägt jede Änderung in allen drei Projekten den V
 
 Was dabei gleich bleibt: Ein Mensch entscheidet, was in Oasis kommt, beauftragt jede Runde und prüft sie. Jede Änderung wird durch automatische Tests abgesichert, bevor sie ausgeliefert wird.
 
+## 0.26.0 – 2026-11-07 – Was drinsteht, gilt
+
+Jede Zusage unserer AGB, Datenschutzerklärung und Regeln ist jetzt im Code eingelöst und durch Tests belegt. Dazu neu: Beitragsstufe selbst ändern, Oasen-Texte werden bei Verdacht geprüft, Rechtstexte tragen ihr Datum.
+
+- **Neu:** Du kannst deine Beitragsstufe jetzt selbst ändern, im Web und in den Apps. Die neue Stufe gilt sofort, der neue Beitrag ab der nächsten Abbuchung, die Bestätigung mit Vertragstext kommt per E-Mail.
+- **Neu:** Name, Beschreibung und Hausregeln einer Oase werden wie Tropfen und Profile geprüft: Bei Verdacht sehen andere bis zur Prüfung durch einen Menschen einen Platzhalter, die Gründer:in bekommt Bescheid.
+- **Neu:** Wer unserer AGB-Änderung widersprochen hat, sieht auch nach dem Stichtag, dass für ihn die bisherige Fassung gilt. Die Mitgliedschaft zeigt jetzt, wann du dem Vertragstext zugestimmt hast.
+- **Neu:** Beim Melden gibt es die Kategorie „Anbieten oder Suchen sexueller oder bezahlter Dienste“, auch im Chat.
+- **Verbessert:** Jeder Rechtstext zeigt sein Datum („Stand“), und die gespeicherte Vertragsfassung trägt dasselbe Datum.
+- **Verbessert:** Im Chat führt das Anbieten bezahlter Dienste nach Prüfung durch einen Menschen direkt zur Sperre, wie es in den Regeln steht.
+- **Verbessert:** Nach einer dauerhaften Sperre kann mit derselben E-Mail-Adresse oder Handynummer kein neues Konto angelegt werden; wir merken uns dafür nur eine Prüfsumme.
+- **Verbessert:** Die AGB sagen jetzt genau, was der Code tut: welche Maßnahmen es gibt, dass der Zugang bis zu sieben Tage über das bezahlte Ende weiterläuft, solange die Verlängerung läuft, und dass ein weiteres festes Jahr per E-Mail bestellbar ist.
+- **Behoben:** Im Kapitel „Viel besprochen“ stand der Hinweis, warum ein Tropfen dort ist, nur auf der ersten Karte. Jetzt auf jeder.
+
 ## 0.25.3 – 2026-11-04 – Echte Oasen
 
 Eine Oase braucht jetzt einen echten Namen, eine echte Beschreibung und echte Hausregeln – Platzhalter werden abgelehnt.

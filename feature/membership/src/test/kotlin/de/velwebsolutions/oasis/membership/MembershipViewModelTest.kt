@@ -16,7 +16,10 @@ import kotlinx.coroutines.delay
 import kotlinx.coroutines.test.runTest
 import kotlinx.coroutines.withContext
 import kotlinx.coroutines.withTimeout
+import kotlinx.serialization.json.JsonPrimitive
+import kotlinx.serialization.json.jsonObject
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertFalse
 import org.junit.Assert.assertNotNull
 import org.junit.Assert.assertNull
 import org.junit.Assert.assertTrue
@@ -127,6 +130,111 @@ class MembershipViewModelTest {
         assertEquals("other failures as usual", "Server Error", viewModel.state.value.error)
         assertEquals(false, viewModel.state.value.termsBusy)
     }
+
+    @Test
+    fun `the tier change starts at the current tier, sends the choice and shows the server's answer`() = runTest {
+        val (repository, transport) = Fixtures.repository(
+            Stub("GET", "membership", json = Fixtures.subscriptionOverview),
+            Stub("POST", "membership/tier", json = Fixtures.confirmed(Fixtures.TIER_CHANGED, Fixtures.maezenOverview))
+        )
+        val viewModel = OverviewViewModel(repository, MembershipEvents())
+        assertEquals("", viewModel.state.value.tier)
+        viewModel.load()
+        assertEquals("the current tier once loaded", "oase", viewModel.state.value.tier)
+        assertFalse(viewModel.state.value.asksForAmount)
+
+        viewModel.setTier("maezen")
+        assertTrue(viewModel.state.value.asksForAmount)
+        viewModel.setAmount(" 15 ")
+        viewModel.changeTier()
+        assertEquals(JsonPrimitive("maezen"), transport.lastBody("membership/tier")!!.jsonObject["tier"])
+        assertEquals(JsonPrimitive(15), transport.lastBody("membership/tier")!!.jsonObject["amount"])
+        assertEquals("maezen", viewModel.state.value.overview.valueOrNull?.subscription?.tier)
+        assertEquals(Fixtures.TIER_CHANGED, viewModel.state.value.message)
+        assertEquals("", viewModel.state.value.amount)
+        assertNull(viewModel.state.value.error)
+        assertFalse(viewModel.state.value.tierBusy)
+        viewModel.load()
+        assertEquals("the choice stays across reloads", "maezen", viewModel.state.value.tier)
+
+        // The fixed tiers send no amount, whatever was typed; what is not a number goes as missing.
+        viewModel.setTier("solidar")
+        viewModel.setAmount("abc")
+        viewModel.changeTier()
+        assertNull(transport.lastBody("membership/tier")!!.jsonObject["amount"])
+        viewModel.setTier("maezen")
+        viewModel.changeTier()
+        assertNull(transport.lastBody("membership/tier")!!.jsonObject["amount"])
+    }
+
+    @Test
+    fun `without a tier from the server the choice stays open`() = runTest {
+        val noTier = Fixtures.subscriptionOverview.replace(""""tier":"oase",""", "")
+        val (repository, _) = Fixtures.repository(Stub("GET", "membership", json = noTier))
+        val viewModel = OverviewViewModel(repository, MembershipEvents())
+        viewModel.load()
+        assertEquals("", viewModel.state.value.tier)
+        val (noMembership, _) = Fixtures.repository(Stub("GET", "membership", json = Fixtures.noMembershipOverview))
+        val expired = OverviewViewModel(noMembership, MembershipEvents())
+        expired.load()
+        assertEquals("", expired.state.value.tier)
+    }
+
+    @Test
+    fun `a refused tier change stays at its fields, reloads for a refusal of the rules, and shows the store and Mollie as they are`() =
+        runTest {
+            val (repository, transport) = Fixtures.repository(
+                Stub("GET", "membership", json = Fixtures.subscriptionOverview),
+                Stub(
+                    "POST",
+                    "membership/tier",
+                    status = 422,
+                    json = """{"message":"Der Beitrag liegt unter dem Mindestbeitrag.",""" +
+                        """"errors":{"amount":["Der Beitrag liegt unter dem Mindestbeitrag."]}}"""
+                )
+            )
+            val viewModel = OverviewViewModel(repository, MembershipEvents())
+            viewModel.load()
+            viewModel.setTier("maezen")
+            viewModel.setAmount("3")
+            viewModel.changeTier()
+            assertEquals(mapOf("amount" to "Der Beitrag liegt unter dem Mindestbeitrag."), viewModel.state.value.tierErrors)
+            assertNull("field errors are no toast", viewModel.state.value.error)
+            assertEquals("what was typed stays", "3", viewModel.state.value.amount)
+            viewModel.setAmount("12")
+            assertEquals("typing clears the field's message", emptyMap<String, String>(), viewModel.state.value.tierErrors)
+            viewModel.setAmount("3")
+            viewModel.changeTier()
+            viewModel.setTier("oase")
+            assertEquals(
+                "another field's message stays",
+                mapOf("amount" to "Der Beitrag liegt unter dem Mindestbeitrag."),
+                viewModel.state.value.tierErrors
+            )
+
+            val loads = transport.requests.count { it.path == "membership" }
+            transport.add("GET", "membership", json = Fixtures.noMembershipOverview)
+            transport.add(
+                "POST",
+                "membership/tier",
+                status = 422,
+                json = """{"message":"${Fixtures.NOT_RUNNING}","reason":"not_running"}"""
+            )
+            viewModel.changeTier()
+            assertEquals(Fixtures.NOT_RUNNING, viewModel.state.value.error)
+            assertEquals("reloaded", loads + 1, transport.requests.count { it.path == "membership" })
+            assertEquals(MembershipOverview.State.Expired, viewModel.state.value.overview.valueOrNull?.state)
+            assertEquals("field errors were cleared", emptyMap<String, String>(), viewModel.state.value.tierErrors)
+
+            transport.add("POST", "membership/tier", status = 409, json = """{"message":"Im Store.","reason":"store"}""")
+            viewModel.changeTier()
+            assertEquals("Im Store.", viewModel.state.value.error)
+
+            transport.add("POST", "membership/tier", status = 503, json = """{"message":"Mollie nicht erreichbar."}""")
+            viewModel.changeTier()
+            assertEquals("Mollie nicht erreichbar.", viewModel.state.value.error)
+            assertFalse(viewModel.state.value.tierBusy)
+        }
 
     @Test
     fun `cancellation hands the outcome to the overview`() = runTest {

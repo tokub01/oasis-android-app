@@ -3,12 +3,17 @@ package de.velwebsolutions.oasis.membership
 import de.velwebsolutions.oasis.core.network.ApiError
 import de.velwebsolutions.oasis.membership.api.MembershipFormat
 import de.velwebsolutions.oasis.membership.api.MembershipOverview
+import de.velwebsolutions.oasis.membership.api.MembershipTier
+import de.velwebsolutions.oasis.membership.api.TierChangeInput
 import de.velwebsolutions.oasis.membership.billing.PlayPurchaseReceipt
 import de.velwebsolutions.oasis.membership.data.TermsObjectionRefused
+import de.velwebsolutions.oasis.membership.ui.tierChangeLead
 import de.velwebsolutions.oasis.testing.StubTransport.Stub
 import java.time.Instant
 import java.time.LocalDate
 import kotlinx.coroutines.test.runTest
+import kotlinx.serialization.json.JsonPrimitive
+import kotlinx.serialization.json.jsonObject
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
 import org.junit.Assert.assertNull
@@ -166,6 +171,58 @@ class TermsObjectionRepositoryTest {
         assertNull("servers before announcements", Fixtures.overview(Fixtures.subscriptionOverview).termsChange)
         val bare = Fixtures.subscriptionOverview.replaceFirst("""{"data":{""", """{"data":{"terms_change":{},""")
         assertEquals("an announcement without its fields", MembershipOverview.TermsChange(), Fixtures.overview(bare).termsChange)
+        assertFalse("servers before the day flag", Fixtures.overview(bare).termsChange!!.inEffect)
+        assertNull(Fixtures.overview(bare).termsChange!!.appliesToYou)
+    }
+
+    @Test
+    fun `after the day the objector keeps the change, with the version that governs and a termination once made`() = runTest {
+        val before = Fixtures.overview(Fixtures.termsChangeOverview).termsChange!!
+        assertEquals(true, before.appliesToYou)
+        assertEquals("Unsere AGB ändern sich am 21.12.2026", before.title)
+        assertNull("no objection, no standing line", before.standingText)
+        assertFalse(before.canWithdrawObjection)
+        assertFalse(before.isTerminated)
+
+        val objected = Fixtures.overview(Fixtures.termsObjectedOverview).termsChange!!
+        assertEquals(false, objected.appliesToYou)
+        assertEquals(
+            "Du hast am 06.11.2026 um 14:32 Uhr widersprochen. Für dich gilt die bisherige Fassung weiter; wir melden uns, falls wir " +
+                "deshalb kündigen müssen (AGB § 7).",
+            objected.standingText
+        )
+        assertTrue(objected.canWithdrawObjection)
+
+        val inEffect = Fixtures.overview(Fixtures.termsInEffectObjectedOverview).termsChange!!
+        assertTrue(inEffect.inEffect)
+        assertEquals("Unsere AGB haben sich am 21.12.2026 geändert", inEffect.title)
+        assertEquals(
+            "Du hast am 06.11.2026 um 14:32 Uhr widersprochen. Für dich gilt die bisherige Fassung weiter: die Fassung, der du " +
+                "zugestimmt hast (unten unter „Dein Vertragstext“). Wir melden uns, falls wir deshalb kündigen müssen (AGB § 7).",
+            inEffect.standingText
+        )
+        assertFalse("no way back after the day", inEffect.canWithdrawObjection)
+
+        val terminated = Fixtures.overview(Fixtures.termsTerminatedOverview).termsChange!!
+        assertEquals(Instant.parse("2027-01-31T23:00:00Z"), terminated.terminationEndsAt)
+        assertTrue(terminated.isTerminated)
+        assertEquals(
+            "Du hast am 06.11.2026 um 14:32 Uhr widersprochen. Für dich gilt die bisherige Fassung weiter – bis zum Ende deines " +
+                "Vertrags am 01.02.2027, den wir deshalb nach AGB § 7 gekündigt haben (Begründung per E-Mail).",
+            terminated.standingText
+        )
+        assertFalse("nothing to take back once terminated", terminated.canWithdrawObjection)
+        assertEquals(
+            "the termination's wording wins after the day too",
+            terminated.standingText,
+            terminated.copy(inEffect = true).standingText
+        )
+
+        assertNull("servers before the contract confirmation", Fixtures.overview(Fixtures.subscriptionOverview).termsAcceptedAt)
+        assertNull(Fixtures.overview(Fixtures.subscriptionOverview).termsAcceptedMoment)
+        val accepted = Fixtures.overview(Fixtures.termsAcceptedOverview)
+        assertEquals(Instant.parse("2026-10-18T15:39:37Z"), accepted.termsAcceptedAt)
+        assertEquals("18.10.2026 um 17:39 Uhr", accepted.termsAcceptedMoment)
     }
 
     @Test
@@ -223,5 +280,79 @@ class TermsObjectionRepositoryTest {
         val failure = runCatching { block() }.exceptionOrNull()
         assertTrue("expected a refusal, got $failure", failure is TermsObjectionRefused)
         return failure as TermsObjectionRefused
+    }
+}
+
+class TierChangeRepositoryTest {
+    private val subscription = Fixtures.overview(Fixtures.subscriptionOverview)
+
+    @Test
+    fun `only a running, uncancelled web membership changes its tier here`() {
+        assertTrue(subscription.canChangeTier)
+        assertEquals("oase", subscription.subscription?.tier)
+        assertEquals(Instant.parse("2026-11-18T15:39:37Z"), subscription.subscription?.paidUntil)
+        assertFalse("no membership", Fixtures.overview(Fixtures.noMembershipOverview).canChangeTier)
+        assertFalse("a state without its subscription", subscription.copy(subscription = null).canChangeTier)
+        assertFalse("cancelled", subscription.copy(subscription = subscription.subscription?.copy(onGracePeriod = true)).canChangeTier)
+        assertFalse("the server says no", subscription.copy(canCancel = false).canChangeTier)
+        assertFalse("managed by Apple", subscription.copy(apple = MembershipOverview.Apple(managedByApple = true)).canChangeTier)
+        assertFalse("managed by Google", subscription.copy(google = MembershipOverview.Google(managedByGoogle = true)).canChangeTier)
+        assertTrue(
+            "store blocks that do not manage it",
+            subscription.copy(apple = MembershipOverview.Apple(), google = MembershipOverview.Google()).canChangeTier
+        )
+        val older = Fixtures.subscriptionOverview.replace(
+            """"tier":"oase",""",
+            ""
+        ).replace(""""paid_until":"2026-11-18T15:39:37.000000Z"""", """"paid_until":null""")
+        assertNull("servers before the tier change", Fixtures.overview(older).subscription?.tier)
+        assertNull(Fixtures.overview(older).subscription?.paidUntil)
+    }
+
+    @Test
+    fun `the tiers carry the web's labels and the lead names the current tier and the next charge`() {
+        assertEquals(listOf("solidar", "oase", "maezen"), MembershipTier.all.map { it.key })
+        assertEquals(
+            listOf("Solidar – 3\u00A0€ monatlich", "Oase – 5\u00A0€ monatlich", "Mäzen – ab 12\u00A0€ monatlich"),
+            MembershipTier.all.map { it.label }
+        )
+        assertEquals(12, MembershipTier.minimumMaezen)
+        assertEquals(
+            "Derzeit: Stufe „Oase“. Die neue Stufe gilt ab sofort, der neue Beitrag ab deiner nächsten Abbuchung am 18.11.2026. " +
+                "Wechselst du in eine kleinere Stufe, bleibt Bestehendes erhalten; Neues richtet sich nach der neuen Stufe (AGB § 5).",
+            tierChangeLead(subscription)
+        )
+        assertEquals(
+            "Derzeit: Stufe „Oase“. Die neue Stufe gilt ab sofort, der neue Beitrag ab deiner nächsten Abbuchung. " +
+                "Wechselst du in eine kleinere Stufe, bleibt Bestehendes erhalten; Neues richtet sich nach der neuen Stufe (AGB § 5).",
+            tierChangeLead(subscription.copy(subscription = subscription.subscription?.copy(paidUntil = null)))
+        )
+        assertEquals(
+            "Die neue Stufe gilt ab sofort, der neue Beitrag ab deiner nächsten Abbuchung. " +
+                "Wechselst du in eine kleinere Stufe, bleibt Bestehendes erhalten; Neues richtet sich nach der neuen Stufe (AGB § 5).",
+            tierChangeLead(subscription.copy(subscription = null))
+        )
+    }
+
+    @Test
+    fun `the tier change posts the tier, the Maezen amount only for Maezen, and hands refusals on as they are`() = runTest {
+        val (repository, transport) = Fixtures.repository(
+            Stub("POST", "membership/tier", json = Fixtures.confirmed(Fixtures.TIER_CHANGED, Fixtures.maezenOverview))
+        )
+        val changed = repository.changeTier(TierChangeInput("maezen", 15))
+        assertEquals(Fixtures.TIER_CHANGED, changed.message)
+        assertEquals("maezen", changed.data.subscription?.tier)
+        assertEquals(JsonPrimitive("maezen"), transport.lastBody("membership/tier")!!.jsonObject["tier"])
+        assertEquals(JsonPrimitive(15), transport.lastBody("membership/tier")!!.jsonObject["amount"])
+
+        repository.changeTier(TierChangeInput("solidar"))
+        assertNull("no amount for the fixed tiers", transport.lastBody("membership/tier")!!.jsonObject["amount"])
+
+        transport.add("POST", "membership/tier", status = 422, json = """{"message":"${Fixtures.SAME_TIER}","reason":"same_tier"}""")
+        val same = runCatching { repository.changeTier(TierChangeInput("oase")) }.exceptionOrNull()
+        assertEquals(ApiError.Validation(Fixtures.SAME_TIER, emptyMap(), "same_tier"), same)
+
+        transport.add("POST", "membership/tier", status = 409, json = """{"message":"Im Store.","reason":"store"}""")
+        assertEquals(ApiError.Conflict("Im Store."), runCatching { repository.changeTier(TierChangeInput("oase")) }.exceptionOrNull())
     }
 }

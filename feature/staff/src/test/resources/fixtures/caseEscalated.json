@@ -118,16 +118,6 @@
     "hint": null
    },
    {
-    "value": "visibility_restricted",
-    "label": "Sichtbarkeit eingeschränkt",
-    "hint": null
-   },
-   {
-    "value": "account_restricted",
-    "label": "Konto eingeschränkt",
-    "hint": null
-   },
-   {
     "value": "account_suspended",
     "label": "Konto gesperrt",
     "hint": "Sperre mit fester Dauer. Nur möglich, wenn das Konto in den letzten 12 Monaten schon eine Warnung oder Sperre hatte – außer bei Gefahr für Leben oder Sicherheit, sexuellem Missbrauch von Kindern oder dem Anbieten sexueller oder bezahlter Dienste."

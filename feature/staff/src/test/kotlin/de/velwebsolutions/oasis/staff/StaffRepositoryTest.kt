@@ -43,7 +43,7 @@ class StaffDecodingTest {
         val plain = decode(Fixtures.caseDetail, Confirmed.serializer(ModerationCaseDetail.serializer())).data
         assertEquals("content_report", plain.report.kind)
         assertNull(plain.escalation)
-        assertEquals(6, plain.outcomes.size)
+        assertEquals(listOf("no_action", "warning", "content_removed", "account_suspended"), plain.outcomes.map { it.value })
         assertEquals("Warnung", plain.outcomes.first { it.value == "warning" }.label)
         assertTrue(plain.outcomes.first { it.value == "warning" }.hint!!.startsWith("Zählt als bestätigter Verstoß."))
         assertNull(plain.outcomes.first { it.value == "no_action" }.hint)

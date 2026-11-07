@@ -125,6 +125,8 @@ fun OasisFormScreen(
                 }
                 block("form") {
                     PaperBox(spacing = 18) {
+                        // Held by the automated check: the host reads the texts, others „Oase in Prüfung“ (docs/oasis-auto-moderation.md).
+                        if (state.edit?.oasis?.held == true) OasisHeldNote()
                         val failure = error
                         if (failure != null && OasisFormViewModel.FIELDS.none { failure.message(it) != null }) Banner(failure.userMessage)
                         OasisTextField(

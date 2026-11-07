@@ -4,10 +4,15 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.defaultMinSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.selection.selectable
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.text.selection.SelectionContainer
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.outlined.CardGiftcard
@@ -17,6 +22,8 @@ import androidx.compose.material.icons.outlined.Lock
 import androidx.compose.material.icons.outlined.Share
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
+import androidx.compose.material3.RadioButton
+import androidx.compose.material3.RadioButtonDefaults
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
@@ -28,19 +35,23 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.testTag
+import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.semantics.heading
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.compose.LifecycleEventEffect
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import de.velwebsolutions.oasis.design.components.FieldError
 import de.velwebsolutions.oasis.design.components.LoadableView
 import de.velwebsolutions.oasis.design.components.OasisButton
 import de.velwebsolutions.oasis.design.components.OasisButtonKind
 import de.velwebsolutions.oasis.design.components.OasisScreen
 import de.velwebsolutions.oasis.design.components.OasisTextButton
+import de.velwebsolutions.oasis.design.components.OasisTextField
 import de.velwebsolutions.oasis.design.components.PageHeader
 import de.velwebsolutions.oasis.design.components.Panel
 import de.velwebsolutions.oasis.design.components.PanelTone
@@ -57,6 +68,7 @@ import de.velwebsolutions.oasis.design.theme.OasisRadius
 import de.velwebsolutions.oasis.design.theme.OasisType
 import de.velwebsolutions.oasis.membership.api.MembershipFormat
 import de.velwebsolutions.oasis.membership.api.MembershipOverview
+import de.velwebsolutions.oasis.membership.api.MembershipTier
 import kotlinx.coroutines.launch
 
 /**
@@ -73,7 +85,10 @@ fun OverviewScreen(viewModel: OverviewViewModel = hiltViewModel()) {
         onDismissError = viewModel::dismissError,
         onSubscriptionManaged = viewModel::subscriptionManaged,
         onObjectToTerms = viewModel::objectToTerms,
-        onWithdrawTermsObjection = viewModel::withdrawTermsObjection
+        onWithdrawTermsObjection = viewModel::withdrawTermsObjection,
+        onSetTier = viewModel::setTier,
+        onSetAmount = viewModel::setAmount,
+        onChangeTier = viewModel::changeTier
     )
 }
 
@@ -86,7 +101,10 @@ fun OverviewContent(
     onDismissError: () -> Unit = {},
     onSubscriptionManaged: () -> Unit = {},
     onObjectToTerms: suspend () -> Unit = {},
-    onWithdrawTermsObjection: suspend () -> Unit = {}
+    onWithdrawTermsObjection: suspend () -> Unit = {},
+    onSetTier: (String) -> Unit = {},
+    onSetAmount: (String) -> Unit = {},
+    onChangeTier: suspend () -> Unit = {}
 ) {
     OasisScreen(
         title = "Mitgliedschaft",
@@ -98,9 +116,12 @@ fun OverviewContent(
         MembershipPage(onRefresh) {
             PageHeader("Mitgliedschaft", eyebrow = "Konto", lead = "Verwalte deinen Beitrag, deine Rechnungen und deinen Status bei Oasis.")
             LoadableView(state.overview, onRetry = onRefresh) { overview ->
-                OverviewSections(overview, onSubscriptionManaged) {
-                    TermsChangeCard(it, state.termsBusy, onObjectToTerms, onWithdrawTermsObjection)
-                }
+                OverviewSections(
+                    overview,
+                    onSubscriptionManaged,
+                    termsChange = { TermsChangeCard(it, state.termsBusy, onObjectToTerms, onWithdrawTermsObjection) },
+                    tierChange = { TierChangeCard(state, it, onSetTier, onSetAmount, onChangeTier) }
+                )
             }
         }
     }
@@ -110,7 +131,8 @@ fun OverviewContent(
 private fun OverviewSections(
     overview: MembershipOverview,
     onSubscriptionManaged: () -> Unit,
-    termsChange: @Composable (MembershipOverview.TermsChange) -> Unit
+    termsChange: @Composable (MembershipOverview.TermsChange) -> Unit,
+    tierChange: @Composable (MembershipOverview) -> Unit
 ) {
     val navigator = LocalNavigator.current
     val openWebsite = rememberOpenWebsite(navigator)
@@ -119,6 +141,7 @@ private fun OverviewSections(
         // An announced change of the AGB comes first, like the withdrawal notice of the web: it has a deadline.
         overview.termsChange?.let { termsChange(it) }
         StatusCard(overview, onSubscriptionManaged)
+        if (overview.canChangeTier) tierChange(overview)
         PerksCard(overview, navigator)
         if (overview.purchasedGifts.isNotEmpty()) {
             SectionCard("Deine gekauften Gutscheine") {
@@ -155,6 +178,7 @@ private fun OverviewSections(
                 }
             }
         }
+        overview.termsAcceptedMoment?.let { accepted -> ContractTextCard(accepted, openWebsite) }
         SideCard("Fair finanziert", tone = PanelTone.Night) {
             Text(
                 "Oasis ist werbefrei und lebt von den Beiträgen seiner Mitglieder. Deine Wünsche und Vorschläge sammeln wir in „Ideen für Oasis“."
@@ -166,6 +190,35 @@ private fun OverviewSections(
             InlineLink("AGB", { openWebsite("/agb") }, color = OasisColors.Night)
             InlineLink("Hilfe & Kontakt", { openWebsite("/hilfe") }, color = OasisColors.Night)
         }
+    }
+}
+
+/**
+ * The contract text the member got with the contract confirmation (overview.blade.php „Dein Vertragstext“, Art. 246c
+ * Nr. 2 EGBGB): when they agreed, and the website where the files are downloaded.
+ */
+@Composable
+private fun ContractTextCard(accepted: String, openWebsite: (String) -> Unit) {
+    SectionCard("Dein Vertragstext", Modifier.testTag("membership.contractText")) {
+        Text(
+            "Die AGB in der Fassung, der du zugestimmt hast, und die Widerrufsbelehrung haben wir dir mit der Vertragsbestätigung per " +
+                "E-Mail geschickt. Sie bleiben für dich gültig, auch wenn wir die veröffentlichten AGB später ändern; auf der Website " +
+                "unter „Mitgliedschaft“ kannst du sie herunterladen.",
+            style = OasisType.Small,
+            color = OasisColors.Ink2
+        )
+        Text(
+            "Zugestimmt am $accepted",
+            style = OasisType.BodyBold,
+            color = OasisColors.Night,
+            modifier = Modifier.testTag("membership.termsAccepted")
+        )
+        InlineLink(
+            "Vertragstext auf der Website",
+            { openWebsite("/app/mitgliedschaft") },
+            Modifier.testTag("membership.contractText.website"),
+            OasisColors.Night
+        )
     }
 }
 
@@ -354,46 +407,63 @@ private fun Tile(label: String, value: String, modifier: Modifier) {
 /**
  * „Unsere AGB ändern sich am …“ (overview.blade.php, AGB § 19): what changes and why, the way to the new version and
  * the button to object – or, once objected, the standing objection with the way to take it back. Both ask first, like
- * the web's `wire:confirm`; [busy] holds the button while the server answers.
+ * the web's `wire:confirm`; [busy] holds the button while the server answers. After the day („Unsere AGB haben sich am
+ * … geändert“) the objection stands without a way back, and once the operator terminated the contract for it, the text
+ * names its end.
  */
 @Composable
 fun TermsChangeCard(change: MembershipOverview.TermsChange, busy: Boolean, onObject: suspend () -> Unit, onWithdraw: suspend () -> Unit) {
     val navigator = LocalNavigator.current
     val scope = rememberCoroutineScope()
-    val day = MembershipFormat.calendarDay(change.effectiveOn)
+    val day = change.effectiveDay
     var asking by remember { mutableStateOf(false) }
-    SectionCard("Unsere AGB ändern sich am $day", Modifier.testTag("membership.termsChange"), tone = PanelTone.Warning) {
+    SectionCard(change.title, Modifier.testTag("membership.termsChange"), tone = PanelTone.Warning) {
         Text("${change.summary} Grund: ${change.reason}", style = OasisType.Body, color = OasisColors.Night)
-        if (change.objected) {
-            Text(
-                "Du hast am ${MembershipFormat.moment(change.objectedAt)} widersprochen. Für dich gilt die bisherige Fassung weiter; " +
-                    "wir melden uns, falls wir deshalb kündigen müssen (AGB § 7).",
-                style = OasisType.BodyBold,
-                color = OasisColors.Night,
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .background(OasisColors.Paper, RoundedCornerShape(OasisRadius.CHIP.dp))
-                    .padding(14.dp)
-                    .testTag("membership.termsObjected")
-            )
-            OasisButton(
-                "Widerspruch zurücknehmen",
-                { asking = true },
-                Modifier.testTag("membership.withdrawTermsObjection"),
-                kind = OasisButtonKind.Secondary,
-                enabled = !busy
-            )
-        } else {
-            Text(
-                "Wenn du bis zum $day nicht widersprichst, gilt die neue Fassung auch für deinen Vertrag. Widersprichst du, gilt für " +
-                    "dich die bisherige Fassung weiter; wir können den Vertrag dann mit einer Frist von einem Monat zum Ende des " +
-                    "bezahlten Zeitraums kündigen (AGB § 7).",
+        val standing = change.standingText
+        when {
+            standing != null -> {
+                Text(
+                    standing,
+                    style = OasisType.BodyBold,
+                    color = OasisColors.Night,
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .background(OasisColors.Paper, RoundedCornerShape(OasisRadius.CHIP.dp))
+                        .padding(14.dp)
+                        .testTag("membership.termsObjected")
+                )
+                if (change.canWithdrawObjection) {
+                    OasisButton(
+                        "Widerspruch zurücknehmen",
+                        { asking = true },
+                        Modifier.testTag("membership.withdrawTermsObjection"),
+                        kind = OasisButtonKind.Secondary,
+                        enabled = !busy
+                    )
+                }
+            }
+
+            // Only an objector still gets the change after its day; without an objection on record the server sent it
+            // anyway, so say what applies instead of offering an objection whose period is over.
+            change.inEffect -> Text(
+                "Die neue Fassung gilt seit dem $day für deinen Vertrag.",
                 style = OasisType.Body,
-                color = OasisColors.Night
+                color = OasisColors.Night,
+                modifier = Modifier.testTag("membership.termsInEffect")
             )
-            OasisButton("Ich widerspreche dieser Änderung", {
-                asking = true
-            }, Modifier.testTag("membership.objectToTerms"), enabled = !busy)
+
+            else -> {
+                Text(
+                    "Wenn du bis zum $day nicht widersprichst, gilt die neue Fassung auch für deinen Vertrag. Widersprichst du, gilt für " +
+                        "dich die bisherige Fassung weiter; wir können den Vertrag dann mit einer Frist von einem Monat zum Ende des " +
+                        "bezahlten Zeitraums kündigen (AGB § 7).",
+                    style = OasisType.Body,
+                    color = OasisColors.Night
+                )
+                OasisButton("Ich widerspreche dieser Änderung", {
+                    asking = true
+                }, Modifier.testTag("membership.objectToTerms"), enabled = !busy)
+            }
         }
         change.url?.let { url ->
             InlineLink("Neue Fassung lesen", { navigator.open(WebRoute(url)) }, Modifier.testTag("membership.termsUrl"), OasisColors.Night)
@@ -417,4 +487,88 @@ fun TermsChangeCard(change: MembershipOverview.TermsChange, busy: Boolean, onObj
             "membership.termsConfirm"
         ) { asking = false }
     }
+}
+
+/**
+ * „Beitragsstufe ändern“ of a running Mollie membership (portal.blade.php, MembershipTierChanges, AGB § 5): the current
+ * tier and when the new contribution applies, the tier choice with the web's labels, the Mäzen amount, the server's
+ * field errors, and „Stufe ändern“ behind the web's confirmation. Store memberships change their tier in the store
+ * (the status card says so) and never get this card.
+ */
+@Composable
+fun TierChangeCard(
+    state: OverviewUiState,
+    overview: MembershipOverview,
+    onSetTier: (String) -> Unit,
+    onSetAmount: (String) -> Unit,
+    onChangeTier: suspend () -> Unit
+) {
+    val scope = rememberCoroutineScope()
+    var asking by remember { mutableStateOf(false) }
+    SectionCard("Beitragsstufe ändern", Modifier.testTag("membership.tierChange")) {
+        Text(tierChangeLead(overview), style = OasisType.Small, color = OasisColors.Ink2)
+        Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+            Text("Neue Stufe", style = OasisType.SmallBold, color = OasisColors.Ink)
+            Column(Modifier.testTag("membership.tier.picker")) {
+                MembershipTier.all.forEach { tier ->
+                    val chosen = tier.key == state.tier
+                    Row(
+                        Modifier
+                            .fillMaxWidth()
+                            .selectable(selected = chosen, role = Role.RadioButton) { onSetTier(tier.key) }
+                            .defaultMinSize(minHeight = 44.dp)
+                            .testTag("membership.tier.${tier.key}"),
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        RadioButton(
+                            selected = chosen,
+                            onClick = null,
+                            colors = RadioButtonDefaults.colors(selectedColor = OasisColors.Night, unselectedColor = OasisColors.FieldLine)
+                        )
+                        Spacer(Modifier.width(8.dp))
+                        Text(tier.label, style = OasisType.Body, color = OasisColors.Ink)
+                    }
+                }
+            }
+            state.tierErrors["tier"]?.let { FieldError(it) }
+        }
+        if (state.asksForAmount) {
+            OasisTextField(
+                "Dein Monatsbeitrag in Euro (ab ${MembershipTier.minimumMaezen})",
+                state.amount,
+                onSetAmount,
+                modifier = Modifier.testTag("membership.tier.amount"),
+                prompt = "${MembershipTier.minimumMaezen}",
+                error = state.tierErrors["amount"],
+                keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number)
+            )
+        }
+        OasisButton(
+            "Stufe ändern",
+            { asking = true },
+            Modifier.testTag("membership.tier.change"),
+            enabled =
+                !state.tierBusy && state.tier.isNotEmpty()
+        )
+    }
+    if (asking) {
+        Question(
+            "Stufe jetzt ändern?",
+            "Stufe ändern",
+            { scope.launch { onChangeTier() } },
+            "Die neue Stufe gilt ab sofort, der neue Beitrag ab deiner nächsten Abbuchung. Die Bestätigung mit dem Vertragstext bekommst du per E-Mail.",
+            "membership.tier.confirm"
+        ) { asking = false }
+    }
+}
+
+/**
+ * „Derzeit: Stufe „Oase“. Die neue Stufe gilt ab sofort, der neue Beitrag ab deiner nächsten Abbuchung am … .
+ * Wechselst du in eine kleinere Stufe, …“ (portal.blade.php; the contribution itself is on the invoices).
+ */
+fun tierChangeLead(overview: MembershipOverview): String {
+    val current = overview.subscription?.let { "Derzeit: Stufe „${it.tierName}“. " }.orEmpty()
+    val next = overview.subscription?.paidUntil?.let { " am ${MembershipFormat.day(it)}" }.orEmpty()
+    return current + "Die neue Stufe gilt ab sofort, der neue Beitrag ab deiner nächsten Abbuchung$next. " +
+        "Wechselst du in eine kleinere Stufe, bleibt Bestehendes erhalten; Neues richtet sich nach der neuen Stufe (AGB § 5)."
 }

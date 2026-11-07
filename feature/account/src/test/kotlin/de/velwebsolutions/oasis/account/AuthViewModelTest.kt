@@ -164,6 +164,24 @@ class AuthViewModelTest {
     }
 
     @Test
+    fun aLockedEmailAddressIsRefusedAtItsField() = runTest {
+        // AGB § 3 (CreateNewUser::LOCKED): a blocked identity comes back as an ordinary `email` error of the 422.
+        val locked = "Mit dieser E-Mail-Adresse kannst du zurzeit kein neues Konto anlegen: " +
+            "Ein Konto mit dieser Adresse ist gesperrt (AGB § 3)."
+        val transport = StubTransport()
+            .stub("GET", "auth/register", form)
+            .stub("POST", "auth/register", """{"message":"$locked","errors":{"email":["$locked"]}}""", status = 422)
+        val model = RegisterViewModel(session(transport, backgroundScope), RemoteAuthApi(transport.client))
+        model.ui.first { it.form != null }
+        model.setBirthDate(LocalDate.of(2000, 1, 1))
+        model.edit { it.copy(email = "gesperrt@beispiel.tld", acceptsTerms = true) }
+        model.submit()
+        assertEquals("back to the page of the e-mail address", RegisterPage.SignIn, model.ui.value.page)
+        assertEquals(locked, model.ui.value.fieldError("email"))
+        assertNull(model.ui.value.fieldError("password"))
+    }
+
+    @Test
     fun aRegistrationFormThatDidNotLoadIsFetchedWhenItIsSent() = runTest {
         val transport = StubTransport().stub("GET", "auth/register", """{"message":"Server Error"}""", status = 500)
         val session = session(transport, backgroundScope)

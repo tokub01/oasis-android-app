@@ -761,6 +761,25 @@ class ChatUiTest {
     }
 
     @Test
+    fun theReportSheetOpensThePrivacyPageOfItsServer() {
+        val web = mutableListOf<String>()
+        navigator.openWeb = { web += it }
+        val support = ChatTestSupport()
+        val mira = support.member(1)
+        val item = ChatMessageItem("s", envelope, "2", null, ChatMessageItem.State.Readable, "Hallo", MessageContent("Hallo"))
+        show {
+            androidx.compose.runtime.CompositionLocalProvider(
+                de.velwebsolutions.oasis.design.components.LocalApiClient provides de.velwebsolutions.oasis.testing.StubTransport().client
+            ) { ReportSheet(ReportModel(mira, "7", item, "Jonas"), onDismiss = { calls += "dismiss" }) }
+        }
+        compose.waitUntilAtLeastOneExists(hasText("Jonas: Hallo"), 5_000)
+        // The new category sits between „Sexuelle Belästigung“ and „Hass“, as the server lists them.
+        compose.onNodeWithText("Anbieten oder Suchen sexueller oder bezahlter Dienste").assertExists()
+        tapTag("chat.report.privacy")
+        assertEquals(listOf("http://localhost/datenschutz#meldungen"), web)
+    }
+
+    @Test
     fun aConfirmationWithoutTitleHandlesBothButtons() {
         show { ConfirmDialog("Wirklich?", "Ja", { calls += "yes" }) { calls += "no" } }
         compose.onNodeWithText("Ja").performClick()

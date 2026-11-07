@@ -17,6 +17,7 @@ import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
 import androidx.compose.ui.test.performScrollTo
 import androidx.compose.ui.test.performSemanticsAction
+import androidx.compose.ui.test.performTextInput
 import androidx.test.core.app.ApplicationProvider
 import de.velwebsolutions.oasis.core.network.Confirmed
 import de.velwebsolutions.oasis.design.navigation.LocalNavigator
@@ -89,6 +90,19 @@ class MembershipScreensWiringTest {
         compose.onNodeWithTag("membership.termsConfirm").performClick()
         compose.waitUntil(5_000) { compose.onAllNodesWithTag("membership.objectToTerms").fetchSemanticsNodes().isNotEmpty() }
         assertEquals(listOf("objectToTerms", "withdrawTermsObjection"), repository.calls)
+    }
+
+    @Test
+    fun `the overview changes the tier through its view model`() {
+        val viewModel = OverviewViewModel(repository, events)
+        show { OverviewScreen(viewModel) }
+        compose.waitUntil(5_000) { viewModel.state.value.tier == "oase" }
+        compose.onNodeWithTag("membership.tier.maezen").tap()
+        compose.onNodeWithContentDescription("Dein Monatsbeitrag in Euro (ab 12)").performScrollTo().performTextInput("15")
+        compose.onNodeWithTag("membership.tier.change").tap()
+        compose.onNodeWithTag("membership.tier.confirm").performClick()
+        compose.waitUntil(5_000) { viewModel.state.value.overview.valueOrNull?.subscription?.tier == "maezen" }
+        assertEquals(listOf("changeTier TierChangeInput(tier=maezen, amount=15)"), repository.calls)
     }
 
     @Test

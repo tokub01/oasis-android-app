@@ -10,6 +10,7 @@ import de.velwebsolutions.oasis.membership.api.MembershipPayment
 import de.velwebsolutions.oasis.membership.api.MembershipPerks
 import de.velwebsolutions.oasis.membership.api.MembershipService
 import de.velwebsolutions.oasis.membership.api.SupporterInput
+import de.velwebsolutions.oasis.membership.api.TierChangeInput
 import de.velwebsolutions.oasis.membership.api.Transparency
 import de.velwebsolutions.oasis.membership.api.WithdrawalDetails
 import de.velwebsolutions.oasis.membership.billing.PlayPurchaseReceipt
@@ -49,6 +50,13 @@ interface MembershipRepository {
 
     /** „Widerspruch zurücknehmen“ (`DELETE membership/terms-objection`); fails like [objectToTerms]. */
     suspend fun withdrawTermsObjection(): Confirmed<MembershipOverview>
+
+    /**
+     * „Stufe ändern“ (`POST membership/tier`, AGB § 5): the overview with the new tier and the server's confirmation;
+     * the refusals come as `ApiError` – a `Validation` with field errors or with a `reason` (`not_running`,
+     * `same_tier`), a `Conflict` with the store's hint, a `Server` 503 when Mollie fails.
+     */
+    suspend fun changeTier(input: TierChangeInput): Confirmed<MembershipOverview>
 
     /**
      * The data export ZIP (`oasis-daten.zip`) – the same endpoint as „Daten herunterladen“ in Einstellungen, offered on
@@ -104,6 +112,8 @@ class DefaultMembershipRepository @Inject constructor(private val client: ApiCli
     override suspend fun objectToTerms() = termsObjection(service::objectToTerms)
 
     override suspend fun withdrawTermsObjection() = termsObjection(service::withdrawTermsObjection)
+
+    override suspend fun changeTier(input: TierChangeInput) = service.changeTier(input)
 
     /**
      * Runs an objection call and turns the server's refusal into [TermsObjectionRefused]: the 404 of a change that is no

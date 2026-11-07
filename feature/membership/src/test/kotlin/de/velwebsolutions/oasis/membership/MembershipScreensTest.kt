@@ -2,17 +2,22 @@ package de.velwebsolutions.oasis.membership
 
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.semantics.SemanticsActions
 import androidx.compose.ui.test.SemanticsNodeInteraction
 import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.assertIsNotEnabled
 import androidx.compose.ui.test.hasText
 import androidx.compose.ui.test.junit4.createComposeRule
+import androidx.compose.ui.test.onNodeWithContentDescription
 import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
 import androidx.compose.ui.test.performScrollTo
 import androidx.compose.ui.test.performSemanticsAction
+import androidx.compose.ui.test.performTextInput
 import de.velwebsolutions.oasis.core.model.Loadable
 import de.velwebsolutions.oasis.design.navigation.LocalNavigator
 import de.velwebsolutions.oasis.design.navigation.MainTab
@@ -20,6 +25,7 @@ import de.velwebsolutions.oasis.design.navigation.MembershipRoute
 import de.velwebsolutions.oasis.design.navigation.Navigator
 import de.velwebsolutions.oasis.design.theme.OasisTheme
 import de.velwebsolutions.oasis.membership.api.CancellationDetails
+import de.velwebsolutions.oasis.membership.api.MembershipOverview
 import de.velwebsolutions.oasis.membership.billing.PlayProduct
 import de.velwebsolutions.oasis.membership.billing.PlayProducts
 import de.velwebsolutions.oasis.membership.ui.CancelContent
@@ -53,6 +59,7 @@ class MembershipScreensTest {
         show { OverviewContent(OverviewUiState(Loadable.Loaded(Fixtures.overview(Fixtures.subscriptionOverview))), onRefresh = {}) }
         compose.onNodeWithText("Aktive Mitgliedschaft").assertIsDisplayed()
         compose.onNodeWithText("Gründungsmitglied mit Preisgarantie").assertIsDisplayed()
+        compose.onNodeWithTag("membership.contractText").assertDoesNotExist()
         compose.onNodeWithTag("membership.withdraw").performScrollTo().assertIsDisplayed()
         compose.onNodeWithTag("membership.cancel").performScrollTo().performClick()
         assertEquals(MembershipRoute.Cancel, navigator.stack(MainTab.Profile).last())
@@ -137,6 +144,109 @@ class MembershipScreensTest {
         compose.onNodeWithTag("membership.termsConfirm").performClick()
         compose.waitForIdle()
         assertEquals(1, withdrawn)
+    }
+
+    @Test
+    fun `after the day the objector reads the version that governs, without a way back`() {
+        show {
+            OverviewContent(OverviewUiState(Loadable.Loaded(Fixtures.overview(Fixtures.termsInEffectObjectedOverview))), onRefresh = {})
+        }
+        compose.onNodeWithText("Unsere AGB haben sich am 21.12.2026 geändert").assertIsDisplayed()
+        compose.onNodeWithText(
+            "Du hast am 06.11.2026 um 14:32 Uhr widersprochen. Für dich gilt die bisherige Fassung weiter: die Fassung, der du " +
+                "zugestimmt hast (unten unter „Dein Vertragstext“). Wir melden uns, falls wir deshalb kündigen müssen (AGB § 7)."
+        ).assertIsDisplayed()
+        compose.onNodeWithTag("membership.withdrawTermsObjection").assertDoesNotExist()
+        compose.onNodeWithTag("membership.objectToTerms").assertDoesNotExist()
+        compose.onNodeWithTag("membership.termsUrl").assertExists()
+    }
+
+    @Test
+    fun `a terminated contract names its end, and without an objection the change in force is only stated`() {
+        var overview by mutableStateOf(Fixtures.overview(Fixtures.termsTerminatedOverview))
+        show { OverviewContent(OverviewUiState(Loadable.Loaded(overview)), onRefresh = {}) }
+        compose.onNodeWithText(
+            "Du hast am 06.11.2026 um 14:32 Uhr widersprochen. Für dich gilt die bisherige Fassung weiter – bis zum Ende deines " +
+                "Vertrags am 01.02.2027, den wir deshalb nach AGB § 7 gekündigt haben (Begründung per E-Mail)."
+        ).assertIsDisplayed()
+        compose.onNodeWithTag("membership.withdrawTermsObjection").assertDoesNotExist()
+
+        overview = Fixtures.overview(Fixtures.withTermsChange(Fixtures.termsChange(inEffect = true)))
+        compose.onNodeWithText("Die neue Fassung gilt seit dem 21.12.2026 für deinen Vertrag.").assertIsDisplayed()
+        compose.onNodeWithTag("membership.objectToTerms").assertDoesNotExist()
+        compose.onNodeWithTag("membership.termsObjected").assertDoesNotExist()
+    }
+
+    @Test
+    fun `the tier change offers the tiers, asks for the Maezen amount and changes after a question`() {
+        var state by mutableStateOf(OverviewUiState(Loadable.Loaded(Fixtures.overview(Fixtures.subscriptionOverview)), tier = "oase"))
+        var changed = 0
+        show {
+            OverviewContent(
+                state,
+                onRefresh = {},
+                onSetTier = { state = state.copy(tier = it) },
+                onSetAmount = { state = state.copy(amount = it) },
+                onChangeTier = { changed++ }
+            )
+        }
+        compose.onNodeWithTag("membership.tierChange").performScrollTo().assertIsDisplayed()
+        compose.onNodeWithText(
+            "Derzeit: Stufe „Oase“. Die neue Stufe gilt ab sofort, der neue Beitrag ab deiner nächsten Abbuchung am 18.11.2026. " +
+                "Wechselst du in eine kleinere Stufe, bleibt Bestehendes erhalten; Neues richtet sich nach der neuen Stufe (AGB § 5)."
+        ).assertIsDisplayed()
+        compose.onNodeWithText("Mäzen – ab 12\u00A0€ monatlich").assertIsDisplayed()
+        compose.onNodeWithTag("membership.tier.amount").assertDoesNotExist()
+        compose.onNodeWithTag("membership.tier.maezen").performScrollTo().performClick()
+        compose.waitForIdle()
+        assertEquals("maezen", state.tier)
+        compose.onNodeWithContentDescription("Dein Monatsbeitrag in Euro (ab 12)").performScrollTo().performTextInput("15")
+        compose.waitForIdle()
+        assertEquals("15", state.amount)
+
+        state =
+            state.copy(
+                tierErrors = mapOf("tier" to "Diese Stufe gibt es nicht.", "amount" to "Der Beitrag liegt unter dem Mindestbeitrag.")
+            )
+        compose.onNodeWithText("Diese Stufe gibt es nicht.").performScrollTo().assertIsDisplayed()
+        compose.onNodeWithText("Der Beitrag liegt unter dem Mindestbeitrag.").performScrollTo().assertIsDisplayed()
+
+        compose.onNodeWithTag("membership.tier.change").tap()
+        waitFor("Stufe jetzt ändern?")
+        compose.onNodeWithText(
+            "Die neue Stufe gilt ab sofort, der neue Beitrag ab deiner nächsten Abbuchung. Die Bestätigung mit dem Vertragstext bekommst du per E-Mail."
+        ).assertIsDisplayed()
+        compose.onNodeWithText("Abbrechen").performClick()
+        compose.waitForIdle()
+        assertEquals("cancelled", 0, changed)
+        compose.onNodeWithTag("membership.tier.change").tap()
+        waitFor("Stufe jetzt ändern?")
+        compose.onNodeWithTag("membership.tier.confirm").performClick()
+        compose.waitForIdle()
+        assertEquals(1, changed)
+
+        state = state.copy(tierBusy = true)
+        compose.onNodeWithTag("membership.tier.change").performScrollTo().assertIsNotEnabled()
+        state = state.copy(tierBusy = false, tier = "")
+        compose.onNodeWithTag("membership.tier.change").performScrollTo().assertIsNotEnabled()
+    }
+
+    @Test
+    fun `store and cancelled memberships change their tier elsewhere or not at all`() {
+        val subscription = Fixtures.overview(Fixtures.subscriptionOverview)
+        var overview by mutableStateOf(
+            subscription.copy(
+                apple = MembershipOverview.Apple(managedByApple = true, manageUrl = "https://apps.apple.com/account/subscriptions")
+            )
+        )
+        show { OverviewContent(OverviewUiState(Loadable.Loaded(overview), tier = "oase"), onRefresh = {}) }
+        compose.onNodeWithTag("membership.tierChange").assertDoesNotExist()
+        overview =
+            subscription.copy(
+                subscription = subscription.subscription?.copy(onGracePeriod = true, endsAt = Instant.parse("2026-11-18T15:39:37Z"))
+            )
+        compose.onNodeWithTag("membership.gracePeriod").assertExists()
+        compose.onNodeWithTag("membership.tierChange").assertDoesNotExist()
     }
 
     @Test

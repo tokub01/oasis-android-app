@@ -59,6 +59,14 @@ interface MembershipService {
     @DELETE("membership/terms-objection")
     suspend fun withdrawTermsObjection(): Confirmed<MembershipOverview>
 
+    /**
+     * „Beitragsstufe ändern“ of a running Mollie membership (AGB § 5): answers with the overview (the tier changed at
+     * once) and a `message`; 422 with `message`/`reason` (`not_running`, `same_tier`) or the field errors, 409 with the
+     * store's hint for a store membership (`reason: store`), 503 when Mollie fails.
+     */
+    @POST("membership/tier")
+    suspend fun changeTier(@Body input: TierChangeInput): Confirmed<MembershipOverview>
+
     // Deine Vorteile: companion places and the supporter mark
 
     @GET("membership/perks")

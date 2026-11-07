@@ -57,11 +57,28 @@ data class OasisSummary(
     /** The Bundesland for the Karte der Oasen; null without. */
     val region: RegionRef? = null,
     /** A city or area, only with a region. */
-    val city: String? = null
+    val city: String? = null,
+    /**
+     * Name, description and house rules are held for human review (docs/oasis-auto-moderation.md): the server then
+     * sends everyone but the founder, the hosts and staff the placeholders ([HELD_NAME], a placeholder description, no
+     * house rules). False from servers before the oasis check.
+     */
+    val held: Boolean = false
 ) {
     /** „Bayern · München“; null without a region. */
     val place: String?
         get() = region?.let { listOfNotNull(it.name, city?.takeIf(String::isNotBlank)).joinToString(" · ") }
+
+    /**
+     * The viewer reads the real texts of a held oasis (founder, host or staff: the server sent no placeholder), so the
+     * page and the form tell them that others see „Oase in Prüfung“ meanwhile.
+     */
+    val showsHeldTexts: Boolean get() = held && name != HELD_NAME
+
+    companion object {
+        /** The name everyone else reads while the texts are held (`Oasis::HELD_NAME`). */
+        const val HELD_NAME = "Oase in Prüfung"
+    }
 }
 
 /** A Bundesland of an oasis (`region: {code, name}`). */

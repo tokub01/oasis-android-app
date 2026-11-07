@@ -8,6 +8,7 @@ import de.velwebsolutions.oasis.membership.api.MembershipOverview
 import de.velwebsolutions.oasis.membership.api.MembershipPayment
 import de.velwebsolutions.oasis.membership.api.MembershipPerks
 import de.velwebsolutions.oasis.membership.api.SupporterInput
+import de.velwebsolutions.oasis.membership.api.TierChangeInput
 import de.velwebsolutions.oasis.membership.api.Transparency
 import de.velwebsolutions.oasis.membership.api.WithdrawalDetails
 import de.velwebsolutions.oasis.membership.billing.PlayPurchaseReceipt
@@ -77,6 +78,13 @@ class FakeMembershipRepository : MembershipRepository {
     override suspend fun objectToTerms() = termsObjection.also { calls += "objectToTerms" }.getOrThrow()
 
     override suspend fun withdrawTermsObjection() = termsObjection.also { calls += "withdrawTermsObjection" }.getOrThrow()
+
+    /** The answer to the tier change (the overview with the new tier and the confirmation). */
+    var tierChange: Result<Confirmed<MembershipOverview>> = Result.success(
+        Confirmed(Fixtures.overview(Fixtures.maezenOverview), Fixtures.TIER_CHANGED)
+    )
+
+    override suspend fun changeTier(input: TierChangeInput) = tierChange.also { calls += "changeTier $input" }.getOrThrow()
 
     var perks: Result<MembershipPerks> = Result.success(Fixtures.perks())
     var companionSponsor: Result<String?> = Result.success("Mia Mäzen")

@@ -15,6 +15,10 @@
     "label": "Sexuelle Belästigung oder Anfragen"
    },
    {
+    "value": "dienste",
+    "label": "Anbieten oder Suchen sexueller oder bezahlter Dienste"
+   },
+   {
     "value": "hass",
     "label": "Hass, Hetze oder Extremismus"
    },

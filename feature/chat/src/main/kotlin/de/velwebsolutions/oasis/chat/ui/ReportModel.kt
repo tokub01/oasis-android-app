@@ -87,6 +87,7 @@ class ReportModel(
             "Mobbing – jemand wird fertiggemacht, bloßgestellt oder ausgegrenzt",
             "Belästigung oder Beleidigung",
             "Sexuelle Belästigung oder Anfragen",
+            "Anbieten oder Suchen sexueller oder bezahlter Dienste",
             "Hass, Hetze oder Extremismus",
             "Drohung oder Gewalt",
             "Betrug oder Fragen nach Passwort, Bank- oder Kartendaten",

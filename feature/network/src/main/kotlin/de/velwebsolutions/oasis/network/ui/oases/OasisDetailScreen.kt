@@ -310,6 +310,7 @@ private fun Header(detail: OasisDetail, onFollow: suspend () -> Unit, onUnfollow
                 )
             }
             Text(detail.oasis.description, style = OasisType.Body, color = OasisColors.Ink)
+            if (detail.oasis.showsHeldTexts) OasisHeldNote()
             detail.oasis.region?.let { region ->
                 Row(
                     Modifier
@@ -440,5 +441,37 @@ private fun MemberListCard(members: OasisMembers, query: String, onQuery: (Strin
                 UnderlinedLink("Umstellen", { navigator.open(AccountRoute.Privacy) }, style = OasisType.Caption)
             }
         }
+    }
+}
+
+/**
+ * „Zurückgehalten und dem Moderationsteam gemeldet“ for the founder, the hosts and staff of an oasis whose texts the
+ * automated check holds (oasis-show.blade.php; docs/oasis-auto-moderation.md): they still read name, description and
+ * house rules, everyone else sees „Oase in Prüfung“ until a person decided. Like the note on a held Tropfen.
+ */
+@Composable
+fun OasisHeldNote() {
+    val shape = RoundedCornerShape(OasisRadius.TILE.dp)
+    Column(
+        Modifier
+            .fillMaxWidth()
+            .background(OasisColors.Dune, shape)
+            .border(1.dp, OasisColors.Sun.copy(alpha = 0.4f), shape)
+            .padding(16.dp)
+            .semantics(mergeDescendants = true) {}
+            .testTag("oasis.held"),
+        verticalArrangement = Arrangement.spacedBy(6.dp)
+    ) {
+        Text("Zurückgehalten und dem Moderationsteam gemeldet", style = OasisType.SmallBold, color = OasisColors.Night)
+        Text(
+            "Name, Beschreibung und Hausregeln prüft gerade ein Mensch aus dem Moderationsteam. Andere sehen so lange einen Platzhalter.",
+            style = OasisType.Small,
+            color = OasisColors.Ink
+        )
+        Text(
+            "Ist alles in Ordnung, sind die Texte wieder für alle sichtbar. Du kannst sie jederzeit ändern.",
+            style = OasisType.Small,
+            color = OasisColors.Ink2
+        )
     }
 }

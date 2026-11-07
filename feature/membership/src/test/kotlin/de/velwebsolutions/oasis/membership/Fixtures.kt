@@ -70,18 +70,49 @@ object Fixtures {
     fun confirmed(message: String, overview: String = subscriptionOverview) =
         overview.replaceFirst("""{"data":""", """{"message":"$message","data":""")
 
-    /** The `terms_change` block of an announced change of the AGB (AGB § 19), with or without this member's objection. */
-    fun termsChange(objectedAt: String? = null) =
+    /**
+     * The `terms_change` block of an announced change of the AGB (AGB § 19), with or without this member's objection;
+     * after the day ([inEffect]) and once the operator terminated the contract for the objection ([terminationEndsAt]).
+     */
+    fun termsChange(objectedAt: String? = null, inEffect: Boolean = false, terminationEndsAt: String? = null) =
         """{"effective_on":"2026-12-21","summary":"Wir fassen § 14 neu.","reason":"Das Gesetz verlangt es.",""" +
             """"announced_at":"2026-11-01T09:00:00.000000Z","objected_at":${objectedAt?.let { "\"$it\"" } ?: "null"},""" +
-            """"url":"http:\/\/localhost\/agb"}"""
+            """"in_effect":$inEffect,"applies_to_you":${objectedAt == null},""" +
+            """"termination_ends_at":${terminationEndsAt?.let { "\"$it\"" } ?: "null"},"url":"http:\/\/localhost\/agb"}"""
+
+    /** The moment this member objected (13:32 UTC is 14:32 in Berlin). */
+    const val OBJECTED_AT = "2026-11-06T13:32:00.000000Z"
+
+    /** The running subscription with the given `terms_change` block. */
+    fun withTermsChange(change: String, overview: String = subscriptionOverview) =
+        overview.replaceFirst("""{"data":{""", """{"data":{"terms_change":$change,""")
+
+    /** The running subscription whose member agreed to the stored contract text on 18 October 2026 (17:39 in Berlin). */
+    val termsAcceptedOverview =
+        subscriptionOverview.replaceFirst("""{"data":{""", """{"data":{"terms_accepted_at":"2026-10-18T15:39:37.000000Z",""")
 
     /** The running subscription while a change of the AGB is announced and not yet objected to. */
     val termsChangeOverview = subscriptionOverview.replaceFirst("""{"data":{""", """{"data":{"terms_change":${termsChange()},""")
 
-    /** … after this member objected (13:32 UTC is 14:32 in Berlin). */
-    val termsObjectedOverview =
-        subscriptionOverview.replaceFirst("""{"data":{""", """{"data":{"terms_change":${termsChange("2026-11-06T13:32:00.000000Z")},""")
+    /** … after this member objected. */
+    val termsObjectedOverview = withTermsChange(termsChange(OBJECTED_AT))
+
+    /** … after the day of the change, for the objector the server still sends it (the previous version governs them). */
+    val termsInEffectObjectedOverview = withTermsChange(termsChange(OBJECTED_AT, inEffect = true))
+
+    /** … once the operator terminated the contract for the objection (AGB § 7), to the end of the paid period. */
+    val termsTerminatedOverview = withTermsChange(termsChange(OBJECTED_AT, terminationEndsAt = "2027-01-31T23:00:00.000000Z"))
+
+    const val TIER_CHANGED =
+        "Deine Stufe ist jetzt „Mäzen“. Der neue Beitrag von 15 € monatlich gilt ab deiner nächsten Abbuchung am 18.11.2026. " +
+            "Die Bestätigung mit dem Vertragstext haben wir dir per E-Mail geschickt."
+
+    const val SAME_TIER = "Das ist bereits deine Stufe mit diesem Beitrag."
+
+    const val NOT_RUNNING = "Du hast derzeit keine laufende, ungekündigte Mitgliedschaft, deren Stufe du ändern könntest."
+
+    /** The running subscription after the change to Mäzen. */
+    val maezenOverview = subscriptionOverview.replace(""""tier":"oase","tier_name":"Oase"""", """"tier":"maezen","tier_name":"Mäzen"""")
 
     const val OBJECTED = "Dein Widerspruch ist am 06.11.2026 um 14:32 Uhr eingegangen. Für dich gilt die bisherige Fassung weiter."
 

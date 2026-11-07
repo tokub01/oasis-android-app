@@ -209,8 +209,10 @@ class MembershipCancellationTest {
         repository.end = cancelled
         repository.export = cancelled
         repository.termsObjection = cancelled
+        repository.tierChange = cancelled
         assertCancels { overview.load() }
         assertCancels { overview.objectToTerms() }
+        assertCancels { overview.changeTier() }
         assertCancels { portal.load() }
         assertCancels { invoice.load() }
         assertCancels { cancel.load() }

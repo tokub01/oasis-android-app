@@ -223,6 +223,26 @@ class MembershipUiTest {
     }
 
     @Test
+    fun `the contract text names when it was agreed to and leads to the website, the tier change to its card`() {
+        show {
+            OverviewContent(
+                OverviewUiState(Loadable.Loaded(Fixtures.overview(Fixtures.termsAcceptedOverview)), tier = "maezen", amount = "15"),
+                onRefresh = {}
+            )
+        }
+        compose.onNodeWithTag("membership.tierChange").performScrollTo().assertIsDisplayed()
+        compose.onNodeWithTag("membership.tier.amount").performScrollTo().assertIsDisplayed()
+        compose.onNodeWithTag("membership.contractText").performScrollTo().assertIsDisplayed()
+        compose.onNodeWithText("Zugestimmt am 18.10.2026 um 17:39 Uhr").performScrollTo().assertIsDisplayed()
+        shot("overview-contract-text")
+        compose.onNodeWithTag("membership.contractText.website").performScrollTo().performClick()
+        assertEquals("http://localhost/app/mitgliedschaft", web.last())
+        compose.onNodeWithTag("membership.tier.change").performScrollTo().performClick()
+        compose.waitUntil(5_000) { compose.onAllNodesWithTag("membership.tier.confirm").fetchSemanticsNodes().isNotEmpty() }
+        shotDialog("overview-tier-change-question")
+    }
+
+    @Test
     fun `without a server the website links do nothing`() {
         overview(subscription, withClient = false)
         compose.onNodeWithText("AGB").performScrollTo().performClick()

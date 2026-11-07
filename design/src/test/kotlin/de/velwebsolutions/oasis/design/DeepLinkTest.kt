@@ -44,6 +44,9 @@ class DeepLinkTest {
         assertEquals(NetworkRoute.EditPost(12), route("https://get-oasis.com/tropfen/12/bearbeiten"))
         assertEquals(NetworkRoute.Oasis("garten"), route("https://get-oasis.com/oasen/garten"))
         assertEquals(NetworkRoute.OasisStatistics("garten"), route("https://get-oasis.com/oasen/garten/statistik"))
+        // The Konto-Hinweis `oasis_held` („Oase bearbeiten“) links the edit form of the held oasis.
+        assertEquals(NetworkRoute.EditOasis("garten"), route("https://get-oasis.com/oasen/garten/bearbeiten"))
+        assertEquals(NetworkRoute.CloseOasis("garten"), route("https://get-oasis.com/oasen/garten/schliessen"))
         assertEquals(NetworkRoute.Profile("mira"), route("https://get-oasis.com/profil/mira"))
         assertEquals(NetworkRoute.Search("tee"), route("https://get-oasis.com/app/suche?q=tee"))
         assertEquals(NetworkRoute.Source, route("https://get-oasis.com/app"))

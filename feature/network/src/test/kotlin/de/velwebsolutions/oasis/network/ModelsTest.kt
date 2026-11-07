@@ -142,6 +142,17 @@ class ModelsTest {
     }
 
     @Test
+    fun `a held oasis tells only those who read its real texts`() {
+        val lenient = OasisJson.snake.decodeFromString(OasisSummary.serializer(), """{"id":2,"slug":"garten","name":"Garten"}""")
+        assertEquals("servers before the oasis check", false, lenient.held)
+        assertFalse(lenient.showsHeldTexts)
+        val held = OasisJson.snake.decodeFromString(OasisSummary.serializer(), """{"id":2,"slug":"garten","name":"Garten","held":true}""")
+        assertTrue(held.held)
+        assertTrue("the founder, the hosts and staff read the real name", held.showsHeldTexts)
+        assertFalse("everyone else got the placeholder", held.copy(name = OasisSummary.HELD_NAME).showsHeldTexts)
+    }
+
+    @Test
     fun `profiles, friendships and invitations`() {
         roundTrip(Profile.serializer(), Profile(member, "u", joinedAt = now))
         roundTrip(OwnProfile.serializer(), OwnProfile(member))
