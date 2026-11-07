@@ -142,7 +142,7 @@ data class Post(
 
     /** A Tropfen the automated check holds for a human review: only its author sees it, and the account stays open. */
     @Serializable
-    data class Held(val reason: String, val checkReason: String? = null, val reviewHours: Int = 24)
+    data class Held(val reason: String, val checkReason: String? = null, val reviewHours: Int = 48)
 
     @Serializable
     data class Stats(val reactions: Int = 0, val replies: Int = 0)

@@ -47,6 +47,8 @@ class PrivacyScreensHiltTest : HiltScreenTest() {
         stub("POST", "privacy/limit-past-posts", """{"message":"3 Tropfen sind jetzt nur für Mitglieder sichtbar."}""")
         show { AccountScreen(AccountRoute.Privacy) }
         waitForTag("privacy.checkup")
+        // „Wer dich sieht“ carries the founding mark as a plain switch (founding_badge, off by default).
+        compose.onNodeWithTag("privacy.founding_badge").assertExists()
         shot("privacy")
         compose.onNodeWithTag("privacy.profile_audience.members").tap()
         waitForText("Nicht erlaubt.")

@@ -37,6 +37,10 @@ class AccountRepositoryTest {
         assertEquals(3, profile.choices.size)
         assertEquals(PrivacyValue.Choice("everyone"), profile.value)
         assertEquals("Alle – auch ohne Konto", profile.valueLabel)
+        val founding = privacy.sections.first().settings.last()
+        assertEquals("founding_badge", founding.key)
+        assertTrue(founding.isSwitch)
+        assertEquals(PrivacyValue.Flag(false), founding.value)
         val searchable = privacy.sections.flatMap { it.settings }.first { it.key == "searchable" }
         assertTrue(searchable.isSwitch)
         assertTrue(searchable.choices.isEmpty())
@@ -67,6 +71,7 @@ class AccountRepositoryTest {
         assertEquals(listOf("profil", "sichtbarkeit", "oasen", "menschen"), tour.steps.map { it.key })
         assertEquals("Sonne", tour.colors.first().label)
         assertTrue(tour.oases.isNotEmpty())
+        assertTrue(tour.oasesHandPicked)
         assertEquals("Tropfen", api.glossary().first().term)
         val report = api.reportForm("http://localhost/profil/jonas")
         assertEquals(9, report.categories.size)

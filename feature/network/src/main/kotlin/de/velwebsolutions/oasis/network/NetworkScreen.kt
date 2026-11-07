@@ -23,6 +23,7 @@ import de.velwebsolutions.oasis.network.ui.posts.EditPostScreen
 import de.velwebsolutions.oasis.network.ui.posts.PostDetailScreen
 import de.velwebsolutions.oasis.network.ui.profiles.EditProfileScreen
 import de.velwebsolutions.oasis.network.ui.profiles.FriendsScreen
+import de.velwebsolutions.oasis.network.ui.profiles.InvitationGroupScreen
 import de.velwebsolutions.oasis.network.ui.profiles.InvitationScreen
 import de.velwebsolutions.oasis.network.ui.profiles.InvitationsScreen
 import de.velwebsolutions.oasis.network.ui.profiles.ProfileScreen
@@ -81,6 +82,8 @@ fun NetworkScreen(route: NetworkRoute) {
         NetworkRoute.Invitations -> InvitationsScreen()
 
         is NetworkRoute.Invitation -> InvitationScreen(route.token)
+
+        is NetworkRoute.InvitationGroup -> InvitationGroupScreen(route.token)
 
         is NetworkRoute.Search -> SearchScreen(route.query.orEmpty())
 

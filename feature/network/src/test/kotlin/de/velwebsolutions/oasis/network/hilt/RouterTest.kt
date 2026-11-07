@@ -50,7 +50,7 @@ class RouterTest {
             NetworkRoute.Yearbook(
                 2025
             ),
-            NetworkRoute.Invitations, NetworkRoute.Invitation("abc"), NetworkRoute.Search(),
+            NetworkRoute.Invitations, NetworkRoute.Invitation("abc"), NetworkRoute.InvitationGroup("grp"), NetworkRoute.Search(),
             NetworkRoute.Search("garten"), NetworkRoute.Tag("garten"), NetworkRoute.Bookmarks,
             NetworkRoute.CollectPost(1, "garten"), NetworkRoute.CapsuleInvitations, NetworkRoute.Oasis("garten", collection = 4),
             NetworkRoute.WeeklyLetter(), NetworkRoute.WeeklyLetter(5), NetworkRoute.Ideas(), NetworkRoute.Ideas(3),

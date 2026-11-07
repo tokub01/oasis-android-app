@@ -90,13 +90,25 @@ Alle Übertragungen sind verschlüsselt (HTTPS/TLS). Konto und Daten lassen sich
 | Telefonnummer (Handynummer) | ja | nein | nein | Kontoverwaltung (Bestätigung per SMS-Code, Schutz vor Zweitkonten und Bots); der SMS-Dienstleister seven.io erhält sie nur für den Code, kein anderes Mitglied sieht sie |
 | Nutzer-IDs (Benutzername, Konto-ID) | ja | nein | nein | App-Funktionen, Kontoverwaltung |
 | Sonstige Angaben: Geburtsdatum | ja | nein | nein | Kontoverwaltung (Mindestalter 18) |
-| Fotos (Profilbild, Banner, Bilder in Tropfen) | ja | nein | ja | App-Funktionen |
-| Sonstige nutzergenerierte Inhalte (Tropfen, Antworten, Oasen, Meldungen) | ja | nein | ja | App-Funktionen |
+| Fotos (Profilbild, Banner, Bilder in Tropfen; Fotos aus einer gemeldeten Chat-Nachricht) | ja | nein | ja | App-Funktionen; Sicherheit und Moderation (Meldung) |
+| Videos (nur aus einer gemeldeten Chat-Nachricht) | ja | nein | ja | Sicherheit und Moderation (Meldung) |
+| Audiodateien (Sprachnachrichten, nur aus einer gemeldeten Chat-Nachricht) | ja | nein | ja | Sicherheit und Moderation (Meldung) |
+| Dateien und Dokumente (nur aus einer gemeldeten Chat-Nachricht) | ja | nein | ja | Sicherheit und Moderation (Meldung) |
+| Sonstige nutzergenerierte Inhalte (Tropfen, Antworten, Oasen, Meldungen, gemeldete Chat-Nachricht) | ja | nein | ja | App-Funktionen; Sicherheit und Moderation (Meldung) |
 | Kaufverlauf (Mitgliedschaft) | ja | nein | ja | App-Funktionen, Kontoverwaltung |
 | Geräte- oder andere IDs (Push-Token von FCM) | ja | nein | ja | App-Funktionen (Push-Hinweise; nur nach Zustimmung, siehe unten) |
 
 - **Nachrichten im Chat nicht angeben:** Sie sind Ende-zu-Ende-verschlüsselt, Oasis kann sie nicht lesen (Googles
-  Ausnahme für Ende-zu-Ende-verschlüsselte Daten).
+  Ausnahme für Ende-zu-Ende-verschlüsselte Daten). Das gilt auch für Sprachnachrichten: Aufnahme und Wiedergabe laufen
+  verschlüsselt, und „Als Text anzeigen“ erkennt die Sprache ausschließlich auf dem Gerät (`VoiceTranscription.kt`:
+  nur `createOnDeviceSpeechRecognizer`, PCM nur im Arbeitsspeicher).
+- **Ausnahme Meldung (deshalb Fotos, Videos, Audiodateien, Dateien und Dokumente oben als erhoben):** Meldet ein Mitglied
+  eine Chat-Nachricht, gehen genau diese eine Nachricht und ihre Anhänge unverschlüsselt zur Prüfung an den Server
+  (`feature/chat/…/ui/ReportModel.kt` `attachmentNote`, `ReportSheet.kt`; Datenschutzerklärung Abschnitt 14/15). Das
+  ist optional (nur auf Wunsch des Mitglieds), Nutzerinhalt, wird nicht geteilt und verschlüsselt übertragen (TLS).
+  „Löschung anfordern“: ja, mit der Einschränkung, die die Datenschutzerklärung nennt – die Kopie beim Moderationsfall
+  bleibt als Nachweis für `records_years` Jahre nach Abschluss des Falls und wird dann automatisch gelöscht (Art. 6
+  Abs. 1 lit. c DSGVO, Art. 16 DSA). Alle anderen Chat-Nachrichten bleiben unter Googles E2E-Ausnahme.
 - **Nicht erhoben:** Standort, Kontakte, Kalender, Gesundheit, Zahlungsdaten (Karten/Konten), Browserverlauf, Analysen,
   Absturzberichte.
 - **„Geteilt“ ist überall nein:** Dienstleister, die im Auftrag arbeiten (Firebase Cloud Messaging für die Zustellung,
@@ -108,17 +120,26 @@ Alle Übertragungen sind verschlüsselt (HTTPS/TLS). Konto und Daten lassen sich
 
 ### Weitere Erklärungen
 - Behörden-App: nein. Finanzfunktionen: nein. Gesundheits-App: nein. Nachrichten-App (News): nein.
-- Berechtigungen: `INTERNET`, `POST_NOTIFICATIONS` (Push-Hinweise: der Systemdialog wird direkt nach der Anmeldung
-  erfragt, ab Android 13; auf älteren Geräten ohne diesen Dialog fragt die App stattdessen selbst „Push-Hinweise
-  einschalten?“ mit Ja/Später und registriert das Gerät erst nach einem Ja; „Später“ merkt sie sich, einschalten geht
-  dann in den Hinweis-Einstellungen), Kamera nur über den System-Dialog „Foto aufnehmen“, Biometrie für das Entsperren
-  des Chats.
+- Berechtigungen (gemergtes Manifest aus `app/src/main/AndroidManifest.xml` und `feature/chat/src/main/AndroidManifest.xml`):
+  - `INTERNET`.
+  - `POST_NOTIFICATIONS` (Push-Hinweise: der Systemdialog wird direkt nach der Anmeldung erfragt, ab Android 13; auf
+    älteren Geräten ohne diesen Dialog fragt die App stattdessen selbst „Push-Hinweise einschalten?“ mit Ja/Später und
+    registriert das Gerät erst nach einem Ja; „Später“ merkt sie sich, einschalten geht dann in den Hinweis-Einstellungen).
+  - `RECORD_AUDIO` (Sprachnachrichten im Chat: das Mikrofon läuft nur, während das Mitglied eine Sprachnachricht
+    aufnimmt, nach einer Erklärung im Laufzeit-Dialog; die Aufnahme wird auf dem Gerät Ende-zu-Ende verschlüsselt, Oasis
+    kann sie nicht hören. `android.hardware.microphone` ist `required="false"`: ohne Mikrofon bleibt der übrige Chat).
+    Im Datensicherheits-Formular deshalb kein „Audio“ als erhoben angeben – außer über die Meldung, siehe oben.
+  - `USE_BIOMETRIC` (Entsperren des Chats mit Fingerabdruck oder Gesicht über `BiometricPrompt`: ein biometrisch
+    geschützter Schlüssel im Android Keystore öffnet ein zufälliges Geheimnis; keine biometrischen Daten verlassen das
+    Gerät, Oasis erhält keine).
+  - Keine Kamera-Berechtigung: „Foto aufnehmen“ nutzt den System-Dialog (`TakePicture`), der die Kamera-App öffnet.
 
 ## Version und Build
 - `versionCode` = Commit-Zeit in UTC als `yyDDDHHmm` (Jahr, Tag im Jahr, Stunde, Minute), z. B. 262980815 für
   25.10.2026, 08:15 – jeder neue develop-Commit ist höher. (`yyMMddHHmm` passt nicht: 2610250815 liegt über Googles
   Grenze von 2 100 000 000.)
-- `versionName` = 1.0.
+- `versionName` = die gemeinsame Oasis-Version aus `app/build.gradle.kts` (z. B. 0.27.0); Web, iOS und Android tragen
+  dieselbe Nummer (`CHANGELOG.md`).
 - Store-Grafiken neu erzeugen: Feature-Grafik mit
   `./gradlew :app:testDebugUnitTest --tests '*StoreGraphicsTest*'` (→ `app/build/outputs/roborazzi/`), Screenshots aus
   dem Emulator mit dem Demokonto `mira`.

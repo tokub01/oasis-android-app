@@ -40,7 +40,9 @@ data class Profile(
     val hasMuted: Boolean = false,
     val hasRestricted: Boolean = false,
     /** A Mäzen who switched on the supporter mark ("Trägt Oasis mit"); servers before the tiers leave it out. */
-    val supporter: Boolean = false
+    val supporter: Boolean = false,
+    /** A founding member who switched on the founding mark („Gründungsmitglied“, privacy setting `founding_badge`). */
+    val foundingBadge: Boolean = false
 )
 
 /** The own profile form ("Dein Profil"). */
@@ -69,7 +71,7 @@ data class FriendLists(
     val acceptsRequests: Boolean = true
 )
 
-/** "Menschen einladen". */
+/** "Menschen einladen": the personal links and the group starts („Gemeinsam starten“). */
 @Serializable
 data class InvitationOverview(
     val invitations: List<Link> = emptyList(),
@@ -79,7 +81,13 @@ data class InvitationOverview(
     val freeMonthsThisYear: Int = 0,
     val freeMonthsPerYear: Int = 0,
     val freeMonthsWaiting: Int = 0,
-    val canCreate: Boolean = false
+    val canCreate: Boolean = false,
+    /** The own groups, newest first; servers before „Gemeinsam starten“ leave them out. */
+    val groups: List<Group> = emptyList(),
+    /** Participation and fewer than the allowed number of open groups. */
+    val canCreateGroup: Boolean = false,
+    val groupValidDays: Int = 90,
+    val groupMaxTarget: Int = 100
 ) {
     @Serializable
     data class Link(
@@ -93,6 +101,48 @@ data class InvitationOverview(
         @Serializable
         data class Reward(val appliedAt: OasisInstant? = null)
     }
+
+    /**
+     * One group start as its founder sees it: the shared link ([url], null once the link is closed), the progress
+     * („3 von 12 haben angenommen“ or „3 dabei“) and the user names of those who joined.
+     */
+    @Serializable
+    data class Group(
+        val id: Int,
+        val name: String,
+        val target: Int? = null,
+        val joined: Int = 0,
+        val progress: String,
+        val open: Boolean = true,
+        val expiresAt: OasisInstant,
+        val token: String? = null,
+        val url: String? = null,
+        val members: List<String> = emptyList()
+    ) {
+        /** A closed group that reached its target (the other way to close is the expiry). */
+        val isComplete: Boolean get() = !open && target != null && joined >= target
+    }
+}
+
+/** What founding a group sends: the name (2–60 characters) and the optional target size. */
+@Serializable
+data class GroupInput(val name: String, val target: Int? = null)
+
+/** The page behind a group link (/gemeinsam/{token}): the group, or null for unknown, expired and full links. */
+@Serializable
+data class GroupLanding(val group: Group? = null) {
+    /** What a visitor may see: the founder, the name and the progress – never the link or the members. */
+    @Serializable
+    data class Group(
+        val founder: Member,
+        val id: Int,
+        val name: String,
+        val target: Int? = null,
+        val joined: Int = 0,
+        val progress: String,
+        val open: Boolean = true,
+        val expiresAt: OasisInstant
+    )
 }
 
 /** The page behind an invitation link: who invites, or null for unknown, used and expired links. */

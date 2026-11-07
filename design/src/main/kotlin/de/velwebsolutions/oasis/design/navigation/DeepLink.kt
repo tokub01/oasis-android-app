@@ -135,6 +135,8 @@ object DeepLink {
 
             "einladung" -> NetworkRoute.Invitation(parts[1])
 
+            "gemeinsam" -> NetworkRoute.InvitationGroup(parts[1])
+
             "themen" -> NetworkRoute.Tag(parts[1])
 
             "moderation" -> when (parts[1]) {

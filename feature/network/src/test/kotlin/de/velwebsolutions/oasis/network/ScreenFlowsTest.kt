@@ -60,6 +60,8 @@ import de.velwebsolutions.oasis.network.ui.profiles.EditProfileScreen
 import de.velwebsolutions.oasis.network.ui.profiles.EditProfileViewModel
 import de.velwebsolutions.oasis.network.ui.profiles.FriendsScreen
 import de.velwebsolutions.oasis.network.ui.profiles.FriendsViewModel
+import de.velwebsolutions.oasis.network.ui.profiles.InvitationGroupScreen
+import de.velwebsolutions.oasis.network.ui.profiles.InvitationGroupViewModel
 import de.velwebsolutions.oasis.network.ui.profiles.InvitationScreen
 import de.velwebsolutions.oasis.network.ui.profiles.InvitationViewModel
 import de.velwebsolutions.oasis.network.ui.profiles.InvitationsScreen
@@ -473,6 +475,96 @@ class ScreenFlowsTest {
         text("Zum Profil von Aylin Demir").performClick()
         assertEquals(NetworkRoute.Profile("aylin"), navigator.stack(MainTab.Source).last())
         capture("invitation")
+    }
+
+    /** „Gemeinsam starten“: the invitations page with one open, one complete and one expired group. */
+    private fun groupsOverview(canCreateGroup: Boolean) =
+        """{"data":{"invitations":[],"remaining":3,"per_month":3,"valid_days":30,"free_months_this_year":0,"free_months_per_year":12,
+        |"free_months_waiting":0,"trial_days":30,"can_create":true,"groups":[{"id":1,"name":"WG Kastanienallee","target":4,"joined":1,
+        |"progress":"1 von 4 haben angenommen","open":true,"expires_at":"2027-02-05T10:00:00Z","token":"g1",
+        |"url":"http://localhost/gemeinsam/g1","members":["aylin"]},{"id":2,"name":"Chor","target":2,"joined":2,
+        |"progress":"2 von 2 haben angenommen","open":false,"expires_at":"2027-01-20T10:00:00Z","token":"g2","url":null,
+        |"members":["aylin","jonas"]},{"id":3,"name":"Laufgruppe","target":null,"joined":0,"progress":"0 dabei","open":false,
+        |"expires_at":"2026-10-01T10:00:00Z","token":"g3","url":null,"members":[]}],"can_create_group":$canCreateGroup,
+        |"group_valid_days":90,"group_max_target":100}}
+        """.trimMargin()
+
+    @Test
+    fun `groups are founded and shared on the invitations page`() {
+        val network = StubbedNetwork(
+            stub("GET", "network/invitations", groupsOverview(canCreateGroup = true)),
+            stub(
+                "POST",
+                "network/invitations/groups",
+                """{"message":"x","errors":{"name":["Der Name ist zu kurz."],"target":["Höchstens 100."]}}""",
+                422
+            )
+        )
+        val model = models.keep(InvitationsViewModel(network.repository))
+        show { InvitationsScreen(model) }
+        text("Gemeinsam starten").assertIsDisplayed()
+        text(
+            "Gib eurer Gruppe einen Namen und teile einen Link für alle. Wer darüber Mitglied wird, folgt dir automatisch und du " +
+                "folgst zurück; du siehst, wie viele schon dabei sind. Ein Gruppenlink gilt 90 Tage und zählt nicht zu deinen 3 " +
+                "Einladungslinks im Monat. Freimonate gibt es wie bei persönlichen Einladungen, höchstens 12 im Jahr."
+        ).assertIsDisplayed()
+        text("1 von 4 haben angenommen").assertIsDisplayed()
+        text("Dabei: @aylin").assertIsDisplayed()
+        text("Gültig bis 5. Februar – Gruppenlink zum Weitergeben:").assertIsDisplayed()
+        text("http://localhost/gemeinsam/g1").assertIsDisplayed()
+        text("Vollständig – alle sind dabei.").assertIsDisplayed()
+        text("Dabei: @aylin, @jonas").assertIsDisplayed()
+        text("0 dabei").assertIsDisplayed()
+        text("Abgelaufen").assertIsDisplayed()
+        text("Höchstens 100.").assertIsDisplayed()
+        text("Link kopieren").performClick()
+        text("Kopiert").assertIsDisplayed()
+        text("Teilen").performClick()
+        capture("invitation-groups")
+
+        compose.onNodeWithContentDescription("Name der Gruppe").performTextInput("W")
+        compose.onNodeWithContentDescription("Wie viele? (optional)").performTextInput("500")
+        compose.onNodeWithTag("groups.create").performScrollTo().performClick()
+        text("Der Name ist zu kurz.").assertIsDisplayed()
+        assertEquals("W", model.groupName.value)
+        assertEquals("500", model.groupTarget.value)
+    }
+
+    @Test
+    fun `three open groups leave no room for a new one`() {
+        val network = StubbedNetwork(stub("GET", "network/invitations", groupsOverview(canCreateGroup = false)))
+        val model = models.keep(InvitationsViewModel(network.repository))
+        show { InvitationsScreen(model) }
+        text("Du hast 3 offene Gruppen. Eine neue kannst du anlegen, sobald eine abgelaufen ist.").assertIsDisplayed()
+        compose.onNodeWithTag("groups.create").assertDoesNotExist()
+    }
+
+    @Test
+    fun `a group link shows who invites and how far the group is, or that it no longer works`() {
+        val person = """{"id": 3, "username": "aylin", "display_name": "Aylin Demir", "initials": "AD", "avatar_color": "night"}"""
+        val network = StubbedNetwork(
+            stub(
+                "GET",
+                "network/invitations/groups/g1",
+                """{"data":{"group":{"founder":$person,"id":1,"name":"WG Kastanienallee","target":4,"joined":1,
+                |"progress":"1 von 4 haben angenommen","open":true,"expires_at":"2027-02-05T10:00:00Z"}}}
+                """.trimMargin()
+            ),
+            stub("GET", "network/invitations/groups/alt", """{"data":{"group":null}}""")
+        )
+        val model = models.keep(InvitationGroupViewModel("g1", network.repository))
+        show { InvitationGroupScreen("g1", model) }
+        text("Aylin Demir lädt dich in die Gruppe „WG Kastanienallee“ ein.").assertIsDisplayed()
+        text("1 von 4 haben angenommen").assertIsDisplayed()
+        text("Du bist schon angemeldet.").assertIsDisplayed()
+        capture("invitation-group")
+        text("Zum Profil von Aylin Demir").performClick()
+        assertEquals(NetworkRoute.Profile("aylin"), navigator.stack(MainTab.Source).last())
+
+        val gone = models.keep(InvitationGroupViewModel("alt", network.repository))
+        switchTo { InvitationGroupScreen("alt", gone) }
+        text("Dieser Gruppenlink gilt nicht mehr.").assertIsDisplayed()
+        text("Die Gruppe ist voll oder der Link ist abgelaufen. Mitglied werden kannst du trotzdem.").assertIsDisplayed()
     }
 
     @Test

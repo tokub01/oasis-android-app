@@ -122,7 +122,11 @@ internal fun SignInContent(ui: SignInUiState, actions: SignInActions) {
         )
         Row(horizontalArrangement = Arrangement.spacedBy(6.dp), verticalAlignment = Alignment.CenterVertically) {
             Icon(Icons.Outlined.CheckCircle, contentDescription = null, tint = OasisColors.Muted, modifier = Modifier.size(16.dp))
-            Text("Du bleibst auf diesem Gerät angemeldet, bis du dich abmeldest.", style = OasisType.Caption, color = OasisColors.Muted)
+            Text(
+                "Du bleibst auf diesem Gerät angemeldet, bis du dich abmeldest oder die App 90 Tage lang nicht nutzt.",
+                style = OasisType.Caption,
+                color = OasisColors.Muted
+            )
         }
         AsyncOasisButton("Anmelden", actions.onSignIn, modifier = Modifier.testTag("signin.button"), enabled = ui.canSubmit)
         if (ui.passwordRefused) {

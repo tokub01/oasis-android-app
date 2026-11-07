@@ -35,6 +35,7 @@ import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import de.velwebsolutions.oasis.account.api.ComplaintDecision
 import de.velwebsolutions.oasis.account.api.Suspension
+import de.velwebsolutions.oasis.account.api.SuspensionComplaint
 import de.velwebsolutions.oasis.account.ui.components.AccountPage
 import de.velwebsolutions.oasis.account.ui.components.DataExportButton
 import de.velwebsolutions.oasis.account.ui.components.LinkText
@@ -113,6 +114,8 @@ internal fun SuspendedScreen(viewModel: SuspensionViewModel = hiltViewModel()) {
                             ui,
                             onStatement = viewModel::setStatement,
                             onSend = viewModel::save,
+                            onComplaintReason = viewModel::setComplaintReason,
+                            onComplain = viewModel::complain,
                             rules = { navigator.open(WebRoute(it)) },
                             export = { DataExportButton(viewModel::export, viewModel::showError) },
                             membership = { navigator.open(MembershipRoute.Overview) },
@@ -132,6 +135,8 @@ internal fun SuspendedContent(
     ui: SuspensionUiState,
     onStatement: (String) -> Unit,
     onSend: suspend () -> Unit,
+    onComplaintReason: (String) -> Unit,
+    onComplain: suspend () -> Unit,
     rules: (String) -> Unit,
     export: @Composable () -> Unit,
     membership: () -> Unit,
@@ -193,12 +198,8 @@ internal fun SuspendedContent(
         Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
             SubHeading("Deine Stellungnahme")
             Text(
-                if (suspension.isBan) {
-                    "Hältst du die Sperre für falsch? Schreib uns, warum – das ist deine Beschwerde gegen die Entscheidung."
-                } else {
-                    "Du kannst dich entschuldigen, den Zusammenhang erklären oder widersprechen. Das Moderationsteam liest es; gegen die " +
-                        "Entscheidung kannst du außerdem über den Link in der E-Mail Beschwerde einlegen."
-                },
+                "Du kannst dich entschuldigen oder den Zusammenhang erklären. Das Moderationsteam liest deine Stellungnahme. " +
+                    "Eine Stellungnahme ist keine Beschwerde gegen die Entscheidung – die legst du unten ein.",
                 style = OasisType.Body,
                 color = OasisColors.Ink2
             )
@@ -217,6 +218,7 @@ internal fun SuspendedContent(
             )
             AsyncOasisButton("Stellungnahme senden", onSend, modifier = Modifier.testTag("suspended.send"), fullWidth = false)
         }
+        ComplaintSection(suspension.complaint ?: SuspensionComplaint(), ui, onComplaintReason, onComplain, rules)
         Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
             SubHeading("Was du weiterhin kannst")
             export()
@@ -228,13 +230,96 @@ internal fun SuspendedContent(
     }
 }
 
-/** Widerspruch einlegen (/app/moderation/complaint/{decision}) for the affected member. */
+/**
+ * „Beschwerde gegen die Entscheidung“ on the lock screen (suspended.blade.php, AGB § 15): the procedure, then the form
+ * while the complaint is possible, the thanks once it is in, or the DSA address when it is not possible here.
+ */
+@Composable
+private fun ComplaintSection(
+    complaint: SuspensionComplaint,
+    ui: SuspensionUiState,
+    onReason: (String) -> Unit,
+    onComplain: suspend () -> Unit,
+    open: (String) -> Unit
+) {
+    val termsUrl = webUrl("agb#beschwerde")
+    val email = complaint.email ?: DSA_EMAIL
+    val mail = { open("mailto:$email") }
+    Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
+        SubHeading("Beschwerde gegen die Entscheidung")
+        Text(
+            "Hältst du die Sperre für falsch? Dann leg Beschwerde gegen die Entscheidung ein, die zu ihr geführt hat. Eine andere " +
+                "Person aus dem Moderationsteam als die, die entschieden hat, prüft sie – nicht automatisiert – und schreibt dir das " +
+                "Ergebnis mit Begründung per E-Mail. Ist die Beschwerde berechtigt, heben wir die Sperre auf. " +
+                "Die Beschwerde ist kostenlos.",
+            style = OasisType.Body,
+            color = OasisColors.Ink2
+        )
+        LinkText("AGB § 15", { open(termsUrl) })
+        val deadline = complaint.deadline
+        when {
+            complaint.submittedAt != null || ui.complaintSubmitted -> Text(
+                "Danke, deine Beschwerde ist da. Die Eingangsbestätigung haben wir dir per E-Mail geschickt; das Ergebnis und die " +
+                    "Begründung folgen per E-Mail.",
+                style = OasisType.BodyBold,
+                color = OasisColors.SpringText,
+                modifier = Modifier.testTag("suspended.complaintThanks")
+            )
+
+            complaint.allowed && deadline != null -> {
+                OasisTextField(
+                    "Warum hältst du die Entscheidung für falsch?",
+                    ui.complaintReason,
+                    onReason,
+                    modifier = Modifier.testTag("suspended.complaint"),
+                    error = ui.complaintError,
+                    hint = "Möglich bis zum ${GermanTime.day(deadline)}.",
+                    lines = 6..12,
+                    maxLength = COMPLAINT_MAX
+                )
+                AsyncOasisButton(
+                    "Beschwerde einlegen",
+                    onComplain,
+                    modifier = Modifier.testTag("suspended.complain"),
+                    fullWidth = false,
+                    enabled = ui.complaintReason.isNotBlank()
+                )
+            }
+
+            else -> {
+                val why = if (complaint.decisionId == null) ", weil zu dieser Sperre kein Fall hinterlegt ist" else ""
+                Text(
+                    "Hier geht das gerade nicht$why. Schreib deine Beschwerde per E-Mail an $email, oder nutze den Link in der E-Mail " +
+                        "zur Entscheidung.",
+                    style = OasisType.Body,
+                    color = OasisColors.Ink2,
+                    modifier = Modifier.testTag("suspended.complaintClosed")
+                )
+            }
+        }
+        Text(
+            "Du kannst die Beschwerde auch per E-Mail an $email schicken. Unabhängig davon steht dir der Rechtsweg offen; eine " +
+                "außergerichtliche Streitbeilegungsstelle gibt es für Oasis nicht (AGB § 15 und § 20).",
+            style = OasisType.Small,
+            color = OasisColors.Ink2
+        )
+        LinkText("E-Mail an $email", mail, Modifier.testTag("suspended.complaintMail"))
+    }
+}
+
+/** The web's `maxlength` of a complaint's reason (SubmitComplaint::rules). */
+private const val COMPLAINT_MAX = 10_000
+
+/** The DSA contact address (`oasis.mail.dsa`) when an older server sends none. */
+private const val DSA_EMAIL = "info@velwebsolutions.de"
+
+/** Beschwerde einlegen (/app/moderation/complaint/{decision}) for the affected member. */
 @Composable
 internal fun ComplaintScreen(decisionId: Int) {
     val viewModel = hiltViewModel<ComplaintViewModel, ComplaintViewModel.Factory>(creationCallback = { it.create(decisionId) })
     val navigator = LocalNavigator.current
     val ui by viewModel.ui.collectAsStateWithLifecycle()
-    OasisScreen(title = "Widerspruch", error = ui.error, onDismissError = viewModel::dismissError) {
+    OasisScreen(title = "Beschwerde", error = ui.error, onDismissError = viewModel::dismissError) {
         AccountPage(maxWidth = 640, spacing = 18) {
             LoadableView(ui.state, onRetry = viewModel.retry(viewModel::load)) { decision ->
                 ComplaintContent(decision, ui, viewModel::setReason, viewModel::submit) {
@@ -256,7 +341,7 @@ internal fun ComplaintContent(
     if (ui.submitted) {
         Column(verticalArrangement = Arrangement.spacedBy(14.dp)) {
             Text(
-                "Danke, dein Widerspruch ist da.",
+                "Danke, deine Beschwerde ist da.",
                 style = OasisType.display(30),
                 color = OasisColors.Night,
                 modifier = Modifier.testTag("complaint.thanks")
@@ -272,7 +357,7 @@ internal fun ComplaintContent(
         return
     }
     Column(verticalArrangement = Arrangement.spacedBy(18.dp)) {
-        Text("Widerspruch einlegen", style = OasisType.display(30), color = OasisColors.Night, modifier = Modifier.semantics { heading() })
+        Text("Beschwerde einlegen", style = OasisType.display(30), color = OasisColors.Night, modifier = Modifier.semantics { heading() })
         Text("Eine andere Person aus unserem Team prüft die Entscheidung noch einmal.", style = OasisType.Body, color = OasisColors.Ink2)
         Column(
             Modifier.fillMaxWidth().background(OasisColors.Paper, RoundedCornerShape(OasisRadius.TILE.dp)).padding(16.dp),
@@ -289,9 +374,8 @@ internal fun ComplaintContent(
             Text(bold("", "Begründung:", " ${decision.explanation}"), style = OasisType.Small, color = OasisColors.Ink)
         }
         Text(
-            "Du kannst bis zum ${GermanTime.day(
-                decision.deadline
-            )} widersprechen. Der Widerspruch ist kostenlos. Unabhängig davon stehen dir außergerichtliche Streitbeilegung und der Rechtsweg offen.",
+            "Du kannst bis zum ${GermanTime.day(decision.deadline)} Beschwerde einlegen. Die Beschwerde ist kostenlos. Unabhängig davon " +
+                "steht dir der Rechtsweg offen. Eine außergerichtliche Streitbeilegungsstelle gibt es für Oasis nicht (AGB § 15 und § 20).",
             style = OasisType.Small,
             color = OasisColors.Ink2
         )
@@ -304,7 +388,7 @@ internal fun ComplaintContent(
             lines = 6..12
         )
         AsyncOasisButton(
-            "Widerspruch einlegen",
+            "Beschwerde einlegen",
             onSubmit,
             modifier = Modifier.testTag("complaint.submit"),
             enabled = ui.reason.isNotBlank()

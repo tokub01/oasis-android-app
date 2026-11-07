@@ -98,6 +98,7 @@ class DeepLinkTest {
         fun incoming(path: String) = DeepLink.incoming("https://get-oasis.com$path")
         assertEquals(IncomingLink.Screen(NetworkRoute.Post(12)), incoming("/tropfen/12"))
         assertEquals(IncomingLink.Screen(NetworkRoute.Invitation("abc")), incoming("/einladung/abc"))
+        assertEquals(IncomingLink.Screen(NetworkRoute.InvitationGroup("grp")), incoming("/gemeinsam/grp"))
         assertEquals(IncomingLink.Screen(NetworkRoute.Source), incoming("/app"))
         assertEquals(IncomingLink.Screen(MembershipRoute.Overview), DeepLink.incoming("oasis://mitgliedschaft?checkout=abc"))
         assertEquals(

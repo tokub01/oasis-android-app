@@ -151,7 +151,8 @@ fun TimeCapsulesScreen(
                                 listOf(
                                     "Frühestens in einer Stunde, spätestens in ${info.maxYears} Jahren.",
                                     "Bis zu ${info.maxWaiting} Zeitkapseln können gleichzeitig warten.",
-                                    "Beim Aufgehen prüfen wir sie wie jeden Tropfen. Läuft deine Mitgliedschaft dann nicht, bleibt sie zu."
+                                    "Beim Versiegeln und beim Aufgehen prüfen wir sie wie jeden Tropfen. " +
+                                        "Läuft deine Mitgliedschaft beim Aufgehen nicht, bleibt sie zu."
                                 )
                             )
                         }

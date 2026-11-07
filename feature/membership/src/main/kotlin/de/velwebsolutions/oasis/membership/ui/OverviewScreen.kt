@@ -267,7 +267,8 @@ fun MembershipOverview.storeManagement(): StoreManagement? = when {
     )
 
     google?.managedByGoogle == true -> StoreManagement(
-        "Deine Mitgliedschaft läuft über Google Play. Stufe, Laufzeit und Kündigung verwaltest du im Play Store.",
+        "Deine Mitgliedschaft läuft über Google Play. Stufe, Laufzeit und Kündigung verwaltest du im Play Store; Widerruf und " +
+            "Erstattung laufen ebenfalls über Google.",
         google.manageUrl,
         "membership.manageGoogle"
     )

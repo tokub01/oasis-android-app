@@ -44,9 +44,12 @@ Voraussetzungen: JDK 21, Android SDK (Platform 37, Build-Tools), ein Emulator (A
 `test` enthält die Unit-Tests und die Compose-UI-Tests unter Robolectric; `connectedDebugAndroidTest` läuft auf
 einem Emulator. Die CI (`.github/workflows/ci.yml`) macht beides.
 
-## Offene Punkte
+## Push und Google Play
 
-- **Push (FCM)** ist vorbereitet, braucht aber ein Firebase-Projekt (`app/google-services.json`) und Backend-Unterstützung
-  für Android-Geräte; das Backend kann heute APNs und Web Push.
-- **Google Play Billing** ist vorbereitet (gleiche Stufen und Preise wie iOS); die Serverprüfung von Play-Käufen fehlt
-  im Backend noch.
+- **Push (FCM):** Das Backend stellt Android-Hinweise über Firebase Cloud Messaging zu (`App\Support\Notifications\Fcm`,
+  Dienstkonto `OASIS_FCM_CREDENTIALS`). Der Build bindet Firebase nur ein, wenn `app/google-services.json` liegt (lokal
+  kopiert, in CI aus dem Secret `GOOGLE_SERVICES_JSON_B64`); ohne die Datei baut die App ohne Push.
+- **Google Play Billing:** Die App verkauft die Mitgliedschaft als Play-Abo (gleiche Stufen und Preise wie Web und iOS,
+  `PlayProducts.kt`). Der Server prüft und bestätigt jeden Kauf bei Google (`GooglePurchaseController`,
+  `docs/oasis-membership.md` „Google Play“) – nur, solange dort `OASIS_GOOGLE_PLAY` an ist; sonst zeigt der Checkout,
+  dass Mitgliedschaften in der App gerade nicht abgeschlossen werden können.

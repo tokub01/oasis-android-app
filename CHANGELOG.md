@@ -18,11 +18,25 @@ Ab 22. Oktober 2026: Seitdem trägt jede Änderung in allen drei Projekten den V
 
 Was dabei gleich bleibt: Ein Mensch entscheidet, was in Oasis kommt, beauftragt jede Runde und prüft sie. Jede Änderung wird durch automatische Tests abgesichert, bevor sie ausgeliefert wird.
 
+## 0.28.0 – 2026-11-07 – Was wir sagen, tun wir
+
+Alle Texte auf Website, im Mitgliederbereich und in den Apps sind gegen AGB, Datenschutzerklärung und Code geprüft und angeglichen. Neu: Patenplätze, Gründungsabzeichen, Gemeinsam starten mit Gruppenlink, Beschwerde direkt vom Sperrbildschirm.
+
+- **Neu:** Patenplätze: Wer sich den Beitrag nicht leisten kann, fragt unter get-oasis.com/patenplatz einen Patenplatz an, ohne Nachweise. Mitglieder spenden Patenplätze beim Kauf einer Geschenk-Mitgliedschaft, Organisationen über das Formular für Organisationen.
+- **Neu:** Gemeinsam starten: Lege eine Gruppe mit Namen an, teile einen Gruppenlink und sieh, wie viele schon dabei sind. Für jede Person, die über deinen Gruppenlink beitritt, bekommst du wie bei persönlichen Einladungen einen Freimonat.
+- **Neu:** Gründungsmitglieder können das Abzeichen „Gründungsmitglied“ an ihrem Profil einschalten, im Privatsphäre-Center, jederzeit wieder aus.
+- **Neu:** Wer gesperrt ist, kann direkt vom Sperrbildschirm Beschwerde gegen die Entscheidung einlegen; eine andere Person aus dem Team prüft sie, und du bekommst eine Eingangsbestätigung per E-Mail.
+- **Neu:** Wer die Mitgliedschaft über den App Store oder Google Play abschließt, bekommt jetzt wie im Web die Vertragsbestätigung mit AGB und Widerrufsbelehrung per E-Mail, auch bei einem Stufenwechsel im Store.
+- **Verbessert:** Beschwerdeformular, Entscheidungsmails und Sperrbildschirm nennen die Rechtsbehelfe jetzt richtig: Der Rechtsweg steht offen; eine außergerichtliche Streitbeilegungsstelle gibt es für Oasis nicht.
+- **Verbessert:** Startseite, Preise, Hilfe, Gründungsseite und Mitgliederbereich sagen genau, was Oasis tut: wer Daten erhält, wie der Stufenwechsel läuft, welche Zahlwege gerade möglich sind, wie die Preisgarantie gilt, was beim Löschen bleibt und dass Ideen und Zeitkapseln automatisch geprüft werden.
+- **Verbessert:** Die Hilfe erklärt die automatische Prüfung durch ein Sprachmodell und den Beschwerdeweg.
+- **Verbessert:** Der Kaufbildschirm nennt das Widerrufsrecht und den Weg über Google Play und verlinkt die Widerrufsbelehrung. Die Anmeldung sagt, dass sie nach 90 Tagen ohne Nutzung endet. Der Play-Eintrag beschreibt die Ideen-Funktion so, wie sie ist.
+
 ## 0.27.0 – 2026-11-07 – Startklar
 
-Die Rechtstexte sind final, der Datenexport ist vollständig, App-Anmeldungen laufen nach 90 Tagen ohne Nutzung ab, und das Moderationsteam bekommt Vertretung und Fristen-Erinnerung.
+Die Rechtstexte sind final, der Datenexport enthält alles, was du selbst angelegt hast, App-Anmeldungen laufen nach 90 Tagen ohne Nutzung ab, und das Moderationsteam bekommt Vertretung und Fristen-Erinnerung.
 
-- **Neu:** Dein Datenexport enthält jetzt alles, was wir über dich speichern: auch Reaktionen, blockierte und stummgeschaltete Personen, Hinweise und ihre Einstellungen, Einladungen, Zahlungen mit Rechnungsnummern, App-Anmeldungen, Begleitplätze, Treffen, Ideen und Sammlungen.
+- **Neu:** Dein Datenexport enthält jetzt auch Reaktionen, blockierte und stummgeschaltete Personen, Hinweise und ihre Einstellungen, Einladungen, Zahlungen mit Rechnungsnummern, App-Anmeldungen, Begleitplätze, Treffen, Ideen und Sammlungen – alles, was du selbst in Oasis angelegt hast.
 - **Neu:** Das Moderationsteam kann Abwesenheit eintragen, sieht überfällige Fälle und wird erinnert, wenn ein Fall länger als 48 Stunden offen ist. Beschwerden gegen Entscheidungen des Betreibers prüft immer eine andere Person.
 - **Verbessert:** Die Rechtstexte gelten jetzt endgültig; der Hinweis „Entwurf“ ist von allen Seiten verschwunden, jede Seite zeigt ihr Datum.
 - **Verbessert:** Eine App-Anmeldung, die 90 Tage nicht benutzt wurde, läuft ab; die App meldet dich dann ab. Push-Geräte ohne Zustellung seit 90 Tagen werden entfernt. So steht es jetzt auch in der Datenschutzerklärung.

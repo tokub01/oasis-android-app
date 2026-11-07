@@ -120,6 +120,11 @@ class TierScreensTest {
         text("in Stadtgarten", substring = true)
         text("Nicht aufgegangen: Deine Mitgliedschaft lief nicht.")
         text("Bis zu 50 Zeitkapseln können gleichzeitig warten.")
+        // Datenschutzerklärung Abschnitt 15: the check runs while sealing (ManageTimeCapsules) and again when opening.
+        text(
+            "Beim Versiegeln und beim Aufgehen prüfen wir sie wie jeden Tropfen. " +
+                "Läuft deine Mitgliedschaft beim Aufgehen nicht, bleibt sie zu."
+        )
 
         compose.onNode(hasSetTextAction()).performTextInput("Frohe Weihnachten")
         text("17 / 1000")
@@ -299,7 +304,7 @@ class TierScreensTest {
 
     @Test
     fun `a supporter's profile says that they carry Oasis`() {
-        val supporter = Fixtures.profile.replace(""""has_restricted": false}}""", """"has_restricted": false, "supporter": true}}""")
+        val supporter = Fixtures.profile.replace(""""founding_badge": false}}""", """"founding_badge": false, "supporter": true}}""")
         val network = StubbedNetwork(
             stub("GET", "network/profiles/jonas", supporter),
             stub("GET", "network/profiles/jonas/posts", pageJson())
@@ -307,5 +312,20 @@ class TierScreensTest {
         val model = models.keep(ProfileViewModel("jonas", network.repository))
         show { ProfileScreen("jonas", model) }
         text("Trägt Oasis mit")
+        compose.onNodeWithTag("profile.founding").assertDoesNotExist()
+    }
+
+    @Test
+    fun `a founding member who shows the mark has it next to the supporter mark`() {
+        val founder = Fixtures.profile.replace(""""founding_badge": false}}""", """"founding_badge": true, "supporter": true}}""")
+        val network = StubbedNetwork(
+            stub("GET", "network/profiles/jonas", founder),
+            stub("GET", "network/profiles/jonas/posts", pageJson())
+        )
+        val model = models.keep(ProfileViewModel("jonas", network.repository))
+        show { ProfileScreen("jonas", model) }
+        text("Trägt Oasis mit")
+        text("Gründungsmitglied")
+        compose.onNodeWithTag("profile.founding").assertExists()
     }
 }

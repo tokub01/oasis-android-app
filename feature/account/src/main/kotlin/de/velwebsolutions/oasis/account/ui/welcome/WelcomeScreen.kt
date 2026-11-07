@@ -287,8 +287,15 @@ private fun ColumnScope.VisibilityStep(ui: WelcomeUiState, tour: WelcomeTour, vi
 
 @Composable
 private fun ColumnScope.OasesStep(tour: WelcomeTour, viewModel: WelcomeViewModel, open: (AppRoute) -> Unit) {
+    // How the list came about (Art. 27 DSA): picked by people, or simply the largest oases.
+    val origin =
+        if (tour.oasesHandPicked) {
+            "Diese hier haben Menschen ausgesucht, nicht ein Algorithmus."
+        } else {
+            "Hier stehen die Oasen mit den meisten Mitgliedern – der Reihe nach, ohne Empfehlung nach deinen Interessen."
+        }
     Text(
-        "Oasen sind Gruppen zu einem Thema. Tritt ein paar bei, dann füllt sich deine Quelle. Ausgesucht von Menschen, nicht von einem Algorithmus.",
+        "Oasen sind Gruppen zu einem Thema. Tritt ein paar bei, dann füllt sich deine Quelle. $origin",
         style = OasisType.Body,
         color = OasisColors.Ink2
     )

@@ -92,7 +92,7 @@ private val Steps = listOf(
     "Konto anlegen",
     "E-Mail-Adresse mit dem Code bestätigen",
     "Handynummer per SMS bestätigen",
-    "Beitrag wählen – bezahlt wird über Google Play"
+    "Beitrag wählen"
 )
 
 private val GermanDay = DateTimeFormatter.ofPattern("dd.MM.yyyy")

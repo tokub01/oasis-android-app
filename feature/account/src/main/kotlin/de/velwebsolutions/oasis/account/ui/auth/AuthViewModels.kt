@@ -484,8 +484,8 @@ class RegisterViewModel @Inject constructor(private val session: Session, privat
         /** The server's message below 18 (Oasis is 18+). */
         const val TOO_YOUNG = "Du musst mindestens 18 Jahre alt sein, um Oasis zu nutzen."
 
-        /** The server's message without the consent. */
-        const val TERMS_REQUIRED = "Bitte akzeptiere die Nutzungsbedingungen."
+        /** Without the consent; names the documents like the checkbox (the server's CreateNewUser says the same). */
+        const val TERMS_REQUIRED = "Bitte akzeptiere die Community-Regeln und die AGB."
 
         /** `Password::min(10)` of the server, the only password rule. */
         const val PASSWORD_MIN_LENGTH = 10

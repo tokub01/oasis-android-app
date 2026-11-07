@@ -90,6 +90,9 @@ class AccountUiTest {
             )
         }
         compose.onNodeWithText("Willkommen zurück.").assertIsDisplayed()
+        // Datenschutzerklärung: an app sign-in also ends after 90 days without use (app_token_idle_days).
+        compose.onNodeWithText("Du bleibst auf diesem Gerät angemeldet, bis du dich abmeldest oder die App 90 Tage lang nicht nutzt.")
+            .performScrollTo().assertIsDisplayed()
         compose.onNodeWithContentDescription("E-Mail oder Benutzername").performTextInput("x")
         assertEquals("the field reports the edited text", listOf("login:xmira"), typed)
         compose.onNodeWithTag("signin.button").performScrollTo().performClick()
@@ -161,9 +164,9 @@ class AccountUiTest {
         compose.onNodeWithText("Schritt 1 von 4 · Konto").assertIsDisplayed()
         compose.onNodeWithContentDescription("Seite 3 von 3").assertExists()
         compose.onNodeWithText("So geht es los").performScrollTo().assertIsDisplayed()
-        compose.onNodeWithText("Beitrag wählen – bezahlt wird über Google Play").performScrollTo().assertIsDisplayed()
+        compose.onNodeWithText("Beitrag wählen").performScrollTo().assertIsDisplayed()
         compose.onNodeWithText("Das Geburtsdatum ist erforderlich.").performScrollTo().assertIsDisplayed()
-        compose.onNodeWithText("Bitte akzeptiere die Nutzungsbedingungen.").performScrollTo().assertIsDisplayed()
+        compose.onNodeWithText("Bitte akzeptiere die Community-Regeln und die AGB.").performScrollTo().assertIsDisplayed()
         compose.onNodeWithText("AGB").performScrollTo().performClick()
         assertEquals(listOf("agb"), legal)
         compose.onNodeWithTag("register.birthDate").performScrollTo().performClick()

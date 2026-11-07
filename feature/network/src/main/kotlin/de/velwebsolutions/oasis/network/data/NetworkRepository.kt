@@ -15,6 +15,8 @@ import de.velwebsolutions.oasis.network.api.ContributionBody
 import de.velwebsolutions.oasis.network.api.DiscoverContext
 import de.velwebsolutions.oasis.network.api.FeedPage
 import de.velwebsolutions.oasis.network.api.FriendLists
+import de.velwebsolutions.oasis.network.api.GroupInput
+import de.velwebsolutions.oasis.network.api.GroupLanding
 import de.velwebsolutions.oasis.network.api.Idea
 import de.velwebsolutions.oasis.network.api.IdeaInput
 import de.velwebsolutions.oasis.network.api.ImageUpload
@@ -298,6 +300,12 @@ interface NetworkRepository {
     suspend fun createInvitation(): String
 
     suspend fun invitation(token: String): InvitationLanding
+
+    /** „Gemeinsam starten“: found a group → the server's confirmation and the group with its link. */
+    suspend fun createGroup(name: String, target: Int?): Confirmed<InvitationOverview.Group>
+
+    /** The group behind a shared link (/gemeinsam/{token}), null when it no longer takes anyone. */
+    suspend fun invitationGroup(token: String): GroupLanding
 }
 
 /** [NetworkRepository] over Retrofit. */
@@ -514,6 +522,10 @@ class DefaultNetworkRepository @Inject constructor(client: ApiClient) : NetworkR
     override suspend fun createInvitation() = service.createInvitation().message
 
     override suspend fun invitation(token: String) = service.invitation(escape(token)).data
+
+    override suspend fun createGroup(name: String, target: Int?) = service.createGroup(GroupInput(name, target))
+
+    override suspend fun invitationGroup(token: String) = service.invitationGroup(escape(token)).data
 
     private fun file(field: String, image: ImageUpload): MultipartBody.Part =
         MultipartBody.Part.createFormData(field, image.filename, image.data.toRequestBody(image.mimeType.toMediaType()))

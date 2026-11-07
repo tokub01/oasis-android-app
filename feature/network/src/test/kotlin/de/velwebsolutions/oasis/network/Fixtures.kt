@@ -19,7 +19,7 @@ object Fixtures {
     """.trimIndent()
 
     val invitations = """
-{"data": {"invitations": [], "remaining": 3, "per_month": 3, "valid_days": 30, "free_months_this_year": 0, "free_months_per_year": 12, "free_months_waiting": 0, "trial_days": 30, "can_create": true}}
+{"data": {"invitations": [], "remaining": 3, "per_month": 3, "valid_days": 30, "free_months_this_year": 0, "free_months_per_year": 12, "free_months_waiting": 0, "trial_days": 30, "can_create": true, "groups": [{"id": 2, "name": "WG Kastanienallee", "target": 4, "joined": 1, "progress": "1 von 4 haben angenommen", "open": true, "expires_at": "2027-02-05T10:00:00.000000Z", "token": "Grp2Grp2Grp2Grp2Grp2Grp2Grp2Grp2", "url": "http://localhost/gemeinsam/Grp2Grp2Grp2Grp2Grp2Grp2Grp2Grp2", "members": ["jonas"]}], "can_create_group": true, "group_valid_days": 90, "group_max_target": 100}}
     """.trimIndent()
 
     val ownProfile = """
@@ -27,7 +27,7 @@ object Fixtures {
     """.trimIndent()
 
     val profile = """
-{"data": {"member": {"id": 2, "username": "jonas", "display_name": "Jonas Weber", "initials": "JW", "avatar_color": "spring", "photo_url": null}, "url": "http://localhost/profil/jonas", "banner_url": "http://localhost/api/v1/network/profiles/jonas/banner/Abc123Abc123Abc123Abc123Abc123Ab.webp", "joined_at": "2026-05-22T13:32:16.000000Z", "bio": "Gärtnert auf 12 Quadratmetern Balkon und tauscht Ableger gegen gute Geschichten.", "location": "Köln", "status": "Erntet gerade Tomaten", "bio_held": false, "followers": 3, "oases": [{"id": 3, "slug": "lesekreis", "name": "Lesekreis", "description": "Ein Buch im Monat, gemeinsam gelesen. Spoiler nur mit Ansage.", "color": "night", "visibility": "public", "banner_url": null, "role": "member"}, {"id": 2, "slug": "stadtgarten", "name": "Stadtgarten", "description": "Gärtnern, tauschen, ernten – vom Balkon bis zum Gemeinschaftsbeet.", "color": "spring", "visibility": "public", "banner_url": null, "role": "host"}], "is_me": false, "profile_audience": null, "following": true, "can_follow": true, "friendship": null, "accepts_friend_requests": true, "can_write": false, "chat_hint": "Jonas Weber nimmt gerade nur Nachrichten von bestimmten Personen an.", "has_muted": false, "has_restricted": false}}
+{"data": {"member": {"id": 2, "username": "jonas", "display_name": "Jonas Weber", "initials": "JW", "avatar_color": "spring", "photo_url": null}, "url": "http://localhost/profil/jonas", "banner_url": "http://localhost/api/v1/network/profiles/jonas/banner/Abc123Abc123Abc123Abc123Abc123Ab.webp", "joined_at": "2026-05-22T13:32:16.000000Z", "bio": "Gärtnert auf 12 Quadratmetern Balkon und tauscht Ableger gegen gute Geschichten.", "location": "Köln", "status": "Erntet gerade Tomaten", "bio_held": false, "followers": 3, "oases": [{"id": 3, "slug": "lesekreis", "name": "Lesekreis", "description": "Ein Buch im Monat, gemeinsam gelesen. Spoiler nur mit Ansage.", "color": "night", "visibility": "public", "banner_url": null, "role": "member"}, {"id": 2, "slug": "stadtgarten", "name": "Stadtgarten", "description": "Gärtnern, tauschen, ernten – vom Balkon bis zum Gemeinschaftsbeet.", "color": "spring", "visibility": "public", "banner_url": null, "role": "host"}], "is_me": false, "profile_audience": null, "following": true, "can_follow": true, "friendship": null, "accepts_friend_requests": true, "can_write": false, "chat_hint": "Jonas Weber nimmt gerade nur Nachrichten von bestimmten Personen an.", "has_muted": false, "has_restricted": false, "founding_badge": false}}
     """.trimIndent()
 
     val composer = """

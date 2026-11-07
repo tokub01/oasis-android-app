@@ -365,4 +365,10 @@ internal interface NetworkService {
 
     @GET("network/invitations/{token}")
     suspend fun invitation(@Path("token") token: String): DataEnvelope<InvitationLanding>
+
+    @POST("network/invitations/groups")
+    suspend fun createGroup(@Body body: GroupInput): Confirmed<InvitationOverview.Group>
+
+    @GET("network/invitations/groups/{token}")
+    suspend fun invitationGroup(@Path("token") token: String): DataEnvelope<GroupLanding>
 }

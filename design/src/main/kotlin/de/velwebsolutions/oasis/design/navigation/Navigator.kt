@@ -151,7 +151,7 @@ class Navigator {
             NetworkRoute.Discover, NetworkRoute.Swipe, is NetworkRoute.Search, is NetworkRoute.Tag -> MainTab.Discover
 
             NetworkRoute.Oases, is NetworkRoute.Oasis, is NetworkRoute.OasisMap, NetworkRoute.CreateOasis, is NetworkRoute.EditOasis,
-            is NetworkRoute.CloseOasis, is NetworkRoute.OasisStatistics, is NetworkRoute.Invitation
+            is NetworkRoute.CloseOasis, is NetworkRoute.OasisStatistics, is NetworkRoute.Invitation, is NetworkRoute.InvitationGroup
             -> MainTab.Oases
 
             NetworkRoute.Source, is NetworkRoute.Post, is NetworkRoute.EditPost, is NetworkRoute.CarryPost, is NetworkRoute.Compose ->

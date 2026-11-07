@@ -4,12 +4,15 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.text.selection.SelectionContainer
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.outlined.Share
@@ -31,6 +34,7 @@ import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.SpanStyle
 import androidx.compose.ui.text.buildAnnotatedString
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.style.TextDecoration
 import androidx.compose.ui.text.withStyle
 import androidx.compose.ui.unit.dp
@@ -46,6 +50,7 @@ import de.velwebsolutions.oasis.design.components.LoadableView
 import de.velwebsolutions.oasis.design.components.OasisButton
 import de.velwebsolutions.oasis.design.components.OasisButtonKind
 import de.velwebsolutions.oasis.design.components.OasisScreen
+import de.velwebsolutions.oasis.design.components.OasisTextField
 import de.velwebsolutions.oasis.design.components.PageHeader
 import de.velwebsolutions.oasis.design.components.Panel
 import de.velwebsolutions.oasis.design.components.PanelTone
@@ -286,12 +291,17 @@ fun StatisticsScreen(viewModel: StatisticsViewModel = hiltViewModel<StatisticsVi
     }
 }
 
-/** "Menschen einladen" (/app/einladen): personal links within the monthly budget, their state and earned free months. */
+/**
+ * "Menschen einladen" (/app/einladen): personal links within the monthly budget, their state and earned free months, and
+ * the group starts („Gemeinsam starten“: a named group, one shared link, the progress).
+ */
 @Composable
 fun InvitationsScreen(viewModel: InvitationsViewModel = hiltViewModel<InvitationsViewModel>()) {
     val overview by viewModel.overview.collectAsStateWithLifecycle()
     val status by viewModel.status.collectAsStateWithLifecycle()
     val error by viewModel.error.collectAsStateWithLifecycle()
+    val groupName by viewModel.groupName.collectAsStateWithLifecycle()
+    val groupTarget by viewModel.groupTarget.collectAsStateWithLifecycle()
     val navigator = LocalNavigator.current
     LaunchedEffect(Unit) { viewModel.loadIfNeeded() }
     OasisScreen(title = "Einladen", message = status, onDismissMessage = viewModel::dismissStatus) {
@@ -347,6 +357,18 @@ fun InvitationsScreen(viewModel: InvitationsViewModel = hiltViewModel<Invitation
                 }
                 if (info.invitations.isEmpty()) block("empty") { DashedNote("Du hast noch keine Einladungslinks erstellt.") }
                 info.invitations.forEach { link -> block("link.${link.id}") { InvitationRow(link) } }
+                block("groups") {
+                    GroupsSection(
+                        info,
+                        groupName,
+                        groupTarget,
+                        nameError = error?.message("name"),
+                        targetError = error?.message("target"),
+                        onName = viewModel::setGroupName,
+                        onTarget = viewModel::setGroupTarget,
+                        onCreate = viewModel::createGroup
+                    )
+                }
                 block("side.month") {
                     SideCard("Diesen Monat", tone = PanelTone.Night) {
                         Text("${info.remaining}", style = OasisType.figure(40), color = OasisColors.OnNight)
@@ -383,8 +405,6 @@ fun InvitationsScreen(viewModel: InvitationsViewModel = hiltViewModel<Invitation
 /** One invitation link: accepted (with the free month), expired, or open with copy and share. */
 @Composable
 private fun InvitationRow(link: InvitationOverview.Link) {
-    val context = LocalContext.current
-    var copied by remember { mutableStateOf(false) }
     Column(
         Modifier.fillMaxWidth().background(OasisColors.Paper, RoundedCornerShape(OasisRadius.S.dp)).padding(20.dp),
         verticalArrangement = Arrangement.spacedBy(6.dp)
@@ -410,34 +430,146 @@ private fun InvitationRow(link: InvitationOverview.Link) {
 
             link.expired -> Text("Abgelaufen", style = OasisType.Body, color = OasisColors.Muted)
 
-            url != null -> {
-                Text("Gültig bis ${dayMonth(link.expiresAt)} – Link zum Weitergeben:", style = OasisType.SmallBold, color = OasisColors.Ink)
-                SelectionContainer {
-                    Text(url, style = OasisType.Digits.copy(fontSize = OasisType.Caption.fontSize), color = OasisColors.Ink)
-                }
-                Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                    OasisButton(
-                        if (copied) "Kopiert" else "Link kopieren",
-                        {
-                            copyToClipboard(context, "Einladungslink", url)
-                            copied = true
-                        },
-                        fullWidth = false
-                    )
-                    OasisButton(
-                        "Teilen",
-                        { share(context, url) },
-                        kind = OasisButtonKind.Secondary,
-                        fullWidth = false,
-                        leading = {
-                            Icon(Icons.Outlined.Share, contentDescription = null, tint = OasisColors.Night, modifier = Modifier.size(18.dp))
-                        }
+            url != null -> ShareableLink("Gültig bis ${dayMonth(link.expiresAt)} – Link zum Weitergeben:", url, "Einladungslink")
+        }
+    }
+}
+
+/** A link to pass on (invitation or group link): the label, the URL to select, and copy and share buttons. */
+@Composable
+private fun ShareableLink(label: String, url: String, clipboardLabel: String) {
+    val context = LocalContext.current
+    var copied by remember { mutableStateOf(false) }
+    Text(label, style = OasisType.SmallBold, color = OasisColors.Ink)
+    SelectionContainer {
+        Text(url, style = OasisType.Digits.copy(fontSize = OasisType.Caption.fontSize), color = OasisColors.Ink)
+    }
+    Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+        OasisButton(
+            if (copied) "Kopiert" else "Link kopieren",
+            {
+                copyToClipboard(context, clipboardLabel, url)
+                copied = true
+            },
+            fullWidth = false
+        )
+        OasisButton(
+            "Teilen",
+            { share(context, url) },
+            kind = OasisButtonKind.Secondary,
+            fullWidth = false,
+            leading = {
+                Icon(Icons.Outlined.Share, contentDescription = null, tint = OasisColors.Night, modifier = Modifier.size(18.dp))
+            }
+        )
+    }
+}
+
+/**
+ * „Gemeinsam starten“ on the invitations page (invitations.blade.php): what a group is, the founding form while the
+ * member may found one, and the own groups with link, progress and who joined.
+ */
+@Composable
+private fun GroupsSection(
+    info: InvitationOverview,
+    groupName: String,
+    groupTarget: String,
+    nameError: String?,
+    targetError: String?,
+    onName: (String) -> Unit,
+    onTarget: (String) -> Unit,
+    onCreate: suspend () -> Unit
+) {
+    Column(
+        Modifier.fillMaxWidth().background(OasisColors.Paper, RoundedCornerShape(OasisRadius.M.dp)).padding(20.dp),
+        verticalArrangement = Arrangement.spacedBy(16.dp)
+    ) {
+        Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+            Text("Gemeinsam starten", style = OasisType.heading(20), color = OasisColors.Night, modifier = Modifier.semantics { heading() })
+            Text(
+                "Gib eurer Gruppe einen Namen und teile einen Link für alle. Wer darüber Mitglied wird, folgt dir automatisch und du " +
+                    "folgst zurück; du siehst, wie viele schon dabei sind. Ein Gruppenlink gilt ${info.groupValidDays} Tage und zählt " +
+                    "nicht zu deinen ${info.perMonth} Einladungslinks im Monat. Freimonate gibt es wie bei persönlichen Einladungen, " +
+                    "höchstens ${info.freeMonthsPerYear} im Jahr.",
+                style = OasisType.Small,
+                color = OasisColors.Ink2
+            )
+        }
+        if (info.canCreateGroup) {
+            OasisTextField(
+                "Name der Gruppe",
+                groupName,
+                onName,
+                modifier = Modifier.testTag("groups.name"),
+                prompt = "z. B. WG Kastanienallee",
+                error = nameError,
+                maxLength = GROUP_NAME_MAX
+            )
+            OasisTextField(
+                "Wie viele? (optional)",
+                groupTarget,
+                onTarget,
+                modifier = Modifier.testTag("groups.target"),
+                prompt = "z. B. 12",
+                error = targetError,
+                hint = "Höchstens ${info.groupMaxTarget}.",
+                keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number)
+            )
+            AsyncOasisButton("Gruppe anlegen", onCreate, modifier = Modifier.testTag("groups.create"), fullWidth = false)
+        } else if (info.groups.isNotEmpty()) {
+            Text(
+                "Du hast $GROUP_MAX_OPEN offene Gruppen. Eine neue kannst du anlegen, sobald eine abgelaufen ist.",
+                style = OasisType.Small,
+                color = OasisColors.Muted
+            )
+        }
+        info.groups.forEach { group -> GroupRow(group) }
+    }
+}
+
+/** How many open groups a member may have (InvitationGroup::MAX_PER_MEMBER); the API does not send it. */
+private const val GROUP_MAX_OPEN = 3
+
+/** The web's `maxlength` of the group name (InvitationGroup::NAME_MAX). */
+private const val GROUP_NAME_MAX = 60
+
+/** One group start: name and progress, the target as slots, who joined, and the link, „Abgelaufen“ or „Vollständig“. */
+@Composable
+private fun GroupRow(group: InvitationOverview.Group) {
+    Column(
+        Modifier.fillMaxWidth().background(OasisColors.Sand, RoundedCornerShape(OasisRadius.S.dp)).padding(20.dp)
+            .testTag("group.${group.id}"),
+        verticalArrangement = Arrangement.spacedBy(8.dp)
+    ) {
+        Text(group.name, style = OasisType.heading(18), color = OasisColors.Night)
+        Text(group.progress, style = OasisType.Small, color = OasisColors.Muted)
+        group.target?.let { target ->
+            Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                repeat(minOf(target, GROUP_SLOTS_SHOWN)) { slot ->
+                    Box(
+                        Modifier.weight(1f).height(8.dp)
+                            .background(if (slot < group.joined) OasisColors.Spring else OasisColors.DuneLine, RoundedCornerShape(4.dp))
                     )
                 }
             }
         }
+        if (group.members.isNotEmpty()) {
+            Text("Dabei: ${group.members.joinToString(", ") { "@$it" }}", style = OasisType.Small, color = OasisColors.Ink2)
+        }
+        val url = group.url
+        when {
+            group.open && url != null ->
+                ShareableLink("Gültig bis ${dayMonth(group.expiresAt)} – Gruppenlink zum Weitergeben:", url, "Gruppenlink")
+
+            group.isComplete -> Text("Vollständig – alle sind dabei.", style = OasisType.BodyBold, color = OasisColors.SpringText)
+
+            else -> Text("Abgelaufen", style = OasisType.Body, color = OasisColors.Muted)
+        }
     }
 }
+
+/** The web draws at most 24 slots of a target. */
+private const val GROUP_SLOTS_SHOWN = 24
 
 private fun longDate(instant: Instant): String = GermanTime.format(instant, "d. MMMM yyyy")
 
@@ -473,6 +605,60 @@ fun InvitationScreen(
                         } else {
                             Text("Dieser Einladungslink gilt nicht mehr.", style = OasisType.display(26), color = OasisColors.Night)
                             Text("Er wurde schon benutzt oder ist abgelaufen.", style = OasisType.Body, color = OasisColors.Ink2)
+                        }
+                    }
+                }
+            }
+        }
+    }
+}
+
+/** The page behind a group link (/gemeinsam/{token}) for a signed-in member (group-landing.blade.php). */
+@Composable
+fun InvitationGroupScreen(
+    token: String,
+    viewModel: InvitationGroupViewModel =
+        hiltViewModel<InvitationGroupViewModel, InvitationGroupViewModel.Factory>(creationCallback = { it.create(token) })
+) {
+    val landing by viewModel.landing.collectAsStateWithLifecycle()
+    val navigator = LocalNavigator.current
+    LaunchedEffect(Unit) { viewModel.load() }
+    OasisScreen(title = "Gemeinsam starten") {
+        LoadableView(landing, onRetry = viewModel.retry(viewModel::load)) { info ->
+            NetworkPage {
+                block("card") {
+                    PaperBox(padding = 24, radius = OasisRadius.L, spacing = 16) {
+                        val group = info.group
+                        if (group != null) {
+                            Eyebrow("Gemeinsam starten")
+                            Text(
+                                "${group.founder.displayName} lädt dich in die Gruppe „${group.name}“ ein.",
+                                style = OasisType.display(26),
+                                color = OasisColors.Night
+                            )
+                            Text(
+                                group.progress,
+                                style = OasisType.Small,
+                                color = OasisColors.Muted,
+                                modifier = Modifier.testTag("group.progress")
+                            )
+                            Text(
+                                "Oasis ist ein werbefreies soziales Netzwerk mit einem Feed, der aufhört. Wenn du dich jetzt anmeldest, " +
+                                    "folgt ihr euch automatisch; deinen Beitrag wählst du selbst.",
+                                style = OasisType.Body,
+                                color = OasisColors.Ink2
+                            )
+                            Text("Du bist schon angemeldet.", style = OasisType.Body, color = OasisColors.Ink)
+                            UnderlinedLink("Zum Profil von ${group.founder.displayName}", {
+                                navigator.open(NetworkRoute.Profile(group.founder.username))
+                            })
+                        } else {
+                            Text("Dieser Gruppenlink gilt nicht mehr.", style = OasisType.display(26), color = OasisColors.Night)
+                            Text(
+                                "Die Gruppe ist voll oder der Link ist abgelaufen. Mitglied werden kannst du trotzdem.",
+                                style = OasisType.Body,
+                                color = OasisColors.Ink2
+                            )
                         }
                     }
                 }

@@ -114,10 +114,26 @@ data class Suspension(
     val strikeLimit: Int = 3,
     /** Months a confirmed violation counts towards the permanent ban. */
     val strikeMonths: Int = 12,
-    val statementMax: Int = 3000
+    val statementMax: Int = 3000,
+    /** The complaint against the decision behind the lock (AGB § 15); servers before 7 November 2026 leave it out. */
+    val complaint: SuspensionComplaint? = null
 ) {
     val isBan: Boolean get() = type == "ban"
 }
+
+/**
+ * The complaint the locked member may file (SuspensionAppeal): the decision in force on the lock's case and the last
+ * day to complain, whether the form is open ([allowed]: no own complaint yet, deadline not passed, decision still
+ * current), when the own complaint arrived, and the DSA address for a lock without a case.
+ */
+@Serializable
+data class SuspensionComplaint(
+    val decisionId: Int? = null,
+    val deadline: OasisInstant? = null,
+    val allowed: Boolean = false,
+    val submittedAt: OasisInstant? = null,
+    val email: String? = null
+)
 
 @Serializable
 data class StatementSaved(val message: String, val statementAt: OasisInstant)
@@ -264,8 +280,9 @@ data class SafetyLists(
 /** The three lists of Blockiert & stumm and their endpoints. */
 enum class SafetyList(val path: String) { Blocks("blocks"), Mutes("mutes"), Restrictions("restrictions") }
 
+/** `review_hours` is config('oasis.moderation.review_hours') = 48; the fallback says the same. */
 @Serializable
-data class ReportForm(val url: String, val categories: List<PrivacyChoice>, val reviewHours: Int = 24)
+data class ReportForm(val url: String, val categories: List<PrivacyChoice>, val reviewHours: Int = 48)
 
 // Welcome tour.
 
@@ -298,7 +315,9 @@ data class WelcomeTour(
     val visibilities: List<PrivacyChoice> = emptyList(),
     val oases: List<StarterOasis> = emptyList(),
     /** The chosen colour of the initials; null: „Automatisch“. */
-    val avatarColorChoice: String? = null
+    val avatarColorChoice: String? = null,
+    /** Whether [oases] were picked by people (`oasis.starter_oases`), or are the largest oases in order. */
+    val oasesHandPicked: Boolean = false
 )
 
 @Serializable

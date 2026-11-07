@@ -21,6 +21,7 @@ import androidx.compose.material.icons.outlined.MoreHoriz
 import androidx.compose.material.icons.outlined.People
 import androidx.compose.material.icons.outlined.Place
 import androidx.compose.material.icons.outlined.Share
+import androidx.compose.material.icons.outlined.WbSunny
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.Icon
@@ -252,6 +253,15 @@ private fun Header(profile: Profile, callbacks: ProfileCallbacks) {
                             Modifier.padding(top = 4.dp).testTag("profile.supporter"),
                             PillTone.Spring,
                             Icons.Outlined.Favorite
+                        )
+                    }
+                    if (profile.foundingBadge) {
+                        // The founding mark, switched on in the privacy centre (founding_badge), next to the supporter mark.
+                        Pill(
+                            "Gründungsmitglied",
+                            Modifier.padding(top = 4.dp).testTag("profile.founding"),
+                            PillTone.Dune,
+                            Icons.Outlined.WbSunny
                         )
                     }
                 }

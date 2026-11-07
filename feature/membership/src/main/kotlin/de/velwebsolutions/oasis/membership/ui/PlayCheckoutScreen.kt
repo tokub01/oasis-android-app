@@ -46,7 +46,9 @@ import de.velwebsolutions.oasis.membership.billing.PlayProducts
 /**
  * "Mitgliedschaft wählen" in the app (iOS `AppleCheckoutView`): the tiers as Google Play subscriptions, monthly or
  * yearly, with Play's price and the terms next to the button (renewal, cancellation, AGB, Datenschutz, "Käufe
- * wiederherstellen"). Prices, names and descriptions come from the Play Console.
+ * wiederherstellen"). Prices, names and descriptions come from the Play Console. Before the purchase the screen also names
+ * the 14-day right of withdrawal and that Google handles withdrawal and refunds (Art. 246a § 1 Abs. 2 EGBGB, AGB § 6 and
+ * § 10), the Preisgarantie of the founding seats (AGB § 5) and links the Widerrufsbelehrung.
  */
 @Composable
 fun PlayCheckoutScreen(viewModel: PlayCheckoutViewModel = hiltViewModel()) {
@@ -148,9 +150,24 @@ fun PlayCheckoutContent(
                     style = OasisType.Caption,
                     color = OasisColors.Muted
                 )
+                // Art. 246a § 1 Abs. 2 EGBGB before the purchase, like checkout.blade.php: the right of withdrawal, and that
+                // for a Google Play purchase it is exercised with Google, not with Oasis (AGB § 6 and § 10).
+                Text(
+                    "Du kannst den Kauf 14 Tage lang widerrufen. Widerruf und Erstattung laufen bei einem Kauf über Google Play " +
+                        "ausschließlich über Google.",
+                    style = OasisType.Caption,
+                    color = OasisColors.Muted,
+                    modifier = Modifier.testTag("checkout.withdrawal")
+                )
+                Text(
+                    "Die ersten 1 000 Mitglieder bekommen eine Preisgarantie (AGB § 5).",
+                    style = OasisType.Caption,
+                    color = OasisColors.Muted
+                )
                 Row(horizontalArrangement = Arrangement.spacedBy(16.dp)) {
                     InlineLink("AGB", { openWebsite("/agb") }, color = OasisColors.Night)
                     InlineLink("Datenschutz", { openWebsite("/datenschutz") }, color = OasisColors.Night)
+                    InlineLink("Widerrufsbelehrung", { openWebsite("/widerrufsbelehrung") }, color = OasisColors.Night)
                 }
                 AsyncOasisButton(
                     "Käufe wiederherstellen",

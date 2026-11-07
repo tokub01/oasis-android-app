@@ -50,6 +50,7 @@
                 <data android:pathPrefix="/profil/" />
                 <data android:pathPrefix="/oasen/" />
                 <data android:pathPrefix="/einladung/" />
+                <data android:pathPrefix="/gemeinsam/" />
                 <data android:pathPrefix="/email/bestaetigen/" />
                 <data android:pathPrefix="/passwort-zuruecksetzen/" />
                 <data android:pathPrefix="/anmelden/code" />

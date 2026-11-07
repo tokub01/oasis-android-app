@@ -11,6 +11,7 @@ import de.velwebsolutions.oasis.core.network.Confirmed
 import de.velwebsolutions.oasis.design.components.AvatarTint
 import de.velwebsolutions.oasis.network.NetworkSignals
 import de.velwebsolutions.oasis.network.api.FriendLists
+import de.velwebsolutions.oasis.network.api.GroupLanding
 import de.velwebsolutions.oasis.network.api.ImageUpload
 import de.velwebsolutions.oasis.network.api.InvitationLanding
 import de.velwebsolutions.oasis.network.api.InvitationOverview
@@ -304,11 +305,30 @@ class StatisticsViewModel @Inject constructor(private val repository: NetworkRep
     }
 }
 
-/** "Menschen einladen" (/app/einladen): personal links within the monthly budget. */
+/** "Menschen einladen" (/app/einladen): personal links within the monthly budget and the group starts. */
 @HiltViewModel
 class InvitationsViewModel @Inject constructor(private val repository: NetworkRepository) : NetworkViewModel() {
     private val mutableOverview = MutableStateFlow<Loadable<InvitationOverview>>(Loadable.Idle)
     val overview: StateFlow<Loadable<InvitationOverview>> = mutableOverview.asStateFlow()
+
+    private val mutableGroupName = MutableStateFlow("")
+
+    /** „Name der Gruppe“ of the founding form. */
+    val groupName: StateFlow<String> = mutableGroupName.asStateFlow()
+
+    private val mutableGroupTarget = MutableStateFlow("")
+
+    /** „Wie viele?“ of the founding form, as typed; empty for no target. */
+    val groupTarget: StateFlow<String> = mutableGroupTarget.asStateFlow()
+
+    fun setGroupName(value: String) {
+        mutableGroupName.value = value
+    }
+
+    /** Digits only, so the field never holds what the server would refuse as "not a number". */
+    fun setGroupTarget(value: String) {
+        mutableGroupTarget.value = value.filter { it.isDigit() }
+    }
 
     suspend fun load() {
         mutableOverview.load { repository.invitations() }
@@ -327,6 +347,41 @@ class InvitationsViewModel @Inject constructor(private val repository: NetworkRe
             load()
         }
         result.apiError?.let { failure -> if (failure.message("invitation") == null) mutableStatus.value = failure.userMessage }
+    }
+
+    /**
+     * „Gruppe anlegen“: the server's refusals of name and target show at their fields (`errors.name`, `errors.target`),
+     * anything else (no membership, the server) as a toast. On success the form empties and the list reloads.
+     */
+    suspend fun createGroup() {
+        val result = attempt { repository.createGroup(groupName.value.trim(), groupTarget.value.toIntOrNull()) }
+        mutableError.value = result.apiError
+        result.onSuccess { confirmed ->
+            mutableStatus.value = confirmed.message
+            mutableGroupName.value = ""
+            mutableGroupTarget.value = ""
+            load()
+        }
+        result.apiError?.let { failure ->
+            if (failure.message("name") == null && failure.message("target") == null) mutableStatus.value = failure.userMessage
+        }
+    }
+}
+
+/** The page behind a group link (/gemeinsam/{token}) for a signed-in member. */
+@HiltViewModel(assistedFactory = InvitationGroupViewModel.Factory::class)
+class InvitationGroupViewModel @AssistedInject constructor(@Assisted val token: String, private val repository: NetworkRepository) :
+    NetworkViewModel() {
+    @AssistedFactory
+    interface Factory {
+        fun create(token: String): InvitationGroupViewModel
+    }
+
+    private val mutableLanding = MutableStateFlow<Loadable<GroupLanding>>(Loadable.Idle)
+    val landing: StateFlow<Loadable<GroupLanding>> = mutableLanding.asStateFlow()
+
+    suspend fun load() {
+        mutableLanding.load { repository.invitationGroup(token) }
     }
 }
 

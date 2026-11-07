@@ -8,7 +8,7 @@ Alles, was Social Media gut macht. Ohne den Sog.
 • Leise Zahlen: Wie viele reagiert haben, sieht nur, wer geschrieben hat. Kein öffentliches Wettrennen um Likes.
 • Chat mit Ende-zu-Ende-Verschlüsselung: Deine Nachrichten kann nur lesen, wer im Chat ist. Oasis speichert sie nur verschlüsselt und hat keinen Schlüssel dazu.
 • Moderation, die da ist: Klare Regeln, Menschen in der Moderation und eine Begründung für jede Entscheidung.
-• Eine Stimme für alle: Jedes Mitglied stimmt mit ab, was als Nächstes kommt – egal, wie viel es beiträgt.
+• Eine Stimme für alle: Jedes Mitglied kann Ideen einreichen und die Ideen anderer unterstützen – egal, wie viel es beiträgt. Die beliebtesten schauen wir uns an und schreiben dazu, wie es steht.
 • Hinweise ohne Datenspur: Push-Hinweise nennen Google keine Namen und keine Texte; die App holt den Hinweis selbst ab.
 
 Andere verdienen an deiner Aufmerksamkeit. Wir an deinem Beitrag.

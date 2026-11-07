@@ -8,6 +8,8 @@ import de.velwebsolutions.oasis.network.api.DiscoverContext
 import de.velwebsolutions.oasis.network.api.ExternalLink
 import de.velwebsolutions.oasis.network.api.FeedPage
 import de.velwebsolutions.oasis.network.api.FriendLists
+import de.velwebsolutions.oasis.network.api.GroupInput
+import de.velwebsolutions.oasis.network.api.GroupLanding
 import de.velwebsolutions.oasis.network.api.ImageUpload
 import de.velwebsolutions.oasis.network.api.InvitationLanding
 import de.velwebsolutions.oasis.network.api.InvitationOverview
@@ -161,6 +163,15 @@ class ModelsTest {
         roundTrip(InvitationOverview.Link.serializer(), InvitationOverview.Link(1, expiresAt = now))
         roundTrip(InvitationOverview.Link.Reward.serializer(), InvitationOverview.Link.Reward())
         roundTrip(InvitationLanding.serializer(), InvitationLanding())
+        val group = InvitationOverview.Group(1, "WG", target = 3, joined = 1, progress = "1 von 3 haben angenommen", expiresAt = now)
+        roundTrip(InvitationOverview.Group.serializer(), group)
+        roundTrip(GroupInput.serializer(), GroupInput("WG", 3))
+        roundTrip(GroupLanding.serializer(), GroupLanding())
+        roundTrip(GroupLanding.Group.serializer(), GroupLanding.Group(member, 1, "WG", progress = "1 dabei", expiresAt = now))
+        assertFalse("an open group is not complete", group.isComplete)
+        assertFalse("a closed group below its target expired", group.copy(open = false).isComplete)
+        assertTrue("a closed group at its target is complete", group.copy(open = false, joined = 3).isComplete)
+        assertFalse("a closed group without a target expired", group.copy(open = false, target = null).isComplete)
     }
 
     @Test

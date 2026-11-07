@@ -31,10 +31,16 @@ data class SuspensionUiState(
     val message: String? = null,
     val error: String? = null,
     /** The refusal of the statement (too long, empty). */
-    val statementError: String? = null
+    val statementError: String? = null,
+    /** „Warum hältst du die Entscheidung für falsch?“ of the complaint form. */
+    val complaintReason: String = "",
+    /** The refusal of the complaint's reason (empty, too long). */
+    val complaintError: String? = null,
+    /** The complaint went out in this session (the server's `submitted_at` only arrives with the next load). */
+    val complaintSubmitted: Boolean = false
 )
 
-/** The lock screen (/app/gesperrt): accusation and the member's statement. */
+/** The lock screen (/app/gesperrt): accusation, the member's statement and the complaint against the decision. */
 @HiltViewModel
 class SuspensionViewModel @Inject constructor(private val repository: AccountRepository, private val session: Session) : ViewModel() {
     private val mutableUi = MutableStateFlow(SuspensionUiState())
@@ -45,6 +51,8 @@ class SuspensionViewModel @Inject constructor(private val repository: AccountRep
     }
 
     fun setStatement(value: String) = mutableUi.update { it.copy(statement = value) }
+
+    fun setComplaintReason(value: String) = mutableUi.update { it.copy(complaintReason = value) }
 
     /** A lifted lock answers 404 (`state` fails with NotFound), which the screen shows as the way back into Oasis. */
     suspend fun load() {
@@ -86,6 +94,28 @@ class SuspensionViewModel @Inject constructor(private val repository: AccountRep
             }
     }
 
+    /**
+     * „Beschwerde einlegen“ against the decision behind the lock (api.v1.complaints.store with the `decision_id` of
+     * `complaint`): the refusal of the reason shows at the field, the throttle and anything else as an error.
+     */
+    suspend fun complain() {
+        val decisionId = ui.value.state.valueOrNull?.complaint?.decisionId ?: return
+        mutableUi.update { it.copy(complaintError = null) }
+        catching { repository.submitComplaint(decisionId, ui.value.complaintReason) }
+            .onSuccess { mutableUi.update { it.copy(complaintSubmitted = true, message = "Danke, deine Beschwerde ist da.") } }
+            .onFailure { error ->
+                val failure = error.asApiError()
+                val refusal = failure.message("reason")
+                mutableUi.update {
+                    when {
+                        failure is ApiError.TooManyRequests -> it.copy(error = TOO_MANY_COMPLAINTS)
+                        refusal != null -> it.copy(complaintError = refusal)
+                        else -> it.copy(error = failure.userMessage)
+                    }
+                }
+            }
+    }
+
     /** „Weiter zu Oasis“ and pull to refresh: the app leaves the lock screen once `me` is no longer locked. */
     suspend fun refreshMe() = session.refreshMe()
 
@@ -100,7 +130,10 @@ class SuspensionViewModel @Inject constructor(private val repository: AccountRep
     fun dismissError() = mutableUi.update { it.copy(error = null) }
 }
 
-/** Widerspruch einlegen. */
+/** The throttle of complaints (5 per minute and address), in the web's words. */
+internal const val TOO_MANY_COMPLAINTS = "Zu viele Beschwerden. Bitte versuche es in einer Minute erneut."
+
+/** Beschwerde einlegen. */
 data class ComplaintUiState(
     val state: Loadable<ComplaintDecision> = Loadable.Idle,
     val reason: String = "",
@@ -110,7 +143,7 @@ data class ComplaintUiState(
     val reasonError: String? = null
 )
 
-/** Widerspruch einlegen (/app/moderation/complaint/{decision}). */
+/** Beschwerde einlegen (/app/moderation/complaint/{decision}). */
 @HiltViewModel(assistedFactory = ComplaintViewModel.Factory::class)
 class ComplaintViewModel @AssistedInject constructor(
     @Assisted private val decisionId: Int,
@@ -146,12 +179,8 @@ class ComplaintViewModel @AssistedInject constructor(
                 val refusal = failure.message("reason")
                 mutableUi.update {
                     when {
-                        failure is ApiError.TooManyRequests -> it.copy(
-                            error = "Zu viele Beschwerden. Bitte versuche es in einer Minute erneut."
-                        )
-
+                        failure is ApiError.TooManyRequests -> it.copy(error = TOO_MANY_COMPLAINTS)
                         refusal != null -> it.copy(reasonError = refusal)
-
                         else -> it.copy(error = failure.userMessage)
                     }
                 }

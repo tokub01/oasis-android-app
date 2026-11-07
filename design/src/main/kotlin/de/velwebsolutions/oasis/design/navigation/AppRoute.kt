@@ -86,6 +86,9 @@ sealed interface NetworkRoute : AppRoute {
     /** An invitation link (/einladung/{token}). */
     @Serializable data class Invitation(val token: String) : NetworkRoute
 
+    /** A group link of „Gemeinsam starten“ (/gemeinsam/{token}). */
+    @Serializable data class InvitationGroup(val token: String) : NetworkRoute
+
     /** Suche (/app/suche?q=). */
     @Serializable data class Search(val query: String? = null) : NetworkRoute
 

@@ -145,6 +145,15 @@
        }
       ],
       "limited": false
+     },
+     {
+      "key": "founding_badge",
+      "title": "Gründungsabzeichen am Profil zeigen",
+      "help": "Gilt nur, wenn du Gründungsmitglied bist: Dann sehen alle, die dein Profil sehen dürfen, neben deinem Namen das Zeichen „Gründungsmitglied“. Standardmäßig aus; du kannst es jederzeit wieder ausschalten.",
+      "kind": "switch",
+      "value": false,
+      "choices": [],
+      "limited": false
      }
     ]
    },

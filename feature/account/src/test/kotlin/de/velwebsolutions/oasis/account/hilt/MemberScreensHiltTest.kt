@@ -29,11 +29,12 @@ class MemberScreensHiltTest : HiltScreenTest() {
         statement: String = "null",
         statementAt: String = "null",
         excerpt: String = "\"Du bist doch …\"",
-        endsAt: String? = "2026-10-29T10:00:00.000000Z"
+        endsAt: String? = "2026-10-29T10:00:00.000000Z",
+        complaint: String? = null
     ) = """{"data":{"type":"$type","label":"Sperre durch das Moderationsteam","started_at":"2026-10-22T10:00:00.000000Z",""" +
         """"ends_at":${endsAt?.let { "\"$it\"" }},"ends_at_label":${endsAt?.let { "\"29.10.2026, 11:00 Uhr\"" }},""" +
         """"accusation":"Beleidigung in einer Antwort","excerpt":$excerpt,"statement":$statement,"statement_at":$statementAt,""" +
-        """"strikes":1,"strike_limit":3,"strike_months":12,"statement_max":3000}}"""
+        """"strikes":1,"strike_limit":3,"strike_months":12,"statement_max":3000${complaint?.let { ",\"complaint\":$it" }.orEmpty()}}}"""
 
     @Test
     fun theLockWithADurationTakesAStatementAndOffersTheWayOut() {
@@ -55,6 +56,13 @@ class MemberScreensHiltTest : HiltScreenTest() {
         compose.onNodeWithText("innerhalb von 12 Monaten sperren wir ein Konto dauerhaft.", substring = true).assertExists()
         compose.onNodeWithText("vorläufig", substring = true).assertDoesNotExist()
         shot("suspended-duration")
+        // An older server without `complaint`: no case here, so the complaint goes by e-mail to the DSA address.
+        compose.onNodeWithText("Eine Stellungnahme ist keine Beschwerde gegen die Entscheidung", substring = true).assertExists()
+        compose.onNodeWithTag("suspended.complaintClosed").assertExists()
+        compose.onNodeWithText(
+            "Hier geht das gerade nicht, weil zu dieser Sperre kein Fall hinterlegt ist. Schreib deine Beschwerde per E-Mail an " +
+                "info@velwebsolutions.de, oder nutze den Link in der E-Mail zur Entscheidung."
+        ).assertExists()
         type("Stellungnahme", "Es tut mir leid.")
         compose.onNodeWithTag("suspended.send").tap()
         waitForText("Zuletzt gesendet am", substring = true)
@@ -115,6 +123,69 @@ class MemberScreensHiltTest : HiltScreenTest() {
         compose.waitUntil(5_000) { session.me?.isSuspended == false }
     }
 
+    @Test
+    fun theComplaintIsFiledFromTheLockScreen() {
+        signIn(MIRA.copy(isSuspended = true))
+        stub(
+            "GET",
+            "suspension",
+            suspension(
+                "suspension",
+                complaint = """{"decision_id":7,"deadline":"2026-11-22T10:00:00.000000Z","allowed":true,"submitted_at":null,""" +
+                    """"email":"dsa@get-oasis.com"}"""
+            )
+        )
+        stub("POST", "complaints/7", """{"message":"x","errors":{"reason":["Bitte begründe die Beschwerde."]}}""", status = 422)
+        show { AccountScreen(AccountRoute.Suspended) }
+        waitForTag("suspended.complaint")
+        compose.onNodeWithText("Beschwerde gegen die Entscheidung").assertExists()
+        compose.onNodeWithText("Eine andere Person aus dem Moderationsteam als die, die entschieden hat", substring = true).assertExists()
+        compose.onNodeWithText("Möglich bis zum 22.11.2026.").assertExists()
+        compose.onNodeWithTag("suspended.complaintClosed").assertDoesNotExist()
+        shot("suspended-complaint")
+        compose.onNodeWithText("AGB § 15").tap()
+        compose.onNodeWithTag("suspended.complaintMail").tap()
+        assertTrue(web.first().endsWith("/agb#beschwerde"))
+        assertEquals("mailto:dsa@get-oasis.com", web.last())
+        type("Warum hältst du die Entscheidung für falsch?", "Das war Ironie.")
+        compose.onNodeWithTag("suspended.complain").tap()
+        waitForText("Bitte begründe die Beschwerde.")
+        stub("POST", "complaints/7", "{}")
+        compose.onNodeWithTag("suspended.complain").tap()
+        waitForTag("suspended.complaintThanks")
+        compose.onNodeWithText(
+            "Danke, deine Beschwerde ist da. Die Eingangsbestätigung haben wir dir per E-Mail geschickt; das Ergebnis und die " +
+                "Begründung folgen per E-Mail."
+        ).assertExists()
+        compose.onNodeWithTag("suspended.complaint").assertDoesNotExist()
+    }
+
+    @Test
+    fun aComplaintAlreadyInOrNoLongerPossibleOnTheLockScreen() {
+        signIn(MIRA.copy(isSuspended = true))
+        val received = """{"decision_id":7,"deadline":"2026-11-22T10:00:00.000000Z","allowed":false,""" +
+            """"submitted_at":"2026-10-23T09:00:00.000000Z","email":"dsa@get-oasis.com"}"""
+        stub("GET", "suspension", suspension("suspension", complaint = received))
+        show { AccountScreen(AccountRoute.Suspended) }
+        waitForTag("suspended.complaintThanks")
+        compose.onNodeWithTag("suspended.complaint").assertDoesNotExist()
+    }
+
+    @Test
+    fun aComplaintPastItsDeadlineGoesByEmail() {
+        signIn(MIRA.copy(isSuspended = true))
+        val closed = """{"decision_id":7,"deadline":"2026-10-01T10:00:00.000000Z","allowed":false,"submitted_at":null,""" +
+            """"email":"dsa@get-oasis.com"}"""
+        stub("GET", "suspension", suspension("ban", endsAt = null, complaint = closed))
+        show { AccountScreen(AccountRoute.Suspended) }
+        waitForTag("suspended.complaintClosed")
+        compose.onNodeWithText(
+            "Hier geht das gerade nicht. Schreib deine Beschwerde per E-Mail an dsa@get-oasis.com, oder nutze den Link in der E-Mail " +
+                "zur Entscheidung."
+        ).assertExists()
+        compose.onNodeWithText("E-Mail an dsa@get-oasis.com").assertExists()
+    }
+
     private val decision =
         """{"data":{"id":7,"outcome":"Tropfen entfernt","ground":"Beleidigung","rule_reference":"§ 3 Umgangston",""" +
             """"explanation":"Der Tropfen beleidigt eine Person.","deadline":"2026-11-22T10:00:00.000000Z"}}"""
@@ -127,6 +198,11 @@ class MemberScreensHiltTest : HiltScreenTest() {
         navigator.stack(navigator.selectedTab).add(AccountRoute.Complaint(7))
         show { AccountScreen(AccountRoute.Complaint(7)) }
         waitForText("Tropfen entfernt · Beleidigung")
+        // AGB § 15 and § 20: the way to court, and no out-of-court dispute body for Oasis (Art. 21 DSA does not apply).
+        waitForText(
+            "Du kannst bis zum 22.11.2026 Beschwerde einlegen. Die Beschwerde ist kostenlos. Unabhängig davon steht dir der " +
+                "Rechtsweg offen. Eine außergerichtliche Streitbeilegungsstelle gibt es für Oasis nicht (AGB § 15 und § 20)."
+        )
         shot("complaint")
         type("Warum hältst du die Entscheidung für falsch?", "Das war Ironie.")
         compose.onNodeWithTag("complaint.submit").tap()
@@ -140,12 +216,12 @@ class MemberScreensHiltTest : HiltScreenTest() {
     fun aComplaintIsRefusedOrThrottled() {
         signIn()
         stub("GET", "complaints/7", decision.replace("§ 3 Umgangston", ""))
-        stub("POST", "complaints/7", """{"message":"x","errors":{"reason":["Bitte begründe den Widerspruch."]}}""", status = 422)
+        stub("POST", "complaints/7", """{"message":"x","errors":{"reason":["Bitte begründe die Beschwerde."]}}""", status = 422)
         show { AccountScreen(AccountRoute.Complaint(7)) }
         waitForTag("complaint.reason")
         type("Warum hältst du die Entscheidung für falsch?", "Darum.")
         compose.onNodeWithTag("complaint.submit").tap()
-        waitForText("Bitte begründe den Widerspruch.")
+        waitForText("Bitte begründe die Beschwerde.")
         stub("POST", "complaints/7", """{"message":"Too Many Attempts."}""", status = 429)
         compose.onNodeWithTag("complaint.submit").tap()
         waitForText("Zu viele Beschwerden. Bitte versuche es in einer Minute erneut.")

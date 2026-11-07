@@ -8,6 +8,7 @@ import de.velwebsolutions.oasis.network.api.NoContext
 import de.velwebsolutions.oasis.network.data.NetworkRepository
 import de.velwebsolutions.oasis.network.ui.profiles.EditProfileViewModel
 import de.velwebsolutions.oasis.network.ui.profiles.FriendsViewModel
+import de.velwebsolutions.oasis.network.ui.profiles.InvitationGroupViewModel
 import de.velwebsolutions.oasis.network.ui.profiles.InvitationViewModel
 import de.velwebsolutions.oasis.network.ui.profiles.InvitationsViewModel
 import de.velwebsolutions.oasis.network.ui.profiles.ProfileAction
@@ -19,6 +20,9 @@ import kotlinx.coroutines.CompletableDeferred
 import kotlinx.coroutines.cancelAndJoin
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.test.runTest
+import kotlinx.serialization.json.JsonNull
+import kotlinx.serialization.json.JsonPrimitive
+import kotlinx.serialization.json.jsonObject
 import org.junit.After
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
@@ -356,6 +360,70 @@ class ProfileViewModelsTest(private val answersAtOnce: Boolean) {
         network.add("POST", "network/invitations", 500, """{"message":"Kaputt."}""")
         model.create()
         assertEquals("Kaputt.", model.status.value)
+    }
+
+    @Test
+    fun `a group is founded with name and target, refusals stay at their fields`() = runTest {
+        val created = """{"message":"Eure Gruppe ist angelegt. Teile den Gruppenlink.","data":{"id":3,"name":"Chor","target":12,""" +
+            """"joined":0,"progress":"0 von 12 haben angenommen","open":true,"expires_at":"2027-02-05T10:00:00.000000Z",""" +
+            """"token":"t","url":"http://localhost/gemeinsam/t","members":[]}}"""
+        val network = StubbedNetwork(
+            stub("GET", "network/invitations", Fixtures.invitations),
+            stub("POST", "network/invitations/groups", created, 201)
+        )
+        val model = models.keep(InvitationsViewModel(network.repository))
+        model.loadIfNeeded()
+        model.setGroupName("  Chor ")
+        model.setGroupTarget("1a2")
+        assertEquals("only digits reach the field", "12", model.groupTarget.value)
+        model.createGroup()
+        assertEquals("Eure Gruppe ist angelegt. Teile den Gruppenlink.", model.status.value)
+        assertEquals(JsonPrimitive("Chor"), network.transport.lastBody("network/invitations/groups")?.jsonObject?.get("name"))
+        assertEquals(JsonPrimitive(12), network.transport.lastBody("network/invitations/groups")?.jsonObject?.get("target"))
+        assertEquals("the form empties", "", model.groupName.value)
+        assertEquals("", model.groupTarget.value)
+        assertEquals(2, network.transport.requests.count { it.path == "network/invitations" && it.request.method == "GET" })
+
+        model.dismissStatus()
+        model.setGroupName("X")
+        network.add("POST", "network/invitations/groups", 422, """{"message":"Zu kurz.","errors":{"name":["Zu kurz."]}}""")
+        model.createGroup()
+        assertEquals("Zu kurz.", model.error.value?.message("name"))
+        assertNull(model.status.value)
+        assertEquals("a refusal keeps the typed name", "X", model.groupName.value)
+        val withoutTarget = network.transport.lastBody("network/invitations/groups")!!.jsonObject["target"]
+        assertTrue("without a target none is sent", withoutTarget == null || withoutTarget is JsonNull)
+
+        model.setGroupTarget("500")
+        network.add("POST", "network/invitations/groups", 422, """{"message":"Zu viele.","errors":{"target":["Höchstens 100."]}}""")
+        model.createGroup()
+        assertEquals("Höchstens 100.", model.error.value?.message("target"))
+        assertNull(model.status.value)
+
+        network.add("POST", "network/invitations/groups", 402, """{"message":"Dafür brauchst du eine laufende Mitgliedschaft."}""")
+        model.createGroup()
+        assertEquals("Dafür brauchst du eine laufende Mitgliedschaft.", model.status.value)
+    }
+
+    @Test
+    fun `a group link shows the group or nothing`() = runTest {
+        val founder = """{"id":2,"username":"jonas","display_name":"Jonas Weber","initials":"JW","avatar_color":"spring"}"""
+        val network = StubbedNetwork(
+            stub(
+                "GET",
+                "network/invitations/groups/abc",
+                """{"data":{"group":{"founder":$founder,"id":3,"name":"Chor","target":null,"joined":2,"progress":"2 dabei",""" +
+                    """"open":true,"expires_at":"2027-02-05T10:00:00.000000Z"}}}"""
+            ),
+            stub("GET", "network/invitations/groups/alt", """{"data":{"group":null}}""")
+        )
+        val model = models.keep(InvitationGroupViewModel("abc", network.repository))
+        model.load()
+        assertEquals("jonas", model.landing.value.valueOrNull?.group?.founder?.username)
+        assertEquals("2 dabei", model.landing.value.valueOrNull?.group?.progress)
+        val gone = models.keep(InvitationGroupViewModel("alt", network.repository))
+        gone.load()
+        assertNull(gone.landing.value.valueOrNull?.group)
     }
 
     @Test

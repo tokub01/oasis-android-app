@@ -54,6 +54,7 @@ class NavigationTest {
         "/oasen/garten/sonstwas" to NetworkRoute.Oasis("garten"),
         "/profil/mira" to NetworkRoute.Profile("mira"),
         "/einladung/tok" to NetworkRoute.Invitation("tok"),
+        "/gemeinsam/tok" to NetworkRoute.InvitationGroup("tok"),
         "/themen/tee" to NetworkRoute.Tag("tee"),
         "/themen/gr%C3%BCn" to NetworkRoute.Tag("grün"),
         "/moderation/cases/3" to StaffRoute.ModerationCase(3),
@@ -169,7 +170,8 @@ class NavigationTest {
             NetworkRoute.EditOasis("o"),
             NetworkRoute.CloseOasis("o"),
             NetworkRoute.OasisStatistics("o"),
-            NetworkRoute.Invitation("t")
+            NetworkRoute.Invitation("t"),
+            NetworkRoute.InvitationGroup("t")
         ).forEach { assertEquals(MainTab.Oases, Navigator.tab(it)) }
         listOf(
             NetworkRoute.Source,

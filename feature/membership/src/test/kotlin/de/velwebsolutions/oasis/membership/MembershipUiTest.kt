@@ -8,6 +8,7 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.assertIsNotEnabled
+import androidx.compose.ui.test.assertTextEquals
 import androidx.compose.ui.test.isRoot
 import androidx.compose.ui.test.junit4.createComposeRule
 import androidx.compose.ui.test.onAllNodesWithTag
@@ -476,6 +477,15 @@ class MembershipUiTest {
         compose.onNodeWithText("Datenschutz").performScrollTo().performClick()
         assertEquals("http://localhost/datenschutz", web.last())
         compose.onNodeWithText("AGB").performScrollTo().performClick()
+        assertEquals("http://localhost/agb", web.last())
+        // Art. 246a § 1 Abs. 2 EGBGB: the right of withdrawal and its way (Google) before the purchase, with the Belehrung.
+        compose.onNodeWithTag("checkout.withdrawal").performScrollTo().assertTextEquals(
+            "Du kannst den Kauf 14 Tage lang widerrufen. Widerruf und Erstattung laufen bei einem Kauf über Google Play " +
+                "ausschließlich über Google."
+        )
+        compose.onNodeWithText("Die ersten 1 000 Mitglieder bekommen eine Preisgarantie (AGB § 5).").performScrollTo().assertIsDisplayed()
+        compose.onNodeWithText("Widerrufsbelehrung").performScrollTo().performClick()
+        assertEquals("http://localhost/widerrufsbelehrung", web.last())
         compose.onNodeWithTag("checkout.restore").performScrollTo().performClick()
         compose.waitForIdle()
         assertEquals(1, restored)
@@ -563,7 +573,10 @@ class MembershipUiTest {
         var managed = 0
         val google = MembershipOverview.Google(managedByGoogle = true, manageUrl = "https://play.google.com/store/account/subscriptions")
         overview(subscription.copy(google = google, canCancel = false, canWithdraw = false)) { managed++ }
-        compose.onNodeWithText("Deine Mitgliedschaft läuft über Google Play. Stufe, Laufzeit und Kündigung verwaltest du im Play Store.")
+        compose.onNodeWithText(
+            "Deine Mitgliedschaft läuft über Google Play. Stufe, Laufzeit und Kündigung verwaltest du im Play Store; Widerruf und " +
+                "Erstattung laufen ebenfalls über Google."
+        )
             .performScrollTo().assertIsDisplayed()
         compose.onNodeWithTag("membership.portal").assertDoesNotExist()
         shot("overview-google")

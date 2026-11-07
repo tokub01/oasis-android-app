@@ -27,6 +27,8 @@ import de.velwebsolutions.oasis.testing.MainDispatcherRule
 import de.velwebsolutions.oasis.testing.StubTransport
 import kotlin.coroutines.cancellation.CancellationException
 import kotlinx.coroutines.test.runTest
+import kotlinx.serialization.json.JsonPrimitive
+import kotlinx.serialization.json.jsonObject
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
 import org.junit.Assert.assertNotNull
@@ -267,6 +269,43 @@ class AccountEdgeCasesTest {
         val privacy = PrivacyViewModel(repository(transport))
         privacy.show("searchable", PrivacyValue.Flag(true))
         assertTrue(PrivacyUiState().checkupSections.isEmpty())
+    }
+
+    @Test
+    fun aComplaintFromTheLockScreenNeedsADecisionAndShowsEveryRefusal() = runTest {
+        val transport = StubTransport()
+        val suspension = SuspensionViewModel(repository(transport), session(transport, backgroundScope))
+        suspension.setComplaintReason("Falsch verstanden.")
+        suspension.complain()
+        transport.stub("GET", "suspension", SUSPENSION)
+        suspension.load()
+        suspension.complain()
+        transport.stub("GET", "suspension", SUSPENSION.replace("}}", ""","complaint":{"decision_id":null,"allowed":false}}}"""))
+        suspension.load()
+        suspension.complain()
+        assertTrue("without a decision nothing goes out", transport.requests.none { it.request.method == "POST" })
+
+        val withCase = ""","complaint":{"decision_id":7,"deadline":"2026-11-22T10:00:00.000000Z","allowed":true,"submitted_at":null}}}"""
+        transport.stub("GET", "suspension", SUSPENSION.replace("}}", withCase))
+        suspension.load()
+        assertEquals(7, suspension.ui.value.state.valueOrNull?.complaint?.decisionId)
+        transport.stub("POST", "complaints/7", """{"message":"x","errors":{"reason":["Bitte begründe die Beschwerde."]}}""", status = 422)
+        suspension.complain()
+        assertEquals("Bitte begründe die Beschwerde.", suspension.ui.value.complaintError)
+        transport.stub("POST", "complaints/7", """{"message":"Too Many Attempts."}""", status = 429)
+        suspension.complain()
+        assertNull("a new attempt clears the field's refusal", suspension.ui.value.complaintError)
+        assertEquals("Zu viele Beschwerden. Bitte versuche es in einer Minute erneut.", suspension.ui.value.error)
+        suspension.dismissError()
+        transport.stub("POST", "complaints/7", serverError, status = 500)
+        suspension.complain()
+        assertNotNull(suspension.ui.value.error)
+        assertFalse(suspension.ui.value.complaintSubmitted)
+        transport.stub("POST", "complaints/7", "{}")
+        suspension.complain()
+        assertTrue(suspension.ui.value.complaintSubmitted)
+        assertEquals("Danke, deine Beschwerde ist da.", suspension.ui.value.message)
+        assertEquals(JsonPrimitive("Falsch verstanden."), transport.lastBody("complaints/7")?.jsonObject?.get("reason"))
     }
 
     @Test
