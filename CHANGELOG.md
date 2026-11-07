@@ -18,6 +18,17 @@ Ab 22. Oktober 2026: Seitdem trägt jede Änderung in allen drei Projekten den V
 
 Was dabei gleich bleibt: Ein Mensch entscheidet, was in Oasis kommt, beauftragt jede Runde und prüft sie. Jede Änderung wird durch automatische Tests abgesichert, bevor sie ausgeliefert wird.
 
+## 0.27.0 – 2026-11-07 – Startklar
+
+Die Rechtstexte sind final, der Datenexport ist vollständig, App-Anmeldungen laufen nach 90 Tagen ohne Nutzung ab, und das Moderationsteam bekommt Vertretung und Fristen-Erinnerung.
+
+- **Neu:** Dein Datenexport enthält jetzt alles, was wir über dich speichern: auch Reaktionen, blockierte und stummgeschaltete Personen, Hinweise und ihre Einstellungen, Einladungen, Zahlungen mit Rechnungsnummern, App-Anmeldungen, Begleitplätze, Treffen, Ideen und Sammlungen.
+- **Neu:** Das Moderationsteam kann Abwesenheit eintragen, sieht überfällige Fälle und wird erinnert, wenn ein Fall länger als 48 Stunden offen ist. Beschwerden gegen Entscheidungen des Betreibers prüft immer eine andere Person.
+- **Verbessert:** Die Rechtstexte gelten jetzt endgültig; der Hinweis „Entwurf“ ist von allen Seiten verschwunden, jede Seite zeigt ihr Datum.
+- **Verbessert:** Eine App-Anmeldung, die 90 Tage nicht benutzt wurde, läuft ab; die App meldet dich dann ab. Push-Geräte ohne Zustellung seit 90 Tagen werden entfernt. So steht es jetzt auch in der Datenschutzerklärung.
+- **Verbessert:** Ein Begleitplatz bei einem Mäzen endet, wenn die Mäzen-Mitgliedschaft endet; wir halten den Zeitpunkt fest, und für das Konto gilt ab dann die normale Frist.
+- **Entfernt:** Die Datenbanktabellen der früheren Abstimmungen sind gelöscht; Umfragen in Tropfen und Ideen bleiben.
+
 ## 0.26.0 – 2026-11-07 – Was drinsteht, gilt
 
 Jede Zusage unserer AGB, Datenschutzerklärung und Regeln ist jetzt im Code eingelöst und durch Tests belegt. Dazu neu: Beitragsstufe selbst ändern, Oasen-Texte werden bei Verdacht geprüft, Rechtstexte tragen ihr Datum.
