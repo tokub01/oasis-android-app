@@ -184,7 +184,7 @@ class CollectionsAndCapsulesTest(private val answersAtOnce: Boolean) {
             stub(
                 "POST",
                 "network/collections/6/posts",
-                """{"message":"x","errors":{"post_id":["Der Tropfen ist schon in dieser Sammlung."]}}""",
+                """{"message":"x","errors":{"post_id":["Der Post ist schon in dieser Sammlung."]}}""",
                 422
             )
         )
@@ -300,7 +300,7 @@ class CollectionsAndCapsulesTest(private val answersAtOnce: Boolean) {
             invitationLine(invitation)
         )
         assertEquals(
-            "Geht auf am 24. Dezember 2026 um 18:00 Uhr in der Oase Stadtgarten",
+            "Geht auf am 24. Dezember 2026 um 18:00 Uhr in der Crowd Stadtgarten",
             invitationLine(
                 invitation.copy(oasis = de.velwebsolutions.oasis.network.api.NamedOasis("garten", "Stadtgarten"), contributeUntil = null)
             )
@@ -427,7 +427,7 @@ fun decodeInvitation(json: String) = de.velwebsolutions.oasis.core.network.Oasis
 )
 
 fun capsulesJson(available: Boolean = true) = """
-    {"data":{"available":$available,"locked_message":"Zeitkapseln gibt es ab Oase.","max_length":500,"max_waiting":50,"max_years":10,
+    {"data":{"available":$available,"locked_message":"Zeitkapseln gibt es ab Mittendrin.","max_length":500,"max_waiting":50,"max_years":10,
     "oases":[{"id":2,"slug":"garten","name":"Stadtgarten"}],
     "waiting":[{"id":8,"body":"Für uns alle","opens_at":"2026-12-24T17:00:00Z","oasis":null,
     "shared":{"contribute_until":"2026-12-24T16:00:00Z","invitees":[{"member":${memberJson(2, "jonas")},"status":"contributed"},

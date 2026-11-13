@@ -596,7 +596,7 @@ private fun EmptyChats(people: List<ChatSuggestion>, canParticipate: Boolean, on
     Column(Modifier.fillMaxWidth().testTag("chat.list.empty"), verticalArrangement = Arrangement.spacedBy(16.dp)) {
         Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
             Text("Noch keine Chats", style = OasisType.heading(21), color = OasisColors.Night, modifier = Modifier.semantics { heading() })
-            Text("Schreib jemandem aus deinen Oasen.", style = OasisType.Body, color = OasisColors.Ink2)
+            Text("Schreib jemandem aus deinen Crowds.", style = OasisType.Body, color = OasisColors.Ink2)
         }
         people.forEach { person -> SuggestionRow(person, canParticipate, onWrite) }
         if (canParticipate) {

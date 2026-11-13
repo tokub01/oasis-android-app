@@ -150,7 +150,7 @@ data class MapRegion(val code: String, val name: String, val oasesCount: Int = 0
     data class Tile(val x: Int, val y: Int)
 
     /** „Bayern: 3 Oasen“. */
-    val accessibleName: String get() = "$name: ${if (oasesCount == 1) "1 Oase" else "$oasesCount Oasen"}"
+    val accessibleName: String get() = "$name: ${if (oasesCount == 1) "1 Crowd" else "$oasesCount Crowds"}"
 }
 
 /** The confirmation page before closing an oasis. */

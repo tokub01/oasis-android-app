@@ -107,7 +107,7 @@ class FeedEndTest {
         model.loadMore()
         assertNotNull(model.state.value.loadMoreError)
         assertEquals("abc", model.state.value.nextCursor)
-        network.add("GET", "network/bookmarks", json = """{"data":[{"id":"kein Tropfen"}]}""")
+        network.add("GET", "network/bookmarks", json = """{"data":[{"id":"kein Post"}]}""")
         model.loadMore()
         assertNull(model.state.value.loadMoreError)
         assertTrue(model.state.value.reachedEnd)

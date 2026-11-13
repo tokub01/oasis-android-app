@@ -156,7 +156,7 @@ class SeenAndMemoriesTest {
             }
         }
         compose.onNodeWithTag("network.page").performScrollToNode(hasTestTag("source.seen"))
-        compose.onNodeWithText("Noch keine Tropfen.", substring = true).assertDoesNotExist()
+        compose.onNodeWithText("Noch keine Posts.", substring = true).assertDoesNotExist()
     }
 
     private fun capture(name: String) {

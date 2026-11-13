@@ -133,9 +133,9 @@ fun OasisMapScreen(
             NetworkPage(onRefresh = viewModel::load) {
                 block("header") {
                     PageHeader(
-                        "Karte der Oasen",
-                        eyebrow = "Oasen",
-                        lead = "Wo Oasen zu Hause sind – so, wie ihre Gastgeber:innen es angeben. Eine selbst gezeichnete Übersicht nach " +
+                        "Karte der Crowds",
+                        eyebrow = "Crowds",
+                        lead = "Wo Crowds zu Hause sind – so, wie ihre Gastgeber:innen es angeben. Eine selbst gezeichnete Übersicht nach " +
                             "Bundesländern, ohne Kartendienst und ohne genaue Orte."
                     )
                 }
@@ -152,7 +152,7 @@ fun OasisMapScreen(
                 }
                 block("list") { RegionOases(chosen?.let { regionName(tiles, it) }, oases) }
                 block("hint") {
-                    SideCard("Deine Oase auf der Karte", tone = PanelTone.Dune) {
+                    SideCard("Deine Crowd auf der Karte", tone = PanelTone.Dune) {
                         Text(
                             "Gastgeber:innen tragen unter „Bearbeiten“ ein Bundesland und, wenn sie mögen, einen Ort ein. Mehr nicht: " +
                                 "keine Adressen, keine Koordinaten.",
@@ -173,7 +173,7 @@ internal fun RegionTiles(regions: List<MapRegion>, chosen: String?, onChoose: (S
         Modifier
             .fillMaxWidth()
             .aspectRatio(1f)
-            .semantics { contentDescription = "Bundesländer mit der Zahl ihrer Oasen" }
+            .semantics { contentDescription = "Bundesländer mit der Zahl ihrer Crowds" }
             .testTag("map.tiles"),
         contentAlignment = Alignment.TopCenter
     ) {
@@ -234,15 +234,15 @@ private fun RegionOases(name: String?, oases: Loadable<List<OasisSummary>>) {
     val navigator = LocalNavigator.current
     Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
         if (name == null) {
-            Text("Wähle ein Bundesland, um seine Oasen zu sehen.", style = OasisType.Body, color = OasisColors.Ink2)
+            Text("Wähle ein Bundesland, um seine Crowds zu sehen.", style = OasisType.Body, color = OasisColors.Ink2)
             return@Column
         }
-        SectionTitle("Oasen in $name")
+        SectionTitle("Crowds in $name")
         when (oases) {
             is Loadable.Failed -> Text(oases.error.userMessage, style = OasisType.Body, color = OasisColors.SunText)
 
             is Loadable.Loaded -> {
-                if (oases.value.isEmpty()) DashedNote("In $name hat noch keine Oase ihr Zuhause angegeben.")
+                if (oases.value.isEmpty()) DashedNote("In $name hat noch keine Crowd ihr Zuhause angegeben.")
                 oases.value.forEach { oasis ->
                     Column(
                         Modifier

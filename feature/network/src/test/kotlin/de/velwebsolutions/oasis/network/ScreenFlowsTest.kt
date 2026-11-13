@@ -173,7 +173,7 @@ class ScreenFlowsTest {
         Appearance.show(AppearanceChoice.Dark)
         try {
             show(ScreenChrome()) { SourceScreen(model) }
-            text("Tropfen 3").assertIsDisplayed()
+            text("Post 3").assertIsDisplayed()
             capture("source-dark")
         } finally {
             Appearance.show(AppearanceChoice.Automatic)
@@ -191,7 +191,7 @@ class ScreenFlowsTest {
         show(ScreenChrome()) { SourceScreen(model) }
         text("Gerade kannst du nichts veröffentlichen. Prüf deine Mitgliedschaft.").assertIsDisplayed()
         compose.onNodeWithTag("source.compose").assertDoesNotExist()
-        text("Noch hat niemand etwas geteilt. Schreib den ersten Tropfen!").assertIsDisplayed()
+        text("Noch hat niemand etwas geteilt. Schreib den ersten Post!").assertIsDisplayed()
     }
 
     @Test
@@ -209,7 +209,7 @@ class ScreenFlowsTest {
         val bookmarks = StubbedNetwork(stub("GET", "network/bookmarks", pageJson()))
         val model2 = models.keep(BookmarksViewModel(bookmarks.repository))
         switchTo { BookmarksScreen(model2) }
-        text("Du hast dir noch keine Tropfen gemerkt.", substring = true).assertIsDisplayed()
+        text("Du hast dir noch keine Posts gemerkt.", substring = true).assertIsDisplayed()
         text("Konten verwalten").performClick()
         capture("bookmarks")
     }
@@ -222,7 +222,7 @@ class ScreenFlowsTest {
         )
         val model3 = models.keep(TagViewModel("garten", network.repository))
         show { TagScreen("Garten", model3) }
-        text("Den ersten Tropfen schreiben").performClick()
+        text("Den ersten Post schreiben").performClick()
         assertEquals(NetworkRoute.Compose(), navigator.sheet)
         capture("tag")
     }
@@ -279,11 +279,11 @@ class ScreenFlowsTest {
         switchTo { OasisDetailScreen("stadtgarten", model8) }
         text("Du bist in Mitgliederlisten für niemanden sichtbar.").assertIsDisplayed()
         capture("oasis")
-        compose.onNodeWithContentDescription("Tropfen in Stadtgarten schreiben").performClick()
+        compose.onNodeWithContentDescription("Post in Stadtgarten schreiben").performClick()
         assertEquals(NetworkRoute.Compose(oasisSlug = "stadtgarten"), navigator.sheet)
         navigator.dismissSheet()
         text("Gefolgt ✓").performClick()
-        text("Der Oase „Stadtgarten“ nicht mehr folgen?").assertIsDisplayed()
+        text("Der Crowd „Stadtgarten“ nicht mehr folgen?").assertIsDisplayed()
         compose.onNodeWithTag("dialog.cancel").performClick()
     }
 
@@ -325,7 +325,7 @@ class ScreenFlowsTest {
         val model11 = models.keep(CloseOasisViewModel("stadtgarten", network.repository))
         show { CloseOasisScreen("stadtgarten", model11) }
         text("„Stadtgarten“ schließen?").assertIsDisplayed()
-        text("Die Oase verschwindet für alle 1 Mitglied.").assertIsDisplayed()
+        text("Die Crowd verschwindet für alle 1 Mitglied.").assertIsDisplayed()
         compose.onNodeWithTag("closeOasis.confirm").performClick()
         capture("oasis-close")
 
@@ -357,7 +357,7 @@ class ScreenFlowsTest {
 
         val edit = models.keep(EditPostViewModel(12, network.repository))
         switchTo { EditPostScreen(12, edit) }
-        text("Tropfen bearbeiten").assertIsDisplayed()
+        text("Post bearbeiten").assertIsDisplayed()
         compose.onNode(hasSetTextAction()).performTextInput(" Welt")
         compose.waitForIdle()
         compose.onNodeWithContentDescription("Zurück").performClick()
@@ -378,7 +378,7 @@ class ScreenFlowsTest {
         val model = models.keep(network.composer("sheet-test"))
         navigator.present(NetworkRoute.Compose(oasisSlug = "sheet-test"))
         show(ScreenChrome(onClose = { navigator.dismissSheet() })) { ComposeScreen("sheet-test", null, model) }
-        text("Tropfen schreiben").assertIsDisplayed()
+        text("Post schreiben").assertIsDisplayed()
         compose.onNode(hasSetTextAction()).performTextInput("Entwurf")
         compose.waitForIdle()
         compose.onNodeWithTag("compose.close").performClick()

@@ -382,14 +382,14 @@ class OasisFormViewModel @AssistedInject constructor(@Assisted val slug: String?
             }
         } else {
             mutableState.update { it.copy(banner = upload) }
-            mutableStatus.value = "Das Banner wird mit der Oase gespeichert."
+            mutableStatus.value = "Das Banner wird mit der Crowd gespeichert."
         }
     }
 
     suspend fun removeBanner() {
         mutableState.update { it.copy(banner = null) }
         if (slug == null) {
-            mutableStatus.value = "Das Banner ist entfernt. Jetzt zeigen wir wieder die Farbe der Oase."
+            mutableStatus.value = "Das Banner ist entfernt. Jetzt zeigen wir wieder die Farbe der Crowd."
             return
         }
         if (confirm { repository.removeBanner(slug) }) {

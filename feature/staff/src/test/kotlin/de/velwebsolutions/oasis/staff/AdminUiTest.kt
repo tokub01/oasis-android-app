@@ -90,7 +90,7 @@ class AdminUiTest {
         val viewModel = AdminDashboardViewModel(repository)
         ui.show { AdminDashboardScreen(viewModel) }
         compose.onNodeWithText("Nächster Monat ›").assertDoesNotExist()
-        compose.onNodeWithText("Oase: ", substring = true).assertDoesNotExist()
+        compose.onNodeWithText("Mittendrin: ", substring = true).assertDoesNotExist()
     }
 
     private val mollieRecord: PaymentRecord get() = Decoded.payments.data.first().copy(
@@ -122,7 +122,7 @@ class AdminUiTest {
         compose.onNodeWithText("Schließen").performClick()
 
         val payment = MolliePayment(
-            "tr_1", "paid", "5.00", "1.00", "creditcard", "Oase", "2026-10-19T15:39:37+00:00", null, "cst_1", "sub_1",
+            "tr_1", "paid", "5.00", "1.00", "creditcard", "Mittendrin", "2026-10-19T15:39:37+00:00", null, "cst_1", "sub_1",
             "https://my.mollie.com/tr_1"
         )
         repository.mollie = Result.success(MollieLookup(MollieLookup.Data("payment", payment = payment)))

@@ -122,7 +122,7 @@ class TierScreensTest {
         text("Bis zu 50 Zeitkapseln können gleichzeitig warten.")
         // Datenschutzerklärung Abschnitt 15: the check runs while sealing (ManageTimeCapsules) and again when opening.
         text(
-            "Beim Versiegeln und beim Aufgehen prüfen wir sie wie jeden Tropfen. " +
+            "Beim Versiegeln und beim Aufgehen prüfen wir sie wie jeden Post. " +
                 "Läuft deine Mitgliedschaft beim Aufgehen nicht, bleibt sie zu."
         )
 
@@ -132,7 +132,7 @@ class TierScreensTest {
         compose.onNodeWithTag("datetime.next").performClick()
         compose.onNodeWithTag("datetime.done").performClick()
         compose.onNodeWithTag("capsule.place").performClick()
-        text("in der Oase Stadtgarten").performClick()
+        text("in der Crowd Stadtgarten").performClick()
         compose.settle { model.draft.value.oasisId == 2 }
         compose.onNodeWithTag("capsule.seal").performClick()
         text("Deine Zeitkapsel ist versiegelt.")
@@ -186,7 +186,7 @@ class TierScreensTest {
         val lockedModel = models.keep(TimeCapsulesViewModel(locked.repository))
         show { TimeCapsulesScreen(lockedModel) }
         text("AB OASE")
-        text("Schreib heute einen Tropfen, der erst an einem Tag deiner Wahl erscheint", substring = true)
+        text("Schreib heute einen Post, der erst an einem Tag deiner Wahl erscheint", substring = true)
         text("Mitgliedschaft ansehen").performClick()
         assertEquals(MembershipRoute.Overview, navigator.stack(MainTab.Profile).last())
 
@@ -265,7 +265,7 @@ class TierScreensTest {
         )
         val model = models.keep(YearbookViewModel(null, network.repository))
         show { YearbookScreen(null, model) }
-        text("2 Tropfen · 1 Foto · in 1 Oase")
+        text("2 Posts · 1 Foto · in 1 Crowd")
         text("Oktober")
         text("Rad & Werkstatt", substring = true)
         text("1 Reaktion · 2 Antworten")
@@ -274,7 +274,7 @@ class TierScreensTest {
         assertEquals(listOf("http://localhost/app/jahrbuch/2026"), web)
 
         compose.onNodeWithTag("yearbook.year.2025").performClick()
-        text("In 2025 hast du noch keine Tropfen geteilt. Was du schreibst, landet hier.")
+        text("In 2025 hast du noch keine Posts geteilt. Was du schreibst, landet hier.")
     }
 
     @Test
@@ -290,14 +290,14 @@ class TierScreensTest {
         show { YearbookScreen(2024, book) }
         text("Dein Jahrbuch")
         text("AB OASE")
-        text("Deine Tropfen und Fotos eines Jahres", substring = true)
+        text("Deine Posts und Fotos eines Jahres", substring = true)
 
         switchTo { StatisticsScreen(numbers) }
         text("Mitgliedschaft ansehen")
         text("Deine Zahlen")
 
         switchTo { OasisStatisticsScreen("stadtgarten", host) }
-        text("Statistik deiner Oase")
+        text("Statistik deiner Crowd")
         text("Mitgliedschaft ansehen").performClick()
         assertTrue(MembershipRoute.Overview in navigator.stack(MainTab.Profile))
     }

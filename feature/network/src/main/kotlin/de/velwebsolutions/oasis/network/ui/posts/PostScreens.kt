@@ -133,7 +133,7 @@ fun ComposeScreen(
 private fun ComposePage(state: ComposeUiState, viewModel: ComposeViewModel, onClose: () -> Unit, onPublished: () -> Unit) {
     val navigator = LocalNavigator.current
     OasisScreen(
-        title = if (state.isReply) "Antworten" else "Tropfen schreiben",
+        title = if (state.isReply) "Antworten" else "Post schreiben",
         closesItself = true,
         navigationAction = {
             if (navigator.sheet != null) {
@@ -221,11 +221,11 @@ fun CarryScreen(
 const val QUOTE_CARRY_LEAD = "Magst du ein paar eigene Worte dazuschreiben? Warum ist das wichtig?"
 
 /** The lead of the carry page when own words would be an answer the member may not give. */
-const val PLAIN_CARRY_LEAD = "Teile den Tropfen mit den Menschen, die dir folgen."
+const val PLAIN_CARRY_LEAD = "Teile den Post mit den Menschen, die dir folgen."
 
 /** Why the carry page has no text field. */
 fun plainCarryNote(author: String): String =
-    "$author lässt nicht alle antworten. Du kannst den Tropfen deshalb nur ohne eigene Worte weitertragen."
+    "$author lässt nicht alle antworten. Du kannst den Post deshalb nur ohne eigene Worte weitertragen."
 
 /**
  * "Tropfen bearbeiten" (/tropfen/{id}/bearbeiten): the text within the edit window; images and audience stay. A changed
@@ -262,8 +262,8 @@ private fun EditPostPage(viewModel: EditPostViewModel, form: Loadable<PostEditFo
             NetworkPage {
                 block {
                     PageHeader(
-                        "Tropfen bearbeiten",
-                        eyebrow = "Tropfen",
+                        "Post bearbeiten",
+                        eyebrow = "Post",
                         lead = "Du kannst den Text bis ${GermanTime.format(
                             loaded.until,
                             "HH:mm"
@@ -275,7 +275,7 @@ private fun EditPostPage(viewModel: EditPostViewModel, form: Loadable<PostEditFo
                         val failure = error
                         if (failure != null && failure.message("body") == null) Banner(failure.userMessage)
                         OasisTextField(
-                            "Dein Tropfen",
+                            "Dein Post",
                             text,
                             viewModel::updateText,
                             error = failure?.message("body"),
@@ -301,7 +301,7 @@ private fun EditPostPage(viewModel: EditPostViewModel, form: Loadable<PostEditFo
                 block {
                     SideCard("Offen für alle", tone = PanelTone.Dune) {
                         Text(
-                            "Wer deinen Tropfen lesen darf, sieht, dass er bearbeitet wurde, und kann frühere Fassungen aufklappen. So " +
+                            "Wer deinen Post lesen darf, sieht, dass er bearbeitet wurde, und kann frühere Fassungen aufklappen. So " +
                                 "bleibt nachvollziehbar, worauf andere geantwortet haben."
                         )
                     }
@@ -343,7 +343,7 @@ fun PostDetailScreen(
     LaunchedEffect(leave) { if (leave) navigator.back() }
 
     OasisScreen(
-        title = "Tropfen",
+        title = "Post",
         message = status,
         error = error?.userMessage,
         onDismissMessage = viewModel::dismissStatus,
@@ -431,7 +431,7 @@ fun PostDetailContent(
                 ) {
                     Text(
                         buildAnnotatedString {
-                            append("Antworten kann hier, wer der Oase folgt. ")
+                            append("Antworten kann hier, wer der Crowd folgt. ")
                             withStyle(SpanStyle(fontWeight = FontWeight.Bold, textDecoration = TextDecoration.Underline)) {
                                 append("Zu „${oasis.name}“")
                             }
@@ -456,7 +456,7 @@ fun PostDetailContent(
         }
         if (oasis != null) {
             block("side.oasis") {
-                SideCard("In der Oase") {
+                SideCard("In der Crowd") {
                     Row(
                         Modifier.clickable(role = Role.Button) { navigator.open(NetworkRoute.Oasis(oasis.slug)) }.padding(vertical = 4.dp),
                         horizontalArrangement = Arrangement.spacedBy(12.dp),
@@ -471,7 +471,7 @@ fun PostDetailContent(
         }
         block("side.quiet") {
             SideCard("Leise Zahlen", tone = PanelTone.Dune) {
-                Text("Wie viele reagiert haben, sieht nur, wer den Tropfen geschrieben hat. So zählt, was gesagt wird – nicht, wie laut.")
+                Text("Wie viele reagiert haben, sieht nur, wer den Post geschrieben hat. So zählt, was gesagt wird – nicht, wie laut.")
             }
         }
     }

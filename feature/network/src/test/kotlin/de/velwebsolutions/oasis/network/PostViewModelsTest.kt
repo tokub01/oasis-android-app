@@ -231,7 +231,7 @@ class PostViewModelsTest(private val answersAtOnce: Boolean) {
         assertEquals(listOf(2), bookmarks.list.posts.map { it.id })
         assertEquals(true, tag.list.state.value.context?.canPost)
 
-        NetworkSignals.didPublish(decodePost(postJson(8)), "Dein Tropfen ist da.")
+        NetworkSignals.didPublish(decodePost(postJson(8)), "Dein Post ist da.")
         eventually { network.transport.requests.size == 6 }
         assertEquals(0, discover.scrollToTop.value)
     }
@@ -249,11 +249,11 @@ class PostViewModelsTest(private val answersAtOnce: Boolean) {
         eventually { model.list.posts.isNotEmpty() }
         assertEquals("alle", network.last("network/source").request.url.queryParameter("view"))
 
-        NetworkSignals.didPublish(decodePost(postJson(8, visibility = "friends")), "Dein Tropfen ist da.")
+        NetworkSignals.didPublish(decodePost(postJson(8, visibility = "friends")), "Dein Post ist da.")
         eventually { network.transport.requests.size == 2 && !model.list.state.value.isReloading }
         assertEquals(listOf(3), model.list.posts.map { it.id })
         // Whatever its visibility: the server decides what Ganz Oasis lists (the web's refresh).
-        NetworkSignals.didPublish(decodePost(postJson(9)), "Dein Tropfen ist da.")
+        NetworkSignals.didPublish(decodePost(postJson(9)), "Dein Post ist da.")
         eventually { network.transport.requests.size == 3 && !model.list.state.value.isReloading }
         assertEquals(listOf(3), model.list.posts.map { it.id })
     }
@@ -291,7 +291,7 @@ class PostViewModelsTest(private val answersAtOnce: Boolean) {
         )
         assertNull(CardConfirmation.Delete.message)
         assertEquals("Blockieren bestätigen", CardConfirmation.Block.button)
-        assertEquals("Wirklich aus der Oase entfernen?", CardConfirmation.RemoveFromOasis.title)
+        assertEquals("Wirklich aus der Crowd entfernen?", CardConfirmation.RemoveFromOasis.title)
         assertEquals("Noch hat niemand geantwortet", answeredLabel(0))
         assertEquals("1 Mensch hat geantwortet", answeredLabel(1))
         assertEquals("3 Menschen haben geantwortet", answeredLabel(3))

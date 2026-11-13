@@ -14,7 +14,7 @@ import de.velwebsolutions.oasis.live.R
 
 /** The notification channel of a push: the member silences hints and chat messages separately in Android's settings. */
 enum class PushChannel(val id: String, val title: String, val description: String) {
-    Hints("hints", "Hinweise", "Neue Hinweise aus Mildcrowd – nie mit dem Text eines Tropfens."),
+    Hints("hints", "Hinweise", "Neue Hinweise aus Mildcrowd – nie mit dem Text eines Posts."),
     Chat("chat", "Chats", "Neue Chat-Nachrichten – nie mit dem Text einer Nachricht.")
 }
 

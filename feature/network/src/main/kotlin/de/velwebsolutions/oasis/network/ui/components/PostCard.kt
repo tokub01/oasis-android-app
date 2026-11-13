@@ -144,7 +144,7 @@ fun PostCard(
                             .onSizeChanged { cardHeight = with(density) { it.height.toDp() } }
                             .pointerInput(post.id) { detectTapGestures(onLongPress = openMenuAt) }
                             .semantics {
-                                onLongClick("Aktionen zum Tropfen") {
+                                onLongClick("Aktionen zum Post") {
                                     pressedAt = DpOffset.Zero
                                     contextMenu = true
                                     true
@@ -177,7 +177,7 @@ fun PostCard(
                 }
             }
             if (post.removedFromOasis) {
-                Banner("Die Gastgeber:innen haben diesen Tropfen aus der Oase entfernt. Nur du siehst ihn noch.", kind = BannerKind.Info)
+                Banner("Die Gastgeber:innen haben diesen Post aus der Crowd entfernt. Nur du siehst ihn noch.", kind = BannerKind.Info)
             }
             post.held?.let { HeldNotice(it) }
             if (!post.isPlainCarry) RichTextView(post.segments)
@@ -241,7 +241,7 @@ enum class CardConfirmation(val action: PostAction, val title: String, val butto
     Block(PostAction.Block, "Wirklich blockieren?", "Blockieren bestätigen", "Ihr verliert gegenseitige Follows."),
     RemoveFromOasis(
         PostAction.RemoveFromOasis,
-        "Wirklich aus der Oase entfernen?",
+        "Wirklich aus der Crowd entfernen?",
         "Entfernen bestätigen",
         "Danach sieht ihn nur noch die Person, die ihn geschrieben hat."
     )
@@ -302,7 +302,7 @@ private fun ReplyContext(post: Post) {
                 .padding(vertical = 12.dp)
         )
     } else if (post.replyUnavailable) {
-        Text("Antwort auf einen Tropfen, der nicht mehr verfügbar ist", style = OasisType.Small, color = OasisColors.Muted)
+        Text("Antwort auf einen Post, der nicht mehr verfügbar ist", style = OasisType.Small, color = OasisColors.Muted)
     }
 }
 
@@ -341,7 +341,7 @@ internal fun metaParts(post: Post, isDetail: Boolean, open: (NetworkRoute) -> Un
         MetaPart(fullDate(post.createdAt))
     } else {
         val relative = RelativeTime.format(post.createdAt)
-        MetaPart(relative, tag = "post.open", description = "Zum Tropfen, $relative") { open(NetworkRoute.Post(post.id)) }
+        MetaPart(relative, tag = "post.open", description = "Zum Post, $relative") { open(NetworkRoute.Post(post.id)) }
     },
     MetaPart("bearbeitet").takeIf { post.editedAt != null },
     MetaPart("nur Mitglieder", description = "nur für Mitglieder").takeIf { post.isMembersOnly }
@@ -385,7 +385,7 @@ private fun PostMenu(post: Post, viewer: Post.Viewer, run: (PostAction) -> Unit,
                 .size(44.dp)
                 .clip(CircleShape)
                 .clickable(role = Role.Button) { open = true }
-                .semantics { contentDescription = "Weitere Aktionen zum Tropfen von ${post.author.displayName}" }
+                .semantics { contentDescription = "Weitere Aktionen zum Post von ${post.author.displayName}" }
                 .testTag("post.menu"),
             contentAlignment = Alignment.Center
         ) {
@@ -421,7 +421,7 @@ private fun MenuItems(
         }
         if (viewer.canRemoveFromOasis) {
             add(
-                MenuEntry("Aus Oase entfernen …", destructive = true) {
+                MenuEntry("Aus Crowd entfernen …", destructive = true) {
                     onConfirm(CardConfirmation.RemoveFromOasis)
                 }
             )
@@ -541,7 +541,7 @@ private fun ActionRow(post: Post, viewer: Post.Viewer, run: (PostAction) -> Unit
             if (viewer.bookmarked) OasisColors.SpringText else OasisColors.Night,
             "post.bookmark",
             isOn = viewer.bookmarked,
-            label = if (viewer.bookmarked) "Aus Merkliste entfernen" else "Tropfen merken"
+            label = if (viewer.bookmarked) "Aus Merkliste entfernen" else "Post merken"
         ) { run(if (viewer.bookmarked) PostAction.Unbookmark else PostAction.Bookmark) }
     }
 }
@@ -637,7 +637,7 @@ private fun HeldNotice(held: Post.Held) {
     ) {
         Text("Zurückgehalten und dem Moderationsteam gemeldet", style = OasisType.SmallBold, color = OasisColors.Night)
         Text(
-            "Unsere automatische Prüfung hat in diesem Tropfen möglicherweise ${held.reason} erkannt. Bis ein Mensch aus dem " +
+            "Unsere automatische Prüfung hat in diesem Post möglicherweise ${held.reason} erkannt. Bis ein Mensch aus dem " +
                 "Moderationsteam ihn geprüft hat, siehst nur du ihn – in der Regel innerhalb von ${held.reviewHours} Stunden.",
             style = OasisType.Small,
             color = OasisColors.Ink
@@ -732,11 +732,11 @@ private fun CoveredImage(image: Post.Image, modifier: Modifier, reveal: () -> Un
 private fun CarriedView(carried: Post.Carried) {
     when (carried.state) {
         Post.Carried.State.Muted -> DashedNote {
-            Text("Tropfen einer stummgeschalteten Person.", style = OasisType.Small, color = OasisColors.Muted)
+            Text("Post einer stummgeschalteten Person.", style = OasisType.Small, color = OasisColors.Muted)
         }
 
         Post.Carried.State.Unavailable -> DashedNote {
-            Text("Dieser Tropfen ist nicht mehr verfügbar.", style = OasisType.Small, color = OasisColors.Muted)
+            Text("Dieser Post ist nicht mehr verfügbar.", style = OasisType.Small, color = OasisColors.Muted)
         }
 
         // Visible: the original, when the server sent it.

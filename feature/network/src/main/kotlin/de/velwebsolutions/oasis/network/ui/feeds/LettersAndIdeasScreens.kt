@@ -117,7 +117,7 @@ internal fun WeeklyLetterContent(
     NetworkPage(onRefresh = onRefresh) {
         block("header") {
             PageHeader(
-                "Dein Oasen-Wochenbrief",
+                "Dein Crowd-Wochenbrief",
                 eyebrow = "Einmal in der Woche",
                 lead = letter?.let {
                     letterWeek(it.weekStart, it.weekEnd)
@@ -125,7 +125,7 @@ internal fun WeeklyLetterContent(
             )
         }
         if (letter == null) {
-            block("none") { DashedNote("Noch kein Wochenbrief. Er kommt sonntags am Abend, wenn in deinen Oasen etwas los war.") }
+            block("none") { DashedNote("Noch kein Wochenbrief. Er kommt sonntags am Abend, wenn in deinen Crowds etwas los war.") }
         } else if (letter.oases.isEmpty()) {
             block("gone") { Text("Was in diesem Wochenbrief stand, ist nicht mehr da.", style = OasisType.Body, color = OasisColors.Ink2) }
         }
@@ -310,7 +310,7 @@ private fun IdeasPage(ideas: List<Idea>, nextPage: Int?, viewModel: IdeasViewMod
                 Bullets(
                     listOf(
                         "Eine Stimme pro Idee, jederzeit zurücknehmbar. Wer gestimmt hat, sieht niemand.",
-                        "Wir prüfen Ideen wie Tropfen. Unpassendes kannst du melden.",
+                        "Wir prüfen Ideen wie Posts. Unpassendes kannst du melden.",
                         "Ändert sich der Stand deiner Idee, bekommst du einen Hinweis."
                     )
                 )

@@ -72,9 +72,9 @@ class OasisMapTest(private val answersAtOnce: Boolean) {
         val regions = decodeRegions()
         assertEquals("Bayern", regionName(regions, "BY"))
         assertEquals("XX", regionName(regions, "XX"))
-        assertEquals("Bayern: 3 Oasen", regions.first { it.code == "BY" }.accessibleName)
-        assertEquals("Bremen: 0 Oasen", regions.first { it.code == "HB" }.accessibleName)
-        assertEquals("Berlin: 1 Oase", regions.first { it.code == "BE" }.accessibleName)
+        assertEquals("Bayern: 3 Crowds", regions.first { it.code == "BY" }.accessibleName)
+        assertEquals("Bremen: 0 Crowds", regions.first { it.code == "HB" }.accessibleName)
+        assertEquals("Berlin: 1 Crowd", regions.first { it.code == "BE" }.accessibleName)
         val broken = StubbedNetwork(stub("GET", "network/regions", """{"message":"x"}""", 500))
         val failing = models.keep(OasisMapViewModel("BY", broken.repository))
         runBlocking { failing.load() }

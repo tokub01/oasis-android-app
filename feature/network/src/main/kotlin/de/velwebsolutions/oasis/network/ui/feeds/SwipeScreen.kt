@@ -285,7 +285,7 @@ private fun EndCard(deck: SwipeDeck) {
                 kind = OasisButtonKind.Accent,
                 fullWidth = false
             )
-            OnNightButton("Oasen entdecken", { navigator.open(NetworkRoute.Oases) }, kind = OnNightKind.Outline)
+            OnNightButton("Crowds entdecken", { navigator.open(NetworkRoute.Oases) }, kind = OnNightKind.Outline)
         }
     }
 }

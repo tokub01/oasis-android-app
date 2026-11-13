@@ -118,7 +118,7 @@ fun TransparencyContent(state: TransparencyUiState, onRefresh: suspend () -> Uni
                 Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
                     Heading("Mildcrowd heute")
                     Figure(page.figures.activeMembers, "Mitglieder mit aktiver Mitgliedschaft")
-                    Figure(page.figures.oases, "Oasen")
+                    Figure(page.figures.oases, "Crowds")
                     Figure(page.figures.ideasDone, "umgesetzte Ideen")
                     Text(
                         "Diese Zahlen zählt der Server selbst und aktualisiert sie laufend.",

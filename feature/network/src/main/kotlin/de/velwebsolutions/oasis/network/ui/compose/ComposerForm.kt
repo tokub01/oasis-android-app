@@ -170,7 +170,7 @@ fun ComposerForm(
         }
         AnimatedVisibility(state.toneNudge) {
             ToneQuestion(
-                text = "Nochmal lesen? Dein Tropfen klingt verletzend. Vielleicht findest du andere Worte. Ist er deutlich beleidigend, " +
+                text = "Nochmal lesen? Dein Post klingt verletzend. Vielleicht findest du andere Worte. Ist er deutlich beleidigend, " +
                     "hetzerisch oder herabsetzend, halten wir ihn nach dem Senden zurück, bis das Moderationsteam ihn geprüft hat.",
                 confirmation = "So senden – ich meine es genau so.",
                 isConfirmed = state.toneConfirmed,
@@ -312,7 +312,7 @@ private fun Options(state: ComposeUiState, callbacks: ComposerCallbacks) {
             )
             // Oasis is members-only: whatever is chosen, no guest or search engine reads a Tropfen (compose.blade.php).
             Text(
-                "Tropfen lesen nur angemeldete Mitglieder, nie Gäste oder Suchmaschinen.",
+                "Posts lesen nur angemeldete Mitglieder, nie Gäste oder Suchmaschinen.",
                 style = OasisType.Caption,
                 color = OasisColors.Muted,
                 modifier = Modifier.testTag("compose.visibilityHint")
@@ -320,8 +320,8 @@ private fun Options(state: ComposeUiState, callbacks: ComposerCallbacks) {
         }
         if (context.kinds.isNotEmpty()) {
             Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
-                Text("Art des Tropfens", style = OasisType.SmallBold, color = OasisColors.Ink)
-                ChoiceMenu("Art des Tropfens", context.kinds, state.kind, callbacks.onKind, Modifier.testTag("compose.kind"))
+                Text("Art des Posts", style = OasisType.SmallBold, color = OasisColors.Ink)
+                ChoiceMenu("Art des Posts", context.kinds, state.kind, callbacks.onKind, Modifier.testTag("compose.kind"))
             }
         }
         (state.fieldError("visibility") ?: state.fieldError("kind"))?.let { FieldError(it) }

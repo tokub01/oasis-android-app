@@ -84,7 +84,7 @@ class OasisHeldUiTest {
     @Test
     fun everyoneElseReadsThePlaceholderWithoutTheNote() {
         val placeholder = held
-            .replace(""""name": "Garten"""", """"name": "Oase in Prüfung"""")
+            .replace(""""name": "Garten"""", """"name": "Crowd in Prüfung"""")
             .replace(""""house_rules": ["Eine"]""", """"house_rules": []""")
         val network = StubbedNetwork(
             stub("GET", "network/oases/garten", placeholder),
@@ -93,7 +93,7 @@ class OasisHeldUiTest {
         )
         val oasis = models.keep(OasisViewModel("garten", network.repository))
         show { OasisDetailScreen("garten", oasis) }
-        waitFor("Oase in Prüfung")
+        waitFor("Crowd in Prüfung")
         compose.onNodeWithTag("oasis.held").assertDoesNotExist()
     }
 }

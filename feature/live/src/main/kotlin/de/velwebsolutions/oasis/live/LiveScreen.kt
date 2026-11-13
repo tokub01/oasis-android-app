@@ -111,7 +111,7 @@ private fun NotificationPrompt(live: LiveCoordinator) {
             title = { Text("Push-Hinweise einschalten?", style = OasisType.heading(), color = OasisColors.Night) },
             text = {
                 Text(
-                    "Ein kurzer Hinweis auf diesem Gerät, wenn es Neues gibt – nie mit dem Text eines Tropfens oder einer Nachricht. " +
+                    "Ein kurzer Hinweis auf diesem Gerät, wenn es Neues gibt – nie mit dem Text eines Posts oder einer Nachricht. " +
                         "Du kannst das jederzeit unter „Hinweise einstellen“ ändern.",
                     style = OasisType.Body,
                     color = OasisColors.Ink2

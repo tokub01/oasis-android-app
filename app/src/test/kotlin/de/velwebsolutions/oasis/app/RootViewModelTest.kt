@@ -64,8 +64,8 @@ class RootViewModelTest {
     @Test
     fun `the confirmation is cleared once shown`() {
         val model = RootViewModel(session, live, purchases)
-        NetworkSignals.confirmation.value = "Dein Tropfen ist da."
-        assertEquals("Dein Tropfen ist da.", model.confirmation.value)
+        NetworkSignals.confirmation.value = "Dein Post ist da."
+        assertEquals("Dein Post ist da.", model.confirmation.value)
         model.clearConfirmation()
         assertNull(NetworkSignals.confirmation.value)
     }

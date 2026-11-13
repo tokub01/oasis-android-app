@@ -104,7 +104,7 @@ class AccountStatesHiltTest : HiltScreenTest() {
         stub(
             "GET",
             "onboarding",
-            """{"data":{"steps":[{"key":"oasen","title":"Oasen"},{"key":"menschen","title":"Menschen"}],"onboarded":true,""" +
+            """{"data":{"steps":[{"key":"oasen","title":"Crowds"},{"key":"menschen","title":"Menschen"}],"onboarded":true,""" +
                 """"oases":[{"id":1,"slug":"garten","name":"Garten","members_count":1,"joined":true}]}}"""
         )
         stub("POST", "onboarding/oases/1", """{"joined":false}""")

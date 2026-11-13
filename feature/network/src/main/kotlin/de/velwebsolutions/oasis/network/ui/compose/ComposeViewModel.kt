@@ -80,7 +80,7 @@ data class ComposeUiState(
             if (isReply) return "Deine Antwort"
             if (isCarry) return "Deine Worte dazu (freiwillig)"
             val name = context.valueOrNull?.oasis?.name
-            return if (name != null) "Dein Tropfen in $name" else "Dein Tropfen"
+            return if (name != null) "Dein Post in $name" else "Dein Post"
         }
 
     val submitLabel: String get() = if (isReply) {
@@ -88,7 +88,7 @@ data class ComposeUiState(
     } else if (isCarry) {
         "Weitertragen"
     } else {
-        "Tropfen teilen"
+        "Post teilen"
     }
 
     fun fieldError(field: String): String? = error?.message(field)

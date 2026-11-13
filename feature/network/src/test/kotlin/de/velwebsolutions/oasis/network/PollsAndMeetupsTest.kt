@@ -164,7 +164,7 @@ class PollsAndMeetupsTest(private val answersAtOnce: Boolean) {
     fun theComposerSendsAPollOnlyInANewOasisTropfen() {
         val network = StubbedNetwork(
             stub("GET", "network/composer", Fixtures.composer),
-            stub("POST", "network/posts", """{"message":"Dein Tropfen ist da.","suspended":false,"data":${postJson(77)}}""", 201)
+            stub("POST", "network/posts", """{"message":"Dein Post ist da.","suspended":false,"data":${postJson(77)}}""", 201)
         )
         val composer = models.keep(network.composer("garten"))
         assertTrue(composer.state.value.canPoll)

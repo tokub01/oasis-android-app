@@ -109,7 +109,7 @@ class ReplyRightsUiTest {
         val parts = metaParts(full, isDetail = false) { opened += it }
         assertEquals(listOf("@u2", "Stadtgarten", parts[2].text, "bearbeitet", "nur Mitglieder"), parts.map { it.text })
         assertEquals(
-            listOf(null, "in Stadtgarten", "Zum Tropfen, ${parts[2].text}", null, "nur für Mitglieder"),
+            listOf(null, "in Stadtgarten", "Zum Post, ${parts[2].text}", null, "nur für Mitglieder"),
             parts.map {
                 it.description
             }

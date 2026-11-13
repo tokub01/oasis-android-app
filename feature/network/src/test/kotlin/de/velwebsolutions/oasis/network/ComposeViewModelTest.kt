@@ -68,7 +68,7 @@ class ComposeViewModelTest(private val answersAtOnce: Boolean) {
     fun `sends the draft as multipart with images and descriptions`() = runTest {
         val network = StubbedNetwork(
             stub("GET", "network/composer", Fixtures.composer),
-            stub("POST", "network/posts", """{"message":"Dein Tropfen ist da.","suspended":false,"data":${postJson(99)}}""", 201)
+            stub("POST", "network/posts", """{"message":"Dein Post ist da.","suspended":false,"data":${postJson(99)}}""", 201)
         )
         val model = composer(network, oasisSlug = "stadtgarten")
         model.load()
@@ -79,7 +79,7 @@ class ComposeViewModelTest(private val answersAtOnce: Boolean) {
         model.updateAlt(0, "Ein Beet")
 
         val result = model.publish()
-        assertEquals("Dein Tropfen ist da.", result?.message)
+        assertEquals("Dein Post ist da.", result?.message)
         assertTrue(model.state.value.body.isEmpty())
         assertEquals("stadtgarten", network.last("network/composer").request.url.queryParameter("oasis"))
         val body = network.last("network/posts").body!!
@@ -90,7 +90,7 @@ class ComposeViewModelTest(private val answersAtOnce: Boolean) {
 
     @Test
     fun `asks again about the tone and sends the confirmation`() = runTest {
-        val question = "Nochmal lesen? Dein Tropfen klingt verletzend. Vielleicht findest du Worte, die dein Gegenüber besser hören kann."
+        val question = "Nochmal lesen? Dein Post klingt verletzend. Vielleicht findest du Worte, die dein Gegenüber besser hören kann."
         val network = StubbedNetwork(
             stub("GET", "network/composer", Fixtures.composer),
             stub("POST", "network/posts", """{"message":"$question","errors":{"body":["$question"]},"tone_question":true}""", 422)
@@ -104,7 +104,7 @@ class ComposeViewModelTest(private val answersAtOnce: Boolean) {
         assertNull(model.state.value.generalError)
 
         model.setToneConfirmed(true)
-        network.add("POST", "network/posts", 201, """{"message":"Dein Tropfen ist da.","suspended":false,"data":${postJson(5)}}""")
+        network.add("POST", "network/posts", 201, """{"message":"Dein Post ist da.","suspended":false,"data":${postJson(5)}}""")
         assertNotNull(model.publish())
         assertTrue(network.last("network/posts").body!!.contains(Regex("name=\"tone_confirmed\"[\\s\\S]*?\r\n\r\n1")))
     }
@@ -204,7 +204,7 @@ class ComposeViewModelTest(private val answersAtOnce: Boolean) {
         val gate = CompletableDeferred<Unit>()
         val network = StubbedNetwork(
             stub("GET", "network/composer", Fixtures.composer),
-            stub("POST", "network/posts", """{"message":"Dein Tropfen ist da.","suspended":false,"data":${postJson(44)}}""", 201)
+            stub("POST", "network/posts", """{"message":"Dein Post ist da.","suspended":false,"data":${postJson(44)}}""", 201)
         )
         val slow = object : NetworkRepository by network.repository {
             override suspend fun publish(draft: PostDraft): PublishResult {
@@ -225,7 +225,7 @@ class ComposeViewModelTest(private val answersAtOnce: Boolean) {
         assertNull(model.publish())
 
         gate.complete(Unit)
-        assertEquals("Dein Tropfen ist da.", model.unclaimedPublish()?.message)
+        assertEquals("Dein Post ist da.", model.unclaimedPublish()?.message)
         assertFalse(model.state.value.isPublishing)
         assertFalse(model.state.value.hasDraft)
         assertNull(model.unclaimedPublish())
@@ -241,7 +241,7 @@ class ComposeViewModelTest(private val answersAtOnce: Boolean) {
             override suspend fun publish(draft: PostDraft): PublishResult {
                 val number = ++sent
                 gates[number - 1].await()
-                return PublishResult("Tropfen $number ist da.", data = decodePost(postJson(number)))
+                return PublishResult("Post $number ist da.", data = decodePost(postJson(number)))
             }
         }
         val model = models.keep(network.composer("nacheinander", repository = slow))
@@ -253,7 +253,7 @@ class ComposeViewModelTest(private val answersAtOnce: Boolean) {
         gates[0].complete(Unit)
         model.updateBody("Zweiter")
         val second = async(start = CoroutineStart.UNDISPATCHED) { model.publish() }
-        assertEquals("Tropfen 1 ist da.", first.await()?.message)
+        assertEquals("Post 1 ist da.", first.await()?.message)
 
         // The second form goes away (a rotation); the next form takes its answer only after a third Tropfen went out.
         second.cancelAndJoin()
@@ -262,10 +262,10 @@ class ComposeViewModelTest(private val answersAtOnce: Boolean) {
         gates[1].complete(Unit)
         model.updateBody("Dritter")
         val third = async(start = CoroutineStart.UNDISPATCHED) { model.publish() }
-        assertEquals("Tropfen 2 ist da.", next.await()?.message)
+        assertEquals("Post 2 ist da.", next.await()?.message)
 
         gates[2].complete(Unit)
-        assertEquals("the third answer still reaches its form", "Tropfen 3 ist da.", third.await()?.message)
+        assertEquals("the third answer still reaches its form", "Post 3 ist da.", third.await()?.message)
         assertNull(model.unclaimedPublish())
         assertEquals(3, sent)
     }
@@ -297,7 +297,7 @@ class ComposeViewModelTest(private val answersAtOnce: Boolean) {
     fun `publishing tells the screens what was written`() = runTest {
         val network = StubbedNetwork(
             stub("GET", "network/composer", Fixtures.composer),
-            stub("POST", "network/posts", """{"message":"Dein Tropfen ist da.","suspended":false,"data":${postJson(42)}}""", 201)
+            stub("POST", "network/posts", """{"message":"Dein Post ist da.","suspended":false,"data":${postJson(42)}}""", 201)
         )
         val model = composer(network, oasisSlug = "signale")
         model.load()
@@ -306,7 +306,7 @@ class ComposeViewModelTest(private val answersAtOnce: Boolean) {
         assertNotNull(model.publish())
         assertTrue(NetworkSignals.published.value > before)
         assertEquals(42, NetworkSignals.lastPublished?.id)
-        assertEquals("Dein Tropfen ist da.", NetworkSignals.confirmation.value)
+        assertEquals("Dein Post ist da.", NetworkSignals.confirmation.value)
         assertFalse(model.state.value.hasDraft)
     }
 
@@ -331,8 +331,8 @@ class ComposeViewModelTest(private val answersAtOnce: Boolean) {
         assertEquals("Deine Antwort", composer(network, replyTo = 1).state.value.bodyLabel)
         assertEquals("Deine Worte dazu (freiwillig)", composer(network, carried = 1).state.value.bodyLabel)
         assertEquals("Weitertragen", composer(network, carried = 1).state.value.submitLabel)
-        assertEquals("Tropfen teilen", composer(network).state.value.submitLabel)
-        assertEquals("Dein Tropfen", composer(network).state.value.bodyLabel)
+        assertEquals("Post teilen", composer(network).state.value.submitLabel)
+        assertEquals("Dein Post", composer(network).state.value.bodyLabel)
     }
 
     @Test

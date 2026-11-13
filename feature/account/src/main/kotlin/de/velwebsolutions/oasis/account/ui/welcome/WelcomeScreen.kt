@@ -131,7 +131,7 @@ internal fun WelcomeContent(ui: WelcomeUiState, viewModel: WelcomeViewModel, fin
                     }
                     Buttons(ui, tour, viewModel, finish)
                     Text(
-                        "Jeder Schritt ist freiwillig. Alles findest du später auch in deinem Profil, den Privatsphäre-Einstellungen und unter Oasen.",
+                        "Jeder Schritt ist freiwillig. Alles findest du später auch in deinem Profil, den Privatsphäre-Einstellungen und unter Crowds.",
                         style = OasisType.Small,
                         color = OasisColors.Muted
                     )
@@ -277,7 +277,7 @@ private fun ColumnScope.VisibilityStep(ui: WelcomeUiState, tour: WelcomeTour, vi
         viewModel.edit { it.copy(profileAudience = value, visibilityChanged = true) }
     }
     ui.fieldErrors["profile_audience"]?.let { FieldError(it) }
-    Text("Wer liest deine Tropfen normalerweise?", style = OasisType.BodyBold, color = OasisColors.Night)
+    Text("Wer liest deine Posts normalerweise?", style = OasisType.BodyBold, color = OasisColors.Night)
     FlowChoices(tour.visibilities, ui.defaultPostVisibility, tag = "welcome.visibility") { value ->
         viewModel.edit { it.copy(defaultPostVisibility = value, visibilityChanged = true) }
     }
@@ -292,15 +292,15 @@ private fun ColumnScope.OasesStep(tour: WelcomeTour, viewModel: WelcomeViewModel
         if (tour.oasesHandPicked) {
             "Diese hier haben Menschen ausgesucht, nicht ein Algorithmus."
         } else {
-            "Hier stehen die Oasen mit den meisten Mitgliedern – der Reihe nach, ohne Empfehlung nach deinen Interessen."
+            "Hier stehen die Crowds mit den meisten Mitgliedern – der Reihe nach, ohne Empfehlung nach deinen Interessen."
         }
     Text(
-        "Oasen sind Gruppen zu einem Thema. Tritt ein paar bei, dann füllt sich deine Quelle. $origin",
+        "Crowds sind Gruppen zu einem Thema. Tritt ein paar bei, dann füllt sich deine Quelle. $origin",
         style = OasisType.Body,
         color = OasisColors.Ink2
     )
     if (tour.oases.isEmpty()) {
-        Text("Noch gibt es keine Oasen. Du kannst selbst eine gründen.", style = OasisType.Body, color = OasisColors.Ink2)
+        Text("Noch gibt es keine Crowds. Du kannst selbst eine gründen.", style = OasisType.Body, color = OasisColors.Ink2)
     }
     tour.oases.forEach { oasis ->
         Column(
@@ -338,7 +338,7 @@ private fun ColumnScope.OasesStep(tour: WelcomeTour, viewModel: WelcomeViewModel
             )
         }
     }
-    LinkText("Alle Oasen ansehen", { open(NetworkRoute.Oases) })
+    LinkText("Alle Crowds ansehen", { open(NetworkRoute.Oases) })
 }
 
 @Composable

@@ -44,7 +44,7 @@ internal fun ReleasesScreen(viewModel: ReleasesViewModel = hiltViewModel()) {
         AccountPage(spacing = 16) {
             PageHeader(
                 "Was ist neu",
-                eyebrow = "Deine App: Oasis ${viewModel.version}",
+                eyebrow = "Deine App: Mildcrowd ${viewModel.version}",
                 lead = "Jede Version von Mildcrowd, die neueste zuerst. Web, iPhone und Android tragen dieselbe Nummer."
             )
             LoadableView(state, onRetry = viewModel.retry { viewModel.reload() }) { releases ->
@@ -90,7 +90,7 @@ private fun ReleaseCard(release: Release, current: Boolean) {
             horizontalArrangement = Arrangement.spacedBy(8.dp),
             verticalAlignment = Alignment.CenterVertically
         ) {
-            Text("Oasis ${release.version}", style = OasisType.CardTitle, color = OasisColors.Night, modifier = Modifier.weight(1f))
+            Text("Mildcrowd ${release.version}", style = OasisType.CardTitle, color = OasisColors.Night, modifier = Modifier.weight(1f))
             if (current) Pill("Aktuell")
         }
         Text(release.day, style = OasisType.Small, color = OasisColors.Muted)
@@ -121,7 +121,7 @@ internal fun UpdateNotesDialog(viewModel: UpdateNotesViewModel = hiltViewModel()
     notes?.let { release ->
         AlertDialog(
             onDismissRequest = viewModel::dismiss,
-            title = { Text("Neu in Oasis ${release.version}", style = OasisType.CardTitle, color = OasisColors.Night) },
+            title = { Text("Neu in Mildcrowd ${release.version}", style = OasisType.CardTitle, color = OasisColors.Night) },
             text = {
                 Column(Modifier.verticalScroll(rememberScrollState()).testTag("updatenotes")) {
                     ReleaseNotes(release)

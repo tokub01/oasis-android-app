@@ -187,8 +187,8 @@ class MemberScreensHiltTest : HiltScreenTest() {
     }
 
     private val decision =
-        """{"data":{"id":7,"outcome":"Tropfen entfernt","ground":"Beleidigung","rule_reference":"§ 3 Umgangston",""" +
-            """"explanation":"Der Tropfen beleidigt eine Person.","deadline":"2026-11-22T10:00:00.000000Z"}}"""
+        """{"data":{"id":7,"outcome":"Post entfernt","ground":"Beleidigung","rule_reference":"§ 3 Umgangston",""" +
+            """"explanation":"Der Post beleidigt eine Person.","deadline":"2026-11-22T10:00:00.000000Z"}}"""
 
     @Test
     fun aComplaintIsSentAndThanked() {
@@ -197,7 +197,7 @@ class MemberScreensHiltTest : HiltScreenTest() {
         stub("POST", "complaints/7", "{}")
         navigator.stack(navigator.selectedTab).add(AccountRoute.Complaint(7))
         show { AccountScreen(AccountRoute.Complaint(7)) }
-        waitForText("Tropfen entfernt · Beleidigung")
+        waitForText("Post entfernt · Beleidigung")
         // AGB § 15 and § 20: the way to court, and no out-of-court dispute body for Oasis (Art. 21 DSA does not apply).
         waitForText(
             "Du kannst bis zum 22.11.2026 Beschwerde einlegen. Die Beschwerde ist kostenlos. Unabhängig davon steht dir der " +
@@ -250,7 +250,7 @@ class MemberScreensHiltTest : HiltScreenTest() {
         signIn()
         stub("GET", "glossary", Fixtures.glossary)
         show { AccountScreen(AccountRoute.Glossary) }
-        waitForText("Tropfen")
+        waitForText("Posts")
         shot("glossary")
     }
 

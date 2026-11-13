@@ -173,12 +173,12 @@ class PerksViewModelTest {
         assertTrue(paying.state.value.paying)
         assertNull(paying.state.value.companionTierName)
 
-        val seat = MembershipOverview.CompanionSeat("Mia Mäzen", "oase", "Oase")
+        val seat = MembershipOverview.CompanionSeat("Mia Mäzen", "oase", "Mittendrin")
         repository.overview = Result.success(Fixtures.overview(Fixtures.noMembershipOverview).copy(companionSeat = seat))
         val companion = PerksViewModel(repository, events, Fixtures.session())
         companion.load()
         assertFalse(companion.state.value.paying)
-        assertEquals("Oase", companion.state.value.companionTierName)
+        assertEquals("Mittendrin", companion.state.value.companionTierName)
         assertFalse(Fixtures.overview(Fixtures.noMembershipOverview).isPaying)
 
         // Without the overview the place stays shown.
@@ -190,7 +190,7 @@ class PerksViewModelTest {
             seat,
             OasisJson.snake.decodeFromString(
                 MembershipOverview.CompanionSeat.serializer(),
-                """{"sponsor":"Mia Mäzen","tier":"oase","tier_name":"Oase"}"""
+                """{"sponsor":"Mia Mäzen","tier":"oase","tier_name":"Mittendrin"}"""
             )
         )
     }

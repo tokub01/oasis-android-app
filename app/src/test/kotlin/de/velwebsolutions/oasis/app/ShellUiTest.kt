@@ -188,8 +188,8 @@ class ShellUiTest {
         compose.onNodeWithContentDescription("Schließen").performClick()
         compose.waitForIdle()
         assertNull(navigator.sheet)
-        compose.runOnIdle { NetworkSignals.confirmation.value = "Dein Tropfen ist da." }
-        compose.onNodeWithText("Dein Tropfen ist da.").assertIsDisplayed()
+        compose.runOnIdle { NetworkSignals.confirmation.value = "Dein Post ist da." }
+        compose.onNodeWithText("Dein Post ist da.").assertIsDisplayed()
         compose.mainClock.advanceTimeBy(6_000)
         compose.waitForIdle()
         assertNull(NetworkSignals.confirmation.value)

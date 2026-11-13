@@ -88,7 +88,7 @@ fun PlayCheckoutContent(
     ) {
         MembershipPage {
             PageHeader(
-                "Bleib in der Oase.",
+                "Bleib in der Mildcrowd.",
                 eyebrow = "Mitgliedschaft",
                 lead = "Werbefrei und ohne Algorithmus, getragen von den Mitgliedern."
             )

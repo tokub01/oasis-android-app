@@ -550,7 +550,7 @@ private fun NightCard() {
         HorizontalDivider(color = OasisColors.NightLine)
         Text("DANACH", style = OasisType.Eyebrow, color = OasisColors.OnNightMuted)
         Text(
-            "Oasen und Menschen finden – wann es dir passt\nDeine Gruppe einladen",
+            "Crowds und Menschen finden – wann es dir passt\nDeine Gruppe einladen",
             style = OasisType.Body,
             color = OasisColors.OnNight2
         )

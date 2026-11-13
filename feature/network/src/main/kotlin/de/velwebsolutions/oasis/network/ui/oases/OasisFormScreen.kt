@@ -101,7 +101,7 @@ fun OasisFormScreen(
     }
 
     OasisScreen(
-        title = if (editing) "Oase bearbeiten" else "Oase eröffnen",
+        title = if (editing) "Crowd bearbeiten" else "Crowd eröffnen",
         message = status,
         onDismissMessage = viewModel::dismissStatus
     ) {
@@ -115,11 +115,11 @@ fun OasisFormScreen(
             else -> NetworkPage {
                 block("header") {
                     PageHeader(
-                        if (editing) "${state.edit?.oasis?.name.orEmpty()} bearbeiten" else "Oase eröffnen",
+                        if (editing) "${state.edit?.oasis?.name.orEmpty()} bearbeiten" else "Crowd eröffnen",
                         lead = if (editing) {
                             null
                         } else {
-                            "Du wirst Gastgeber:in: Du achtest auf die Hausregeln und kannst Tropfen entfernen, die dagegen verstoßen."
+                            "Du wirst Gastgeber:in: Du achtest auf die Hausregeln und kannst Posts entfernen, die dagegen verstoßen."
                         }
                     )
                 }
@@ -158,7 +158,7 @@ fun OasisFormScreen(
                             maxLength = 3000
                         )
                         Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                            Text("Wer darf die Oase lesen?", style = OasisType.SmallBold, color = OasisColors.Ink)
+                            Text("Wer darf die Crowd lesen?", style = OasisType.SmallBold, color = OasisColors.Ink)
                             ChoiceList(options.visibilities, state.input.visibility, { value ->
                                 viewModel.updateInput { it.copy(visibility = value) }
                             })
@@ -176,7 +176,7 @@ fun OasisFormScreen(
                         }
                         BannerSection(state, editing, failure?.message("banner"), onPick = picker.pick, onRemove = viewModel::removeBanner)
                         AsyncOasisButton(
-                            if (editing) "Speichern" else "Oase eröffnen",
+                            if (editing) "Speichern" else "Crowd eröffnen",
                             viewModel::save,
                             fullWidth = false,
                             modifier = Modifier.testTag("oasisForm.save")
@@ -190,14 +190,14 @@ fun OasisFormScreen(
                     block("close") {
                         val navigator = LocalNavigator.current
                         PaperBox(border = OasisColors.SunText) {
-                            SectionTitle("Oase schließen")
+                            SectionTitle("Crowd schließen")
                             Text(
-                                "Die Oase verschwindet für alle. Die Tropfen bleiben bei den Menschen, die sie geschrieben haben.",
+                                "Die Crowd verschwindet für alle. Die Posts bleiben bei den Menschen, die sie geschrieben haben.",
                                 style = OasisType.Body,
                                 color = OasisColors.Ink2
                             )
                             OasisButton(
-                                "Oase schließen …",
+                                "Crowd schließen …",
                                 { navigator.open(NetworkRoute.CloseOasis(slug)) },
                                 kind = OasisButtonKind.Secondary,
                                 fullWidth = false,
@@ -254,7 +254,7 @@ fun OasisFormScreen(
                 block("side.host") {
                     SideCard("Als Gastgeber:in", tone = PanelTone.Night) {
                         Text(
-                            "Du kannst Tropfen aus der Oase entfernen, die gegen die Hausregeln verstoßen, und weitere Gastgeber:innen " +
+                            "Du kannst Posts aus der Crowd entfernen, die gegen die Hausregeln verstoßen, und weitere Gastgeber:innen " +
                                 "ernennen. Rechtswidriges meldet ihr dem Moderationsteam."
                         )
                     }
@@ -352,7 +352,7 @@ internal fun RegionFields(regions: List<Choice>, input: OasisInput, error: Strin
         Text(
             buildAnnotatedString {
                 append("Region ")
-                withStyle(SpanStyle(color = OasisColors.Muted)) { append("(freiwillig, für die Karte der Oasen)") }
+                withStyle(SpanStyle(color = OasisColors.Muted)) { append("(freiwillig, für die Karte der Crowds)") }
             },
             style = OasisType.SmallBold,
             color = OasisColors.Ink

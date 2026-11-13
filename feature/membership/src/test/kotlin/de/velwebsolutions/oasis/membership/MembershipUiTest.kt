@@ -129,7 +129,7 @@ class MembershipUiTest {
 
     @Test
     fun `a companion sees the place of the Maezen instead of Mitglied werden`() {
-        overview(noMembership.copy(companionSeat = MembershipOverview.CompanionSeat("Mia Mäzen", "oase", "Oase")))
+        overview(noMembership.copy(companionSeat = MembershipOverview.CompanionSeat("Mia Mäzen", "oase", "Mittendrin")))
         compose.onNodeWithTag("membership.companion").assertIsDisplayed()
         compose.onNodeWithText("Dein Platz bei Mia Mäzen").assertIsDisplayed()
         compose.onNodeWithText("Mia Mäzen nimmt dich als Mäzen mit", substring = true).assertIsDisplayed()
@@ -202,9 +202,9 @@ class MembershipUiTest {
     fun `a gifted membership, vouchers to pass on and the side cards`() {
         val gift = subscription.copy(
             state = MembershipOverview.State.Gift,
-            gift = MembershipOverview.Gift("Oase", Instant.parse("2027-01-31T12:00:00Z")),
+            gift = MembershipOverview.Gift("Mittendrin", Instant.parse("2027-01-31T12:00:00Z")),
             purchasedGifts = listOf(
-                MembershipOverview.PurchasedGift(1, "OASIS-GIFT-1", "Oase"),
+                MembershipOverview.PurchasedGift(1, "OASIS-GIFT-1", "Mittendrin"),
                 MembershipOverview.PurchasedGift(2, "OASIS-GIFT-2", "Solidar", redeemed = true)
             )
         )
@@ -381,7 +381,7 @@ class MembershipUiTest {
         shot("invoice-error")
     }
 
-    private val cancellation = CancellationDetails("Oase", "Mia Mitglied", "mia@example.test", Instant.parse("2026-11-18T15:39:37Z"))
+    private val cancellation = CancellationDetails("Mittendrin", "Mia Mitglied", "mia@example.test", Instant.parse("2026-11-18T15:39:37Z"))
 
     @Test
     fun `the cancel page shows loading, the confirmation, the export and the public form`() {
@@ -431,7 +431,7 @@ class MembershipUiTest {
         var confirmed = 0
         show {
             WithdrawContent(
-                ContractUiState(Loadable.Loaded(WithdrawalDetails("Oase", "Mia Mitglied", "mia@example.test")), exportFile = export),
+                ContractUiState(Loadable.Loaded(WithdrawalDetails("Mittendrin", "Mia Mitglied", "mia@example.test")), exportFile = export),
                 onRetry = {},
                 onConfirm = { confirmed++ },
                 onExport = {}
@@ -534,7 +534,7 @@ class MembershipUiTest {
     @Test
     fun `a gift for a founding member and no membership for everyone else`() {
         var state by mutableStateOf(
-            subscription.copy(state = MembershipOverview.State.Gift, gift = MembershipOverview.Gift("Oase", null), isFoundingMember = true)
+            subscription.copy(state = MembershipOverview.State.Gift, gift = MembershipOverview.Gift("Mittendrin", null), isFoundingMember = true)
         )
         show { OverviewContent(OverviewUiState(Loadable.Loaded(state)), onRefresh = {}) }
         compose.onNodeWithTag("membership.founding").performScrollTo().assertIsDisplayed()

@@ -189,7 +189,7 @@ class NavigationTest {
             listOf(NetworkRoute.Source, NetworkRoute.Discover, NetworkRoute.Oases, ChatRoute.Conversations, null),
             MainTab.entries.map { Navigator.rootRoute(it) }
         )
-        assertEquals(listOf("Quelle", "Entdecken", "Oasen", "Chats", "Profil"), MainTab.entries.map { it.title })
+        assertEquals(listOf("Quelle", "Entdecken", "Crowds", "Chats", "Profil"), MainTab.entries.map { it.title })
     }
 
     @Test

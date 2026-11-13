@@ -61,7 +61,7 @@ fun OasesScreen(viewModel: OasesViewModel = hiltViewModel<OasesViewModel>()) {
     val directory by viewModel.directory.collectAsStateWithLifecycle()
     val error by viewModel.error.collectAsStateWithLifecycle()
     LaunchedEffect(Unit) { viewModel.loadIfNeeded() }
-    OasisScreen(title = "Oasen", error = error?.userMessage, onDismissError = viewModel::dismissError) {
+    OasisScreen(title = "Crowds", error = error?.userMessage, onDismissError = viewModel::dismissError) {
         LoadableView(directory, onRetry = viewModel.retry(viewModel::load)) { list ->
             NetworkPage(onRefresh = viewModel::load) { oasesContent(list) }
         }
@@ -76,7 +76,7 @@ fun LazyListScope.oasesContent(list: OasisDirectory) {
             Modifier.fillMaxWidth().background(OasisColors.Night, RoundedCornerShape(OasisRadius.L.dp)).padding(24.dp),
             verticalArrangement = Arrangement.spacedBy(12.dp)
         ) {
-            Eyebrow("Oasen", onNight = true)
+            Eyebrow("Crowds", onNight = true)
             Text(
                 "Räume für das, was dich interessiert",
                 style = OasisType.display(26),
@@ -84,14 +84,14 @@ fun LazyListScope.oasesContent(list: OasisDirectory) {
                 modifier = Modifier.semantics { heading() }
             )
             Text(
-                "Themenräume mit Gastgeber:innen und eigenen Hausregeln. Einer Oase folgst du wie einem Menschen – dann kannst du dort auch schreiben.",
+                "Themenräume mit Gastgeber:innen und eigenen Hausregeln. Einer Crowd folgst du wie einem Menschen – dann kannst du dort auch schreiben.",
                 style = OasisType.Body,
                 color = OasisColors.OnNight2
             )
             ButtonFlow {
                 if (list.canCreate) {
                     OasisButton(
-                        "Oase eröffnen",
+                        "Crowd eröffnen",
                         { navigator.open(NetworkRoute.CreateOasis) },
                         kind = OasisButtonKind.Accent,
                         fullWidth = false,
@@ -107,8 +107,8 @@ fun LazyListScope.oasesContent(list: OasisDirectory) {
             }
         }
     }
-    section("mine", "Deine Oasen", list.mine, "Du folgst noch keiner Oase.")
-    section("others", "Weitere Oasen", list.others, "Noch keine weiteren Oasen.")
+    section("mine", "Deine Crowds", list.mine, "Du folgst noch keiner Crowd.")
+    section("others", "Weitere Crowds", list.others, "Noch keine weiteren Crowds.")
 }
 
 private fun LazyListScope.section(key: String, title: String, oases: List<OasisSummary>, empty: String) {

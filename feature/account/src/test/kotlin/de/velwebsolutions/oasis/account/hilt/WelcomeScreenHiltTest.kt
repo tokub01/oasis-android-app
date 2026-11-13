@@ -54,13 +54,13 @@ class WelcomeScreenHiltTest : HiltScreenTest() {
         compose.onNodeWithTag("welcome.visibility.members").tap()
         compose.onNodeWithText("Alle Einstellungen im Privatsphäre-Check").tap()
         compose.onNodeWithTag("welcome.next").tap()
-        waitForText("Alle Oasen ansehen")
+        waitForText("Alle Crowds ansehen")
         // Art. 27 DSA: how the list came about – here picked by people (oases_hand_picked).
         waitForText("Diese hier haben Menschen ausgesucht, nicht ein Algorithmus.", substring = true)
         shot("welcome-oases")
         compose.onAllNodesText("Beitreten").first().tap()
         waitForRequest("POST", "onboarding/oases/3")
-        compose.onNodeWithText("Alle Oasen ansehen").tap()
+        compose.onNodeWithText("Alle Crowds ansehen").tap()
         compose.onNodeWithTag("welcome.skip").tap()
         waitForText("Freund:innen einladen")
         shot("welcome-people")
@@ -116,14 +116,14 @@ class WelcomeScreenHiltTest : HiltScreenTest() {
         stub(
             "GET",
             "onboarding",
-            """{"data":{"steps":[{"key":"oasen","title":"Oasen finden"}],"onboarded":true}}"""
+            """{"data":{"steps":[{"key":"oasen","title":"Crowds finden"}],"onboarded":true}}"""
         )
         stub("POST", "onboarding/oases/1", """{"message":"Server Error"}""", status = 500)
         show { AccountScreen(AccountRoute.Welcome) }
-        waitForText("Noch gibt es keine Oasen.", substring = true)
+        waitForText("Noch gibt es keine Crowds.", substring = true)
         // Without hand-picked oases (an older server leaves oases_hand_picked out) the list is the largest oases in order.
         waitForText(
-            "Hier stehen die Oasen mit den meisten Mitgliedern – der Reihe nach, ohne Empfehlung nach deinen Interessen.",
+            "Hier stehen die Crowds mit den meisten Mitgliedern – der Reihe nach, ohne Empfehlung nach deinen Interessen.",
             substring = true
         )
         shot("welcome-no-oases")

@@ -90,7 +90,7 @@ fun stub(method: String, path: String, json: String = "{}", status: Int = 200) =
 fun postJson(id: Int, author: Int = 2, reacted: Boolean = false, replyTo: Int? = null, visibility: String = "public"): String {
     val reply = replyTo?.let { """{"id":$it,"username":"u1"}""" } ?: "null"
     return """
-        {"id":$id,"url":"http://localhost/tropfen/$id","body":"Tropfen $id","segments":[{"type":"text","text":"Tropfen $id"}],"kind":"post",
+        {"id":$id,"url":"http://localhost/tropfen/$id","body":"Post $id","segments":[{"type":"text","text":"Post $id"}],"kind":"post",
         "visibility":"$visibility","created_at":"2026-10-22T10:00:00.000000Z","edited_at":null,
         "author":{"id":$author,"username":"u$author","display_name":"U $author","initials":"U","avatar_color":"sun","photo_url":null},
         "oasis":null,"reply_to":$reply,"reply_unavailable":false,"images_locked":false,"images":[],"carried":null,"removed_from_oasis":false,

@@ -58,7 +58,7 @@ data class MembershipOverview(
 
     /** A Mäzen's place: who gives it and the tier it brings (TierFeatures::COMPANION_TIER). */
     @Serializable
-    data class CompanionSeat(val sponsor: String, val tier: String? = null, val tierName: String = "Oase")
+    data class CompanionSeat(val sponsor: String, val tier: String? = null, val tierName: String = "Mittendrin")
 
     /**
      * An announced change of the AGB (`oasis:terms-announce`, `TermsAnnouncement::currentFor`): the day it takes
@@ -273,7 +273,7 @@ data class MembershipTier(
         /** The three tiers in the web's order. */
         val all = listOf(
             MembershipTier("solidar", "Solidar", 3, isMinimum = false),
-            MembershipTier("oase", "Oase", 5, isMinimum = false),
+            MembershipTier("oase", "Mittendrin", 5, isMinimum = false),
             MembershipTier(MAEZEN, "Mäzen", 12, isMinimum = true)
         )
 

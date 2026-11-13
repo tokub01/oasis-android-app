@@ -115,12 +115,12 @@ fun <C> LazyListScope.feedSection(
                 verticalAlignment = Alignment.CenterVertically
             ) {
                 CircularProgressIndicator(Modifier.size(20.dp), color = OasisColors.Night, strokeWidth = 2.dp)
-                Text("Ältere Tropfen …", style = OasisType.Small, color = OasisColors.Muted)
+                Text("Ältere Posts …", style = OasisType.Small, color = OasisColors.Muted)
             }
         }
 
         state.loadMoreError != null -> block("$keyPrefix.moreFailed") {
-            RetryNote(state.loadMoreError.userMessage, "Ältere Tropfen") { handlers.loadMore() }
+            RetryNote(state.loadMoreError.userMessage, "Ältere Posts") { handlers.loadMore() }
         }
 
         state.reachedEnd && state.posts.isNotEmpty() -> block("$keyPrefix.end") { FeedEnd(end) }

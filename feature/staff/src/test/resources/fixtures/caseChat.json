@@ -78,7 +78,7 @@
    {
     "value": "child_abuse",
     "label": "Missbrauchsdarstellung",
-    "description": "Der Inhalt zeigt oder beschreibt sexuellen Missbrauch von Kindern oder Jugendlichen. Der Tropfen wird sofort für alle gesperrt, auch für das Team."
+    "description": "Der Inhalt zeigt oder beschreibt sexuellen Missbrauch von Kindern oder Jugendlichen. Der Post wird sofort für alle gesperrt, auch für das Team."
    }
   ],
   "evidence_days": 90,

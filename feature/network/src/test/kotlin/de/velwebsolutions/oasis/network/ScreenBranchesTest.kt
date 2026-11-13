@@ -205,8 +205,8 @@ class ScreenBranchesTest {
         }
 
         compose.onAllNodesWithTag("post.menu").onFirst().performClick()
-        text("Aus Oase entfernen …").performClick()
-        text("Wirklich aus der Oase entfernen?")
+        text("Aus Crowd entfernen …").performClick()
+        text("Wirklich aus der Crowd entfernen?")
         compose.onNodeWithTag("dialog.confirm").performClick()
         compose.onAllNodesWithTag("post.menu").onFirst().performClick()
         text("Stummschalten").performClick()
@@ -280,14 +280,14 @@ class ScreenBranchesTest {
             Box(Modifier.fillMaxSize()) {
                 val list = rememberLazyListState()
                 NetworkPage(state = list, onRefresh = { refreshed = true }) {
-                    repeat(40) { index -> block("b$index") { OasisBanner(OasisSummary(index, "o$index", "Oase $index")) } }
+                    repeat(40) { index -> block("b$index") { OasisBanner(OasisSummary(index, "o$index", "Crowd $index")) } }
                 }
                 ComposeFab(list, onClick = { tapped = true }, Modifier.then(Modifier))
             }
         }
         compose.onNodeWithTag("network.page").performTouchInput { swipeDown() }
         waitFor { refreshed }
-        compose.onNodeWithContentDescription("Tropfen schreiben").performSemanticsAction(SemanticsActions.OnClick)
+        compose.onNodeWithContentDescription("Post schreiben").performSemanticsAction(SemanticsActions.OnClick)
         assertTrue(tapped)
         compose.onNodeWithTag("network.page").performScrollToIndex(30)
         compose.waitForIdle()
@@ -359,7 +359,7 @@ class ScreenBranchesTest {
             StubbedNetwork(stub("GET", "network/tags/garten", pageJson(postJson(5), context = """{"tag":"garten","can_post":true}""")))
         val tag = models.keep(TagViewModel("garten", network.repository))
         switchTo { TagScreen("garten", tag) }
-        text("Tropfen 5")
+        text("Post 5")
     }
 
     @Test
@@ -462,7 +462,7 @@ class ScreenBranchesTest {
         compose.mainClock.advanceTimeBy(400)
         waitFor { network.transport.requests.count { it.path == "network/oases/garten/members" } >= 2 }
         text("Niemand mit diesem Namen.")
-        compose.onNodeWithContentDescription("Dein Tropfen in Garten").performSemanticsAction(SemanticsActions.OnClick)
+        compose.onNodeWithContentDescription("Dein Post in Garten").performSemanticsAction(SemanticsActions.OnClick)
         assertEquals(NetworkRoute.Compose(oasisSlug = "garten"), navigator.sheet)
         navigator.dismissSheet()
         compose.onNodeWithTag("oasis.rules").performClick()
@@ -540,7 +540,7 @@ class ScreenBranchesTest {
         navigator.open(NetworkRoute.Compose())
         val composer = models.keep(network.composer("ohne-sheet"))
         show { ComposeScreen("ohne-sheet", null, composer) }
-        text("Tropfen teilen")
+        text("Post teilen")
         compose.onNode(hasSetTextAction()).performTextInput("Hallo")
         compose.onNodeWithTag("compose.submit").performClick()
         waitFor { navigator.stack(MainTab.Source).last() == NetworkRoute.Discover }
@@ -577,7 +577,7 @@ class ScreenBranchesTest {
         navigator.open(NetworkRoute.EditPost(12))
         val again = models.keep(EditPostViewModel(12, network.repository))
         switchTo { EditPostScreen(12, again) }
-        text("Tropfen bearbeiten")
+        text("Post bearbeiten")
         compose.onNode(hasSetTextAction()).performTextInput(" Welt")
         text("Abbrechen").performClick()
         text("Verwerfen").performClick()
@@ -596,7 +596,7 @@ class ScreenBranchesTest {
         navigator.present(NetworkRoute.Compose())
         val composer = models.keep(network.composer("leer-sheet"))
         show(ScreenChrome(onClose = { navigator.dismissSheet() })) { ComposeScreen("leer-sheet", null, composer) }
-        text("Tropfen teilen")
+        text("Post teilen")
         compose.onNodeWithTag("compose.close").performClick()
         assertNull(navigator.sheet)
     }
@@ -844,10 +844,10 @@ class ScreenBranchesTest {
         )
         val oasis = models.keep(OasisViewModel("garten", network.repository))
         show { OasisDetailScreen("garten", oasis) }
-        text("Hausregeln dieser Oase")
+        text("Hausregeln dieser Crowd")
         compose.onNodeWithTag("oasis.rules").performClick()
         text("Eine")
-        text("Hausregeln dieser Oase").performClick()
+        text("Hausregeln dieser Crowd").performClick()
         compose.mainClock.advanceTimeBy(1_000)
         compose.waitForIdle()
 

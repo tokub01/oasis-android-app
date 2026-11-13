@@ -146,7 +146,7 @@ class ComponentsTest {
             SideCard("Nacht", tone = PanelTone.Night) { Text("Text") }
             SectionCard("Abschnitt", detail = "Erklärung", count = 3) { Text("Inhalt") }
             SectionCard("Nacht", tone = PanelTone.Night, detail = "Erklärung") { Text("Inhalt") }
-            DashedNote("Noch keine Tropfen.")
+            DashedNote("Noch keine Posts.")
             DashedNote("Du bist durch.", highlighted = true)
             Bullets(listOf("Eins", "Zwei"))
             OasisCard { Text("Karte") }
@@ -233,7 +233,7 @@ class ComponentsTest {
                     Column {
                         // The locked view fills the screen, so it comes first and the others still exist below it.
                         TierLoadableView<String>(
-                            Loadable.Failed(ApiError.Forbidden("Das gibt es ab der Mitgliedschaft Oase.")),
+                            Loadable.Failed(ApiError.Forbidden("Das gibt es ab der Mitgliedschaft Mittendrin.")),
                             "Dein Jahrbuch",
                             onRetry = {}
                         ) { Text(it) }
@@ -246,7 +246,7 @@ class ComponentsTest {
         compose.onNodeWithText("Zahlen").assertExists()
         compose.onNodeWithText("Noch einmal versuchen").assertExists()
         compose.onNodeWithText("Dein Jahrbuch").assertExists()
-        compose.onNodeWithText("Das gibt es ab der Mitgliedschaft Oase.").assertExists()
+        compose.onNodeWithText("Das gibt es ab der Mitgliedschaft Mittendrin.").assertExists()
         compose.onNodeWithText("Mitgliedschaft ansehen").performClick()
         assertEquals(listOf(MembershipRoute.Overview), navigator.stack(navigator.selectedTab).toList())
     }
@@ -265,19 +265,19 @@ class ComponentsTest {
 
     @Test
     fun `a locked feature names its tier and what it offers, like the web`() {
-        assertEquals("Oase", lockedTier("Das gibt es ab der Mitgliedschaft Oase."))
+        assertEquals("Mittendrin", lockedTier("Das gibt es ab der Mitgliedschaft Mittendrin."))
         assertEquals("Mäzen", lockedTier("Das gibt es ab der Mitgliedschaft Mäzen"))
         assertNull(lockedTier("Das darfst du leider nicht."))
         compose.setContent {
             OasisTheme {
                 CompositionLocalProvider(LocalNavigator provides Navigator()) {
-                    TierLockedView("Zeitkapseln", "Das gibt es ab der Mitgliedschaft Oase.", feature = "Schreib heute einen Tropfen.")
+                    TierLockedView("Zeitkapseln", "Das gibt es ab der Mitgliedschaft Mittendrin.", feature = "Schreib heute einen Post.")
                 }
             }
         }
         compose.onNodeWithText("AB OASE", ignoreCase = true).assertExists()
-        compose.onNodeWithText("Schreib heute einen Tropfen.").assertExists()
-        compose.onNodeWithText("Das gibt es ab der Mitgliedschaft Oase.").assertDoesNotExist()
+        compose.onNodeWithText("Schreib heute einen Post.").assertExists()
+        compose.onNodeWithText("Das gibt es ab der Mitgliedschaft Mittendrin.").assertDoesNotExist()
     }
 
     @Test

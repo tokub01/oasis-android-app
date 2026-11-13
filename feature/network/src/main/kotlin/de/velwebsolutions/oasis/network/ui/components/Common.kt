@@ -150,14 +150,14 @@ fun BoxScope.ComposeFab(
     onClick: () -> Unit,
     modifier: Modifier = Modifier,
     /** What TalkBack reads ("Tropfen in … schreiben" in an oasis). */
-    description: String = "Tropfen schreiben"
+    description: String = "Post schreiben"
 ) {
     val expanded by remember(listState) { derivedStateOf { listState.firstVisibleItemIndex == 0 } }
     ExtendedFloatingActionButton(
         onClick = onClick,
         expanded = expanded,
         icon = { Icon(Icons.Outlined.Edit, contentDescription = null) },
-        text = { Text("Tropfen schreiben", style = OasisType.Button) },
+        text = { Text("Post schreiben", style = OasisType.Button) },
         containerColor = OasisColors.Night,
         contentColor = OasisColors.OnNight,
         modifier = modifier

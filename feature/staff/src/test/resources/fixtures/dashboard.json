@@ -96,7 +96,7 @@
     },
     {
      "tier": "oase",
-     "name": "Oase",
+     "name": "Mittendrin",
      "count": 1
     },
     {
@@ -110,7 +110,7 @@
    "tiles": [
     {
      "value": "24",
-     "label": "Tropfen im Zeitraum"
+     "label": "Posts im Zeitraum"
     },
     {
      "value": "8",
@@ -118,11 +118,11 @@
     },
     {
      "value": "24",
-     "label": "Tropfen insgesamt"
+     "label": "Posts insgesamt"
     },
     {
      "value": "4",
-     "label": "Oasen"
+     "label": "Crowds"
     }
    ],
    "weeks": [

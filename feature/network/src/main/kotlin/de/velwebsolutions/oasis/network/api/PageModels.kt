@@ -77,7 +77,7 @@ data class OasisSummary(
 
     companion object {
         /** The name everyone else reads while the texts are held (`Oasis::HELD_NAME`). */
-        const val HELD_NAME = "Oase in Prüfung"
+        const val HELD_NAME = "Crowd in Prüfung"
     }
 }
 

@@ -41,27 +41,27 @@ Die Rechtstexte sind final, der Datenexport enthält alles, was du selbst angele
 - **Verbessert:** Die Rechtstexte gelten jetzt endgültig; der Hinweis „Entwurf“ ist von allen Seiten verschwunden, jede Seite zeigt ihr Datum.
 - **Verbessert:** Eine App-Anmeldung, die 90 Tage nicht benutzt wurde, läuft ab; die App meldet dich dann ab. Push-Geräte ohne Zustellung seit 90 Tagen werden entfernt. So steht es jetzt auch in der Datenschutzerklärung.
 - **Verbessert:** Ein Begleitplatz bei einem Mäzen endet, wenn die Mäzen-Mitgliedschaft endet; wir halten den Zeitpunkt fest, und für das Konto gilt ab dann die normale Frist.
-- **Entfernt:** Die Datenbanktabellen der früheren Abstimmungen sind gelöscht; Umfragen in Tropfen und Ideen bleiben.
+- **Entfernt:** Die Datenbanktabellen der früheren Abstimmungen sind gelöscht; Umfragen in Posts und Ideen bleiben.
 
 ## 0.26.0 – 2026-11-07 – Was drinsteht, gilt
 
-Jede Zusage unserer AGB, Datenschutzerklärung und Regeln ist jetzt im Code eingelöst und durch Tests belegt. Dazu neu: Beitragsstufe selbst ändern, Oasen-Texte werden bei Verdacht geprüft, Rechtstexte tragen ihr Datum.
+Jede Zusage unserer AGB, Datenschutzerklärung und Regeln ist jetzt im Code eingelöst und durch Tests belegt. Dazu neu: Beitragsstufe selbst ändern, Crowd-Texte werden bei Verdacht geprüft, Rechtstexte tragen ihr Datum.
 
 - **Neu:** Du kannst deine Beitragsstufe jetzt selbst ändern, im Web und in den Apps. Die neue Stufe gilt sofort, der neue Beitrag ab der nächsten Abbuchung, die Bestätigung mit Vertragstext kommt per E-Mail.
-- **Neu:** Name, Beschreibung und Hausregeln einer Oase werden wie Tropfen und Profile geprüft: Bei Verdacht sehen andere bis zur Prüfung durch einen Menschen einen Platzhalter, die Gründer:in bekommt Bescheid.
+- **Neu:** Name, Beschreibung und Hausregeln einer Crowd werden wie Posts und Profile geprüft: Bei Verdacht sehen andere bis zur Prüfung durch einen Menschen einen Platzhalter, die Gründer:in bekommt Bescheid.
 - **Neu:** Wer unserer AGB-Änderung widersprochen hat, sieht auch nach dem Stichtag, dass für ihn die bisherige Fassung gilt. Die Mitgliedschaft zeigt jetzt, wann du dem Vertragstext zugestimmt hast.
 - **Neu:** Beim Melden gibt es die Kategorie „Anbieten oder Suchen sexueller oder bezahlter Dienste“, auch im Chat.
 - **Verbessert:** Jeder Rechtstext zeigt sein Datum („Stand“), und die gespeicherte Vertragsfassung trägt dasselbe Datum.
 - **Verbessert:** Im Chat führt das Anbieten bezahlter Dienste nach Prüfung durch einen Menschen direkt zur Sperre, wie es in den Regeln steht.
 - **Verbessert:** Nach einer dauerhaften Sperre kann mit derselben E-Mail-Adresse oder Handynummer kein neues Konto angelegt werden; wir merken uns dafür nur eine Prüfsumme.
 - **Verbessert:** Die AGB sagen jetzt genau, was der Code tut: welche Maßnahmen es gibt, dass der Zugang bis zu sieben Tage über das bezahlte Ende weiterläuft, solange die Verlängerung läuft, und dass ein weiteres festes Jahr per E-Mail bestellbar ist.
-- **Behoben:** Im Kapitel „Viel besprochen“ stand der Hinweis, warum ein Tropfen dort ist, nur auf der ersten Karte. Jetzt auf jeder.
+- **Behoben:** Im Kapitel „Viel besprochen“ stand der Hinweis, warum ein Post dort ist, nur auf der ersten Karte. Jetzt auf jeder.
 
-## 0.25.3 – 2026-11-04 – Echte Oasen
+## 0.25.3 – 2026-11-04 – Echte Crowds
 
-Eine Oase braucht jetzt einen echten Namen, eine echte Beschreibung und echte Hausregeln – Platzhalter werden abgelehnt.
+Eine Crowd braucht jetzt einen echten Namen, eine echte Beschreibung und echte Hausregeln – Platzhalter werden abgelehnt.
 
-- **Verbessert:** Beim Gründen und Bearbeiten einer Oase prüft Mildcrowd jetzt Name, Beschreibung und Hausregeln: Platzhalter wie „Test“, „asdf“ oder „Keine“ und beleidigende Texte werden abgelehnt. Das gilt auch in den Apps, weil der Server prüft.
+- **Verbessert:** Beim Gründen und Bearbeiten einer Crowd prüft Mildcrowd jetzt Name, Beschreibung und Hausregeln: Platzhalter wie „Test“, „asdf“ oder „Keine“ und beleidigende Texte werden abgelehnt. Das gilt auch in den Apps, weil der Server prüft.
 
 ## 0.25.2 – 2026-11-04 – Passt in jede Zeile
 
@@ -75,15 +75,15 @@ Auf iPad und großen Android-Geräten stehen Chat-Liste, Unterhaltung und Detail
 
 - **Neu:** Auf großen Bildschirmen öffnen sich die Chat-Details neben der Unterhaltung.
 
-## 0.25.0 – 2026-11-04 – Klarere Tropfen, ruhigerer Chat
+## 0.25.0 – 2026-11-04 – Klarere Posts, ruhigerer Chat
 
 Antworten gibt es nur noch dort, wo sie erlaubt sind, Namen in jeder Schrift sehen richtig aus, du wählst die Farbe deiner Initialen, und der Chat schützt besser vor Schreien und Fluten.
 
 - **Neu:** Farbe deiner Initialen: Ohne Profilbild wählst du in den Profileinstellungen eine Farbe – oder lässt „Automatisch“.
 - **Neu:** Weitertragen geht jetzt auch ohne eigene Worte.
 - **Neu:** Der Chat bittet ruhig um weniger Großbuchstaben und Wiederholungen und legt nach sehr vielen Nachrichten kurz eine Pause ein.
-- **Verbessert:** Darf man auf einen Tropfen nicht antworten, steht dort statt „Antworten“ kurz, wer antworten darf. Weitertragen geht dann nur ohne eigenen Text.
-- **Verbessert:** Die Kopfzeile jedes Tropfens ist überall gleich aufgebaut: Name, dann @Name · Oase · Zeit – ohne überflüssige Punkte.
+- **Verbessert:** Darf man auf einen Post nicht antworten, steht dort statt „Antworten“ kurz, wer antworten darf. Weitertragen geht dann nur ohne eigenen Text.
+- **Verbessert:** Die Kopfzeile jedes Posts ist überall gleich aufgebaut: Name, dann @Name · Crowd · Zeit – ohne überflüssige Punkte.
 - **Verbessert:** Ein beendeter Chat sagt jetzt, was passiert ist: wer ihn verlassen hat oder dass es das Konto nicht mehr gibt.
 - **Verbessert:** Das Eingabefeld im Chat nennt immer, wie viele Zeichen hineinpassen, mit Tausenderpunkt („4.000“).
 - **Verbessert:** Im Chat haben Nachrichten mehr Luft zum Rand, die Abstände sind überall gleich.
@@ -105,16 +105,16 @@ Der Chat ist ruhiger gestaltet und lässt sich mit Wischgesten bedienen, der Weg
 
 ## 0.23.0 – 2026-11-03 – Ruhe, Treffen und Erinnerungen
 
-Ein Ruhemodus, Umfragen und Treffen in Oasen, gemeinsame Sammlungen, ein Wochenbrief, ein dunkles Design und eine Karte der Oasen.
+Ein Ruhemodus, Umfragen und Treffen in Crowds, gemeinsame Sammlungen, ein Wochenbrief, ein dunkles Design und eine Karte der Crowds.
 
 - **Neu:** Ruhemodus für 1 Stunde, 8 Stunden, bis 7 Uhr oder bis du ihn ausschaltest.
 - **Neu:** „Du hast alles Neue gesehen“: Die Quelle sagt, wann du durch bist.
 - **Neu:** „Heute vor einem Jahr“ und „Deine Zeit in Mildcrowd“, gezählt nur auf deinem Gerät.
-- **Neu:** Umfragen in Tropfen, Treffen in Oasen und Paten, die neue Mitglieder begrüßen.
-- **Neu:** Gemeinsame Sammlungen in Oasen und gemeinsame Zeitkapseln.
-- **Neu:** Der Oasen-Wochenbrief am Sonntagabend und „Ideen für Mildcrowd“.
+- **Neu:** Umfragen in Posts, Treffen in Crowds und Paten, die neue Mitglieder begrüßen.
+- **Neu:** Gemeinsame Sammlungen in Crowds und gemeinsame Zeitkapseln.
+- **Neu:** Der Crowd-Wochenbrief am Sonntagabend und „Ideen für Mildcrowd“.
 - **Neu:** „Wohin dein Beitrag geht“: echte Zahlen und Finanzberichte, sobald sie veröffentlicht sind.
-- **Neu:** Dunkles Design und eine Karte der Oasen nach Bundesland.
+- **Neu:** Dunkles Design und eine Karte der Crowds nach Bundesland.
 
 ## 0.22.0 – 2026-11-03 – Reaktionen, Antworten und Umfragen im Chat
 
@@ -154,7 +154,7 @@ Die Mitgliedsstufen bekommen echte Vorteile, und der Chat kann Fotos, Sprachnach
 
 ## 0.19.0 – 2026-10-27 – Ein Preis überall
 
-Gleiche Preise im Browser, im App Store und bei Google Play, und die ersten offiziellen Oasen.
+Gleiche Preise im Browser, im App Store und bei Google Play, und die ersten offiziellen Crowds.
 
 - **Neu:** Bestätigungs- und Code-Links von der Website öffnen sich in der App.
 - **Verbessert:** Eine Preisliste für Browser, App Store und Google Play: Du zahlst überall gleich viel.
@@ -176,10 +176,10 @@ Mildcrowd ist jetzt ganz den Mitgliedern vorbehalten, und du meldest dich mit Co
 Die erste Version der Android-App – und ein Code statt Link zum Bestätigen der E-Mail-Adresse.
 
 - **Neu:** Deine E-Mail-Adresse bestätigst du auch mit einem sechsstelligen Code.
-- **Neu:** Die Android-App mit Quelle, Tropfen, Oasen, Profilen und Suche.
+- **Neu:** Die Android-App mit Quelle, Posts, Crowds, Profilen und Suche.
 - **Neu:** Der Ende-zu-Ende-verschlüsselte Chat, kompatibel mit Browser und iOS.
 - **Neu:** Mitgliedschaft mit Rechnungen, Einstellungen, Privatsphäre und Hinweisen.
 - **Neu:** Moderation und Verwaltung für das Team.
 - **Verbessert:** Häkchen und Schalter zeigen deutlich, ob sie an oder aus sind.
-- **Verbessert:** Namen werden bei der Anmeldung geprüft wie Tropfen.
+- **Verbessert:** Namen werden bei der Anmeldung geprüft wie Posts.
 - **Verbessert:** Bedienung, wie man sie von Android kennt.

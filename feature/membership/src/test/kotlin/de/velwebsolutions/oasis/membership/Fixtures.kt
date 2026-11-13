@@ -47,11 +47,11 @@ object Catalogue {
 object Fixtures {
     /** A member without membership (there is no free trial): only "Mitglied werden" is open. */
     val noMembershipOverview = """
-        {"data":{"state":"expired","subscription":null,"gift":null,"is_founding_member":false,"remaining_founding_seats":1000,"can_cancel":false,"can_withdraw":false,"purchased_gifts":[],"gift_offers":[{"tier":"solidar","name":"Solidar","price_label":"12 Monate für 30 €"},{"tier":"oase","name":"Oase","price_label":"12 Monate für 50 €"},{"tier":"maezen","name":"Mäzen","price_label":"12 Monate für 120 €"}],"checkout_enabled":true,"referral":{"earned_this_year":0,"waiting":0,"months_per_year":12},"apple":{"managed_by_apple":false,"manage_url":"https:\/\/apps.apple.com\/account\/subscriptions"},"google":{"available":true,"account_id":"9f86d081884c7d659a2feaa0c55ad015a3bf4f1b2b0b822cd15d6c15b0f00a08","products":[{"id":"de.velwebsolutions.oasis.solidar.monat","tier":"solidar","rhythm":"monat"},{"id":"de.velwebsolutions.oasis.solidar.jahr","tier":"solidar","rhythm":"jahr"},{"id":"de.velwebsolutions.oasis.oase.monat","tier":"oase","rhythm":"monat"},{"id":"de.velwebsolutions.oasis.oase.jahr","tier":"oase","rhythm":"jahr"},{"id":"de.velwebsolutions.oasis.maezen.monat","tier":"maezen","rhythm":"monat"},{"id":"de.velwebsolutions.oasis.maezen.jahr","tier":"maezen","rhythm":"jahr"}],"managed_by_google":false,"manage_url":"https:\/\/play.google.com\/store\/account\/subscriptions"}}}
+        {"data":{"state":"expired","subscription":null,"gift":null,"is_founding_member":false,"remaining_founding_seats":1000,"can_cancel":false,"can_withdraw":false,"purchased_gifts":[],"gift_offers":[{"tier":"solidar","name":"Solidar","price_label":"12 Monate für 30 €"},{"tier":"oase","name":"Mittendrin","price_label":"12 Monate für 50 €"},{"tier":"maezen","name":"Mäzen","price_label":"12 Monate für 120 €"}],"checkout_enabled":true,"referral":{"earned_this_year":0,"waiting":0,"months_per_year":12},"apple":{"managed_by_apple":false,"manage_url":"https:\/\/apps.apple.com\/account\/subscriptions"},"google":{"available":true,"account_id":"9f86d081884c7d659a2feaa0c55ad015a3bf4f1b2b0b822cd15d6c15b0f00a08","products":[{"id":"de.velwebsolutions.oasis.solidar.monat","tier":"solidar","rhythm":"monat"},{"id":"de.velwebsolutions.oasis.solidar.jahr","tier":"solidar","rhythm":"jahr"},{"id":"de.velwebsolutions.oasis.oase.monat","tier":"oase","rhythm":"monat"},{"id":"de.velwebsolutions.oasis.oase.jahr","tier":"oase","rhythm":"jahr"},{"id":"de.velwebsolutions.oasis.maezen.monat","tier":"maezen","rhythm":"monat"},{"id":"de.velwebsolutions.oasis.maezen.jahr","tier":"maezen","rhythm":"jahr"}],"managed_by_google":false,"manage_url":"https:\/\/play.google.com\/store\/account\/subscriptions"}}}
     """.trimIndent()
 
     val subscriptionOverview = """
-        {"data":{"state":"subscription","subscription":{"tier":"oase","tier_name":"Oase","rhythm":"monat","on_grace_period":false,"ends_at":null,"paid_until":"2026-11-18T15:39:37.000000Z"},"gift":null,"trial_days_left":null,"trial_ends_at":"2026-10-21T15:39:37.000000Z","trial_banner_days_left":null,"is_founding_member":true,"remaining_founding_seats":999,"can_cancel":true,"can_withdraw":true,"purchased_gifts":[],"gift_offers":[{"tier":"solidar","name":"Solidar","price_label":"12 Monate für 30 €"},{"tier":"oase","name":"Oase","price_label":"12 Monate für 50 €"},{"tier":"maezen","name":"Mäzen","price_label":"12 Monate für 120 €"}],"checkout_enabled":true,"referral":{"earned_this_year":0,"waiting":0,"months_per_year":12}}}
+        {"data":{"state":"subscription","subscription":{"tier":"oase","tier_name":"Mittendrin","rhythm":"monat","on_grace_period":false,"ends_at":null,"paid_until":"2026-11-18T15:39:37.000000Z"},"gift":null,"trial_days_left":null,"trial_ends_at":"2026-10-21T15:39:37.000000Z","trial_banner_days_left":null,"is_founding_member":true,"remaining_founding_seats":999,"can_cancel":true,"can_withdraw":true,"purchased_gifts":[],"gift_offers":[{"tier":"solidar","name":"Solidar","price_label":"12 Monate für 30 €"},{"tier":"oase","name":"Mittendrin","price_label":"12 Monate für 50 €"},{"tier":"maezen","name":"Mäzen","price_label":"12 Monate für 120 €"}],"checkout_enabled":true,"referral":{"earned_this_year":0,"waiting":0,"months_per_year":12}}}
     """.trimIndent()
 
     val payments = """
@@ -59,10 +59,10 @@ object Fixtures {
     """.trimIndent()
 
     val cancellation = """
-        {"data":{"tier_name":"Oase","name":"Mia Mitglied","email":"memsub@example.test","effective_date":"2026-11-18T15:39:37.000000Z"}}
+        {"data":{"tier_name":"Mittendrin","name":"Mia Mitglied","email":"memsub@example.test","effective_date":"2026-11-18T15:39:37.000000Z"}}
     """.trimIndent()
 
-    const val WITHDRAWAL = """{"data":{"tier_name":"Oase","name":"Mia Mitglied","email":"memsub@example.test"}}"""
+    const val WITHDRAWAL = """{"data":{"tier_name":"Mittendrin","name":"Mia Mitglied","email":"memsub@example.test"}}"""
 
     const val CANCELLED = "Deine Kündigung wurde erfolgreich erfasst. Wir haben dir eine Bestätigung per E-Mail geschickt."
 
@@ -112,7 +112,7 @@ object Fixtures {
     const val NOT_RUNNING = "Du hast derzeit keine laufende, ungekündigte Mitgliedschaft, deren Stufe du ändern könntest."
 
     /** The running subscription after the change to Mäzen. */
-    val maezenOverview = subscriptionOverview.replace(""""tier":"oase","tier_name":"Oase"""", """"tier":"maezen","tier_name":"Mäzen"""")
+    val maezenOverview = subscriptionOverview.replace(""""tier":"oase","tier_name":"Mittendrin"""", """"tier":"maezen","tier_name":"Mäzen"""")
 
     const val OBJECTED = "Dein Widerspruch ist am 06.11.2026 um 14:32 Uhr eingegangen. Für dich gilt die bisherige Fassung weiter."
 
@@ -125,7 +125,7 @@ object Fixtures {
     val maezenPerks = """
         {"data":{"tier":"maezen","tier_name":"Mäzen","features":{"tier":"maezen","oases":10,"post_length":2000,"images":10,"image_edge":4096,
         "time_capsule":true,"yearbook":true,"statistics":true,"companion_seats":2,"supporter_badge":true},
-        "highlights":["Alles aus Oase","Fotos in voller Auflösung","Zwei volle Plätze für deine Leute"],
+        "highlights":["Alles aus Mittendrin","Fotos in voller Auflösung","Zwei volle Plätze für deine Leute"],
         "seats":[{"id":1,"member":{"display_name":"Jonas Weber","username":"jonas"},"accepted_at":"2026-10-20T10:00:00.000000Z","url":null},
         {"id":2,"member":null,"accepted_at":null,"url":"http://localhost/app/mitgliedschaft/mitkommen/aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"}],
         "remaining_seats":0,"held_seat":null,"supporter_badge":true,"thank_you_list":false}}
@@ -133,7 +133,7 @@ object Fixtures {
 
     /** Deine Vorteile of a companion whose sponsor is no Mäzen any more (the place rests). */
     val companionPerks = """
-        {"data":{"tier":"oase","tier_name":"Oase","features":{"companion_seats":0,"supporter_badge":false},"highlights":["Zeitkapseln"],
+        {"data":{"tier":"oase","tier_name":"Mittendrin","features":{"companion_seats":0,"supporter_badge":false},"highlights":["Zeitkapseln"],
         "seats":[],"remaining_seats":0,"held_seat":{"sponsor":"Mia Mäzen","active":false},"supporter_badge":false,"thank_you_list":false}}
     """.trimIndent()
 
@@ -169,7 +169,7 @@ object Fixtures {
     /** The account id the server hands out for `obfuscatedAccountId`. */
     const val ACCOUNT_ID = "9f86d081884c7d659a2feaa0c55ad015a3bf4f1b2b0b822cd15d6c15b0f00a08"
 
-    const val WELCOME = "Willkommen als Mitglied! Deine Mitgliedschaft „Oase“ läuft, bezahlt bis 18.11.2026."
+    const val WELCOME = "Willkommen als Mitglied! Deine Mitgliedschaft „Mittendrin“ läuft, bezahlt bis 18.11.2026."
 
     fun purchase(productId: String = Catalogue.OASE_MONTHLY, purchased: Boolean = true, acknowledged: Boolean = false) =
         PlayPurchase("token-$productId", listOf(productId), isPurchased = purchased, isAcknowledged = acknowledged)

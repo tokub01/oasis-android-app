@@ -739,13 +739,13 @@ class ModerationUiTest {
         val profile = detail.copy(subjectUrl = "https://mildcrowd.com/profil/mira")
         val chat = detail.copy(report = detail.report.copy(kind = "chat_report"))
         assertEquals(
-            "Quarantäne aufheben? Die Bilder werden dann wieder ausgeliefert, sobald der Tropfen freigegeben ist.",
+            "Quarantäne aufheben? Die Bilder werden dann wieder ausgeliefert, sobald der Post freigegeben ist.",
             tropfen.liftQuarantineQuestion
         )
         assertEquals("Quarantäne aufheben? Die Anhänge der Nachricht sind dann für das Team wieder zu sehen.", chat.liftQuarantineQuestion)
         assertEquals("Quarantäne aufheben? Profilbild und Banner werden dann wieder ausgeliefert.", profile.liftQuarantineQuestion)
         assertEquals(
-            "Quarantäne aufheben? Das Banner der Oase wird dann wieder ausgeliefert.",
+            "Quarantäne aufheben? Das Banner der Crowd wird dann wieder ausgeliefert.",
             detail.copy(subjectUrl = "https://mildcrowd.com/oasen/stadtgarten").liftQuarantineQuestion
         )
         shown = profile

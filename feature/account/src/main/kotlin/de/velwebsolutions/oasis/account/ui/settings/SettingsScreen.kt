@@ -153,8 +153,8 @@ internal fun SettingsContent(
                 SectionCard(
                     "Deine Daten",
                     detail =
-                        "Lade deine Daten herunter: Konto, Profil mit Statuszeile, Tropfen mit Bildern, Zeitkapseln, wem du folgst, " +
-                            "Oasen und Gemerktes – als ZIP-Datei. Verschlüsselte Chat-Nachrichten können wir nicht lesen und deshalb " +
+                        "Lade deine Daten herunter: Konto, Profil mit Statuszeile, Posts mit Bildern, Zeitkapseln, wem du folgst, " +
+                            "Crowds und Gemerktes – als ZIP-Datei. Verschlüsselte Chat-Nachrichten können wir nicht lesen und deshalb " +
                             "nicht exportieren. Was genau enthalten ist, steht in der Datenschutzerklärung."
                 ) {
                     DataExportButton(viewModel::export, viewModel::showError)

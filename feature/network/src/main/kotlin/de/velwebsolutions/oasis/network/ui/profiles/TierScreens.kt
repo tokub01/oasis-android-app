@@ -66,7 +66,7 @@ import java.time.Instant
 import java.time.ZoneId
 
 /** The text of a locked tier page when an old server sends no message of its own. */
-private const val FROM_OASE = "Das gibt es ab der Mitgliedschaft Oase."
+private const val FROM_OASE = "Das gibt es ab der Mitgliedschaft Mittendrin."
 
 /** The question before a capsule is opened early or deleted. */
 private enum class CapsuleQuestion { Open, Delete }
@@ -114,7 +114,7 @@ fun TimeCapsulesScreen(
                 TierLockedView(
                     "Zeitkapseln",
                     info.lockedMessage ?: FROM_OASE,
-                    feature = "Schreib heute einen Tropfen, der erst an einem Tag deiner Wahl erscheint: zum Geburtstag, zum " +
+                    feature = "Schreib heute einen Post, der erst an einem Tag deiner Wahl erscheint: zum Geburtstag, zum " +
                         "Jahrestag oder für dein künftiges Ich. Bis dahin sieht ihn kein anderes Mitglied."
                 )
             } else {
@@ -151,7 +151,7 @@ fun TimeCapsulesScreen(
                                 listOf(
                                     "Frühestens in einer Stunde, spätestens in ${info.maxYears} Jahren.",
                                     "Bis zu ${info.maxWaiting} Zeitkapseln können gleichzeitig warten.",
-                                    "Beim Versiegeln und beim Aufgehen prüfen wir sie wie jeden Tropfen. " +
+                                    "Beim Versiegeln und beim Aufgehen prüfen wir sie wie jeden Post. " +
                                         "Läuft deine Mitgliedschaft beim Aufgehen nicht, bleibt sie zu."
                                 )
                             )
@@ -171,10 +171,10 @@ private fun CapsuleForm(
     fields: Map<String, String>,
     viewModel: TimeCapsulesViewModel
 ) {
-    val places = listOf(Choice("", "in deiner Quelle")) + info.oases.map { Choice("${it.id}", "in der Oase ${it.name}") }
+    val places = listOf(Choice("", "in deiner Quelle")) + info.oases.map { Choice("${it.id}", "in der Crowd ${it.name}") }
     PaperBox(spacing = 16) {
         OasisTextField(
-            "Dein Tropfen",
+            "Dein Post",
             draft.body,
             viewModel::updateBody,
             lines = 4..10,
@@ -234,7 +234,7 @@ private fun WaitingCapsule(capsule: TimeCapsule, viewModel: TimeCapsulesViewMode
             "Jetzt öffnen",
             onConfirm = { viewModel.launch { viewModel.openNow(capsule.id) } },
             onDismiss = { question = null },
-            message = "Dann erscheint sie gleich als Tropfen.",
+            message = "Dann erscheint sie gleich als Post.",
             destructive = false
         )
     }
@@ -311,7 +311,7 @@ fun YearbookScreen(
             book,
             "Dein Jahrbuch",
             onRetry = viewModel.retry(viewModel::load),
-            feature = "Deine Tropfen und Fotos eines Jahres, gestaltet als Buch zum Durchblättern, Drucken oder als PDF zum " +
+            feature = "Deine Posts und Fotos eines Jahres, gestaltet als Buch zum Durchblättern, Drucken oder als PDF zum " +
                 "Aufheben. Damit bleibt, was du geteilt hast, auch ohne Bildschirm."
         ) { shown ->
             NetworkPage(onRefresh = viewModel::load) {
@@ -338,7 +338,7 @@ fun YearbookScreen(
                 }
                 block("cover") { Cover(shown) }
                 if (shown.months.isEmpty()) {
-                    block("empty") { DashedNote("In ${shown.year} hast du noch keine Tropfen geteilt. Was du schreibst, landet hier.") }
+                    block("empty") { DashedNote("In ${shown.year} hast du noch keine Posts geteilt. Was du schreibst, landet hier.") }
                 }
                 shown.months.forEach { month ->
                     block("month.${shown.year}.${month.name}") {

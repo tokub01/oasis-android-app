@@ -114,7 +114,7 @@ class OasisViewModelsTest(private val answersAtOnce: Boolean) {
         val network = StubbedNetwork(
             stub("GET", "network/oases/stadtgarten", detail(member = false)),
             stub("GET", "network/oases/stadtgarten/posts", pageJson(postJson(4))),
-            stub("POST", "network/oases/stadtgarten/follow", """{"message":"Du folgst jetzt der Oase Stadtgarten."}"""),
+            stub("POST", "network/oases/stadtgarten/follow", """{"message":"Du folgst jetzt der Crowd Stadtgarten."}"""),
             stub("GET", "network/oases/stadtgarten/collections", """{"data":{"can_create":false,"collections":[]}}""")
         )
         val model = models.keep(OasisViewModel("stadtgarten", network.repository))
@@ -124,7 +124,7 @@ class OasisViewModelsTest(private val answersAtOnce: Boolean) {
         assertEquals("the page, its Tropfen and its Sammlungen, once", 3, network.transport.requests.size)
 
         model.setFollowing(true)
-        assertEquals("Du folgst jetzt der Oase Stadtgarten.", model.status.value)
+        assertEquals("Du folgst jetzt der Crowd Stadtgarten.", model.status.value)
         model.dismissStatus()
         assertNull(model.status.value)
     }
@@ -312,11 +312,11 @@ class OasisViewModelsTest(private val answersAtOnce: Boolean) {
         model.load()
         model.pickBanner(banner)
         assertEquals(banner, model.state.value.banner)
-        assertEquals("Das Banner wird mit der Oase gespeichert.", model.status.value)
+        assertEquals("Das Banner wird mit der Crowd gespeichert.", model.status.value)
 
         model.removeBanner()
         assertNull(model.state.value.banner)
-        assertEquals("Das Banner ist entfernt. Jetzt zeigen wir wieder die Farbe der Oase.", model.status.value)
+        assertEquals("Das Banner ist entfernt. Jetzt zeigen wir wieder die Farbe der Crowd.", model.status.value)
         assertEquals(1, network.transport.requests.size)
 
         model.setRole(3, "host")
@@ -372,12 +372,12 @@ class OasisViewModelsTest(private val answersAtOnce: Boolean) {
         assertEquals("Bitte bestätige.", model.error.value?.message("confirm"))
         assertFalse(model.closed.value)
 
-        network.add("DELETE", "network/oases/stadtgarten", json = """{"message":"Die Oase ist geschlossen."}""")
+        network.add("DELETE", "network/oases/stadtgarten", json = """{"message":"Die Crowd ist geschlossen."}""")
         model.setConfirmed(true)
         val before = NetworkSignals.oases.value
         model.close()
         assertTrue(model.closed.value)
-        assertEquals("Die Oase ist geschlossen.", NetworkSignals.confirmation.value)
+        assertEquals("Die Crowd ist geschlossen.", NetworkSignals.confirmation.value)
         assertTrue(NetworkSignals.oases.value > before)
         assertTrue(network.last("network/oases/stadtgarten").body!!.contains("\"confirm\":true"))
     }

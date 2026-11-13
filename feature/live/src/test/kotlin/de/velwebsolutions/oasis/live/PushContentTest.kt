@@ -34,9 +34,9 @@ class PushContentTest {
         )
         assertEquals("https://mildcrowd.com/app/hinweise", generic.url)
         assertEquals(generic, generic.with(null))
-        val named = generic.with(PushPreview("Jonas Weber", "Hat auf deinen Tropfen geantwortet."))
+        val named = generic.with(PushPreview("Jonas Weber", "Hat auf deinen Post geantwortet."))
         assertEquals("Jonas Weber", named.title)
-        assertEquals("Hat auf deinen Tropfen geantwortet.", named.body)
+        assertEquals("Hat auf deinen Post geantwortet.", named.body)
         assertEquals(generic.url, named.url)
     }
 

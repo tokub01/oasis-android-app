@@ -210,7 +210,7 @@ private fun Switches(settings: HintSettings, ui: HintSettingsUiState, actions: H
                 onCheckedChange = { on -> actions.toggle { it.copy(digest = on) } },
                 modifier = Modifier.testTag("digest"),
                 detail =
-                    "Ab 18 Uhr, außerhalb deiner Ruhezeit. Nur wenn es neue ungelesene Hinweise gibt. Die E-Mail enthält eine Summe und einen Link, keine Tropfen-Texte.",
+                    "Ab 18 Uhr, außerhalb deiner Ruhezeit. Nur wenn es neue ungelesene Hinweise gibt. Die E-Mail enthält eine Summe und einen Link, keine Post-Texte.",
                 enabled = enabled
             )
             settings.weeklyLetterEmail?.let { weekly ->
@@ -220,8 +220,8 @@ private fun Switches(settings: HintSettings, ui: HintSettingsUiState, actions: H
                     onCheckedChange = { on -> actions.toggle { it.copy(weeklyLetterEmail = on) } },
                     modifier = Modifier.testTag("weeklyLetterEmail"),
                     detail =
-                        "Sonntags ab 18 Uhr, außerhalb deiner Ruhezeit: was in deinen Oasen los war, mit Zahlen, Treffen und neuen " +
-                            "Sammlungen – ohne Tropfen-Texte. In der App kommt der Wochenbrief immer, solange „Dein Oasen-Wochenbrief“ " +
+                        "Sonntags ab 18 Uhr, außerhalb deiner Ruhezeit: was in deinen Crowds los war, mit Zahlen, Treffen und neuen " +
+                            "Sammlungen – ohne Post-Texte. In der App kommt der Wochenbrief immer, solange „Dein Crowd-Wochenbrief“ " +
                             "oben an ist.",
                     enabled = enabled
                 )
@@ -429,7 +429,7 @@ private fun PushSection(settings: HintSettings, ui: HintSettingsUiState, actions
         when {
             ui.pushAvailable -> {
                 Note(
-                    "Ein kurzer Hinweis, wenn es Neues gibt, zum Beispiel „Jonas Weber · Hat auf deinen Tropfen geantwortet.“ – nie mit dem Text eines Tropfens oder einer Nachricht, höchstens alle fünf Minuten und nie in deiner Ruhezeit oder Pause. Ob Namen auch auf dem Sperrbildschirm stehen, stellst du in den Benachrichtigungen deines Android-Geräts ein („Sensible Inhalte“). Welche Hinweise kommen, stellst du oben unter „In deiner Hinweis-Liste“ ein."
+                    "Ein kurzer Hinweis, wenn es Neues gibt, zum Beispiel „Jonas Weber · Hat auf deinen Post geantwortet.“ – nie mit dem Text eines Posts oder einer Nachricht, höchstens alle fünf Minuten und nie in deiner Ruhezeit oder Pause. Ob Namen auch auf dem Sperrbildschirm stehen, stellst du in den Benachrichtigungen deines Android-Geräts ein („Sensible Inhalte“). Welche Hinweise kommen, stellst du oben unter „In deiner Hinweis-Liste“ ein."
                 )
                 ThisDevice(ui, actions)
             }

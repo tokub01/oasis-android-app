@@ -115,7 +115,7 @@ internal fun LazyListScope.collectionsSection(ui: OasisCollectionsUi, isHost: Bo
             ui.form?.let { CollectionFormView(it, actions) }
             if (collections.collections.isEmpty()) {
                 Text(
-                    "Noch keine Sammlung. In Sammlungen hebt die Oase gemeinsam Tropfen auf, etwa Rezepte oder Tipps.",
+                    "Noch keine Sammlung. In Sammlungen hebt die Crowd gemeinsam Posts auf, etwa Rezepte oder Tipps.",
                     style = OasisType.Body,
                     color = OasisColors.Muted
                 )
@@ -161,7 +161,7 @@ internal fun LazyListScope.collectionsSection(ui: OasisCollectionsUi, isHost: Bo
                 "Löschen",
                 onConfirm = { actions.onDelete(collection) },
                 onDismiss = { confirmDelete = null },
-                message = "Ihre Tropfen bleiben in der Oase."
+                message = "Ihre Posts bleiben in der Crowd."
             )
         }
     }
@@ -171,7 +171,7 @@ internal fun LazyListScope.collectionsSection(ui: OasisCollectionsUi, isHost: Bo
         feedSection(
             shown,
             handlers,
-            empty = "Noch kein Tropfen in dieser Sammlung. Füge einen über „⋯“ an einem Tropfen hinzu.",
+            empty = "Noch kein Post in dieser Sammlung. Füge einen über „⋯“ an einem Post hinzu.",
             keyPrefix = "collection"
         )
     }

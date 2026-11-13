@@ -27,6 +27,7 @@ import de.velwebsolutions.oasis.network.ui.components.WeekChart
 import de.velwebsolutions.oasis.network.ui.components.WeekRow
 import de.velwebsolutions.oasis.network.ui.components.block
 import de.velwebsolutions.oasis.network.ui.components.membersLabel
+import de.velwebsolutions.oasis.network.ui.components.postsStayLine
 import de.velwebsolutions.oasis.network.ui.retry
 
 /**
@@ -52,7 +53,7 @@ fun CloseOasisScreen(
             navigator.selectedTab = MainTab.Oases
         }
     }
-    OasisScreen(title = "Oase schließen") {
+    OasisScreen(title = "Crowd schließen") {
         LoadableView(closing, onRetry = viewModel.retry(viewModel::load)) { info ->
             NetworkPage {
                 block("header") { PageHeader("„${info.name}“ schließen?") }
@@ -60,20 +61,20 @@ fun CloseOasisScreen(
                     PaperBox(spacing = 16) {
                         Bullets(
                             listOf(
-                                "Die Oase verschwindet für alle ${membersLabel(info.membersCount)}.",
-                                "Ihre ${info.postsCount} Tropfen bleiben bei den Menschen, die sie geschrieben haben – nur ohne Oase.",
+                                "Die Crowd verschwindet für alle ${membersLabel(info.membersCount)}.",
+                                postsStayLine(info.postsCount),
                                 "Das lässt sich nicht rückgängig machen."
                             )
                         )
                         ConsentCheck(
-                            "Ja, ich möchte die Oase endgültig schließen.",
+                            "Ja, ich möchte die Crowd endgültig schließen.",
                             confirmed,
                             viewModel::setConfirmed,
                             Modifier.testTag("closeOasis.confirm")
                         )
                         (error?.message("confirm") ?: error?.userMessage)?.let { FieldError(it) }
                         AsyncOasisButton(
-                            "Oase schließen",
+                            "Crowd schließen",
                             viewModel::close,
                             kind = OasisButtonKind.Destructive,
                             fullWidth = false,
@@ -99,9 +100,9 @@ fun OasisStatisticsScreen(
     OasisScreen(title = "Statistik") {
         TierLoadableView(
             statistics,
-            "Statistik deiner Oase",
+            "Statistik deiner Crowd",
             onRetry = viewModel.retry(viewModel::load),
-            feature = "Wie deine Oase wächst und wie lebendig sie ist: neue Mitglieder und Tropfen pro Woche über zwölf Wochen, " +
+            feature = "Wie deine Crowd wächst und wie lebendig sie ist: neue Mitglieder und Posts pro Woche über zwölf Wochen, " +
                 "nur für Gastgeber:innen. Wer was liest oder schreibt, zeigen die Zahlen nie."
         ) { stats ->
             NetworkPage {
@@ -117,17 +118,17 @@ fun OasisStatisticsScreen(
                         listOf(
                             stats.totals.members to "Mitglieder",
                             stats.totals.hosts to "Gastgeber:innen",
-                            stats.totals.posts to "Tropfen insgesamt",
-                            stats.totals.posts30Days to "Tropfen in 30 Tagen",
+                            stats.totals.posts to "Posts insgesamt",
+                            stats.totals.posts30Days to "Posts in 30 Tagen",
                             stats.totals.activeAuthors30Days to "Menschen, die in 30 Tagen geschrieben haben",
-                            stats.totals.removed to "Von euch entfernte Tropfen"
+                            stats.totals.removed to "Von euch entfernte Posts"
                         )
                     )
                 }
                 block("weeks") {
                     WeekChart(
                         "Die letzten 12 Wochen",
-                        listOf("Neue Mitglieder", "Tropfen"),
+                        listOf("Neue Mitglieder", "Posts"),
                         stats.weekly.map { WeekRow(it.week, listOf(it.joined, it.posts)) }
                     )
                 }

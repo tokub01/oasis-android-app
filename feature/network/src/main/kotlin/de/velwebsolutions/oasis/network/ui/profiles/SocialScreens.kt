@@ -222,7 +222,7 @@ fun StatisticsScreen(viewModel: StatisticsViewModel = hiltViewModel<StatisticsVi
             statistics,
             "Deine Zahlen",
             onRetry = viewModel.retry(viewModel::load),
-            feature = "Wie deine Karawane wächst, welche Tropfen ankommen und wie lebendig deine Oasen sind: leise Zahlen über " +
+            feature = "Wie deine Karawane wächst, welche Posts ankommen und wie lebendig deine Crowds sind: leise Zahlen über " +
                 "zwölf Wochen, die nur du siehst. Wer reagiert hat, zeigen sie nie."
         ) { stats ->
             NetworkPage(onRefresh = viewModel::load) {
@@ -240,7 +240,7 @@ fun StatisticsScreen(viewModel: StatisticsViewModel = hiltViewModel<StatisticsVi
                         listOf(
                             stats.totals.followers to "In deiner Karawane",
                             stats.totals.following to "Du folgst",
-                            stats.totals.posts to "Tropfen",
+                            stats.totals.posts to "Posts",
                             stats.totals.reactions to "Reaktionen erhalten",
                             stats.totals.replies to "Antworten erhalten",
                             stats.totals.carries to "Mal weitergetragen"
@@ -250,13 +250,13 @@ fun StatisticsScreen(viewModel: StatisticsViewModel = hiltViewModel<StatisticsVi
                 block("weeks") {
                     WeekChart(
                         "Die letzten 12 Wochen",
-                        listOf("Neu in der Karawane", "Tropfen", "Reaktionen"),
+                        listOf("Neu in der Karawane", "Posts", "Reaktionen"),
                         stats.weekly.map { WeekRow(it.week, listOf(it.followers, it.posts, it.reactions)) }
                     )
                 }
                 block("top") {
                     PaperBox {
-                        SectionTitle("Deine Tropfen der letzten 30 Tage mit den meisten Reaktionen")
+                        SectionTitle("Deine Posts der letzten 30 Tage mit den meisten Reaktionen")
                         if (stats.topPosts.isEmpty()) {
                             Text(
                                 "In den letzten 30 Tagen hast du nichts geschrieben.",
@@ -390,7 +390,7 @@ fun InvitationsScreen(viewModel: InvitationsViewModel = hiltViewModel<Invitation
                     SideCard("Was Eingeladene bekommen", tone = PanelTone.Dune) {
                         Bullets(
                             listOf(
-                                "Dieselbe Oase wie du, mit allen Funktionen, sobald sie ihren Beitrag gewählt haben.",
+                                "Dasselbe Netzwerk wie du, mit allen Funktionen, sobald sie ihren Beitrag gewählt haben.",
                                 "Ihr folgt euch nach der Anmeldung automatisch.",
                                 "Keine Werbung, kein Feed, der festhält."
                             )

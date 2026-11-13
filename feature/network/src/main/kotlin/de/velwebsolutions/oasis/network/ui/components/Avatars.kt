@@ -69,6 +69,15 @@ fun OasisMark(oasis: OasisSummary, modifier: Modifier = Modifier) {
 /** "12 Mitglieder" / "1 Mitglied". */
 fun membersLabel(count: Int): String = "$count ${if (count == 1) "Mitglied" else "Mitglieder"}"
 
+/** "12 Posts" / "1 Post". */
+fun postsLabel(count: Int): String = "$count ${if (count == 1) "Post" else "Posts"}"
+
+/** What happens to the posts of a crowd that closes: one line of the closing page. */
+fun postsStayLine(count: Int): String {
+    if (count == 1) return "Ihr Post bleibt bei dem Menschen, der ihn geschrieben hat – nur ohne Crowd."
+    return "Ihre $count Posts bleiben bei den Menschen, die sie geschrieben haben – nur ohne Crowd."
+}
+
 /** A row with an oasis mark, name and member count (Quelle, Entdecken, Suche, profile). */
 @Composable
 fun OasisRow(oasis: OasisSummary, modifier: Modifier = Modifier, detail: String? = null) {

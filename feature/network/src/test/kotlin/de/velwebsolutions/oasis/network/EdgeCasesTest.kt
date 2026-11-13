@@ -185,7 +185,7 @@ class EdgeCasesTest(private val answersAtOnce: Boolean) {
         val source = models.keep(
             SourceViewModel(network.repository, network.session, de.velwebsolutions.oasis.testing.MemoryOnboardingCardStore())
         )
-        NetworkSignals.didPublish(decodePost(postJson(8)), "Dein Tropfen ist da.")
+        NetworkSignals.didPublish(decodePost(postJson(8)), "Dein Post ist da.")
         assertEquals(listOf(8), source.list.posts.map { it.id })
         NetworkSignals.didPublish(null, "Gespeichert.")
         eventually { network.transport.requests.size == 1 && source.list.state.value.context != null }

@@ -58,7 +58,7 @@ class BillingTypesTest {
         val empty = de.velwebsolutions.oasis.membership.api.MembershipOverview()
         assertEquals(de.velwebsolutions.oasis.membership.api.MembershipOverview.State.Expired, empty.state)
         assertNull(empty.apple)
-        val running = de.velwebsolutions.oasis.membership.api.MembershipOverview.Subscription("Oase")
+        val running = de.velwebsolutions.oasis.membership.api.MembershipOverview.Subscription("Mittendrin")
         assertFalse(running.onGracePeriod)
         assertNull(running.endsAt)
     }

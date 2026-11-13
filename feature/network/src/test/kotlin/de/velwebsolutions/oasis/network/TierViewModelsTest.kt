@@ -10,6 +10,7 @@ import de.velwebsolutions.oasis.network.api.TimeCapsuleInput
 import de.velwebsolutions.oasis.network.api.TimeCapsules
 import de.velwebsolutions.oasis.network.api.Yearbook
 import de.velwebsolutions.oasis.network.data.NetworkRepository
+import de.velwebsolutions.oasis.network.ui.components.postsStayLine
 import de.velwebsolutions.oasis.network.ui.profiles.CapsuleDraft
 import de.velwebsolutions.oasis.network.ui.profiles.TimeCapsulesViewModel
 import de.velwebsolutions.oasis.network.ui.profiles.YearbookViewModel
@@ -45,7 +46,7 @@ object TierFixtures {
     """.trimIndent()
 
     val lockedCapsules = """
-        {"data":{"available":false,"locked_message":"Das gibt es ab der Mitgliedschaft Oase.","max_length":500,"max_waiting":50,"max_years":10,"oases":[],"waiting":[],"past":[]}}
+        {"data":{"available":false,"locked_message":"Das gibt es ab der Mitgliedschaft Mittendrin.","max_length":500,"max_waiting":50,"max_years":10,"oases":[],"waiting":[],"past":[]}}
     """.trimIndent()
 
     val yearbook = """
@@ -60,7 +61,7 @@ object TierFixtures {
         {"data":{"year":2025,"years":[2026,2025],"totals":{"posts":0,"images":0,"oases":0},"print_url":"http://localhost/app/jahrbuch/2025","months":[]}}
     """.trimIndent()
 
-    const val LOCKED = """{"message":"Das gibt es ab der Mitgliedschaft Oase."}"""
+    const val LOCKED = """{"message":"Das gibt es ab der Mitgliedschaft Mittendrin."}"""
 }
 
 /** Zeitkapseln and the Jahrbuch: the requests, the view models and the cover line. */
@@ -97,7 +98,7 @@ class TierViewModelsTest {
         val body = network.transport.lastBody("network/time-capsules")!!.jsonObject
         assertEquals("2026-12-24T18:00:00+01:00", body["opens_at"]?.jsonPrimitive?.content)
         assertEquals(2, body["oasis_id"]?.jsonPrimitive?.int)
-        repository.sealTimeCapsule(TimeCapsuleInput("Ohne Oase", "2026-12-24T18:00:00+01:00"))
+        repository.sealTimeCapsule(TimeCapsuleInput("Ohne Crowd", "2026-12-24T18:00:00+01:00"))
         assertFalse("oasis_id" in network.transport.lastBody("network/time-capsules")!!.jsonObject)
         assertEquals("Deine Zeitkapsel ist aufgegangen.", repository.openTimeCapsule(5))
         assertEquals("Die Zeitkapsel ist gelöscht.", repository.deleteTimeCapsule(5))
@@ -225,7 +226,7 @@ class TierViewModelsTest {
         val locked = StubbedNetwork(stub("GET", "network/yearbook", TierFixtures.LOCKED, 403))
         val below = models.keep(YearbookViewModel(null, locked.repository))
         below.load()
-        assertEquals(Loadable.Failed(ApiError.Forbidden("Das gibt es ab der Mitgliedschaft Oase.")), below.book.value)
+        assertEquals(Loadable.Failed(ApiError.Forbidden("Das gibt es ab der Mitgliedschaft Mittendrin.")), below.book.value)
     }
 
     @Test
@@ -259,9 +260,15 @@ class TierViewModelsTest {
 
     @Test
     fun `the cover counts photos and oases in German`() {
-        assertEquals("2 Tropfen · 1 Foto · in 1 Oase", yearbookTotals(Yearbook.Totals(2, 1, 1)))
-        assertEquals("5 Tropfen · 3 Fotos · in 2 Oasen", yearbookTotals(Yearbook.Totals(5, 3, 2)))
-        assertEquals("1 Tropfen · 0 Fotos", yearbookTotals(Yearbook.Totals(1, 0, 0)))
+        assertEquals("2 Posts · 1 Foto · in 1 Crowd", yearbookTotals(Yearbook.Totals(2, 1, 1)))
+        assertEquals("5 Posts · 3 Fotos · in 2 Crowds", yearbookTotals(Yearbook.Totals(5, 3, 2)))
+        assertEquals("1 Post · 0 Fotos", yearbookTotals(Yearbook.Totals(1, 0, 0)))
+    }
+
+    @Test
+    fun `the closing page says what happens to one post and to many`() {
+        assertEquals("Ihr Post bleibt bei dem Menschen, der ihn geschrieben hat – nur ohne Crowd.", postsStayLine(1))
+        assertEquals("Ihre 9 Posts bleiben bei den Menschen, die sie geschrieben haben – nur ohne Crowd.", postsStayLine(9))
     }
 
     @Test

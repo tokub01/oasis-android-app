@@ -239,12 +239,12 @@ fun letterJson(id: Int, oases: String? = null): String {
         "meetups":[{"id":5,"title":"Gießen und Kuchen","starts_at":"2026-11-07T13:00:00Z","place":"Hinterhof"}],
         "collections":[{"id":4,"name":"Rezepte"}]}]
     """.trimIndent()
-    return """{"id":$id,"week_start":"2026-10-26","week_end":"2026-11-01","summary":"1 Oase · 1 Tropfen · 1 Treffen","oases":$entries}"""
+    return """{"id":$id,"week_start":"2026-10-26","week_end":"2026-11-01","summary":"1 Crowd · 1 Post · 1 Treffen","oases":$entries}"""
 }
 
 fun lettersJson() = """
-    {"data":[{"id":5,"week_start":"2026-10-26","week_end":"2026-11-01","summary":"1 Oase · 1 Tropfen"},
-    {"id":4,"week_start":"2026-10-19","week_end":"2026-10-25","summary":"2 Oasen"}]}
+    {"data":[{"id":5,"week_start":"2026-10-26","week_end":"2026-11-01","summary":"1 Crowd · 1 Post"},
+    {"id":4,"week_start":"2026-10-19","week_end":"2026-10-25","summary":"2 Crowds"}]}
 """.trimIndent()
 
 fun ideaJson(

@@ -184,7 +184,7 @@ fun LazyListScope.sourceContent(
                 if (showAll) {
                     "Hier siehst du der Reihe nach, was alle auf Mildcrowd teilen – ohne Algorithmus."
                 } else {
-                    "Hier siehst du der Reihe nach, was deine Freund:innen und die Menschen und Oasen teilen, denen du folgst."
+                    "Hier siehst du der Reihe nach, was deine Freund:innen und die Menschen und Crowds teilen, denen du folgst."
                 },
                 style = OasisType.Body,
                 color = OasisColors.Ink2
@@ -235,7 +235,7 @@ fun LazyListScope.sourceContent(
             ComposeEntry(
                 "Was möchtest du teilen?",
                 Modifier.testTag("source.composeEntry"),
-                accessibilityLabel = "Dein Tropfen: Was möchtest du teilen?"
+                accessibilityLabel = "Dein Post: Was möchtest du teilen?"
             ) {
                 navigator.present(NetworkRoute.Compose())
             }
@@ -247,7 +247,7 @@ fun LazyListScope.sourceContent(
             Panel {
                 SectionTitle("Nächste Schritte")
                 StepLink("Entdecken, wer schon da ist", NetworkRoute.Discover)
-                StepLink("Einer Oase folgen", NetworkRoute.Oases)
+                StepLink("Einer Crowd folgen", NetworkRoute.Oases)
                 StepLink("Profil vervollständigen", NetworkRoute.EditProfile)
                 StepLink("Menschen einladen", NetworkRoute.Invitations)
             }
@@ -261,9 +261,9 @@ fun LazyListScope.sourceContent(
         empty = if (cut.seen) {
             null
         } else if (showAll) {
-            "Noch hat niemand etwas geteilt. Schreib den ersten Tropfen!"
+            "Noch hat niemand etwas geteilt. Schreib den ersten Post!"
         } else {
-            "Noch keine Tropfen. Folge Menschen oder Oasen, dann erscheinen ihre Tropfen hier – oder schau unter „Ganz Mildcrowd“, was alle teilen."
+            "Noch keine Posts. Folge Menschen oder Crowds, dann erscheinen ihre Posts hier – oder schau unter „Ganz Mildcrowd“, was alle teilen."
         }
     )
     if (cut.seen) {
@@ -271,7 +271,7 @@ fun LazyListScope.sourceContent(
             Panel(tone = PanelTone.Dune, spacing = 10, modifier = Modifier.testTag("source.seen")) {
                 Text("Du hast alles Neue gesehen.", style = OasisType.BodyBold, color = OasisColors.Night)
                 OasisButton(
-                    "Ältere Tropfen",
+                    "Ältere Posts",
                     extras.onShowOlder,
                     kind = OasisButtonKind.Secondary,
                     fullWidth = false,
@@ -292,7 +292,7 @@ private fun LazyListScope.onboardingCard(onSnooze: () -> Unit) {
         val navigator = LocalNavigator.current
         Panel(tone = PanelTone.Dune, spacing = 10, modifier = Modifier.testTag("source.onboarding")) {
             SectionTitle("Mach dein Tal lebendig")
-            Text("Wähl ein paar Oasen und Menschen, dann füllt sich dein Tal.", style = OasisType.Body, color = OasisColors.Ink2)
+            Text("Wähl ein paar Crowds und Menschen, dann füllt sich dein Tal.", style = OasisType.Body, color = OasisColors.Ink2)
             Row(horizontalArrangement = Arrangement.spacedBy(10.dp), verticalAlignment = Alignment.CenterVertically) {
                 OasisButton(
                     "Los geht’s",
@@ -356,10 +356,10 @@ private fun LazyListScope.sideBlocks(context: SourceContext?, meetups: List<Meet
     }
     context?.oases?.let { oases ->
         block("side.oases") {
-            SideCard("Deine Oasen") {
-                if (oases.isEmpty()) Text("Du folgst noch keiner Oase.")
+            SideCard("Deine Crowds") {
+                if (oases.isEmpty()) Text("Du folgst noch keiner Crowd.")
                 oases.forEach { OasisRow(it) }
-                TextLink("Alle Oasen", NetworkRoute.Oases)
+                TextLink("Alle Crowds", NetworkRoute.Oases)
             }
         }
     }

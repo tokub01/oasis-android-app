@@ -148,7 +148,7 @@ class NetworkScreensTest {
 
         compose.onAllNodesWithTag("post.menu").onFirst().performClick()
         compose.onNodeWithText("Bearbeiten").assertIsDisplayed()
-        compose.onNodeWithText("Aus Oase entfernen …").assertIsDisplayed()
+        compose.onNodeWithText("Aus Crowd entfernen …").assertIsDisplayed()
         compose.onNodeWithText("Löschen …").performClick()
         compose.onNodeWithText("Wirklich löschen?").assertIsDisplayed()
         capture("card-delete-dialog")
@@ -206,7 +206,7 @@ class NetworkScreensTest {
             listOf(PostAction.Unmute to 4, PostAction.Unrestrict to 4, PostAction.React to 4, PostAction.Unbookmark to 4),
             actions
         )
-        scrollTo("Antwort auf einen Tropfen, der nicht mehr verfügbar ist")
+        scrollTo("Antwort auf einen Post, der nicht mehr verfügbar ist")
     }
 
     @Test
@@ -240,8 +240,8 @@ class NetworkScreensTest {
         compose.onNodeWithTag("imageViewer.close").performClick()
         scrollTo("Bilder gesperrt.")
         scrollTo("Das Original")
-        scrollTo("Tropfen einer stummgeschalteten Person.")
-        scrollTo("Dieser Tropfen ist nicht mehr verfügbar.")
+        scrollTo("Post einer stummgeschalteten Person.")
+        scrollTo("Dieser Post ist nicht mehr verfügbar.")
     }
 
     @Test
@@ -296,7 +296,7 @@ class NetworkScreensTest {
         capture("feed-states")
         scrollTo("Noch nichts da.")
         scrollTo("Noch einmal laden")
-        scrollTo("Ältere Tropfen …")
+        scrollTo("Ältere Posts …")
         scrollTo("Nicht erreichbar.")
         scrollTo("Das sind alle Treffer.")
     }
@@ -330,7 +330,7 @@ class NetworkScreensTest {
         show { NetworkPage { searchContent("ga", state, handlers, onQuery = {}, onSubmit = {}) } }
         compose.onNodeWithText("Ergebnisse für „ga“").assertIsDisplayed()
         capture("search-results")
-        scrollTo("Tropfen")
+        scrollTo("Posts")
     }
 
     @Test
@@ -360,7 +360,7 @@ class NetworkScreensTest {
         val directory = data(OasisDirectory.serializer(), Fixtures.oases)
         show { NetworkPage { oasesContent(directory.copy(canCreate = true, mine = emptyList())) } }
         compose.onNodeWithText("Räume für das, was dich interessiert").assertIsDisplayed()
-        compose.onNodeWithText("Du folgst noch keiner Oase.").assertIsDisplayed()
+        compose.onNodeWithText("Du folgst noch keiner Crowd.").assertIsDisplayed()
         capture("oases")
         compose.onNodeWithTag("oases.create").performClick()
         assertEquals(NetworkRoute.CreateOasis, navigator.stack(MainTab.Source).last())
@@ -397,7 +397,7 @@ class NetworkScreensTest {
         compose.onNodeWithTag("oasis.rules").performClick()
         compose.onNodeWithText("Keine Werbung.").assertIsDisplayed()
         capture("oasis-host")
-        compose.onNodeWithContentDescription("Dein Tropfen in Stadtgarten").performClick()
+        compose.onNodeWithContentDescription("Dein Post in Stadtgarten").performClick()
         assertTrue(composed)
         scrollTo("Ein weiteres Mitglied zeigt sich")
         compose.onNodeWithContentDescription("Aylin Demir schreiben").performClick()
@@ -608,7 +608,7 @@ class NetworkScreensTest {
             onRemoveImage = { calls += "remove:$it" }, onAlt = { _, _ -> }, checkTone = {}, publish = { null }
         )
         show { ComposeContent(state, callbacks, onPublished = {}) }
-        compose.onNodeWithText("Dein Tropfen in Stadtgarten").assertExists()
+        compose.onNodeWithText("Dein Post in Stadtgarten").assertExists()
         compose.onNodeWithTag("tone.hint").assertIsDisplayed()
         compose.onNodeWithTag("compose.toneConfirmed").performClick()
         compose.onNodeWithTag("compose.linkRead").performClick()
@@ -616,7 +616,7 @@ class NetworkScreensTest {
         capture("composer")
         scrollTo("Bild 1 entfernen")
         compose.onNodeWithText("Bild 1 entfernen").performClick()
-        scrollTo("Art des Tropfens")
+        scrollTo("Art des Posts")
         compose.onNodeWithTag("compose.kind").performClick()
         compose.onNodeWithText("Frage an meine Karawane").performClick()
         compose.onNodeWithTag("compose.visibility").performClick()

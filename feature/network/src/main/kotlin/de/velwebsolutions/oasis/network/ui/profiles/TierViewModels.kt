@@ -16,6 +16,7 @@ import de.velwebsolutions.oasis.network.data.NetworkRepository
 import de.velwebsolutions.oasis.network.ui.NetworkViewModel
 import de.velwebsolutions.oasis.network.ui.apiError
 import de.velwebsolutions.oasis.network.ui.attempt
+import de.velwebsolutions.oasis.network.ui.components.postsLabel
 import java.time.Instant
 import java.time.ZoneId
 import java.time.format.DateTimeFormatter
@@ -236,8 +237,8 @@ fun yearbookTotals(totals: Yearbook.Totals): String {
     val images = if (totals.images == 1) "1 Foto" else "${totals.images} Fotos"
     val oases = when (totals.oases) {
         0 -> ""
-        1 -> " · in 1 Oase"
-        else -> " · in ${totals.oases} Oasen"
+        1 -> " · in 1 Crowd"
+        else -> " · in ${totals.oases} Crowds"
     }
-    return "${totals.posts} Tropfen · $images$oases"
+    return "${postsLabel(totals.posts)} · $images$oases"
 }

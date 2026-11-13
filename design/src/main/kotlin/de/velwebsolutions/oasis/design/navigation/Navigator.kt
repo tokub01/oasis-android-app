@@ -12,7 +12,7 @@ import androidx.compose.runtime.staticCompositionLocalOf
 enum class MainTab(val title: String) {
     Source("Quelle"),
     Discover("Entdecken"),
-    Oases("Oasen"),
+    Oases("Crowds"),
     Chats("Chats"),
     Profile("Profil")
 }

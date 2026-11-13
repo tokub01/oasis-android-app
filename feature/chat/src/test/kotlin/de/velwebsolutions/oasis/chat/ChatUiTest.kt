@@ -252,7 +252,7 @@ class ChatUiTest {
         var written = ""
         val people = listOf(
             ChatSuggestion("2", "jonas", "Jonas", null, "Ihr seid befreundet"),
-            ChatSuggestion("3", "aylin", "Aylin", null, "Ihr seid beide in Oase Lindenhof")
+            ChatSuggestion("3", "aylin", "Aylin", null, "Ihr seid beide in Crowd Lindenhof")
         )
         var canWrite by mutableStateOf(true)
         show {
@@ -273,8 +273,8 @@ class ChatUiTest {
         }
         capture("list-empty-suggestions")
         compose.onNodeWithText("Noch keine Chats").assertExists()
-        compose.onNodeWithText("Schreib jemandem aus deinen Oasen.").assertExists()
-        compose.onNodeWithText("Ihr seid beide in Oase Lindenhof").assertExists()
+        compose.onNodeWithText("Schreib jemandem aus deinen Crowds.").assertExists()
+        compose.onNodeWithText("Ihr seid beide in Crowd Lindenhof").assertExists()
         compose.onNodeWithText("@aylin").assertExists()
         compose.onNodeWithTag("chat.new").assertDoesNotExist()
         compose.onNode(hasContentDescription("Aylin schreiben")).performClick()

@@ -131,7 +131,7 @@ class RouteScreensTest {
         route = MembershipRoute.Withdraw
         compose.onNodeWithText("Gesetzliches Widerrufsrecht innerhalb von 14 Tagen (§ 355 BGB).").assertExists()
         route = MembershipRoute.Checkout
-        compose.onNodeWithText("Bleib in der Oase.").assertExists()
+        compose.onNodeWithText("Bleib in der Mildcrowd.").assertExists()
         route = MembershipRoute.Perks
         compose.onNodeWithText("In Mäzen enthalten").assertExists()
         route = MembershipRoute.CompanionLink("a".repeat(40))

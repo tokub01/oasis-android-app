@@ -178,12 +178,12 @@ fun ProfileScreen(
 /** The profile page's content. */
 fun LazyListScope.profileContent(profile: Profile, posts: PostListState<NoContext>, handlers: FeedHandlers, callbacks: ProfileCallbacks) {
     block("header") { Header(profile, callbacks) }
-    block("posts.title") { SectionTitle("Tropfen") }
-    feedSection(posts, handlers, empty = "Noch keine Tropfen.")
+    block("posts.title") { SectionTitle("Posts") }
+    feedSection(posts, handlers, empty = "Noch keine Posts.")
     profile.oases?.let { oases ->
         block("side.oases") {
-            SideCard("Oasen") {
-                if (oases.isEmpty()) Text("Noch in keiner Oase.")
+            SideCard("Crowds") {
+                if (oases.isEmpty()) Text("Noch in keiner Crowd.")
                 oases.forEach { OasisRow(it, detail = if (it.role == "host") "Gastgeber:in" else "Mitglied") }
             }
         }
@@ -192,7 +192,7 @@ fun LazyListScope.profileContent(profile: Profile, posts: PostListState<NoContex
         block("side.own") {
             val navigator = LocalNavigator.current
             SideCard("Nur für dich", tone = PanelTone.Night) {
-                Text("Wie deine Tropfen ankommen, siehst nur du.")
+                Text("Wie deine Posts ankommen, siehst nur du.")
                 ButtonFlow {
                     OnNightButton("Deine Zahlen", { navigator.open(NetworkRoute.Statistics) })
                     OnNightButton("Gemerkt", { navigator.open(NetworkRoute.Bookmarks) })
@@ -210,7 +210,7 @@ fun LazyListScope.profileContent(profile: Profile, posts: PostListState<NoContex
     } else {
         block("side.noads") {
             SideCard("Ein Netzwerk ohne Werbung", tone = PanelTone.Dune) {
-                Text("Auf Mildcrowd siehst du Tropfen der Reihe nach, ohne Empfehlungen, die dich festhalten sollen.")
+                Text("Auf Mildcrowd siehst du Posts der Reihe nach, ohne Empfehlungen, die dich festhalten sollen.")
             }
         }
     }

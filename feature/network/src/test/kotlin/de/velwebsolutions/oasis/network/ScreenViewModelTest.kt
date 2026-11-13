@@ -59,7 +59,7 @@ class ScreenViewModelTest(private val answersAtOnce: Boolean) {
     fun `leaves the Tropfen page after deleting it and hands the confirmation to the tab bar`() = runTest {
         val network = StubbedNetwork(
             stub("GET", "network/posts/12", Fixtures.post),
-            stub("DELETE", "network/posts/12", """{"message":"Dein Tropfen ist gelöscht."}""")
+            stub("DELETE", "network/posts/12", """{"message":"Dein Post ist gelöscht."}""")
         )
         val model = models.keep(PostDetailViewModel(12, network.repository))
         model.load()
@@ -67,7 +67,7 @@ class ScreenViewModelTest(private val answersAtOnce: Boolean) {
         model.perform(PostAction.Delete, post)
         assertTrue(model.leave.value)
         assertNull(model.status.value)
-        assertEquals("Dein Tropfen ist gelöscht.", NetworkSignals.confirmation.value)
+        assertEquals("Dein Post ist gelöscht.", NetworkSignals.confirmation.value)
     }
 
     @Test
@@ -135,7 +135,7 @@ class ScreenViewModelTest(private val answersAtOnce: Boolean) {
             stub("GET", "network/oases/stadtgarten", detail),
             stub("GET", "network/oases/stadtgarten/posts", pageJson(postJson(4))),
             stub("GET", "network/oases/stadtgarten/members", members),
-            stub("DELETE", "network/oases/stadtgarten/follow", """{"message":"Du folgst der Oase Stadtgarten nicht mehr."}""")
+            stub("DELETE", "network/oases/stadtgarten/follow", """{"message":"Du folgst der Crowd Stadtgarten nicht mehr."}""")
         )
         val model = models.keep(OasisViewModel("stadtgarten", network.repository))
         model.load()
@@ -146,7 +146,7 @@ class ScreenViewModelTest(private val answersAtOnce: Boolean) {
 
         val before = NetworkSignals.oases.value
         model.setFollowing(false)
-        assertEquals("Du folgst der Oase Stadtgarten nicht mehr.", model.status.value)
+        assertEquals("Du folgst der Crowd Stadtgarten nicht mehr.", model.status.value)
         assertTrue(NetworkSignals.oases.value > before)
     }
 
@@ -159,7 +159,7 @@ class ScreenViewModelTest(private val answersAtOnce: Boolean) {
         val model = models.keep(OasisFormViewModel(null, network.repository))
         model.load()
         assertEquals(2, model.state.value.options?.visibilities?.size)
-        model.updateInput { it.copy(name = "UI Oase", description = "Ein Test.", houseRules = "Freundlich bleiben.") }
+        model.updateInput { it.copy(name = "UI Crowd", description = "Ein Test.", houseRules = "Freundlich bleiben.") }
         model.save()
         assertEquals(OasisFormOutcome.Open("ui-oase"), model.state.value.outcome)
         assertTrue(network.last("network/oases").body!!.contains(Regex("name=\"house_rules\"[\\s\\S]*?\r\n\r\nFreundlich bleiben.")))
@@ -206,7 +206,7 @@ class ScreenViewModelTest(private val answersAtOnce: Boolean) {
         )
         model.list.reload()
 
-        NetworkSignals.didPublish(decodePost(postJson(8)), "Dein Tropfen ist da.")
+        NetworkSignals.didPublish(decodePost(postJson(8)), "Dein Post ist da.")
         assertEquals(listOf(8, 3), model.list.posts.map { it.id })
         assertEquals(1, model.scrollToTop.value)
         val loads = network.transport.requests.size
@@ -225,7 +225,7 @@ class ScreenViewModelTest(private val answersAtOnce: Boolean) {
         )
         model.list.reload()
         val loads = network.transport.requests.size
-        NetworkSignals.didPublish(decodePost(postJson(8)), "Dein Tropfen ist da.")
+        NetworkSignals.didPublish(decodePost(postJson(8)), "Dein Post ist da.")
         eventually { network.transport.requests.size == loads + 1 }
         assertEquals(0, model.scrollToTop.value)
     }

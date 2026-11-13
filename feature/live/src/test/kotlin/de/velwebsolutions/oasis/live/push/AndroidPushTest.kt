@@ -194,7 +194,7 @@ class AndroidPushTest {
         )
         val live = LiveCoordinator(repository(transport), FakeRealtime(), registrar(), scope)
         runBlocking { live.start(1) }
-        val common = FakeCommonApi(PushPreview("Jonas Weber", "Hat auf deinen Tropfen geantwortet."))
+        val common = FakeCommonApi(PushPreview("Jonas Weber", "Hat auf deinen Post geantwortet."))
         val messages = PushMessages(app, common, live, registrar(), scope)
         val reference = "Abc123Abc123Abc123Abc123Abc123Abc123Abc1"
         messages.received(message("title" to "Mildcrowd", "body" to "Es gibt Neues.", "preview" to reference))

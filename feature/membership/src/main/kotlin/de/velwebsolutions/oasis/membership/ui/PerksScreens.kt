@@ -53,7 +53,7 @@ import de.velwebsolutions.oasis.membership.api.SupporterInput
 import kotlinx.coroutines.launch
 
 /** The tier a companion place gives (TierFeatures::COMPANION_TIER), where the server does not name it. */
-private const val COMPANION_TIER = "Oase"
+private const val COMPANION_TIER = "Mittendrin"
 
 /** What the perks page can ask its view model for. */
 data class PerksCallbacks(

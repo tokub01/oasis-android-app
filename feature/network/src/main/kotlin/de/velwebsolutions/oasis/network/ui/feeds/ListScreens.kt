@@ -106,7 +106,7 @@ fun LazyListScope.discoverContent(state: PostListState<DiscoverContext>, handler
         PageHeader(
             "Wer schon da ist",
             eyebrow = "Entdecken",
-            lead = "Tropfen aus der Gemeinschaft, der Reihe nach. Keine Empfehlungen nach Klicks."
+            lead = "Posts aus der Gemeinschaft, der Reihe nach. Keine Empfehlungen nach Klicks."
         )
     }
     block("buttons") {
@@ -128,7 +128,7 @@ fun LazyListScope.discoverContent(state: PostListState<DiscoverContext>, handler
     if (oases.isNotEmpty()) {
         block("oases") {
             val navigator = LocalNavigator.current
-            LazyRow(Modifier.semantics { contentDescription = "Oasen" }, horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+            LazyRow(Modifier.semantics { contentDescription = "Crowds" }, horizontalArrangement = Arrangement.spacedBy(10.dp)) {
                 items(oases, key = { it.id }) { oasis ->
                     Row(
                         Modifier
@@ -154,18 +154,18 @@ fun LazyListScope.discoverContent(state: PostListState<DiscoverContext>, handler
             }
         }
     }
-    feedSection(state, handlers, empty = "Hier gibt es noch keine Tropfen.")
+    feedSection(state, handlers, empty = "Hier gibt es noch keine Posts.")
     if (state.reachedEnd || state.posts.isEmpty()) {
         block("side.how") {
             SideCard("So funktioniert Entdecken", tone = PanelTone.Dune) {
                 Bullets(
                     listOf(
-                        "Hier stehen nur Tropfen von Mitgliedern, die ihr Profil für alle geöffnet haben. Sichtbar ist das nur für Mitglieder.",
+                        "Hier stehen nur Posts von Mitgliedern, die ihr Profil für alle geöffnet haben. Sichtbar ist das nur für Mitglieder.",
                         "Neueste zuerst – niemand bezahlt dafür, weiter oben zu stehen.",
-                        "Folge Menschen, dann landen ihre Tropfen in deiner Quelle."
+                        "Folge Menschen, dann landen ihre Posts in deiner Quelle."
                     )
                 )
-                TextLink("Alle Oasen", NetworkRoute.Oases)
+                TextLink("Alle Crowds", NetworkRoute.Oases)
             }
         }
     }
@@ -182,21 +182,21 @@ fun BookmarksScreen(viewModel: BookmarksViewModel = hiltViewModel<BookmarksViewM
             PageHeader(
                 "Gemerkt",
                 eyebrow = "Merkliste",
-                lead = "Deine private Liste gespeicherter Tropfen. Niemand sieht, wer was gemerkt hat – auch Autor:innen nicht."
+                lead = "Deine private Liste gespeicherter Posts. Niemand sieht, wer was gemerkt hat – auch Autor:innen nicht."
             )
         }
         feedSection(
             state,
             handlers,
-            empty = "Du hast dir noch keine Tropfen gemerkt. In jeder Tropfen-Karte findest du den Knopf „Merken“."
+            empty = "Du hast dir noch keine Posts gemerkt. In jeder Post-Karte findest du den Knopf „Merken“."
         )
         block("side.quiet") {
             SideCard("Privat und leise", tone = PanelTone.Dune) {
                 Text(
-                    "Lesezeichen sind ausschließlich für dich sichtbar. Es gibt keine öffentlichen Listen oder Zähler für gemerkte Tropfen."
+                    "Lesezeichen sind ausschließlich für dich sichtbar. Es gibt keine öffentlichen Listen oder Zähler für gemerkte Posts."
                 )
                 Text(
-                    "Tropfen, die gelöscht oder aus einer Oase entfernt wurden, oder deren Autor:innen blockiert sind, verschwinden " +
+                    "Posts, die gelöscht oder aus einer Crowd entfernt wurden, oder deren Autor:innen blockiert sind, verschwinden " +
                         "automatisch aus deiner Liste."
                 )
             }
@@ -221,15 +221,15 @@ fun TagScreen(
 ) {
     val lowered = tag.lowercase()
     FeedScaffold(viewModel, "#$lowered") { state, handlers ->
-        block("header") { PageHeader("#$lowered", eyebrow = "Thema", lead = "Alle Tropfen mit #$lowered, neueste zuerst.") }
+        block("header") { PageHeader("#$lowered", eyebrow = "Thema", lead = "Alle Posts mit #$lowered, neueste zuerst.") }
         if (state.posts.isEmpty()) {
             block("empty") {
                 val navigator = LocalNavigator.current
                 DashedNote {
-                    Text("Noch keine Tropfen zu #$lowered.", style = OasisType.Body, color = OasisColors.Ink2)
+                    Text("Noch keine Posts zu #$lowered.", style = OasisType.Body, color = OasisColors.Ink2)
                     if (state.context?.canPost == true) {
                         OasisButton(
-                            "Den ersten Tropfen schreiben",
+                            "Den ersten Post schreiben",
                             { navigator.present(NetworkRoute.Compose()) },
                             fullWidth = false,
                             modifier = Modifier.padding(top = 8.dp)
@@ -251,7 +251,7 @@ fun TagScreen(
         block("side.topics") {
             SideCard("Themen auf Mildcrowd", tone = PanelTone.Dune) {
                 Text(
-                    "Schreib #$lowered in deinen Tropfen, dann erscheint er hier. Es gibt keine „Trends“ – nur die Reihenfolge, in der geschrieben wurde."
+                    "Schreib #$lowered in deinen Posts, dann erscheint er hier. Es gibt keine „Trends“ – nur die Reihenfolge, in der geschrieben wurde."
                 )
                 TextLink("Zur Suche", NetworkRoute.Search())
             }

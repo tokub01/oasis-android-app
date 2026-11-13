@@ -125,7 +125,7 @@ class NetworkUiTest {
         val network = StubbedNetwork(
             stub("GET", "network/composer", Fixtures.composer),
             stub("POST", "network/tone", """{"data":{"hint":null,"nudge":false}}"""),
-            stub("POST", "network/posts", """{"message":"Dein Tropfen ist da.","suspended":false,"data":${postJson(77)}}""", 201)
+            stub("POST", "network/posts", """{"message":"Dein Post ist da.","suspended":false,"data":${postJson(77)}}""", 201)
         )
         val model = models.keep(network.composer("ui-test"))
         runBlocking { model.load() }
@@ -135,16 +135,16 @@ class NetworkUiTest {
             ComposeContent(state, model.callbacks(), onPublished = { published = true })
         }
 
-        compose.onNode(hasSetTextAction() and hasAnyAncestor(hasTestTag("compose.body"))).performTextInput("UI-Test Tropfen")
+        compose.onNode(hasSetTextAction() and hasAnyAncestor(hasTestTag("compose.body"))).performTextInput("UI-Test Post")
         compose.onNodeWithText("15/500").assertIsDisplayed()
         compose.onNodeWithTag("network.page").performScrollToNode(hasTestTag("compose.submit"))
-        compose.onNodeWithText("Tropfen lesen nur angemeldete Mitglieder, nie Gäste oder Suchmaschinen.").assertIsDisplayed()
+        compose.onNodeWithText("Posts lesen nur angemeldete Mitglieder, nie Gäste oder Suchmaschinen.").assertIsDisplayed()
         compose.onNodeWithTag("compose.submit").performClick()
         // The upload runs in the view model's scope: its answer comes back through the main looper.
         compose.settle { published }
 
-        assertTrue(network.last("network/posts").body!!.contains("UI-Test Tropfen"))
-        assertEquals("Dein Tropfen ist da.", NetworkSignals.confirmation.value)
+        assertTrue(network.last("network/posts").body!!.contains("UI-Test Post"))
+        assertEquals("Dein Post ist da.", NetworkSignals.confirmation.value)
         assertEquals("", model.state.value.body)
     }
 
@@ -154,7 +154,7 @@ class NetworkUiTest {
         val network = StubbedNetwork(
             stub("GET", "network/composer", Fixtures.composer),
             stub("POST", "network/tone", """{"data":{"hint":null,"nudge":false}}"""),
-            stub("POST", "network/posts", """{"message":"Dein Tropfen ist da.","suspended":false,"data":${postJson(78)}}""", 201)
+            stub("POST", "network/posts", """{"message":"Dein Post ist da.","suspended":false,"data":${postJson(78)}}""", 201)
         )
         val slow = object : NetworkRepository by network.repository {
             override suspend fun publish(draft: PostDraft): PublishResult {
@@ -242,10 +242,10 @@ class NetworkUiTest {
         var opened = false
         show {
             Box(Modifier.fillMaxSize()) {
-                ComposeFab(rememberLazyListState(), onClick = { opened = true }, description = "Tropfen in Garten schreiben")
+                ComposeFab(rememberLazyListState(), onClick = { opened = true }, description = "Post in Garten schreiben")
             }
         }
-        compose.onNodeWithContentDescription("Tropfen in Garten schreiben").performClick()
+        compose.onNodeWithContentDescription("Post in Garten schreiben").performClick()
         assertTrue(opened)
     }
 }

@@ -106,7 +106,7 @@ class NetworkRepositoryTest(private val answersAtOnce: Boolean) {
     fun `sends the Tropfen as multipart with images and descriptions`() = runTest {
         val network =
             StubbedNetwork(
-                stub("POST", "network/posts", """{"message":"Dein Tropfen ist da.","suspended":false,"data":${postJson(99)}}""", 201)
+                stub("POST", "network/posts", """{"message":"Dein Post ist da.","suspended":false,"data":${postJson(99)}}""", 201)
             )
         val image = ImageUpload(byteArrayOf(0xFF.toByte(), 0xD8.toByte(), 0xFF.toByte(), 0), "bild-1.jpg", "image/jpeg")
         val result = network.repository.publish(
@@ -118,7 +118,7 @@ class NetworkRepositoryTest(private val answersAtOnce: Boolean) {
                 alts = listOf("Ein Beet")
             )
         )
-        assertEquals("Dein Tropfen ist da.", result.message)
+        assertEquals("Dein Post ist da.", result.message)
         assertEquals(99, result.data.id)
         val request = network.last("network/posts")
         assertTrue(request.request.body!!.contentType().toString().startsWith("multipart/form-data"))
@@ -144,7 +144,7 @@ class NetworkRepositoryTest(private val answersAtOnce: Boolean) {
     @Test
     fun `writes with the right methods, paths and snake case bodies`() = runTest {
         val network = StubbedNetwork(
-            stub("DELETE", "network/oases/lesekreis", """{"message":"Die Oase ist geschlossen."}"""),
+            stub("DELETE", "network/oases/lesekreis", """{"message":"Die Crowd ist geschlossen."}"""),
             stub(
                 "PUT",
                 "network/profile",
@@ -155,7 +155,7 @@ class NetworkRepositoryTest(private val answersAtOnce: Boolean) {
             stub("PUT", "network/oases/korn-licht", """{"data":{"slug":"korn-licht"}}""")
         )
         val repository = network.repository
-        assertEquals("Die Oase ist geschlossen.", repository.closeOasis("lese/kreis", confirm = true))
+        assertEquals("Die Crowd ist geschlossen.", repository.closeOasis("lese/kreis", confirm = true))
         assertEquals(true, network.transport.lastBody("network/oases/lesekreis")!!.jsonObject["confirm"]!!.jsonPrimitive.boolean)
 
         val saved = repository.updateOwnProfile("Bio", "Leipzig", "spring", toneConfirmed = true)
@@ -176,13 +176,13 @@ class NetworkRepositoryTest(private val answersAtOnce: Boolean) {
     @Test
     fun `maps a refused Tropfen to field errors`() = runTest {
         val network = StubbedNetwork(
-            stub("POST", "network/posts", """{"message":"Zu lang.","errors":{"body":["Dein Tropfen ist zu lang."]}}""", 422)
+            stub("POST", "network/posts", """{"message":"Zu lang.","errors":{"body":["Dein Post ist zu lang."]}}""", 422)
         )
         try {
             network.repository.publish(PostDraft(body = "x"))
             fail("422 must throw")
         } catch (error: ApiError) {
-            assertEquals("Dein Tropfen ist zu lang.", error.message("body"))
+            assertEquals("Dein Post ist zu lang.", error.message("body"))
         }
     }
 }

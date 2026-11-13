@@ -138,7 +138,7 @@ class LiveUiTest {
                 )
             }
         }
-        compose.onNodeWithContentDescription("Antwort auf deinen Tropfen").performClick()
+        compose.onNodeWithContentDescription("Antwort auf deinen Post").performClick()
         assertEquals(false, toggled.single().kinds.first { it.key == "reply" }.enabled)
         compose.onNodeWithContentDescription("Eine tägliche Zusammenfassung am Abend").assertIsOff()
         compose.onNodeWithTag("push.unavailable").performScrollTo().assertIsDisplayed()

@@ -304,7 +304,7 @@ private fun SubscriptionStatus(overview: MembershipOverview, onSubscriptionManag
             boldMarkdown(
                 "**Kündigung vorgemerkt:** Dein Vertrag endet am ${MembershipFormat.day(
                     subscription.endsAt
-                )}. Bis dahin kannst du Oasis ohne " +
+                )}. Bis dahin kannst du Mildcrowd ohne " +
                     "Einschränkungen weiternutzen. Danach endet dein Zugang, und du hast 30 Tage, um deine Daten herunterzuladen."
             ),
             style = OasisType.Small,
