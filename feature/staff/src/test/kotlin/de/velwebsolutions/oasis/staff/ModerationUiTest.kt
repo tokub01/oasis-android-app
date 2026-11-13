@@ -748,6 +748,12 @@ class ModerationUiTest {
             "Quarantäne aufheben? Das Banner der Crowd wird dann wieder ausgeliefert.",
             detail.copy(subjectUrl = "https://mildcrowd.com/oasen/stadtgarten").liftQuarantineQuestion
         )
+        // The same for the addresses since the rename (/posts/…, /crowds/…).
+        assertEquals(tropfen.liftQuarantineQuestion, detail.copy(subjectUrl = "https://mildcrowd.com/posts/9").liftQuarantineQuestion)
+        assertEquals(
+            "Quarantäne aufheben? Das Banner der Crowd wird dann wieder ausgeliefert.",
+            detail.copy(subjectUrl = "https://mildcrowd.com/crowds/stadtgarten").liftQuarantineQuestion
+        )
         shown = profile
         compose.onNodeWithText("Quarantäne aufheben").performScrollTo().performClick()
         compose.onNodeWithText("Quarantäne aufheben? Profilbild und Banner werden dann wieder ausgeliefert.").assertExists()

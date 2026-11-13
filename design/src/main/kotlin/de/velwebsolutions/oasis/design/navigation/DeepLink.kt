@@ -110,17 +110,18 @@ object DeepLink {
         }
 
         val third = parts.getOrNull(2)
+        // Posts and crowds answer to their addresses from before the rename too (/tropfen/…, /oasen/…, …/weitertragen).
         return when (parts[0]) {
-            "tropfen" -> {
+            "posts", "tropfen" -> {
                 val id = parts[1].toIntOrNull() ?: return null
                 when (third) {
                     "bearbeiten" -> NetworkRoute.EditPost(id)
-                    "weitertragen" -> NetworkRoute.CarryPost(id)
+                    "teilen", "weitertragen" -> NetworkRoute.CarryPost(id)
                     else -> NetworkRoute.Post(id)
                 }
             }
 
-            "oasen" -> when (third) {
+            "crowds", "oasen" -> when (third) {
                 "bearbeiten" -> NetworkRoute.EditOasis(parts[1])
 
                 "schliessen" -> NetworkRoute.CloseOasis(parts[1])
@@ -194,7 +195,7 @@ object DeepLink {
 
         "freunde" -> NetworkRoute.Friends
 
-        "oasen" -> when (rest.firstOrNull()) {
+        "crowds", "oasen" -> when (rest.firstOrNull()) {
             "neu" -> NetworkRoute.CreateOasis
             "karte" -> NetworkRoute.OasisMap(query["region"]?.takeIf { it.isNotEmpty() })
             else -> NetworkRoute.Oases

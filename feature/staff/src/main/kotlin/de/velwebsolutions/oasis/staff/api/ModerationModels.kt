@@ -160,10 +160,11 @@ data class ModerationCaseDetail(
         get() = when {
             report.kind == "chat_report" -> "Quarantäne aufheben? Die Anhänge der Nachricht sind dann für das Team wieder zu sehen."
 
-            "/tropfen/" in subjectUrl ->
+            "/posts/" in subjectUrl || "/tropfen/" in subjectUrl ->
                 "Quarantäne aufheben? Die Bilder werden dann wieder ausgeliefert, sobald der Post freigegeben ist."
 
-            "/oasen/" in subjectUrl -> "Quarantäne aufheben? Das Banner der Crowd wird dann wieder ausgeliefert."
+            "/crowds/" in subjectUrl || "/oasen/" in subjectUrl ->
+                "Quarantäne aufheben? Das Banner der Crowd wird dann wieder ausgeliefert."
 
             else -> "Quarantäne aufheben? Profilbild und Banner werden dann wieder ausgeliefert."
         }
