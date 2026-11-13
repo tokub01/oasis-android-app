@@ -27,7 +27,7 @@ import org.robolectric.annotation.GraphicsMode
 @Config(application = HiltTestApplication::class)
 @GraphicsMode(GraphicsMode.Mode.NATIVE)
 class AppLinksHiltTest : DeviceScreenTest() {
-    private val resetLink = "https://get-oasis.com/passwort-zuruecksetzen/tok?email=mira%40demo.oasis.tld"
+    private val resetLink = "https://mildcrowd.com/passwort-zuruecksetzen/tok?email=mira%40demo.oasis.tld"
 
     @Test
     fun theResetLinkSetsANewPasswordAndLeadsToTheSignIn() {
@@ -65,14 +65,14 @@ class AppLinksHiltTest : DeviceScreenTest() {
 
     @Test
     fun theCodeLinkOpensTheCodeSignInAndTheConfirmationWaitsForTheSignIn() {
-        navigator.handle("https://get-oasis.com/anmelden/code")
+        navigator.handle("https://mildcrowd.com/anmelden/code")
         showWithDevice { SignedOutScreen() }
         waitForTag("logincode.send")
         navigator.handle(resetLink)
         waitForTag("reset.back")
         compose.onNodeWithTag("reset.back").tap()
         waitForTag("signin.button")
-        navigator.handle("https://get-oasis.com/email/bestaetigen/5/a1b2?expires=1&signature=s")
+        navigator.handle("https://mildcrowd.com/email/bestaetigen/5/a1b2?expires=1&signature=s")
         compose.waitForIdle()
         assertTrue(navigator.pendingLink is IncomingLink.VerifyEmail)
     }
@@ -87,12 +87,12 @@ class AppLinksHiltTest : DeviceScreenTest() {
             status = 422
         )
         show { AccountLinks() }
-        navigator.handle("https://get-oasis.com/email/bestaetigen/5/a1b2?expires=1&signature=s")
+        navigator.handle("https://mildcrowd.com/email/bestaetigen/5/a1b2?expires=1&signature=s")
         waitForText("Der Link ist abgelaufen", substring = true)
         screenShot("account-link-refused")
         compose.onNodeWithText("OK").press()
         stub("POST", "auth/email/verify-link", """{"message":"Danke!","data":${Fixtures.ME}}""")
-        navigator.handle("https://get-oasis.com/email/bestaetigen/5/a1b2?expires=1&signature=s")
+        navigator.handle("https://mildcrowd.com/email/bestaetigen/5/a1b2?expires=1&signature=s")
         waitForText(AccountLinksViewModel.CONFIRMED)
         assertEquals(true, session.me?.emailVerified)
         compose.onNodeWithText("OK").press()
@@ -101,7 +101,7 @@ class AppLinksHiltTest : DeviceScreenTest() {
         navigator.handle(resetLink)
         compose.waitForIdle()
         assertEquals(listOf(resetLink), web)
-        navigator.handle("https://get-oasis.com/anmelden/code")
+        navigator.handle("https://mildcrowd.com/anmelden/code")
         compose.waitForIdle()
         assertNull(navigator.pendingLink)
     }

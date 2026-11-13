@@ -430,7 +430,7 @@ internal const val CODES_COPIED = "Die Codes sind kopiert – nach einer Minute 
 internal fun copySecret(context: Context, text: String) {
     val clipboard = context.applicationContext.getSystemService(ClipboardManager::class.java)
     val id = UUID.randomUUID().toString()
-    val clip = ClipData.newPlainText("Oasis", text)
+    val clip = ClipData.newPlainText("Mildcrowd", text)
     clip.description.extras = PersistableBundle().apply {
         putBoolean(SENSITIVE_CLIP, true)
         putString(SECRET_CLIP_ID, id)

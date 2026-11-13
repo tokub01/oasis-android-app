@@ -160,7 +160,7 @@ class LettersAndIdeasUiTest {
         )
         val model = models.keep(IdeasViewModel(3, network.repository))
         show { IdeasScreen(3, model) }
-        waitFor("Ideen für Oasis")
+        waitFor("Ideen für Mildcrowd")
         waitFor("Idee 7")
         capture("ideas")
         compose.onNodeWithTag("ideas.suggest").tap()

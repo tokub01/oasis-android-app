@@ -135,8 +135,8 @@ class RouteScreensTest {
         route = MembershipRoute.Perks
         compose.onNodeWithText("In Mäzen enthalten").assertExists()
         route = MembershipRoute.CompanionLink("a".repeat(40))
-        compose.onNodeWithText("Mia Mäzen nimmt dich mit nach Oasis").assertExists()
+        compose.onNodeWithText("Mia Mäzen nimmt dich mit nach Mildcrowd").assertExists()
         route = MembershipRoute.Transparency
-        compose.onNodeWithText("Oasis heute").assertExists()
+        compose.onNodeWithText("Mildcrowd heute").assertExists()
     }
 }

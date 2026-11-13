@@ -364,7 +364,7 @@ fun HouseRules(rules: List<String>) {
         } else {
             rules.firstOrNull()?.let { Text(it, style = OasisType.Body, color = OasisColors.Ink2) }
         }
-        Text("Zusätzlich gelten die Community-Regeln von Oasis.", style = OasisType.Caption, color = OasisColors.Muted)
+        Text("Zusätzlich gelten die Community-Regeln von Mildcrowd.", style = OasisType.Caption, color = OasisColors.Muted)
     }
 }
 

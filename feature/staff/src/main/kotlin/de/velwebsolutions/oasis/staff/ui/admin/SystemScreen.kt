@@ -38,7 +38,7 @@ fun SystemScreen(viewModel: SystemViewModel = hiltViewModel()) {
                     Eyebrow("Admin")
                     StaffTitle("Systemzustand")
                     Text(
-                        "Alles, wovon die Versprechen von Oasis abhängen: Löschfristen, Mollie-Abgleich, Mails und Sicherungen. " +
+                        "Alles, wovon die Versprechen von Mildcrowd abhängen: Löschfristen, Mollie-Abgleich, Mails und Sicherungen. " +
                             "Probleme meldet der Zeitplaner alle 15 Minuten per E-Mail. Was zu tun ist, steht in " +
                             "docs/oasis-operations.md.",
                         style = OasisType.Small,

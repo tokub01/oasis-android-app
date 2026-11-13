@@ -33,7 +33,7 @@ class AccountViewModelTest {
     @get:Rule val main = MainDispatcherRule()
 
     private val pending =
-        """{"message":"Scanne jetzt den QR-Code und bestätige mit einem Code.","data":{"display_name":"Mira Sol","username":"mira","email":"mira@demo.oasis.tld","email_verified":true,"two_factor":{"state":"pending","setup_key":"ABCDEFGHIJKLMNOP","otpauth_url":"otpauth://totp/Oasis:mira%40demo.oasis.tld?secret=ABCDEFGHIJKLMNOP&issuer=Oasis"},"password_confirmed":true},"recovery_codes":null}"""
+        """{"message":"Scanne jetzt den QR-Code und bestätige mit einem Code.","data":{"display_name":"Mira Sol","username":"mira","email":"mira@demo.oasis.tld","email_verified":true,"two_factor":{"state":"pending","setup_key":"ABCDEFGHIJKLMNOP","otpauth_url":"otpauth://totp/Oasis:mira%40demo.oasis.tld?secret=ABCDEFGHIJKLMNOP&issuer=Mildcrowd"},"password_confirmed":true},"recovery_codes":null}"""
 
     private fun loaded(state: Loadable<*>) = state !is Loadable.Loading && state !is Loadable.Idle
 
@@ -251,7 +251,7 @@ class AccountViewModelTest {
             .stub(
                 "PUT",
                 "privacy/settings/searchable",
-                """{"message":"Gespeichert: In der Oasis-Suche auffindbar – Nein","data":{"key":"searchable","title":"In der Oasis-Suche auffindbar","help":"Hilfe","kind":"switch","value":false,"choices":[],"limited":false}}"""
+                """{"message":"Gespeichert: In der Mildcrowd-Suche auffindbar – Nein","data":{"key":"searchable","title":"In der Mildcrowd-Suche auffindbar","help":"Hilfe","kind":"switch","value":false,"choices":[],"limited":false}}"""
             )
         val model = PrivacyViewModel(repository(transport))
         model.ui.first { loaded(it.state) }
@@ -259,7 +259,7 @@ class AccountViewModelTest {
         model.show(setting.key, PrivacyValue.Flag(false))
         model.save(setting.key, PrivacyValue.Flag(false), previous = setting.value)
         assertEquals(JsonObject(mapOf("value" to JsonPrimitive(false))), transport.lastBody("privacy/settings/searchable"))
-        assertEquals("Gespeichert: In der Oasis-Suche auffindbar – Nein", model.ui.value.message)
+        assertEquals("Gespeichert: In der Mildcrowd-Suche auffindbar – Nein", model.ui.value.message)
         assertEquals(
             PrivacyValue.Flag(false),
             model.ui.value.state.valueOrNull!!.sections.flatMap { it.settings }.first {

@@ -83,7 +83,7 @@ object GermanDate {
 
 /** A page of the website (`/agb`, `/hilfe` …) on the server the app talks to. */
 @Composable
-fun webUrl(path: String): String = LocalApiClient.current?.absoluteUrl("/$path")?.toString() ?: "https://get-oasis.com/$path"
+fun webUrl(path: String): String = LocalApiClient.current?.absoluteUrl("/$path")?.toString() ?: "https://mildcrowd.com/$path"
 
 /** The scrolling page of an account screen: 20 padding, at most 720 wide. */
 @Composable

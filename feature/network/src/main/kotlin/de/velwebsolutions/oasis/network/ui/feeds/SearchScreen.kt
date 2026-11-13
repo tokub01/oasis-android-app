@@ -171,7 +171,7 @@ fun LazyListScope.searchContent(
     when {
         trimmed.length < 2 -> block("how") {
             DashedNote {
-                Text("So sucht Oasis", style = OasisType.BodyBold, color = OasisColors.Night)
+                Text("So sucht Mildcrowd", style = OasisType.BodyBold, color = OasisColors.Night)
                 Text(
                     "Neueste Tropfen zuerst. Keine Ergebnisse, die nach Klicks sortiert sind, und keine, die jemand bezahlt hat.",
                     style = OasisType.Body,

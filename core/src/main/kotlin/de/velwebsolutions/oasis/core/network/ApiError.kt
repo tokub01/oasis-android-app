@@ -74,9 +74,9 @@ sealed class ApiError(message: String) : Exception(message) {
 
             is Server -> serverMessage ?: "Da ist etwas schiefgelaufen. Bitte versuch es gleich noch einmal."
 
-            is Transport -> "Keine Verbindung zu Oasis. Bitte prüfe dein Internet."
+            is Transport -> "Keine Verbindung zu Mildcrowd. Bitte prüfe dein Internet."
 
-            is Decoding -> "Die Antwort von Oasis war unerwartet. Bitte aktualisiere die App."
+            is Decoding -> "Die Antwort von Mildcrowd war unerwartet. Bitte aktualisiere die App."
         }
 
     companion object {

@@ -228,7 +228,7 @@ private fun IdeasPage(ideas: List<Idea>, nextPage: Int?, viewModel: IdeasViewMod
     NetworkPage(onRefresh = viewModel::load) {
         block("header") {
             PageHeader(
-                "Ideen für Oasis",
+                "Ideen für Mildcrowd",
                 eyebrow = "Gemeinsam weiterbauen",
                 lead = "Was fehlt dir? Schlag es vor oder gib einer Idee deine Stimme. Wir schauen uns die beliebtesten an und " +
                     "schreiben dazu, wie es steht."
@@ -368,7 +368,7 @@ internal fun IdeaCard(idea: Idea, actions: IdeaActions) {
                     .padding(horizontal = 16.dp, vertical = 12.dp),
                 verticalArrangement = Arrangement.spacedBy(2.dp)
             ) {
-                Text("Antwort von Oasis", style = OasisType.SmallBold, color = OasisColors.Night)
+                Text("Antwort von Mildcrowd", style = OasisType.SmallBold, color = OasisColors.Night)
                 Text(reply, style = OasisType.Body, color = OasisColors.Ink)
             }
         }

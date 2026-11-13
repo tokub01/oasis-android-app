@@ -45,7 +45,7 @@ internal fun ReleasesScreen(viewModel: ReleasesViewModel = hiltViewModel()) {
             PageHeader(
                 "Was ist neu",
                 eyebrow = "Deine App: Oasis ${viewModel.version}",
-                lead = "Jede Version von Oasis, die neueste zuerst. Web, iPhone und Android tragen dieselbe Nummer."
+                lead = "Jede Version von Mildcrowd, die neueste zuerst. Web, iPhone und Android tragen dieselbe Nummer."
             )
             LoadableView(state, onRetry = viewModel.retry { viewModel.reload() }) { releases ->
                 Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
@@ -68,7 +68,7 @@ private fun AboutCard(about: String) {
             .testTag("releases.about"),
         verticalArrangement = Arrangement.spacedBy(8.dp)
     ) {
-        SubHeading("Wie Oasis entsteht", size = 17)
+        SubHeading("Wie Mildcrowd entsteht", size = 17)
         about.split(Regex("\n\\s*\n")).filter { it.isNotBlank() }.forEach { paragraph ->
             Text(paragraph.trim(), style = OasisType.Body, color = OasisColors.Ink2)
         }

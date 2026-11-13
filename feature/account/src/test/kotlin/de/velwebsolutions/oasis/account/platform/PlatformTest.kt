@@ -137,7 +137,7 @@ class PlatformTest {
         val option = (manager.requests[0] as GetCredentialRequest).credentialOptions.single() as GetPublicKeyCredentialOption
         assertEquals(request, option.requestJson)
         val creation =
-            """{"rp":{"id":"localhost","name":"Oasis"},"user":{"id":"dQ","name":"mira","displayName":"Mira"},"challenge":"Y2g"}"""
+            """{"rp":{"id":"localhost","name":"Mildcrowd"},"user":{"id":"dQ","name":"mira","displayName":"Mira"},"challenge":"Y2g"}"""
         assertEquals(PasswordlessFixtures.ATTESTATION, passkeys.register(creation))
         assertEquals(creation, (manager.requests[1] as CreatePublicKeyCredentialRequest).requestJson)
     }
@@ -207,7 +207,7 @@ class PlatformTest {
 
     @Test
     fun theCodeIsReadFromTheSms() {
-        assertEquals("123456", oneTimeCode("Dein Oasis-Anmeldecode: 123 456. Gültig 10 Minuten. Gib ihn niemandem weiter."))
+        assertEquals("123456", oneTimeCode("Dein Mildcrowd-Anmeldecode: 123 456. Gültig 10 Minuten. Gib ihn niemandem weiter."))
         assertEquals("654321", oneTimeCode("Code 654321"))
         assertNull(oneTimeCode("Ruf 0176 1234567 an"))
         assertNull(oneTimeCode("Kein Code"))
@@ -215,7 +215,7 @@ class PlatformTest {
 
     @Test
     fun onlyAnAllowedSmsFillsTheField() {
-        val sms = Intent().putExtra(SmsRetriever.EXTRA_SMS_MESSAGE, "Dein Oasis-Anmeldecode: 123 456.")
+        val sms = Intent().putExtra(SmsRetriever.EXTRA_SMS_MESSAGE, "Dein Mildcrowd-Anmeldecode: 123 456.")
         assertEquals("123456", sharedCode(ActivityResult(Activity.RESULT_OK, sms)))
         assertNull(sharedCode(ActivityResult(Activity.RESULT_CANCELED, sms)))
         assertNull(sharedCode(ActivityResult(Activity.RESULT_OK, null)))

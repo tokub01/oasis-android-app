@@ -318,7 +318,7 @@ class NetworkScreensTest {
     fun `the search before typing explains itself`() {
         show { NetworkPage { searchContent("", PostListState(), handlers, onQuery = {}, onSubmit = {}) } }
         compose.onNodeWithText("Wonach suchst du?").assertIsDisplayed()
-        compose.onNodeWithText("So sucht Oasis").assertIsDisplayed()
+        compose.onNodeWithText("So sucht Mildcrowd").assertIsDisplayed()
         compose.onNodeWithText("Such nach Namen oder @Benutzernamen.").assertIsDisplayed()
         capture("search-empty")
     }

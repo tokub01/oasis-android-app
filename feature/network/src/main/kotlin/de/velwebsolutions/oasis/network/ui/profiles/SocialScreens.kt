@@ -591,9 +591,9 @@ fun InvitationScreen(
                         val inviter = info.inviter
                         if (inviter != null) {
                             Eyebrow("Einladung")
-                            Text("${inviter.displayName} lädt dich zu Oasis ein.", style = OasisType.display(26), color = OasisColors.Night)
+                            Text("${inviter.displayName} lädt dich zu Mildcrowd ein.", style = OasisType.display(26), color = OasisColors.Night)
                             Text(
-                                "Oasis ist ein werbefreies soziales Netzwerk mit einem Feed, der aufhört. Wenn du dich jetzt anmeldest, " +
+                                "Mildcrowd ist ein werbefreies soziales Netzwerk mit einem Feed, der aufhört. Wenn du dich jetzt anmeldest, " +
                                     "folgt ihr euch automatisch.",
                                 style = OasisType.Body,
                                 color = OasisColors.Ink2
@@ -643,7 +643,7 @@ fun InvitationGroupScreen(
                                 modifier = Modifier.testTag("group.progress")
                             )
                             Text(
-                                "Oasis ist ein werbefreies soziales Netzwerk mit einem Feed, der aufhört. Wenn du dich jetzt anmeldest, " +
+                                "Mildcrowd ist ein werbefreies soziales Netzwerk mit einem Feed, der aufhört. Wenn du dich jetzt anmeldest, " +
                                     "folgt ihr euch automatisch; deinen Beitrag wählst du selbst.",
                                 style = OasisType.Body,
                                 color = OasisColors.Ink2

@@ -1,14 +1,14 @@
-# Oasis in der Google Play Console
+# Mildcrowd in der Google Play Console
 
 Vorlage für den internen Test – das Gegenstück zu TestFlight. Die App für Play ist die Build-Variante `play`:
-Paketname `de.velwebsolutions.oasis`, spricht mit `staging.get-oasis.com` (mit Staging-Gate) wie der TestFlight-Build,
+Paketname `de.velwebsolutions.oasis`, spricht mit `staging.mildcrowd.com` (mit Staging-Gate) wie der TestFlight-Build,
 mit R8 verkleinert und mit dem Upload-Schlüssel signiert. Google signiert sie für die Geräte neu (Play App Signing).
 
 ## Was du selbst tun musst (Schritt für Schritt)
 
 1. **Entwicklerkonto** unter <https://play.google.com/console> anlegen (einmalig 25 US-$; Kontotyp „Organisation“
    oder „Privatperson“, Identitätsprüfung durch Google).
-2. **App anlegen:** „App erstellen“ → Name „Oasis“, Standardsprache Deutsch (Deutschland), App (nicht Spiel),
+2. **App anlegen:** „App erstellen“ → Name „Mildcrowd“, Standardsprache Deutsch (Deutschland), App (nicht Spiel),
    kostenlos (die Mitgliedschaft ist ein In-App-Abo). Die Erklärungen zu Richtlinien und US-Exportgesetzen bestätigen.
 3. **Erste Version von Hand hochladen** (Google verlangt das, bevor die API Uploads annimmt):
    `./gradlew :app:bundlePlay` (lokal, mit `secrets.properties` → `OASIS_GATE_KEY` und dem Upload-Schlüssel unter
@@ -25,7 +25,7 @@ mit R8 verkleinert und mit dem Upload-Schlüssel signiert. Google signiert sie f
    - In der Google Cloud Console (Projekt `oasis-86acd` oder ein eigenes) die „Google Play Android Developer API“
      aktivieren, ein Service-Konto anlegen und einen JSON-Schlüssel erzeugen.
    - In der Play Console → Nutzer und Berechtigungen → Nutzer einladen: die E-Mail des Service-Kontos, für die App
-     Oasis mit „Releases für Testtracks verwalten“ (und „Store-Eintrag verwalten“, wenn die Texte mit hochgehen sollen).
+     Mildcrowd mit „Releases für Testtracks verwalten“ (und „Store-Eintrag verwalten“, wenn die Texte mit hochgehen sollen).
 8. **GitHub-Secrets** im Repo `tokub01/oasis-android-app` (Settings → Secrets and variables → Actions):
 
    | Secret | Inhalt |
@@ -49,25 +49,25 @@ das dauert aber einige Tage.
 ## App-Inhalte (Vorlagen)
 
 ### Datenschutzerklärung
-`https://get-oasis.com/datenschutz`
+`https://mildcrowd.com/datenschutz`
 
 ### App-Zugriff (für die Prüfung durch Google)
 „Alle oder einige Funktionen sind eingeschränkt“ → Anleitung:
 
-> Oasis ist ein soziales Netzwerk; alle Funktionen setzen ein Konto voraus. Bitte mit dem Demokonto anmelden:
+> Mildcrowd ist ein soziales Netzwerk; alle Funktionen setzen ein Konto voraus. Bitte mit dem Demokonto anmelden:
 > Benutzername `mira`, Passwort siehe Feld „Passwort“. Danach sind Quelle, Entdecken, Oasen, Profil und Einstellungen
 > sichtbar. Der Chat ist Ende-zu-Ende-verschlüsselt; zum Ansehen in „Chats“ die Chat-Passphrase eingeben.
 
 Das Passwort des Demokontos und die Chat-Passphrase gehören nur in die Play Console, nicht in dieses Repository. Sie
 stehen in den Testdaten des Laravel-Projekts (`database/seeders/DemoContentSeeder.php`) bzw. im iOS-UI-Test
-(`UITests/ChatUITests.swift`). Voraussetzung: Das Demokonto `mira` existiert auf `staging.get-oasis.com`.
+(`UITests/ChatUITests.swift`). Voraussetzung: Das Demokonto `mira` existiert auf `staging.mildcrowd.com`.
 
 ### Anzeigen
 „Nein, meine App enthält keine Werbung.“
 
 ### Einstufung des Inhalts (IARC-Fragebogen)
 - Kategorie: **Soziale Netzwerke, Foren, nutzergenerierte Inhalte und Kommunikation**.
-- Gewalt, Sexualität, Sprache, kontrollierte Substanzen, Glücksspiel: **Nein** (Oasis selbst zeigt solche Inhalte nicht;
+- Gewalt, Sexualität, Sprache, kontrollierte Substanzen, Glücksspiel: **Nein** (Mildcrowd selbst zeigt solche Inhalte nicht;
   Nutzerinhalte werden moderiert).
 - Können Nutzer miteinander interagieren oder Inhalte austauschen? **Ja** (Tropfen, Antworten, Chat).
 - Teilt die App den genauen Standort mit anderen Nutzern? **Nein**.
@@ -75,7 +75,7 @@ stehen in den Testdaten des Laravel-Projekts (`database/seeders/DemoContentSeede
 - Moderation: Meldefunktion, Sperren und Blockieren vorhanden.
 
 ### Zielgruppe und Inhalte
-- Altersgruppen: nur **18 und älter** (Oasis ist ab 18, AGB § 3; keine Altersgruppe unter 18 ankreuzen).
+- Altersgruppen: nur **18 und älter** (Mildcrowd ist ab 18, AGB § 3; keine Altersgruppe unter 18 ankreuzen).
 - Die App richtet sich nicht an Kinder; der Store-Eintrag spricht keine Kinder an.
 
 ### Datensicherheit
@@ -98,7 +98,7 @@ Alle Übertragungen sind verschlüsselt (HTTPS/TLS). Konto und Daten lassen sich
 | Kaufverlauf (Mitgliedschaft) | ja | nein | ja | App-Funktionen, Kontoverwaltung |
 | Geräte- oder andere IDs (Push-Token von FCM) | ja | nein | ja | App-Funktionen (Push-Hinweise; nur nach Zustimmung, siehe unten) |
 
-- **Nachrichten im Chat nicht angeben:** Sie sind Ende-zu-Ende-verschlüsselt, Oasis kann sie nicht lesen (Googles
+- **Nachrichten im Chat nicht angeben:** Sie sind Ende-zu-Ende-verschlüsselt, Mildcrowd kann sie nicht lesen (Googles
   Ausnahme für Ende-zu-Ende-verschlüsselte Daten). Das gilt auch für Sprachnachrichten: Aufnahme und Wiedergabe laufen
   verschlüsselt, und „Als Text anzeigen“ erkennt die Sprache ausschließlich auf dem Gerät (`VoiceTranscription.kt`:
   nur `createOnDeviceSpeechRecognizer`, PCM nur im Arbeitsspeicher).
@@ -116,7 +116,7 @@ Alle Übertragungen sind verschlüsselt (HTTPS/TLS). Konto und Daten lassen sich
   nicht als Weitergabe.
 - **Push-Nachricht:** Sie enthält nur einen allgemeinen Text („Es gibt Neues.“), den Zähler für das App-Symbol, die
   Zieladresse in der App und eine zufällige Kennung – keine Namen und keine Texte. Mit der Kennung holt die App den
-  Hinweis selbst über die eigene Verbindung vom Oasis-Server und baut die Benachrichtigung auf dem Gerät.
+  Hinweis selbst über die eigene Verbindung vom Mildcrowd-Server und baut die Benachrichtigung auf dem Gerät.
 
 ### Weitere Erklärungen
 - Behörden-App: nein. Finanzfunktionen: nein. Gesundheits-App: nein. Nachrichten-App (News): nein.
@@ -126,19 +126,19 @@ Alle Übertragungen sind verschlüsselt (HTTPS/TLS). Konto und Daten lassen sich
     älteren Geräten ohne diesen Dialog fragt die App stattdessen selbst „Push-Hinweise einschalten?“ mit Ja/Später und
     registriert das Gerät erst nach einem Ja; „Später“ merkt sie sich, einschalten geht dann in den Hinweis-Einstellungen).
   - `RECORD_AUDIO` (Sprachnachrichten im Chat: das Mikrofon läuft nur, während das Mitglied eine Sprachnachricht
-    aufnimmt, nach einer Erklärung im Laufzeit-Dialog; die Aufnahme wird auf dem Gerät Ende-zu-Ende verschlüsselt, Oasis
+    aufnimmt, nach einer Erklärung im Laufzeit-Dialog; die Aufnahme wird auf dem Gerät Ende-zu-Ende verschlüsselt, Mildcrowd
     kann sie nicht hören. `android.hardware.microphone` ist `required="false"`: ohne Mikrofon bleibt der übrige Chat).
     Im Datensicherheits-Formular deshalb kein „Audio“ als erhoben angeben – außer über die Meldung, siehe oben.
   - `USE_BIOMETRIC` (Entsperren des Chats mit Fingerabdruck oder Gesicht über `BiometricPrompt`: ein biometrisch
     geschützter Schlüssel im Android Keystore öffnet ein zufälliges Geheimnis; keine biometrischen Daten verlassen das
-    Gerät, Oasis erhält keine).
+    Gerät, Mildcrowd erhält keine).
   - Keine Kamera-Berechtigung: „Foto aufnehmen“ nutzt den System-Dialog (`TakePicture`), der die Kamera-App öffnet.
 
 ## Version und Build
 - `versionCode` = Commit-Zeit in UTC als `yyDDDHHmm` (Jahr, Tag im Jahr, Stunde, Minute), z. B. 262980815 für
   25.10.2026, 08:15 – jeder neue develop-Commit ist höher. (`yyMMddHHmm` passt nicht: 2610250815 liegt über Googles
   Grenze von 2 100 000 000.)
-- `versionName` = die gemeinsame Oasis-Version aus `app/build.gradle.kts` (z. B. 0.27.0); Web, iOS und Android tragen
+- `versionName` = die gemeinsame Mildcrowd-Version aus `app/build.gradle.kts` (z. B. 0.27.0); Web, iOS und Android tragen
   dieselbe Nummer (`CHANGELOG.md`).
 - Store-Grafiken neu erzeugen: Feature-Grafik mit
   `./gradlew :app:testDebugUnitTest --tests '*StoreGraphicsTest*'` (→ `app/build/outputs/roborazzi/`), Screenshots aus

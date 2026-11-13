@@ -70,7 +70,7 @@ class MembershipScreensTest {
         show { OverviewContent(OverviewUiState(Loadable.Loaded(Fixtures.overview(Fixtures.noMembershipOverview))), onRefresh = {}) }
         compose.onNodeWithText("Noch keine Mitgliedschaft").assertIsDisplayed()
         compose.onNodeWithText(
-            "Oasis ist werbefrei und wird von den Mitgliedern getragen, deshalb gibt es keinen kostenlosen Zugang. Wähle deinen " +
+            "Mildcrowd ist werbefrei und wird von den Mitgliedern getragen, deshalb gibt es keinen kostenlosen Zugang. Wähle deinen " +
                 "Beitrag, dann geht es los. Bis dahin kannst du in den Einstellungen deine Daten herunterladen oder dein Konto löschen."
         ).assertIsDisplayed()
         compose.onNodeWithTag("membership.choose").performScrollTo().performClick()

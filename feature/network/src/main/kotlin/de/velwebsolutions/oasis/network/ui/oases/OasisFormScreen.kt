@@ -152,7 +152,7 @@ fun OasisFormScreen(
                             state.input.houseRules,
                             { value -> viewModel.updateInput { it.copy(houseRules = value) } },
                             error = failure?.message("house_rules"),
-                            hint = "Gelten zusätzlich zu den Community-Regeln von Oasis.",
+                            hint = "Gelten zusätzlich zu den Community-Regeln von Mildcrowd.",
                             lines = 4..10,
                             modifier = Modifier.testTag("oasisForm.rules"),
                             maxLength = 3000
@@ -246,7 +246,7 @@ fun OasisFormScreen(
                             listOf(
                                 "Kurz und konkret: drei bis fünf Punkte reichen.",
                                 "Sag, was erwünscht ist – nicht nur, was verboten ist.",
-                                "Die Community-Regeln von Oasis gelten immer zusätzlich."
+                                "Die Community-Regeln von Mildcrowd gelten immer zusätzlich."
                             )
                         )
                     }

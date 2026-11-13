@@ -41,7 +41,7 @@ enum class KeyCoding {
 data class ApiConfig(
     /** The server root, e.g. `http://10.0.2.2` in the emulator (the client appends `/api/v1/`). */
     val baseUrl: String,
-    /** `OasisApp/<version> (Android; Android <release>)` – Laravel's DeviceLabel shows it as "Oasis-App auf Android". */
+    /** `OasisApp/<version> (Android; Android <release>)` – Laravel's DeviceLabel shows it as "Mildcrowd-App auf Android". */
     val userAgent: String,
     /** The staging gate's password, sent as `X-Oasis-Gate` to the server only (Laravel's StagingGate). */
     val gateKey: String? = null

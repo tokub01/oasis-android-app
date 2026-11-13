@@ -159,7 +159,7 @@ class ChatUiTest {
         compose.onNodeWithTag("chat.setup.passphraseToggle").assertDoesNotExist()
         switchTo { Setup(ChatAccessState(deviceAvailable = true)) }
         compose.onNodeWithText("Deine Chats sind privat").assertExists()
-        compose.onNodeWithText("Oasis speichert sie nur verschlüsselt und hat keinen Schlüssel dazu.", substring = true)
+        compose.onNodeWithText("Mildcrowd speichert sie nur verschlüsselt und hat keinen Schlüssel dazu.", substring = true)
             .assertExists()
         compose.onNodeWithText("Mit Fingerabdruck einrichten").assertExists()
         switchTo { Setup(ChatAccessState(busy = true, formError = "Die Passphrase braucht mindestens 12 Zeichen.")) }

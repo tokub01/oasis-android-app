@@ -345,9 +345,9 @@ class ChatScreenFlowsTest {
         tap("Passphrase abschalten")
         tap("Abschalten")
         waitFor("Die Chat-Passphrase ist abgeschaltet.")
-        compose.onNode(hasContentDescription("„Android (Oasis-App)“ entfernen")).tap()
+        compose.onNode(hasContentDescription("„Android (Mildcrowd-App)“ entfernen")).tap()
         tapLast("Entfernen")
-        waitFor("„Android (Oasis-App)“ entfernt.")
+        waitFor("„Android (Mildcrowd-App)“ entfernt.")
     }
 
     @Test

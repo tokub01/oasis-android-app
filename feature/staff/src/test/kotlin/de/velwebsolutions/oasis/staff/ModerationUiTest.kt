@@ -735,8 +735,8 @@ class ModerationUiTest {
         compose.onNodeWithText("Quarantäne aufheben").performScrollTo().assertIsDisplayed()
 
         // The question follows what the case is about: a profile's or oasis' images are served again at once.
-        val tropfen = detail.copy(subjectUrl = "https://get-oasis.com/tropfen/9")
-        val profile = detail.copy(subjectUrl = "https://get-oasis.com/profil/mira")
+        val tropfen = detail.copy(subjectUrl = "https://mildcrowd.com/tropfen/9")
+        val profile = detail.copy(subjectUrl = "https://mildcrowd.com/profil/mira")
         val chat = detail.copy(report = detail.report.copy(kind = "chat_report"))
         assertEquals(
             "Quarantäne aufheben? Die Bilder werden dann wieder ausgeliefert, sobald der Tropfen freigegeben ist.",
@@ -746,7 +746,7 @@ class ModerationUiTest {
         assertEquals("Quarantäne aufheben? Profilbild und Banner werden dann wieder ausgeliefert.", profile.liftQuarantineQuestion)
         assertEquals(
             "Quarantäne aufheben? Das Banner der Oase wird dann wieder ausgeliefert.",
-            detail.copy(subjectUrl = "https://get-oasis.com/oasen/stadtgarten").liftQuarantineQuestion
+            detail.copy(subjectUrl = "https://mildcrowd.com/oasen/stadtgarten").liftQuarantineQuestion
         )
         shown = profile
         compose.onNodeWithText("Quarantäne aufheben").performScrollTo().performClick()

@@ -101,7 +101,7 @@ internal class HintSettingsActions(
 /**
  * Hinweise einstellen (/app/hinweise/einstellungen): which hints arrive, the daily e-mail, quiet hours, a pause, push
  * hints on this device and the member's other devices, and how new chat messages are announced. Every change is saved
- * at once, like in the privacy centre. "Oasis als App" (install the web app) has no place in the native app.
+ * at once, like in the privacy centre. "Mildcrowd als App" (install the web app) has no place in the native app.
  */
 @Composable
 internal fun HintSettingsScreen(viewModel: HintSettingsViewModel = hiltViewModel()) {
@@ -440,7 +440,7 @@ private fun PushSection(settings: HintSettings, ui: HintSettingsUiState, actions
             )
 
             else -> Note(
-                "Push-Hinweise sind auf Oasis noch nicht eingerichtet. Deine Hinweise findest du jederzeit in der App.",
+                "Push-Hinweise sind auf Mildcrowd noch nicht eingerichtet. Deine Hinweise findest du jederzeit in der App.",
                 Modifier.testTag("push.unavailable")
             )
         }

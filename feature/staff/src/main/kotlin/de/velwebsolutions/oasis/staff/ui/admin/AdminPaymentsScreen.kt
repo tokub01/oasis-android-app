@@ -105,7 +105,7 @@ fun AdminPaymentsScreen(viewModel: AdminPaymentsViewModel = hiltViewModel()) {
                     if (page.filters.mollieId) AsyncOasisButton("Direkt bei Mollie suchen", viewModel::searchMollie, fullWidth = false)
                 }
                 state.mollie?.let { MolliePanel(it, viewModel::closeMollie) }
-                StaffHeading("Belege in Oasis (${state.total})")
+                StaffHeading("Belege in Mildcrowd (${state.total})")
                 if (state.records.isEmpty()) {
                     Text(
                         "Keine Belege gefunden." +

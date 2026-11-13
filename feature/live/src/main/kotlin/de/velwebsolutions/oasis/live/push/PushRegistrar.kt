@@ -161,7 +161,7 @@ class PushRegistrar(private val system: PushSystem, private val store: PushStore
     companion object {
         /** Shown while Android does not allow notifications for Oasis. */
         const val DENIED_TEXT =
-            "Du hast Mitteilungen für Oasis in den Android-Einstellungen ausgeschaltet. Erlaube sie dort, um Push-Hinweise zu bekommen."
+            "Du hast Mitteilungen für Mildcrowd in den Android-Einstellungen ausgeschaltet. Erlaube sie dort, um Push-Hinweise zu bekommen."
         const val FAILED_TEXT = "Das hat nicht geklappt. Bitte versuche es später noch einmal."
     }
 }

@@ -199,7 +199,7 @@ class ComponentsTest {
             }
             LoadableView<String>(Loadable.Idle, onRetry = {}) { Text(it) }
             SkeletonView()
-            LoadingView(label = "Oasis startet …")
+            LoadingView(label = "Mildcrowd startet …")
             listOf("sun", "spring", "night", "dune").forEach { AvatarView("MS", it) }
             AvatarView("MS", "sun", photoUrl = "/bild.png", size = 64.dp)
             AuthorizedImage("https://example.org/bild.png", contentDescription = "Bild")
@@ -360,7 +360,7 @@ class ComponentsTest {
             addServiceIfNotPresent(tabs)
             addIntentFilterForService(tabs, IntentFilter("android.support.customtabs.action.CustomTabsService"))
         }
-        openWebPage(app, "https://get-oasis.com/app/mitgliedschaft/rechnungen/9")
+        openWebPage(app, "https://mildcrowd.com/app/mitgliedschaft/rechnungen/9")
         assertEquals("org.beispiel.browser", shadowOf(app).nextStartedActivity.`package`)
         openWebPage(app, "oasis://unbekannt")
         assertNull("the app is the only handler of its scheme", shadowOf(app).nextStartedActivity)
@@ -369,7 +369,7 @@ class ComponentsTest {
     @Test
     fun `web pages open in a custom tab, other links in their app`() {
         val app = RuntimeEnvironment.getApplication()
-        openWebPage(app, "https://get-oasis.com/impressum")
+        openWebPage(app, "https://mildcrowd.com/impressum")
         openWebPage(app, "tel:116111")
         val started = generateSequence { shadowOf(app).nextStartedActivity }.map { it.dataString }.toList()
         assertEquals(true, "tel:116111" in started)
@@ -387,7 +387,7 @@ class ComponentsTest {
             }
         }
         compose.onRoot().captureRoboImage("build/outputs/roborazzi/design-logo.png")
-        compose.onNodeWithContentDescription("Oasis").assertIsDisplayed()
+        compose.onNodeWithContentDescription("Mildcrowd").assertIsDisplayed()
     }
 
     @Test(expected = IllegalStateException::class)

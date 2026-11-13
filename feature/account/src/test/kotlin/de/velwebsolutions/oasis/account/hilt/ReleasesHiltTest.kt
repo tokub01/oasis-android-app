@@ -32,7 +32,7 @@ class ReleasesHiltTest : HiltScreenTest() {
         show { AccountScreen(AccountRoute.Releases) }
         waitForTag("release.0.24.0")
         compose.onNodeWithText("DEINE APP: OASIS 0.24.0").assertIsDisplayed()
-        compose.onNodeWithText("Wie Oasis entsteht").assertIsDisplayed()
+        compose.onNodeWithText("Wie Mildcrowd entsteht").assertIsDisplayed()
         compose.onNodeWithText("Aktuell").assertExists()
         compose.onNodeWithText("• Der Chat startet ruhiger.").assertExists()
         assertEquals(0, compose.onAllNodes(hasText("• Die Versionen stehen auf der Website.")).fetchSemanticsNodes().size)
@@ -47,7 +47,7 @@ class ReleasesHiltTest : HiltScreenTest() {
         stub("GET", "releases", """{"message":"Server Error"}""", status = 500)
         show { AccountScreen(AccountRoute.Releases) }
         waitForText("Noch einmal versuchen")
-        stub("GET", "releases", Fixtures.releases.replace(""""about":"Oasis""", """"about":" \n\n Oasis"""))
+        stub("GET", "releases", Fixtures.releases.replace(""""about":"Mildcrowd""", """"about":" \n\n Mildcrowd"""))
         compose.onNodeWithText("Noch einmal versuchen").tap()
         waitForTag("release.0.24.0")
     }
@@ -59,11 +59,11 @@ class ReleasesHiltTest : HiltScreenTest() {
         signIn()
         stub("GET", "releases", Fixtures.releases)
         show { UpdateNotesPrompt() }
-        waitForText("Neu in Oasis 0.24.0")
+        waitForText("Neu in Mildcrowd 0.24.0")
         compose.onNodeWithText("Versionen für alle").assertIsDisplayed()
         screenShot("update-notes")
         compose.onNodeWithText("Verstanden").press()
-        compose.waitUntil(15_000) { compose.onAllNodes(hasText("Neu in Oasis 0.24.0")).fetchSemanticsNodes().isEmpty() }
+        compose.waitUntil(15_000) { compose.onAllNodes(hasText("Neu in Mildcrowd 0.24.0")).fetchSemanticsNodes().isEmpty() }
         assertEquals("0.24.0", store.lastSeen())
     }
 }

@@ -542,7 +542,7 @@ private fun ConversationColumn(
                         OasisButton("Nachricht melden", { onReport(flagged.item) }, kind = OasisButtonKind.Secondary, fullWidth = false)
                         SmallAction("Ist in Ordnung", onDismissFlagged, underline = true)
                         Text(
-                            "Diese Prüfung läuft nur auf deinem Gerät. Oasis liest deine Chats nicht; gemeldet wird nur, was du meldest.",
+                            "Diese Prüfung läuft nur auf deinem Gerät. Mildcrowd liest deine Chats nicht; gemeldet wird nur, was du meldest.",
                             style = OasisType.Caption,
                             color = OasisColors.Muted
                         )
@@ -864,7 +864,7 @@ private fun ConversationComposer(
             title = { Text("Mikrofon für Sprachnachrichten", style = OasisType.heading(19), color = OasisColors.Night) },
             text = {
                 Text(
-                    "Oasis nutzt dein Mikrofon nur, solange du eine Sprachnachricht aufnimmst. Die Aufnahme wird auf deinem Gerät verschlüsselt, bevor sie verschickt wird – lesen und hören können sie nur die Menschen in diesem Chat.",
+                    "Mildcrowd nutzt dein Mikrofon nur, solange du eine Sprachnachricht aufnimmst. Die Aufnahme wird auf deinem Gerät verschlüsselt, bevor sie verschickt wird – lesen und hören können sie nur die Menschen in diesem Chat.",
                     style = OasisType.Body,
                     color = OasisColors.Ink
                 )

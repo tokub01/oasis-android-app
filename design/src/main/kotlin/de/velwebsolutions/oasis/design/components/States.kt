@@ -72,7 +72,7 @@ fun <T> LoadableView(
     }
 }
 
-/** Centered spinner with "Lädt …" or its own label ("Oasis startet …"). */
+/** Centered spinner with "Lädt …" or its own label ("Mildcrowd startet …"). */
 @Composable
 fun LoadingView(modifier: Modifier = Modifier, label: String = "Lädt …") {
     Column(

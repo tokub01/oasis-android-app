@@ -482,7 +482,7 @@ class RegisterViewModel @Inject constructor(private val session: Session, privat
         const val BIRTH_DATE_REQUIRED = "Das Geburtsdatum ist erforderlich."
 
         /** The server's message below 18 (Oasis is 18+). */
-        const val TOO_YOUNG = "Du musst mindestens 18 Jahre alt sein, um Oasis zu nutzen."
+        const val TOO_YOUNG = "Du musst mindestens 18 Jahre alt sein, um Mildcrowd zu nutzen."
 
         /** Without the consent; names the documents like the checkbox (the server's CreateNewUser says the same). */
         const val TERMS_REQUIRED = "Bitte akzeptiere die Community-Regeln und die AGB."

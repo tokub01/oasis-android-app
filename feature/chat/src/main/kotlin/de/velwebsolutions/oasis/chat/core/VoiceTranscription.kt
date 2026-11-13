@@ -31,7 +31,7 @@ sealed class TranscriptionProblem(val text: String) : Exception(text) {
 
     /** The speech recognition is not allowed for Oasis. */
     data object Denied : TranscriptionProblem(
-        "Erlaube die Spracherkennung in den Einstellungen, dann kann Oasis Sprachnachrichten in Text umwandeln."
+        "Erlaube die Spracherkennung in den Einstellungen, dann kann Mildcrowd Sprachnachrichten in Text umwandeln."
     )
 }
 

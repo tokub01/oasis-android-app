@@ -30,7 +30,7 @@ object LiveJson {
     const val LAST_PAGE =
         """{"data":[{"id":"x1","kind":"follow","label":"Neue Person in deiner Karawane · Lea","url":"http:\/\/localhost\/profil\/lea","excerpt":"","unread":false,"created_at":"2026-09-01T08:00:00.000000Z","group":"Früher"}],"meta":{"current_page":2,"last_page":2,"per_page":20,"total":23}}"""
     const val SETTINGS =
-        """{"data":{"kinds":[{"key":"follow","label":"Neue Person in deiner Karawane","enabled":true},{"key":"reply","label":"Antwort auf deinen Tropfen","enabled":true},{"key":"friend_request","label":"Freundschaftsanfrage","enabled":true}],"digest":false,"quiet_enabled":false,"quiet_from":"22:00","quiet_until":"07:00","paused_until":null,"pause_days":[1,3,7],"chat":[{"key":"chat_email","title":"E-Mail bei neuen Chat-Nachrichten","help":"Standardmäßig an.","enabled":true},{"key":"chat_push","title":"Push-Hinweis bei neuen Chat-Nachrichten","help":"Standardmäßig aus.","enabled":false}],"push":{"available":true,"devices":[{"id":4,"type":"app","device":"Oasis-App auf iOS","since":"2026-10-22T15:00:00.000000Z","current":true},{"id":9,"type":"browser","device":"Chrome auf Android","since":"2026-10-01T15:00:00.000000Z","current":false}]}}}"""
+        """{"data":{"kinds":[{"key":"follow","label":"Neue Person in deiner Karawane","enabled":true},{"key":"reply","label":"Antwort auf deinen Tropfen","enabled":true},{"key":"friend_request","label":"Freundschaftsanfrage","enabled":true}],"digest":false,"quiet_enabled":false,"quiet_from":"22:00","quiet_until":"07:00","paused_until":null,"pause_days":[1,3,7],"chat":[{"key":"chat_email","title":"E-Mail bei neuen Chat-Nachrichten","help":"Standardmäßig an.","enabled":true},{"key":"chat_push","title":"Push-Hinweis bei neuen Chat-Nachrichten","help":"Standardmäßig aus.","enabled":false}],"push":{"available":true,"devices":[{"id":4,"type":"app","device":"Mildcrowd-App auf iOS","since":"2026-10-22T15:00:00.000000Z","current":true},{"id":9,"type":"browser","device":"Chrome auf Android","since":"2026-10-01T15:00:00.000000Z","current":false}]}}}"""
 
     fun saved(message: String, paused: String = "null") =
         """{"data":{"kinds":[{"key":"follow","label":"Neue Person in deiner Karawane","enabled":true},{"key":"reply","label":"Antwort auf deinen Tropfen","enabled":false},{"key":"friend_request","label":"Freundschaftsanfrage","enabled":true}],"digest":true,"quiet_enabled":true,"quiet_from":"21:30","quiet_until":"06:15","paused_until":$paused,"pause_days":[1,3,7],"chat":[{"key":"chat_email","title":"E-Mail bei neuen Chat-Nachrichten","help":"Standardmäßig an.","enabled":true},{"key":"chat_push","title":"Push-Hinweis bei neuen Chat-Nachrichten","help":"Standardmäßig aus.","enabled":false}],"push":{"available":true,"devices":[]}},"message":"$message"}"""
@@ -40,7 +40,7 @@ object LiveJson {
     const val CONFIG =
         """{"data":{"reverb":{"key":"oasis-local-key","host":"localhost","port":8080,"scheme":"http"},"push":{"available":true}}}"""
     const val DEVICE =
-        """{"data":{"id":5,"type":"app","device":"Oasis-App auf Android","since":"2026-10-22T15:00:00.000000Z","current":true},"message":"ok"}"""
+        """{"data":{"id":5,"type":"app","device":"Mildcrowd-App auf Android","since":"2026-10-22T15:00:00.000000Z","current":true},"message":"ok"}"""
 }
 
 fun repository(transport: StubTransport) = DefaultLiveRepository(transport.client)

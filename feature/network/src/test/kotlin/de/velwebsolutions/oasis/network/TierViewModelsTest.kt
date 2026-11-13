@@ -40,7 +40,7 @@ object TierFixtures {
         "oases":[{"id":2,"slug":"stadtgarten","name":"Stadtgarten"}],
         "waiting":[{"id":5,"body":"Alles Gute zum Geburtstag!","opens_at":"2026-12-24T17:00:00.000000Z","oasis":null,"opened_at":null,"post_id":null,"failed_reason":null},
         {"id":6,"body":"Ernte im Garten","opens_at":"2027-06-01T08:00:00.000000Z","oasis":{"slug":"stadtgarten","name":"Stadtgarten"},"opened_at":null,"post_id":null,"failed_reason":null}],
-        "past":[{"id":3,"body":"Ein Jahr Oasis","opens_at":"2026-10-01T08:00:00.000000Z","oasis":null,"opened_at":"2026-10-01T08:00:00.000000Z","post_id":44,"failed_reason":null},
+        "past":[{"id":3,"body":"Ein Jahr Mildcrowd","opens_at":"2026-10-01T08:00:00.000000Z","oasis":null,"opened_at":"2026-10-01T08:00:00.000000Z","post_id":44,"failed_reason":null},
         {"id":4,"body":"Ohne Mitgliedschaft","opens_at":"2026-09-01T08:00:00.000000Z","oasis":null,"opened_at":null,"post_id":null,"failed_reason":"Deine Mitgliedschaft lief nicht."}]}}
     """.trimIndent()
 

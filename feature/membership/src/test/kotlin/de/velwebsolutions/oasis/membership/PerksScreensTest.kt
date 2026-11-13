@@ -106,12 +106,12 @@ class PerksScreensTest {
         repository.overview = Result.success(
             Fixtures.overview(
                 Fixtures.noMembershipOverview
-            ).copy(companionSeat = MembershipOverview.CompanionSeat("Mia Mäzen", "oase", "Oasis plus"))
+            ).copy(companionSeat = MembershipOverview.CompanionSeat("Mia Mäzen", "oase", "Mildcrowd plus"))
         )
         val model = PerksViewModel(repository, events, Fixtures.session())
         show { PerksScreen(model) }
         waitFor("Mia Mäzen nimmt dich als Mäzen mit.")
-        compose.onNodeWithText("aus der Stufe Oasis plus", substring = true).assertExists()
+        compose.onNodeWithText("aus der Stufe Mildcrowd plus", substring = true).assertExists()
         compose.onNodeWithText("MITGLIEDSCHAFT").assertExists()
     }
 
@@ -119,7 +119,7 @@ class PerksScreensTest {
     fun `accepting a companion link goes to the Quelle, an expired one leads to the membership`() {
         val model = CompanionLinkViewModel(token, repository, events, Fixtures.session())
         show { CompanionLinkScreen(token, model) }
-        waitFor("Mia Mäzen nimmt dich mit nach Oasis")
+        waitFor("Mia Mäzen nimmt dich mit nach Mildcrowd")
         compose.onNodeWithTag("companion.accept").performClick()
         compose.waitUntil(5_000) { navigator.selectedTab == MainTab.Source }
 

@@ -43,6 +43,6 @@ fun RootScreen(viewModel: RootViewModel = hiltViewModel()) {
         SessionState.SignedOut -> screens.SignedOut()
 
         // SessionState.Loading: the stored token is being checked.
-        else -> LoadingView(Modifier.fillMaxSize().oasisScreenBackground(), "Oasis startet …")
+        else -> LoadingView(Modifier.fillMaxSize().oasisScreenBackground(), "Mildcrowd startet …")
     }
 }

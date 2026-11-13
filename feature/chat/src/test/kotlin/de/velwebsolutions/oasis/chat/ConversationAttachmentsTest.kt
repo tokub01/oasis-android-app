@@ -343,7 +343,7 @@ class ConversationAttachmentsTest {
         assertEquals(listOf("a.pdf", "b.pdf", "c.pdf", "d.pdf"), writer.state.value.drafts.map { it.name })
         // The file beyond the four keeps waiting for the next "Teilen mit …" (iOS takeShares); the others are gone.
         assertEquals(
-            "Du kannst höchstens 4 Anhänge an eine Nachricht hängen. Den übrigen bietet dir Oasis wieder unter „Teilen mit …“ an, " +
+            "Du kannst höchstens 4 Anhänge an eine Nachricht hängen. Den übrigen bietet dir Mildcrowd wieder unter „Teilen mit …“ an, " +
                 "wenn du die App das nächste Mal öffnest.",
             writer.state.value.composerError
         )
@@ -362,7 +362,7 @@ class ConversationAttachmentsTest {
         miraMedia.beforeShared = { if (PendingShare.share.value == null) PendingShare.offer(newer) }
         writer.open()
         miraMedia.beforeShared = {}
-        assertTrue(writer.state.value.composerError.orEmpty().contains("Die übrigen 2 bietet dir Oasis wieder"))
+        assertTrue(writer.state.value.composerError.orEmpty().contains("Die übrigen 2 bietet dir Mildcrowd wieder"))
         assertTrue(many.none { it.file.exists() })
         assertSame(newer, PendingShare.share.value)
         PendingShare.discard()

@@ -14,7 +14,7 @@ import de.velwebsolutions.oasis.live.R
 
 /** The notification channel of a push: the member silences hints and chat messages separately in Android's settings. */
 enum class PushChannel(val id: String, val title: String, val description: String) {
-    Hints("hints", "Hinweise", "Neue Hinweise aus Oasis – nie mit dem Text eines Tropfens."),
+    Hints("hints", "Hinweise", "Neue Hinweise aus Mildcrowd – nie mit dem Text eines Tropfens."),
     Chat("chat", "Chats", "Neue Chat-Nachrichten – nie mit dem Text einer Nachricht.")
 }
 
@@ -40,7 +40,7 @@ data class PushContent(val title: String, val body: String, val url: String?, va
          * notification part as fallback.
          */
         fun from(data: Map<String, String>, notificationTitle: String?, notificationBody: String?): PushContent = PushContent(
-            title = data["title"] ?: notificationTitle ?: "Oasis",
+            title = data["title"] ?: notificationTitle ?: "Mildcrowd",
             body = data["body"] ?: notificationBody.orEmpty(),
             url = data["url"]?.takeIf { it.startsWith("https://") || it.startsWith("http://") || it.startsWith("oasis://") },
             tag = data["tag"]?.takeIf { it.isNotBlank() }

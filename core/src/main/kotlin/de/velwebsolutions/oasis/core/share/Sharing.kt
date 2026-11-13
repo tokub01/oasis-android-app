@@ -23,7 +23,7 @@ class Share(val files: List<SharedFile>, val text: String?, val folder: File? = 
 
 /**
  * The share waiting for "Teilen mit …" – in memory only, also while the member signs in or unlocks the chat; the copies
- * live in the cache until a chat takes the share or it is discarded (docs/oasis-chat.md, "Sharing into Oasis").
+ * live in the cache until a chat takes the share or it is discarded (docs/oasis-chat.md, "Sharing into Mildcrowd").
  */
 object PendingShare {
     private val state = MutableStateFlow<Share?>(null)

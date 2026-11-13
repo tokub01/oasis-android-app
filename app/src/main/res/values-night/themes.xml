@@ -5,7 +5,7 @@
         <item name="android:statusBarColor">@android:color/transparent</item>
         <item name="android:navigationBarColor">@android:color/transparent</item>
         <item name="android:windowLightStatusBar">false</item>
-        <!-- Oasis draws its own dark mode with the web's tokens; the system must not darken it again. -->
+        <!-- Mildcrowd draws its own dark mode with the web's tokens; the system must not darken it again. -->
         <item name="android:forceDarkAllowed" tools:targetApi="29">false</item>
     </style>
     <color name="sand">#0F1A1B</color>

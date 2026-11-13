@@ -16,7 +16,7 @@ class ChatContext(
     val me: Me,
     /** Picked and recorded files, and the decrypted ones on screen. */
     val media: ChatMedia,
-    /** The label of this device in the device lists (iOS: "iPhone (Oasis-App)"). */
+    /** The label of this device in the device lists (iOS: "iPhone (Mildcrowd-App)"). */
     val deviceLabel: String = DEFAULT_DEVICE_LABEL,
     /** Where Argon2id and the other expensive crypto runs (iOS: a detached task). */
     val cryptoDispatcher: CoroutineDispatcher = Dispatchers.Default,
@@ -40,6 +40,6 @@ class ChatContext(
     val look: ChatLook get() = ChatLook(lookStore, lookPhotos, userId)
 
     companion object {
-        const val DEFAULT_DEVICE_LABEL = "Android (Oasis-App)"
+        const val DEFAULT_DEVICE_LABEL = "Android (Mildcrowd-App)"
     }
 }

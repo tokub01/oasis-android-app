@@ -88,7 +88,7 @@ fun DataBreachesScreen(viewModel: DataBreachesViewModel = hiltViewModel()) {
                     Text(
                         "Jede Verletzung des Schutzes personenbezogener Daten wird hier dokumentiert – auch wenn sie nicht gemeldet " +
                             "werden muss (Art. 33 Abs. 5 DSGVO). Besteht ein Risiko, muss die Aufsichtsbehörde binnen 72 Stunden ab " +
-                            "Bekanntwerden informiert werden; bei hohem Risiko auch die Betroffenen. Oasis meldet nichts selbst: Die " +
+                            "Bekanntwerden informiert werden; bei hohem Risiko auch die Betroffenen. Mildcrowd meldet nichts selbst: Die " +
                             "Seite bereitet die Meldung vor, du schickst sie ab. Der Notfallplan steht in " +
                             "docs/oasis-incident-response.md.",
                         style = OasisType.Small,

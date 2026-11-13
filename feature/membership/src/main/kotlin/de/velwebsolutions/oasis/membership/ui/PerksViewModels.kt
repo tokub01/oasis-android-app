@@ -134,7 +134,7 @@ data class CompanionLinkUiState(
 )
 
 /**
- * /app/mitgliedschaft/mitkommen/{token}: "<Mäzen> nimmt dich mit nach Oasis" with "Platz annehmen". Opens without a
+ * /app/mitgliedschaft/mitkommen/{token}: "<Mäzen> nimmt dich mit nach Mildcrowd" with "Platz annehmen". Opens without a
  * membership, because accepting is what gives one.
  */
 @HiltViewModel(assistedFactory = CompanionLinkViewModel.Factory::class)

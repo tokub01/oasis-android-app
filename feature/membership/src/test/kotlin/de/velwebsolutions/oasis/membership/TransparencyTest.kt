@@ -100,7 +100,7 @@ class TransparencyTest {
     fun `the page shows figures and the report with its earlier ones`() {
         val viewModel = TransparencyViewModel(repository)
         compose.setContent { OasisTheme { TransparencyScreen(viewModel) } }
-        compose.onNodeWithText("Oasis wird betrieben von Tobias Kubina - VelWebSolutions.", substring = true).assertExists()
+        compose.onNodeWithText("Mildcrowd wird betrieben von Tobias Kubina - VelWebSolutions.", substring = true).assertExists()
         shot("transparency")
         compose.onNodeWithText("Überschuss").performScrollTo()
         shot("transparency-report")
@@ -108,7 +108,7 @@ class TransparencyTest {
         compose.waitUntil(5_000) { viewModel.state.value.shown?.id == 3 }
         compose.onNodeWithText("Fehlbetrag").performScrollTo()
         Appearance.show(AppearanceChoice.Dark)
-        compose.onNodeWithText("Oasis heute").performScrollTo()
+        compose.onNodeWithText("Mildcrowd heute").performScrollTo()
         shot("transparency-dark")
     }
 

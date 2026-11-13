@@ -471,7 +471,7 @@ class ScreenFlowsTest {
 
         val model20 = models.keep(InvitationViewModel("abc", network.repository))
         switchTo { InvitationScreen("abc", model20) }
-        text("Aylin Demir lädt dich zu Oasis ein.").assertIsDisplayed()
+        text("Aylin Demir lädt dich zu Mildcrowd ein.").assertIsDisplayed()
         text("Zum Profil von Aylin Demir").performClick()
         assertEquals(NetworkRoute.Profile("aylin"), navigator.stack(MainTab.Source).last())
         capture("invitation")

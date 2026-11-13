@@ -46,7 +46,7 @@ import org.robolectric.annotation.GraphicsMode
 @GraphicsMode(GraphicsMode.Mode.NATIVE)
 @Config(qualifiers = "w411dp-h891dp-xxhdpi")
 class ShellUiTest {
-    /** The real graph binds links to the debug server; these tests use get-oasis.com links. */
+    /** The real graph binds links to the debug server; these tests use mildcrowd.com links. */
     @org.junit.Before
     fun resetOwnHost() {
         de.velwebsolutions.oasis.design.navigation.DeepLink.ownHost = null
@@ -143,7 +143,7 @@ class ShellUiTest {
         compose.onNodeWithContentDescription("Zurück").performClick()
         compose.onNodeWithText("Inhalt ${NetworkRoute.Source}").assertIsDisplayed()
         compose.onNodeWithTag("tab.oases").performClick()
-        compose.onNodeWithContentDescription("Oasis – zur Quelle").performClick()
+        compose.onNodeWithContentDescription("Mildcrowd – zur Quelle").performClick()
         assertEquals(MainTab.Source, navigator.selectedTab)
     }
 
@@ -157,7 +157,7 @@ class ShellUiTest {
             "Deine Zahlen" to NetworkRoute.Statistics, "Zeitkapseln" to NetworkRoute.TimeCapsules, "Jahrbuch" to NetworkRoute.Yearbook(),
             "Menschen einladen" to NetworkRoute.Invitations,
             "Privatsphäre" to AccountRoute.Privacy, "Blockiert & stumm" to AccountRoute.Safety,
-            "Ideen für Oasis" to NetworkRoute.Ideas(), "Wohin dein Beitrag geht" to MembershipRoute.Transparency,
+            "Ideen für Mildcrowd" to NetworkRoute.Ideas(), "Wohin dein Beitrag geht" to MembershipRoute.Transparency,
             "Begriffe erklärt" to AccountRoute.Glossary, "Was ist neu" to AccountRoute.Releases,
             "Moderation" to StaffRoute.Moderation, "Verwaltung" to StaffRoute.AdminDashboard
         )
@@ -246,7 +246,7 @@ class ShellUiTest {
     @Test
     fun `a companion link opens without a membership`() {
         start(mira.copy(hasPaidAccess = false))
-        val link = "https://get-oasis.com/app/mitgliedschaft/mitkommen/" + "a".repeat(40)
+        val link = "https://mildcrowd.com/app/mitgliedschaft/mitkommen/" + "a".repeat(40)
         compose.runOnIdle { navigator.handle(link) }
         compose.onNodeWithText("Inhalt ${MembershipRoute.CompanionLink("a".repeat(40))}").assertIsDisplayed()
     }

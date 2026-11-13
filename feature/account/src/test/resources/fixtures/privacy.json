@@ -298,7 +298,7 @@
     "settings": [
      {
       "key": "searchable",
-      "title": "In der Oasis-Suche auffindbar",
+      "title": "In der Mildcrowd-Suche auffindbar",
       "help": "Mitglieder finden dich über deinen Namen oder Benutzernamen. Ausgeschaltet erscheinst du nicht in der Personensuche; über deine Tropfen und Links bleibt dein Profil erreichbar.",
       "kind": "switch",
       "value": true,

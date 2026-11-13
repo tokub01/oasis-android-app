@@ -107,7 +107,7 @@ class NetworkUiTest {
         assertEquals(NetworkRoute.Compose(), navigator.sheet)
         navigator.dismissSheet()
 
-        compose.onNodeWithText("Ganz Oasis").performClick()
+        compose.onNodeWithText("Ganz Mildcrowd").performClick()
         assertEquals("alle", view)
 
         val react = hasTestTag("post.react") and hasAnyAncestor(hasTestTag("post.card.12"))

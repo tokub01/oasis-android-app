@@ -41,7 +41,7 @@ sealed class PasskeyFailure(val userMessage: String?) : Exception(userMessage ?:
 
     /** No passkey for Oasis on this device or in the password manager. */
     class NoPasskey : PasskeyFailure(
-        "Auf diesem Gerät ist kein Passkey für Oasis gespeichert. Melde dich mit Passwort oder Code an und richte in den Einstellungen einen Passkey ein."
+        "Auf diesem Gerät ist kein Passkey für Mildcrowd gespeichert. Melde dich mit Passwort oder Code an und richte in den Einstellungen einen Passkey ein."
     )
 
     /** This device already holds a passkey of the account (the server lists it in `excludeCredentials`). */

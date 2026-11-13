@@ -185,7 +185,7 @@ private fun SignedIn(overview: DeviceOverview, viewModel: DevicesViewModel, onSi
         }
         overview.apps.forEach { app ->
             ListRow(leading = {
-                RowText(app.name, "Oasis-App · zuletzt aktiv ${GermanDate.long(app.lastUsedAt ?: app.signedInAt ?: Instant.now())}")
+                RowText(app.name, "Mildcrowd-App · zuletzt aktiv ${GermanDate.long(app.lastUsedAt ?: app.signedInAt ?: Instant.now())}")
             }, trailing = {
                 AsyncOasisButton(
                     "Abmelden",

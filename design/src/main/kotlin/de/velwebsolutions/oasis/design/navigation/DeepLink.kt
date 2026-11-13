@@ -23,7 +23,7 @@ sealed interface IncomingLink {
 
 /**
  * Maps Oasis web URLs (the same links used in mails, push payloads and shared posts) to app routes, so a link to
- * get-oasis.com opens the matching screen. Unknown paths return null ([route]); [incoming] opens them in the browser,
+ * mildcrowd.com opens the matching screen. Unknown paths return null ([route]); [incoming] opens them in the browser,
  * or on the Quelle when they belong to the app.
  */
 object DeepLink {

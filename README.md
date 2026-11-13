@@ -1,6 +1,6 @@
-# Oasis für Android
+# Mildcrowd für Android
 
-Die native Android-App von [Oasis](https://get-oasis.com) – werbefrei, chronologisch. Sie baut die iOS-App
+Die native Android-App von [Mildcrowd](https://mildcrowd.com) – werbefrei, chronologisch. Sie baut die iOS-App
 (`oasis-ios`) 1:1 nach: gleiche Screens, Abläufe, Texte und Design-Tokens, gegen dieselbe Laravel-API (`/api/v1`).
 
 ## Aufbau
@@ -30,9 +30,9 @@ Voraussetzungen: JDK 21, Android SDK (Platform 37, Build-Tools), ein Emulator (A
 
 - **debug** spricht mit dem lokalen Sail-Backend auf dem Mac (`http://10.0.2.2`, Reverb ebenfalls über `10.0.2.2`).
   Für ein echtes Gerät die LAN-Adresse in `secrets.properties` setzen (siehe `secrets.properties.example`).
-- **staging** spricht mit `staging.get-oasis.com`; das Gate-Passwort kommt aus `secrets.properties` oder der
+- **staging** spricht mit `staging.mildcrowd.com`; das Gate-Passwort kommt aus `secrets.properties` oder der
   Umgebungsvariable `OASIS_GATE_KEY` und wird nie committet.
-- **release** spricht mit `get-oasis.com`.
+- **release** spricht mit `mildcrowd.com`.
 
 ## Prüfen
 

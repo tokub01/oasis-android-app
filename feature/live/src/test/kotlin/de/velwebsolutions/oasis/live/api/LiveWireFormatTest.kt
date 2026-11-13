@@ -9,7 +9,7 @@ import org.junit.Test
 /** Every model and request body of the Live API reads back what it writes, with and without defaults. */
 class LiveWireFormatTest {
     private val since: Instant = Instant.parse("2026-10-22T15:00:00Z")
-    private val device = PushDevice(4, "app", "Oasis-App auf Android", since, current = true)
+    private val device = PushDevice(4, "app", "Mildcrowd-App auf Android", since, current = true)
 
     @Test
     fun hintsAndTheirSettings() {
@@ -19,7 +19,7 @@ class LiveWireFormatTest {
             Hint(
                 "b",
                 "Antwort",
-                url = "https://get-oasis.com/tropfen/1",
+                url = "https://mildcrowd.com/tropfen/1",
                 excerpt = "Toll",
                 unread = true,
                 createdAt = since,

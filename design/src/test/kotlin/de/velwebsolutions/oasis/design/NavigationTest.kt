@@ -19,7 +19,7 @@ import org.junit.Assert.assertTrue
 import org.junit.Test
 
 class NavigationTest {
-    private val base = "https://get-oasis.com"
+    private val base = "https://mildcrowd.com"
 
     /** Every web path the app knows, with the screen it opens (the same table as iOS' DeepLink). */
     private val links: Map<String, AppRoute?> = mapOf(
@@ -97,7 +97,7 @@ class NavigationTest {
         "/app/willkommen" to AccountRoute.Welcome,
         "/app/sicherheit" to AccountRoute.Safety,
         "/app/melden" to AccountRoute.Report(null),
-        "/app/melden?url=https%3A%2F%2Fget-oasis.com%2Ftropfen%2F1" to AccountRoute.Report("https://get-oasis.com/tropfen/1"),
+        "/app/melden?url=https%3A%2F%2Fmildcrowd.com%2Ftropfen%2F1" to AccountRoute.Report("https://mildcrowd.com/tropfen/1"),
         "/app/begriffe" to AccountRoute.Glossary,
         "/app/gesperrt" to AccountRoute.Suspended,
         "/app/abstimmungen" to null,
@@ -127,7 +127,7 @@ class NavigationTest {
         links.forEach { (path, route) -> assertEquals(path, route, DeepLink.route(base + path)) }
         assertEquals(MembershipRoute.Portal, DeepLink.route("oasis://app/mitgliedschaft/portal"))
         assertNull(DeepLink.route("oasis://"))
-        assertNull(DeepLink.route("mailto:hallo@get-oasis.com"))
+        assertNull(DeepLink.route("mailto:hallo@mildcrowd.com"))
         assertNull(DeepLink.route("kein link mit leerzeichen"))
         assertNull(DeepLink.route("$base/themen/100%"))
     }
@@ -135,7 +135,7 @@ class NavigationTest {
     @Test
     fun `routes survive saved state`() {
         val routes = links.values.filterNotNull().toSet() + setOf(
-            WebRoute("https://get-oasis.com/impressum"),
+            WebRoute("https://mildcrowd.com/impressum"),
             NetworkRoute.Compose("garten", 4),
             NetworkRoute.CollectPost(3, "garten"),
             StaffRoute.AdminIdeas,
@@ -196,11 +196,11 @@ class NavigationTest {
     fun `websites open outside the stacks`() {
         val opened = mutableListOf<String>()
         val navigator = Navigator().apply { openWeb = { opened += it } }
-        navigator.open(WebRoute("https://get-oasis.com/agb"))
-        navigator.handle(WebRoute("https://get-oasis.com/datenschutz"))
-        assertEquals(listOf("https://get-oasis.com/agb", "https://get-oasis.com/datenschutz"), opened)
+        navigator.open(WebRoute("https://mildcrowd.com/agb"))
+        navigator.handle(WebRoute("https://mildcrowd.com/datenschutz"))
+        assertEquals(listOf("https://mildcrowd.com/agb", "https://mildcrowd.com/datenschutz"), opened)
         assertTrue(navigator.stack(MainTab.Source).isEmpty())
-        Navigator().open(WebRoute("https://get-oasis.com/hilfe"))
+        Navigator().open(WebRoute("https://mildcrowd.com/hilfe"))
     }
 
     @Test
@@ -212,7 +212,7 @@ class NavigationTest {
         navigator.open(ChatRoute.Conversation(5))
         navigator.present(NetworkRoute.Compose())
         navigator.sheetDismissible = false
-        navigator.handle("https://get-oasis.com/anmelden/code")
+        navigator.handle("https://mildcrowd.com/anmelden/code")
         navigator.reset()
         assertEquals(MainTab.Source, navigator.selectedTab)
         assertTrue(MainTab.entries.all { navigator.stack(it).isEmpty() })
@@ -233,7 +233,7 @@ class NavigationTest {
         navigator.dismissSheet()
         assertTrue(navigator.sheetDismissible)
         assertNull(navigator.sheet)
-        assertFalse(navigator.handle("https://get-oasis.com/impressum"))
+        assertFalse(navigator.handle("https://mildcrowd.com/impressum"))
         navigator.handle(NetworkRoute.Post(2))
         navigator.select(MainTab.Oases)
         assertEquals(MainTab.Oases, navigator.selectedTab)

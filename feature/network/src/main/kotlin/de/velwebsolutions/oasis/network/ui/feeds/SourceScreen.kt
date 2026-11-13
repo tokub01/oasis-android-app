@@ -82,7 +82,7 @@ import java.time.Instant
 
 /**
  * "Quelle" (/app): own Tropfen and those of friends, followed people and oases, newest first, with bundled replies – or
- * "Ganz Oasis". No ranking and an honest end; the side blocks (Deine Woche, Deine Oasen, a running vote, inviting) follow
+ * "Ganz Mildcrowd". No ranking and an honest end; the side blocks (Deine Woche, Deine Oasen, a running vote, inviting) follow
  * the feed like on a phone-sized web page. Switching the view keeps the page and swaps the cards in place.
  */
 @Composable
@@ -182,7 +182,7 @@ fun LazyListScope.sourceContent(
             )
             Text(
                 if (showAll) {
-                    "Hier siehst du der Reihe nach, was alle auf Oasis teilen – ohne Algorithmus."
+                    "Hier siehst du der Reihe nach, was alle auf Mildcrowd teilen – ohne Algorithmus."
                 } else {
                     "Hier siehst du der Reihe nach, was deine Freund:innen und die Menschen und Oasen teilen, denen du folgst."
                 },
@@ -198,7 +198,7 @@ fun LazyListScope.sourceContent(
         val selection = state.filter ?: if (showAll) "alle" else "gefolgt"
         Row(horizontalArrangement = Arrangement.spacedBy(12.dp), verticalAlignment = Alignment.CenterVertically) {
             SingleChoiceSegmentedButtonRow(Modifier.weight(1f).testTag("source.view")) {
-                listOf("gefolgt" to "Gefolgt", "alle" to "Ganz Oasis").forEachIndexed { index, (value, label) ->
+                listOf("gefolgt" to "Gefolgt", "alle" to "Ganz Mildcrowd").forEachIndexed { index, (value, label) ->
                     SegmentedButton(
                         selected = selection == value,
                         onClick = { if (selection != value) onSelectView(value) },
@@ -263,7 +263,7 @@ fun LazyListScope.sourceContent(
         } else if (showAll) {
             "Noch hat niemand etwas geteilt. Schreib den ersten Tropfen!"
         } else {
-            "Noch keine Tropfen. Folge Menschen oder Oasen, dann erscheinen ihre Tropfen hier – oder schau unter „Ganz Oasis“, was alle teilen."
+            "Noch keine Tropfen. Folge Menschen oder Oasen, dann erscheinen ihre Tropfen hier – oder schau unter „Ganz Mildcrowd“, was alle teilen."
         }
     )
     if (cut.seen) {

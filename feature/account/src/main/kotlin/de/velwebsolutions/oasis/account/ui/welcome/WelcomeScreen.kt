@@ -268,7 +268,7 @@ private fun ColumnScope.ProfileStep(ui: WelcomeUiState, tour: WelcomeTour, viewM
 @Composable
 private fun ColumnScope.VisibilityStep(ui: WelcomeUiState, tour: WelcomeTour, viewModel: WelcomeViewModel, open: (AppRoute) -> Unit) {
     Text(
-        "Oasis startet zurückhaltend: Nur Mitglieder sehen dich. Du kannst das jetzt ändern oder später in Ruhe im Privatsphäre-Check.",
+        "Mildcrowd startet zurückhaltend: Nur Mitglieder sehen dich. Du kannst das jetzt ändern oder später in Ruhe im Privatsphäre-Check.",
         style = OasisType.Body,
         color = OasisColors.Ink2
     )

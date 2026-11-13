@@ -104,7 +104,7 @@ internal class SendGuard(private val scope: CoroutineScope, private val now: () 
         const val SERVER_PAUSE_SECONDS = 30
 
         const val SENSITIVE_ADVICE =
-            "Oasis fragt dich nie im Chat danach – sei vorsichtig, besonders bei Menschen, die du noch nicht kennst. Zum Senden tippe noch einmal auf „Senden“."
+            "Mildcrowd fragt dich nie im Chat danach – sei vorsichtig, besonders bei Menschen, die du noch nicht kennst. Zum Senden tippe noch einmal auf „Senden“."
     }
 }
 

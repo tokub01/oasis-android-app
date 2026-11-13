@@ -188,7 +188,7 @@ internal fun PhoneNumberSection(ui: PhoneNumberUiState, viewModel: PhoneNumberVi
     val scope = rememberCoroutineScope()
     SectionCard("Handynummer") {
         Text(
-            "Jedes Oasis-Konto gehört zu einer bestätigten Handynummer. Mit ihr kannst du dir Anmeldecodes auch per SMS schicken lassen. Wir speichern sie verschlüsselt und nutzen sie für nichts anderes.",
+            "Jedes Mildcrowd-Konto gehört zu einer bestätigten Handynummer. Mit ihr kannst du dir Anmeldecodes auch per SMS schicken lassen. Wir speichern sie verschlüsselt und nutzen sie für nichts anderes.",
             style = OasisType.Small,
             color = OasisColors.Ink2
         )

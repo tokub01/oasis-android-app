@@ -1,5 +1,5 @@
 #!/bin/zsh
-# Builds the "play" variant (talks to staging.get-oasis.com) and publishes it to Google Play's internal test track –
+# Builds the "play" variant (talks to staging.mildcrowd.com) and publishes it to Google Play's internal test track –
 # the counterpart of oasis-ios/scripts/testflight.sh. Runs on this Mac by hand; CI does the same in
 # .github/workflows/play-internal.yml.
 #

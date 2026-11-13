@@ -219,7 +219,7 @@ private fun MoreControls(counts: PrivacyCounts, onLimit: (Int) -> Unit, open: (A
             "Frühere Tropfen begrenzen",
             detail =
                 "Stellt Tropfen, die du früher als „Öffentlich“ geteilt hast, auf einmal auf „Alle Mitglieder“ um. " +
-                    "Gäste und Suchmaschinen sehen bei Oasis ohnehin nichts mehr. $affected"
+                    "Gäste und Suchmaschinen sehen bei Mildcrowd ohnehin nichts mehr. $affected"
         ) {
             if (counts.publicPosts > 0) {
                 OasisButton("Tropfen begrenzen", { onLimit(counts.publicPosts) }, kind = OasisButtonKind.Secondary, fullWidth = false)
@@ -244,7 +244,7 @@ private fun MoreControls(counts: PrivacyCounts, onLimit: (Int) -> Unit, open: (A
             open(AccountRoute.Devices)
         }
         LinkCard(
-            "Deine Zeit in Oasis",
+            "Deine Zeit in Mildcrowd",
             "Wie viele Minuten du an den letzten sieben Tagen hier warst – nur, wenn du es einschaltest, und nur auf diesem Gerät.",
             "privacy.time"
         ) { open(AccountRoute.ScreenTime) }

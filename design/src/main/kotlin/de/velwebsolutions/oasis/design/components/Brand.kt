@@ -49,7 +49,7 @@ import de.velwebsolutions.oasis.design.theme.OasisType
 @Composable
 fun OasisLogo(modifier: Modifier = Modifier, size: Dp = 38.dp, wordmark: Boolean = true) {
     Row(
-        modifier.clearAndSetSemantics { contentDescription = "Oasis" },
+        modifier.clearAndSetSemantics { contentDescription = "Mildcrowd" },
         horizontalArrangement = Arrangement.spacedBy(size * 0.25f),
         verticalAlignment = Alignment.CenterVertically
     ) {

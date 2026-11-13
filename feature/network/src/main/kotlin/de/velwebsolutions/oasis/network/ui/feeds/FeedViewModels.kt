@@ -63,7 +63,7 @@ abstract class FeedViewModel<C>(val list: PostListModel<C>) : NetworkViewModel()
     protected open fun belongsOnTop(post: Post): Boolean = false
 }
 
-/** Quelle (/app): own Tropfen and those of friends, followed people and oases – or "Ganz Oasis". */
+/** Quelle (/app): own Tropfen and those of friends, followed people and oases – or "Ganz Mildcrowd". */
 @HiltViewModel
 class SourceViewModel @Inject constructor(
     private val repository: NetworkRepository,
@@ -128,7 +128,7 @@ class SourceViewModel @Inject constructor(
     }
 
     /**
-     * An own new Tropfen goes on top of the followed Quelle, unless it is a reply (bundled under its Tropfen). "Ganz Oasis"
+     * An own new Tropfen goes on top of the followed Quelle, unless it is a reply (bundled under its Tropfen). "Ganz Mildcrowd"
      * loads again instead, like the web's `$refresh` after `post-published`: whether it lists the Tropfen depends on the
      * author (profile open to members, not under 18; PostFeed::byOpenAuthors), not on its visibility, and only the
      * server knows that.

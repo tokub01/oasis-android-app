@@ -76,7 +76,7 @@ fun CancelContent(
                     Column(verticalArrangement = Arrangement.spacedBy(18.dp)) {
                         ContractDetails(
                             listOf(
-                                "Vertrag:" to "Oasis Mitgliedschaft (Stufe: ${details.tierName})",
+                                "Vertrag:" to "Mildcrowd Mitgliedschaft (Stufe: ${details.tierName})",
                                 "Name:" to details.name,
                                 "E-Mail:" to details.email,
                                 "Art der Kündigung:" to "Ordentlich zum Ende der Abrechnungsperiode",
@@ -138,7 +138,7 @@ fun WithdrawContent(
                     Column(verticalArrangement = Arrangement.spacedBy(18.dp)) {
                         ContractDetails(
                             listOf(
-                                "Vertrag:" to "Oasis Mitgliedschaft (Stufe: ${details.tierName})",
+                                "Vertrag:" to "Mildcrowd Mitgliedschaft (Stufe: ${details.tierName})",
                                 "Name:" to details.name,
                                 "E-Mail:" to details.email,
                                 "Rechtsgrundlage:" to "14-tägiges gesetzliches Widerrufsrecht"

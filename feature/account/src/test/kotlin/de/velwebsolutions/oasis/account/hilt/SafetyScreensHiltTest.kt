@@ -72,7 +72,7 @@ class SafetyScreensHiltTest : HiltScreenTest() {
         stub(
             "GET",
             "privacy/devices",
-            """{"data":{"current":{"device":"Oasis-App auf Android","ip":"10.0.0.…"},"apps":[{"id":2,"name":"Tablet"}],""" +
+            """{"data":{"current":{"device":"Mildcrowd-App auf Android","ip":"10.0.0.…"},"apps":[{"id":2,"name":"Tablet"}],""" +
                 """"sessions_listable":false,"known":[],"login_alerts":false,""" +
                 """"chat_devices":[{"id":3,"label":"Pixel 9","created_at":"2026-10-01T10:00:00.000000Z"},""" +
                 """{"id":4,"label":"Tablet","created_at":"2026-10-02T10:00:00.000000Z"}],"chat_passphrase":true}}"""
@@ -93,7 +93,7 @@ class SafetyScreensHiltTest : HiltScreenTest() {
         stub(
             "GET",
             "privacy/devices",
-            """{"data":{"current":{"device":"Oasis-App auf Android","ip":"10.0.0.…"},"sessions_listable":true,"login_alerts":true}}"""
+            """{"data":{"current":{"device":"Mildcrowd-App auf Android","ip":"10.0.0.…"},"sessions_listable":true,"login_alerts":true}}"""
         )
         show { AccountScreen(AccountRoute.Devices) }
         waitForText("Du bist auf keinem anderen Gerät angemeldet.")

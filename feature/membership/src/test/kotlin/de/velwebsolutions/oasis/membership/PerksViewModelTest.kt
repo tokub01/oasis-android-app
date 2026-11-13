@@ -47,7 +47,7 @@ class PerksViewModelTest {
             ),
             Stub("DELETE", "membership/companion-seats/2", json = """{"message":"Der Platz ist wieder frei."}"""),
             Stub("GET", "membership/companion-links/$token", json = """{"data":{"sponsor":"Mia Mäzen"}}"""),
-            Stub("POST", "membership/companion-links/$token", json = """{"message":"Willkommen in Oasis! Dein Platz ist bereit."}"""),
+            Stub("POST", "membership/companion-links/$token", json = """{"message":"Willkommen in Mildcrowd! Dein Platz ist bereit."}"""),
             Stub("DELETE", "membership/companion-seat", json = """{"message":"Du hast den Platz zurückgegeben."}"""),
             Stub(
                 "PATCH",
@@ -63,7 +63,7 @@ class PerksViewModelTest {
         assertEquals("Dein Link für einen Platz ist bereit.", remote.createSeat())
         assertEquals("Der Platz ist wieder frei.", remote.releaseSeat(2))
         assertEquals("Mia Mäzen", remote.companionSponsor(token))
-        assertEquals("Willkommen in Oasis! Dein Platz ist bereit.", remote.acceptCompanionLink(token))
+        assertEquals("Willkommen in Mildcrowd! Dein Platz ist bereit.", remote.acceptCompanionLink(token))
         assertEquals("Du hast den Platz zurückgegeben.", remote.leaveSeat())
         assertEquals("Gespeichert.", remote.updateSupporter(SupporterInput(supporterBadge = true)))
         val body = transport.lastBody("membership/supporter")!!.jsonObject
@@ -143,10 +143,10 @@ class PerksViewModelTest {
         assertEquals(Loadable.Loaded("Mia Mäzen"), model.state.value.sponsor)
 
         var left = false
-        repository.action = Result.success("Willkommen in Oasis! Dein Platz ist bereit.")
+        repository.action = Result.success("Willkommen in Mildcrowd! Dein Platz ist bereit.")
         model.accept { left = true }
         assertTrue(left)
-        assertEquals("Willkommen in Oasis! Dein Platz ist bereit.", events.take().message)
+        assertEquals("Willkommen in Mildcrowd! Dein Platz ist bereit.", events.take().message)
         assertEquals(listOf("accept $token"), repository.calls)
 
         repository.action = Result.failure(ApiError.Validation("Nein.", mapOf("seat" to listOf("Du hast schon eine Mitgliedschaft."))))

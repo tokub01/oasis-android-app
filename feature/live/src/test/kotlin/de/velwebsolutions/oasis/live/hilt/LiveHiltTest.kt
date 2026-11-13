@@ -94,7 +94,7 @@ class LiveHiltTest {
     fun theFirebaseServiceHandsTokensAndMessagesOn() {
         val service = Robolectric.buildService(OasisMessagingService::class.java).create().get()
         service.onNewToken("fcm")
-        service.onMessageReceived(RemoteMessage.Builder("oasis").addData("title", "Oasis").build())
+        service.onMessageReceived(RemoteMessage.Builder("oasis").addData("title", "Mildcrowd").build())
         assertTrue("the counters are asked again", transport.requests.any { it.path == "live/counts" } || transport.requests.isEmpty())
     }
 }

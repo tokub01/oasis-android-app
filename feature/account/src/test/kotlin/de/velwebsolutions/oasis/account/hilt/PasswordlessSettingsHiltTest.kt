@@ -203,7 +203,7 @@ class PasswordlessSettingsHiltTest : DeviceScreenTest() {
         waitForText("Der Code stimmt nicht.")
         stub("POST", "account/phone/confirm", PasswordlessFixtures.phone(number = "+49 176 ••• 78"))
         field("Code aus der SMS an +49 176 ••• 78").performTextClearance()
-        shareSms("Dein Oasis-Code: 123 456")
+        shareSms("Dein Mildcrowd-Code: 123 456")
         waitForText("123456")
         compose.onNodeWithTag("phone.confirm").tap()
         waitForText("Deine Handynummer ist bestätigt.", substring = true)

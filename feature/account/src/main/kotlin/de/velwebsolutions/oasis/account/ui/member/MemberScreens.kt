@@ -105,7 +105,7 @@ internal fun SuspendedScreen(viewModel: SuspensionViewModel = hiltViewModel()) {
                 val state = ui.state
                 if (state is Loadable.Failed && state.error == ApiError.NotFound) {
                     EmptyStateView("Dein Konto ist nicht gesperrt.") {
-                        AsyncOasisButton("Weiter zu Oasis", viewModel::refreshMe, fullWidth = false)
+                        AsyncOasisButton("Weiter zu Mildcrowd", viewModel::refreshMe, fullWidth = false)
                     }
                 } else {
                     LoadableView(state, onRetry = viewModel.retry(viewModel::load)) { suspension ->
@@ -159,8 +159,8 @@ internal fun SuspendedContent(
                 modifier = Modifier.semantics { heading() }.testTag("suspended.title")
             )
             val next = when {
-                suspension.isBan -> "Du kannst Oasis nicht mehr nutzen."
-                endsAt != null -> "Die Sperre endet am $endsAt von selbst. Bis dahin kannst du nichts schreiben und Oasis nicht lesen."
+                suspension.isBan -> "Du kannst Mildcrowd nicht mehr nutzen."
+                endsAt != null -> "Die Sperre endet am $endsAt von selbst. Bis dahin kannst du nichts schreiben und Mildcrowd nicht lesen."
                 else -> "Das Moderationsteam hebt die Sperre auf, wenn es dein Konto wieder freigibt."
             }
             Text("Seit ${GermanTime.dayAndTime(suspension.startedAt)}. $next", style = OasisType.Body, color = OasisColors.Ink2)
@@ -299,7 +299,7 @@ private fun ComplaintSection(
         }
         Text(
             "Du kannst die Beschwerde auch per E-Mail an $email schicken. Unabhängig davon steht dir der Rechtsweg offen; eine " +
-                "außergerichtliche Streitbeilegungsstelle gibt es für Oasis nicht (AGB § 15 und § 20).",
+                "außergerichtliche Streitbeilegungsstelle gibt es für Mildcrowd nicht (AGB § 15 und § 20).",
             style = OasisType.Small,
             color = OasisColors.Ink2
         )
@@ -375,7 +375,7 @@ internal fun ComplaintContent(
         }
         Text(
             "Du kannst bis zum ${GermanTime.day(decision.deadline)} Beschwerde einlegen. Die Beschwerde ist kostenlos. Unabhängig davon " +
-                "steht dir der Rechtsweg offen. Eine außergerichtliche Streitbeilegungsstelle gibt es für Oasis nicht (AGB § 15 und § 20).",
+                "steht dir der Rechtsweg offen. Eine außergerichtliche Streitbeilegungsstelle gibt es für Mildcrowd nicht (AGB § 15 und § 20).",
             style = OasisType.Small,
             color = OasisColors.Ink2
         )
@@ -402,7 +402,7 @@ internal fun GlossaryScreen(viewModel: GlossaryViewModel = hiltViewModel()) {
     val state by viewModel.state.collectAsStateWithLifecycle()
     OasisScreen(title = "Begriffe") {
         AccountPage(spacing = 16) {
-            PageHeader("Oasis-Begriffe", eyebrow = "Kurz erklärt", lead = "Oasis hat ein paar eigene Wörter. Hier steht, was sie bedeuten.")
+            PageHeader("Mildcrowd-Begriffe", eyebrow = "Kurz erklärt", lead = "Mildcrowd hat ein paar eigene Wörter. Hier steht, was sie bedeuten.")
             LoadableView(state, onRetry = viewModel.retry(viewModel::load)) { terms ->
                 Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
                     terms.forEach { term ->

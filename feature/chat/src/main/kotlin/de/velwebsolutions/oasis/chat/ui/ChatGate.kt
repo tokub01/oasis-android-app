@@ -168,7 +168,7 @@ internal fun ChatSetupContent(
             lead = if (reset) {
                 "Ältere Nachrichten auf diesem Gerät kannst du danach nicht mehr lesen."
             } else {
-                "Nur ihr könnt eure Nachrichten lesen. Oasis speichert sie nur verschlüsselt und hat keinen Schlüssel dazu. " +
+                "Nur ihr könnt eure Nachrichten lesen. Mildcrowd speichert sie nur verschlüsselt und hat keinen Schlüssel dazu. " +
                     "Das Einrichten dauert ein paar Sekunden."
             }
         )

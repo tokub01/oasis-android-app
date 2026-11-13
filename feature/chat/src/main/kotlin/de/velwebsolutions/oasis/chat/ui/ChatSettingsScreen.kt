@@ -113,7 +113,7 @@ internal fun ChatSettingsContent(
         SectionCard(
             "Mit Fingerabdruck oder Gesichtserkennung entsperren",
             detail =
-                "Statt die Passphrase zu tippen, reicht dann dein Finger oder ein Blick. Oasis speichert nur eine verschlüsselte Kopie deines Chat-Zugangs, die sich ausschließlich mit dem Sicherheitschip dieses Geräts öffnen lässt – nicht von uns. Deine Passphrase gilt weiter."
+                "Statt die Passphrase zu tippen, reicht dann dein Finger oder ein Blick. Mildcrowd speichert nur eine verschlüsselte Kopie deines Chat-Zugangs, die sich ausschließlich mit dem Sicherheitschip dieses Geräts öffnen lässt – nicht von uns. Deine Passphrase gilt weiter."
         ) {
             state.devices.forEach { row ->
                 Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.testTag("chat.devices.row")) {

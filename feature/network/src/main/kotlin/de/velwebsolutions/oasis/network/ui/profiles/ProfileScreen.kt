@@ -210,7 +210,7 @@ fun LazyListScope.profileContent(profile: Profile, posts: PostListState<NoContex
     } else {
         block("side.noads") {
             SideCard("Ein Netzwerk ohne Werbung", tone = PanelTone.Dune) {
-                Text("Auf Oasis siehst du Tropfen der Reihe nach, ohne Empfehlungen, die dich festhalten sollen.")
+                Text("Auf Mildcrowd siehst du Tropfen der Reihe nach, ohne Empfehlungen, die dich festhalten sollen.")
             }
         }
     }
@@ -249,7 +249,7 @@ private fun Header(profile: Profile, callbacks: ProfileCallbacks) {
                     )
                     if (profile.supporter) {
                         Pill(
-                            "Trägt Oasis mit",
+                            "Trägt Mildcrowd mit",
                             Modifier.padding(top = 4.dp).testTag("profile.supporter"),
                             PillTone.Spring,
                             Icons.Outlined.Favorite

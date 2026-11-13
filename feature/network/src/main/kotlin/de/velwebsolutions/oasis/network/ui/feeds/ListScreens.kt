@@ -249,7 +249,7 @@ fun TagScreen(
             feedSection(state, handlers)
         }
         block("side.topics") {
-            SideCard("Themen auf Oasis", tone = PanelTone.Dune) {
+            SideCard("Themen auf Mildcrowd", tone = PanelTone.Dune) {
                 Text(
                     "Schreib #$lowered in deinen Tropfen, dann erscheint er hier. Es gibt keine „Trends“ – nur die Reihenfolge, in der geschrieben wurde."
                 )

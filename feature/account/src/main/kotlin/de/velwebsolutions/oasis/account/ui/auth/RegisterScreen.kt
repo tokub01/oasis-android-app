@@ -392,7 +392,7 @@ private fun FinishPage(ui: RegisterUiState, actions: RegisterActions, onLegal: (
     Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
         Icon(Icons.Outlined.FavoriteBorder, contentDescription = null, tint = OasisColors.Ink2, modifier = Modifier.size(18.dp))
         Text(
-            "Oasis gibt es nur mit Mitgliedschaft – ohne Werbung, ohne Verkauf deiner Daten. Den Beitrag wählst du, nachdem " +
+            "Mildcrowd gibt es nur mit Mitgliedschaft – ohne Werbung, ohne Verkauf deiner Daten. Den Beitrag wählst du, nachdem " +
                 "du deine Adresse und deine Handynummer bestätigt hast.",
             style = OasisType.Small,
             color = OasisColors.Ink2
@@ -467,7 +467,7 @@ private fun BirthDateField(ui: RegisterUiState, message: String?, onPick: () -> 
             FieldError(message)
         } else {
             Text(
-                "Oasis ist ab 18.",
+                "Mildcrowd ist ab 18.",
                 style = OasisType.Caption,
                 color = OasisColors.Muted
             )

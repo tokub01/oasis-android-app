@@ -158,7 +158,7 @@ class TierScreensTest {
                 "GET",
                 "network/time-capsules",
                 """{"data":{"available":true,"max_length":500,"past":[
-                {"id":3,"body":"Ein Jahr Oasis","opens_at":"2026-10-01T08:00:00.000000Z","opened_at":"2026-10-01T08:00:00.000000Z","post_id":44},
+                {"id":3,"body":"Ein Jahr Mildcrowd","opens_at":"2026-10-01T08:00:00.000000Z","opened_at":"2026-10-01T08:00:00.000000Z","post_id":44},
                 {"id":4,"body":"Ohne Mitgliedschaft","opens_at":"2026-09-01T08:00:00.000000Z","failed_reason":"Deine Mitgliedschaft lief nicht."},
                 {"id":8,"body":"Gleich da.","opens_at":"2026-10-02T08:00:00.000000Z","opened_at":"2026-10-02T08:00:01.000000Z"}]}}"""
             ),
@@ -311,7 +311,7 @@ class TierScreensTest {
         )
         val model = models.keep(ProfileViewModel("jonas", network.repository))
         show { ProfileScreen("jonas", model) }
-        text("Trägt Oasis mit")
+        text("Trägt Mildcrowd mit")
         compose.onNodeWithTag("profile.founding").assertDoesNotExist()
     }
 
@@ -324,7 +324,7 @@ class TierScreensTest {
         )
         val model = models.keep(ProfileViewModel("jonas", network.repository))
         show { ProfileScreen("jonas", model) }
-        text("Trägt Oasis mit")
+        text("Trägt Mildcrowd mit")
         text("Gründungsmitglied")
         compose.onNodeWithTag("profile.founding").assertExists()
     }

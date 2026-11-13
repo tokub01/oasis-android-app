@@ -368,7 +368,7 @@ class LiveScreensTest {
             HintSettingsContent(ui, actions)
         }
         compose.onNodeWithText(
-            "Push-Hinweise sind auf Oasis noch nicht eingerichtet.",
+            "Push-Hinweise sind auf Mildcrowd noch nicht eingerichtet.",
             substring = true
         ).performScrollTo().assertIsDisplayed()
         shot("settings-no-push")

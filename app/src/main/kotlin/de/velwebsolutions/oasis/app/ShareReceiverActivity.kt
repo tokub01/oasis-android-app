@@ -7,7 +7,7 @@ import de.velwebsolutions.oasis.app.shell.AppHost
 import kotlinx.coroutines.launch
 
 /**
- * Oasis as a share target (ACTION_SEND / ACTION_SEND_MULTIPLE, docs/oasis-chat.md "Sharing into Oasis"): copies what was
+ * Oasis as a share target (ACTION_SEND / ACTION_SEND_MULTIPLE, docs/oasis-chat.md "Sharing into Mildcrowd"): copies what was
  * shared into the cache while the sending app's read permission lasts, hands it to the app's "Teilen mit …" and closes.
  * No window of its own; signing in and unlocking happen in the app as usual.
  */

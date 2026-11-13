@@ -39,7 +39,7 @@ data class Profile(
     val chatHint: String? = null,
     val hasMuted: Boolean = false,
     val hasRestricted: Boolean = false,
-    /** A Mäzen who switched on the supporter mark ("Trägt Oasis mit"); servers before the tiers leave it out. */
+    /** A Mäzen who switched on the supporter mark ("Trägt Mildcrowd mit"); servers before the tiers leave it out. */
     val supporter: Boolean = false,
     /** A founding member who switched on the founding mark („Gründungsmitglied“, privacy setting `founding_badge`). */
     val foundingBadge: Boolean = false

@@ -49,7 +49,7 @@ class Gallery : ContentProvider() {
 @RunWith(RobolectricTestRunner::class)
 @Config(application = Application::class)
 class ShareReceiverTest {
-    /** The real graph of MainActivityTest binds links to the debug server; these tests use get-oasis.com links. */
+    /** The real graph of MainActivityTest binds links to the debug server; these tests use mildcrowd.com links. */
     @org.junit.Before
     fun resetOwnHost() {
         de.velwebsolutions.oasis.design.navigation.DeepLink.ownHost = null
@@ -81,7 +81,7 @@ class ShareReceiverTest {
         AppHost.open(opened, navigator)
         assertEquals(MainTab.Chats, navigator.selectedTab)
         assertEquals(listOf(ChatRoute.Share), navigator.stack(MainTab.Chats).toList())
-        AppHost.open(Intent(Intent.ACTION_VIEW, Uri.parse("https://get-oasis.com/app/nachrichten")), navigator)
+        AppHost.open(Intent(Intent.ACTION_VIEW, Uri.parse("https://mildcrowd.com/app/nachrichten")), navigator)
         AppHost.open(null, navigator)
 
         // Back in front with the share still waiting: "Teilen mit …" again, not twice, and nothing without a share.

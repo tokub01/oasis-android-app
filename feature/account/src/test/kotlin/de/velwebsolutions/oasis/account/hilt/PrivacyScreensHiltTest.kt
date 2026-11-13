@@ -52,7 +52,7 @@ class PrivacyScreensHiltTest : HiltScreenTest() {
         shot("privacy")
         compose.onNodeWithTag("privacy.profile_audience.members").tap()
         waitForText("Nicht erlaubt.")
-        compose.onNodeWithContentDescription("In der Oasis-Suche auffindbar").tap()
+        compose.onNodeWithContentDescription("In der Mildcrowd-Suche auffindbar").tap()
         waitForRequest("PUT", "privacy/settings/searchable")
         compose.onNodeWithText("Tropfen begrenzen").tap()
         screenShot("privacy-limit")
