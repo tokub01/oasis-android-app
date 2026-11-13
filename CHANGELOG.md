@@ -80,9 +80,9 @@ Auf iPad und großen Android-Geräten stehen Chat-Liste, Unterhaltung und Detail
 Antworten gibt es nur noch dort, wo sie erlaubt sind, Namen in jeder Schrift sehen richtig aus, du wählst die Farbe deiner Initialen, und der Chat schützt besser vor Schreien und Fluten.
 
 - **Neu:** Farbe deiner Initialen: Ohne Profilbild wählst du in den Profileinstellungen eine Farbe – oder lässt „Automatisch“.
-- **Neu:** Weitertragen geht jetzt auch ohne eigene Worte.
+- **Neu:** Teilen geht jetzt auch ohne eigene Worte.
 - **Neu:** Der Chat bittet ruhig um weniger Großbuchstaben und Wiederholungen und legt nach sehr vielen Nachrichten kurz eine Pause ein.
-- **Verbessert:** Darf man auf einen Post nicht antworten, steht dort statt „Antworten“ kurz, wer antworten darf. Weitertragen geht dann nur ohne eigenen Text.
+- **Verbessert:** Darf man auf einen Post nicht antworten, steht dort statt „Antworten“ kurz, wer antworten darf. Teilen geht dann nur ohne eigenen Text.
 - **Verbessert:** Die Kopfzeile jedes Posts ist überall gleich aufgebaut: Name, dann @Name · Crowd · Zeit – ohne überflüssige Punkte.
 - **Verbessert:** Ein beendeter Chat sagt jetzt, was passiert ist: wer ihn verlassen hat oder dass es das Konto nicht mehr gibt.
 - **Verbessert:** Das Eingabefeld im Chat nennt immer, wie viele Zeichen hineinpassen, mit Tausenderpunkt („4.000“).
@@ -108,7 +108,7 @@ Der Chat ist ruhiger gestaltet und lässt sich mit Wischgesten bedienen, der Weg
 Ein Ruhemodus, Umfragen und Treffen in Crowds, gemeinsame Sammlungen, ein Wochenbrief, ein dunkles Design und eine Karte der Crowds.
 
 - **Neu:** Ruhemodus für 1 Stunde, 8 Stunden, bis 7 Uhr oder bis du ihn ausschaltest.
-- **Neu:** „Du hast alles Neue gesehen“: Die Quelle sagt, wann du durch bist.
+- **Neu:** „Du hast alles Neue gesehen“: Die Startseite sagt, wann du durch bist.
 - **Neu:** „Heute vor einem Jahr“ und „Deine Zeit in Mildcrowd“, gezählt nur auf deinem Gerät.
 - **Neu:** Umfragen in Posts, Treffen in Crowds und Paten, die neue Mitglieder begrüßen.
 - **Neu:** Gemeinsame Sammlungen in Crowds und gemeinsame Zeitkapseln.
@@ -176,7 +176,7 @@ Mildcrowd ist jetzt ganz den Mitgliedern vorbehalten, und du meldest dich mit Co
 Die erste Version der Android-App – und ein Code statt Link zum Bestätigen der E-Mail-Adresse.
 
 - **Neu:** Deine E-Mail-Adresse bestätigst du auch mit einem sechsstelligen Code.
-- **Neu:** Die Android-App mit Quelle, Posts, Crowds, Profilen und Suche.
+- **Neu:** Die Android-App mit Startseite, Posts, Crowds, Profilen und Suche.
 - **Neu:** Der Ende-zu-Ende-verschlüsselte Chat, kompatibel mit Browser und iOS.
 - **Neu:** Mitgliedschaft mit Rechnungen, Einstellungen, Privatsphäre und Hinweisen.
 - **Neu:** Moderation und Verwaltung für das Team.

@@ -165,8 +165,8 @@ fun CaseDetailContent(caseId: Int, state: CaseDetailUiState, actions: CaseDetail
                 } else {
                     SectionCard("Eskalieren") {
                         Text(
-                            "Nur in diesen zwei Fällen. Mildcrowd sichert dann die Beweise und führt dich durch die nächsten Schritte. Eine " +
-                                "Behörde informiert Mildcrowd nie selbst.",
+                            "Nur in diesen zwei Fällen. Mildcrowd sichert dann die Beweise und führt dich durch die nächsten Schritte. " +
+                                "Eine Behörde informiert Mildcrowd nie selbst.",
                             style = OasisType.Small,
                             color = OasisColors.Ink2
                         )

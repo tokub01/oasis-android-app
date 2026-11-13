@@ -181,8 +181,8 @@ private fun CompanionSeats(perks: MembershipPerks, callbacks: PerksCallbacks) {
     SectionCard(
         "Menschen mitnehmen",
         Modifier.testTag("perks.seats"),
-        detail = "Als Mäzen vergibst du ${perks.features.companionSeats} volle Plätze. Wer deinen Link annimmt, hat Mildcrowd mit allem aus " +
-            "$COMPANION_TIER, solange du Mäzen bist, und zahlt nichts."
+        detail = "Als Mäzen vergibst du ${perks.features.companionSeats} volle Plätze. Wer deinen Link annimmt, hat Mildcrowd mit allem " +
+            "aus $COMPANION_TIER, solange du Mäzen bist, und zahlt nichts."
     ) {
         perks.seats.forEach { seat ->
             Column(

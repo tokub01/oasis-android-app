@@ -94,7 +94,7 @@ class ReplyRightsUiTest {
         val carry = base.copy(body = "", segments = emptyList(), carried = Post.Carried(Post.Carried.State.Visible, original))
         assertTrue(carry.isPlainCarry)
         show { NetworkPage { block { PostCard(carry, onAction = { _, _ -> }) } } }
-        compose.onNodeWithText("U 2 hat das weitergetragen").assertExists()
+        compose.onNodeWithText("U 2 hat das geteilt").assertExists()
         compose.onNodeWithTag("post.open").assertDoesNotExist()
         compose.onNodeWithContentDescription("Weitere Aktionen", substring = true).assertExists()
         compose.onNodeWithTag("post.carrier").performClick()

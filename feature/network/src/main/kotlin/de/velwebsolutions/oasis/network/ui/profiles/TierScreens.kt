@@ -171,7 +171,7 @@ private fun CapsuleForm(
     fields: Map<String, String>,
     viewModel: TimeCapsulesViewModel
 ) {
-    val places = listOf(Choice("", "in deiner Quelle")) + info.oases.map { Choice("${it.id}", "in der Crowd ${it.name}") }
+    val places = listOf(Choice("", "auf deinem Profil")) + info.oases.map { Choice("${it.id}", "in der Crowd ${it.name}") }
     PaperBox(spacing = 16) {
         OasisTextField(
             "Dein Post",
@@ -217,7 +217,7 @@ private fun WaitingCapsule(capsule: TimeCapsule, viewModel: TimeCapsulesViewMode
     var question by remember { mutableStateOf<CapsuleQuestion?>(null) }
     PaperBox(spacing = 8, modifier = Modifier.testTag("capsule.waiting.${capsule.id}")) {
         Text(
-            "Geht auf am ${capsuleTime(capsule.opensAt)} ${capsule.oasis?.let { "in ${it.name}" } ?: "in deiner Quelle"}",
+            "Geht auf am ${capsuleTime(capsule.opensAt)} ${capsule.oasis?.let { "in ${it.name}" } ?: "auf deinem Profil"}",
             style = OasisType.SmallBold,
             color = OasisColors.Ink2
         )

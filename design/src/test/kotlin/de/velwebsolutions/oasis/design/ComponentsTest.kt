@@ -150,7 +150,7 @@ class ComponentsTest {
             DashedNote("Du bist durch.", highlighted = true)
             Bullets(listOf("Eins", "Zwei"))
             OasisCard { Text("Karte") }
-            Eyebrow("Quelle")
+            Eyebrow("Start")
             Eyebrow("Nacht", onNight = true)
             CountBadge(0)
             CountBadge(5)

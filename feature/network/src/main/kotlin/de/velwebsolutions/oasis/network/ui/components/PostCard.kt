@@ -170,7 +170,7 @@ fun PostCard(
                 ) {
                     Icon(Icons.Outlined.Groups, contentDescription = null, tint = OasisColors.Night, modifier = Modifier.size(16.dp))
                     Text(
-                        if (viewer?.isAuthor == true) "Frage an meine Karawane" else "Frage an die Karawane",
+                        if (viewer?.isAuthor == true) "Frage an meine Follower" else "Frage an die Follower",
                         style = OasisType.Caption.copy(fontWeight = FontWeight.Bold),
                         color = OasisColors.Night
                     )
@@ -271,7 +271,7 @@ private fun CarrierLine(post: Post, run: (PostAction) -> Unit, onConfirm: (CardC
         Text(
             buildAnnotatedString {
                 withStyle(SpanStyle(fontWeight = FontWeight.Bold, color = OasisColors.Ink)) { append(post.author.displayName) }
-                append(" hat das weitergetragen")
+                append(" hat das geteilt")
             },
             style = OasisType.Small,
             color = OasisColors.Muted,
@@ -487,7 +487,7 @@ private fun ContextMenuItems(
     if (viewer.canInteract &&
         viewer.canCarry
     ) {
-        item("Weitertragen", Icons.Outlined.Repeat) { navigator.open(NetworkRoute.CarryPost(post.id, quote = viewer.canQuote)) }
+        item("Teilen", Icons.Outlined.Repeat) { navigator.open(NetworkRoute.CarryPost(post.id, quote = viewer.canQuote)) }
     }
     if (viewer.canInteract) {
         item(
@@ -503,7 +503,7 @@ private fun ContextMenuItems(
     ) {
         run(if (viewer.bookmarked) PostAction.Unbookmark else PostAction.Bookmark)
     }
-    item("Teilen", Icons.Outlined.Share) { share(context, post.url) }
+    item("Link teilen", Icons.Outlined.Share) { share(context, post.url) }
     HorizontalDivider(color = OasisColors.PaperLine)
     MenuItems(post, viewer, run, close, onConfirm)
 }
@@ -523,7 +523,7 @@ private fun ActionRow(post: Post, viewer: Post.Viewer, run: (PostAction) -> Unit
                 )
             }
             if (viewer.canCarry) {
-                ActionTile("Weitertragen", Icons.Outlined.Repeat, OasisColors.Night, "post.action.Weitertragen") {
+                ActionTile("Teilen", Icons.Outlined.Repeat, OasisColors.Night, "post.action.Weitertragen") {
                     navigator.open(NetworkRoute.CarryPost(post.id, quote = viewer.canQuote))
                 }
             }

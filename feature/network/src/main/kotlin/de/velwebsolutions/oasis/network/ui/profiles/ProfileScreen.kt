@@ -269,7 +269,7 @@ private fun Header(profile: Profile, callbacks: ProfileCallbacks) {
                 if (profile.bioHeld) HeldBadge()
                 Row(horizontalArrangement = Arrangement.spacedBy(20.dp)) {
                     profile.location?.let { IconLabel(Icons.Outlined.Place, it) }
-                    profile.followers?.let { IconLabel(Icons.Outlined.People, "Karawane: $it", Modifier.testTag("profile.followers")) }
+                    profile.followers?.let { IconLabel(Icons.Outlined.People, "Follower: $it", Modifier.testTag("profile.followers")) }
                 }
                 Buttons(profile, callbacks)
             }

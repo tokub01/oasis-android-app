@@ -19,7 +19,7 @@ class AppStartTest {
     @Test
     fun startsOnSignInOrTheQuelle() {
         compose.waitUntil(timeoutMillis = 30_000) {
-            compose.onAllNodes(hasText("Willkommen zurück.") or hasText("Quelle")).fetchSemanticsNodes().isNotEmpty()
+            compose.onAllNodes(hasText("Willkommen zurück.") or hasText("Start")).fetchSemanticsNodes().isNotEmpty()
         }
     }
 }

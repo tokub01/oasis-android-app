@@ -229,7 +229,7 @@ class ScreenBranchesTest {
         text("weitere Antworten").performClick()
         assertEquals(NetworkRoute.Post(30), navigator.stack(MainTab.Source).last())
         compose.onNodeWithTag("post.card.30").performSemanticsAction(SemanticsActions.OnLongClick)
-        text("Teilen").performClick()
+        text("Link teilen").performClick()
         assertEquals(
             listOf(
                 PostAction.RemoveFromOasis to 30,
@@ -540,7 +540,7 @@ class ScreenBranchesTest {
         navigator.open(NetworkRoute.Compose())
         val composer = models.keep(network.composer("ohne-sheet"))
         show { ComposeScreen("ohne-sheet", null, composer) }
-        text("Post teilen")
+        text("Posten")
         compose.onNode(hasSetTextAction()).performTextInput("Hallo")
         compose.onNodeWithTag("compose.submit").performClick()
         waitFor { navigator.stack(MainTab.Source).last() == NetworkRoute.Discover }
@@ -596,7 +596,7 @@ class ScreenBranchesTest {
         navigator.present(NetworkRoute.Compose())
         val composer = models.keep(network.composer("leer-sheet"))
         show(ScreenChrome(onClose = { navigator.dismissSheet() })) { ComposeScreen("leer-sheet", null, composer) }
-        text("Post teilen")
+        text("Posten")
         compose.onNodeWithTag("compose.close").performClick()
         assertNull(navigator.sheet)
     }
@@ -626,7 +626,7 @@ class ScreenBranchesTest {
         waitFor { navigator.stack(MainTab.Source).last() == NetworkRoute.Discover }
         assertEquals(99, NetworkSignals.replyFocus.value)
         // Sharing opens the system sheet, which pauses the activity: the last step of the test.
-        compose.onNodeWithContentDescription("Teilen").performClick()
+        compose.onNodeWithContentDescription("Link teilen").performClick()
     }
 
     @Test
@@ -710,7 +710,7 @@ class ScreenBranchesTest {
 
         val stats = models.keep(StatisticsViewModel(network.repository))
         switchTo { StatisticsScreen(stats) }
-        waitFor { compose.onAllNodes(hasContentDescription("In deiner Karawane", substring = true)).fetchSemanticsNodes().isNotEmpty() }
+        waitFor { compose.onAllNodes(hasContentDescription("Deine Follower", substring = true)).fetchSemanticsNodes().isNotEmpty() }
         text("Frage an die Runde", substring = true).performClick()
         assertEquals(NetworkRoute.Post(9), navigator.stack(MainTab.Source).last())
         val quiet = StubbedNetwork(stub("GET", "network/statistics", """{"data":{"totals":{},"weekly":[],"top_posts":[]}}"""))

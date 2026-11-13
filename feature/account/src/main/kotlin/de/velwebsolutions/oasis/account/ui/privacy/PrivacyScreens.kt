@@ -448,7 +448,7 @@ internal fun HiddenWordsScreen(viewModel: HiddenWordsViewModel = hiltViewModel()
             SideCard("Was passiert genau?", tone = PanelTone.Dune) {
                 Bullets(
                     listOf(
-                        "In deiner Quelle, in Crowds, Suche und Antworten fehlen Posts mit diesen Wörtern – deine eigenen bleiben.",
+                        "Auf deiner Startseite, in Crowds, Suche und Antworten fehlen Posts mit diesen Wörtern – deine eigenen bleiben.",
                         "Antworten mit diesen Wörtern unter deinen Posts sieht nur noch, wer sie geschrieben hat.",
                         "Du bekommst keine Hinweise zu Posts mit diesen Wörtern.",
                         "Niemand erfährt, welche Wörter du verbirgst."

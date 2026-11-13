@@ -116,7 +116,7 @@ class TierScreensTest {
         val model = models.keep(TimeCapsulesViewModel(network.repository))
         show { TimeCapsulesScreen(model) }
         text("Warten noch")
-        text("in deiner Quelle", substring = true)
+        text("auf deinem Profil", substring = true)
         text("in Stadtgarten", substring = true)
         text("Nicht aufgegangen: Deine Mitgliedschaft lief nicht.")
         text("Bis zu 50 Zeitkapseln können gleichzeitig warten.")

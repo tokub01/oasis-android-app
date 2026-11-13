@@ -112,8 +112,8 @@ fun TransparencyContent(state: TransparencyUiState, onRefresh: suspend () -> Uni
                 PageHeader(
                     "Wohin dein Beitrag geht",
                     eyebrow = "Transparenz",
-                    lead = "Mildcrowd lebt von den Beiträgen seiner Mitglieder, nicht von Werbung. Hier steht, was wir einnehmen und wofür " +
-                        "wir es ausgeben – nur mit echten Zahlen. Mildcrowd wird betrieben von ${page.operator}."
+                    lead = "Mildcrowd lebt von den Beiträgen seiner Mitglieder, nicht von Werbung. Hier steht, was wir einnehmen und " +
+                        "wofür wir es ausgeben – nur mit echten Zahlen. Mildcrowd wird betrieben von ${page.operator}."
                 )
                 Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
                     Heading("Mildcrowd heute")

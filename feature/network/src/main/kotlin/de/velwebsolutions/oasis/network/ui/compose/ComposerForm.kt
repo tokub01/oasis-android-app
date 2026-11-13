@@ -211,7 +211,7 @@ private fun LinkConfirmation(links: List<ExternalLink>, state: ComposeUiState, c
     val navigator = LocalNavigator.current
     Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
         Text(
-            "Hast du den Link gelesen? Weitertragen heißt: Du stehst dafür ein.",
+            "Hast du den Link gelesen? Teilen heißt: Du stehst dafür ein.",
             style = OasisType.BodyBold,
             color = OasisColors.Ink,
             modifier = Modifier.semantics { heading() }

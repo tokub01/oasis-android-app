@@ -277,7 +277,7 @@ private fun EndCard(deck: SwipeDeck) {
         }
         Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
             OasisButton(
-                "Zur Quelle",
+                "Zur Startseite",
                 {
                     navigator.popToRoot(MainTab.Source)
                     navigator.selectedTab = MainTab.Source

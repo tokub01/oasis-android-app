@@ -534,7 +534,11 @@ class MembershipUiTest {
     @Test
     fun `a gift for a founding member and no membership for everyone else`() {
         var state by mutableStateOf(
-            subscription.copy(state = MembershipOverview.State.Gift, gift = MembershipOverview.Gift("Mittendrin", null), isFoundingMember = true)
+            subscription.copy(
+                state = MembershipOverview.State.Gift,
+                gift = MembershipOverview.Gift("Mittendrin", null),
+                isFoundingMember = true
+            )
         )
         show { OverviewContent(OverviewUiState(Loadable.Loaded(state)), onRefresh = {}) }
         compose.onNodeWithTag("membership.founding").performScrollTo().assertIsDisplayed()

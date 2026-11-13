@@ -162,7 +162,7 @@ fun LazyListScope.discoverContent(state: PostListState<DiscoverContext>, handler
                     listOf(
                         "Hier stehen nur Posts von Mitgliedern, die ihr Profil für alle geöffnet haben. Sichtbar ist das nur für Mitglieder.",
                         "Neueste zuerst – niemand bezahlt dafür, weiter oben zu stehen.",
-                        "Folge Menschen, dann landen ihre Posts in deiner Quelle."
+                        "Folge Menschen, dann landen ihre Posts auf deiner Startseite."
                     )
                 )
                 TextLink("Alle Crowds", NetworkRoute.Oases)

@@ -135,8 +135,8 @@ fun OasisMapScreen(
                     PageHeader(
                         "Karte der Crowds",
                         eyebrow = "Crowds",
-                        lead = "Wo Crowds zu Hause sind – so, wie ihre Gastgeber:innen es angeben. Eine selbst gezeichnete Übersicht nach " +
-                            "Bundesländern, ohne Kartendienst und ohne genaue Orte."
+                        lead = "Wo Crowds zu Hause sind – so, wie ihre Gastgeber:innen es angeben. Eine selbst gezeichnete Übersicht " +
+                            "nach Bundesländern, ohne Kartendienst und ohne genaue Orte."
                     )
                 }
                 block("map") {

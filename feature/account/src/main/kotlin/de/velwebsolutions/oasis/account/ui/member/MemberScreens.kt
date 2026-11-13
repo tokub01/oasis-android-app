@@ -402,7 +402,11 @@ internal fun GlossaryScreen(viewModel: GlossaryViewModel = hiltViewModel()) {
     val state by viewModel.state.collectAsStateWithLifecycle()
     OasisScreen(title = "Begriffe") {
         AccountPage(spacing = 16) {
-            PageHeader("Mildcrowd-Begriffe", eyebrow = "Kurz erklärt", lead = "Mildcrowd hat ein paar eigene Wörter. Hier steht, was sie bedeuten.")
+            PageHeader(
+                "Mildcrowd-Begriffe",
+                eyebrow = "Kurz erklärt",
+                lead = "Mildcrowd hat ein paar eigene Wörter. Hier steht, was sie bedeuten."
+            )
             LoadableView(state, onRetry = viewModel.retry(viewModel::load)) { terms ->
                 Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
                     terms.forEach { term ->

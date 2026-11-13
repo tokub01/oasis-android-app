@@ -114,7 +114,11 @@ fun OverviewContent(
         onDismissError = onDismissError
     ) {
         MembershipPage(onRefresh) {
-            PageHeader("Mitgliedschaft", eyebrow = "Konto", lead = "Verwalte deinen Beitrag, deine Rechnungen und deinen Status bei Mildcrowd.")
+            PageHeader(
+                "Mitgliedschaft",
+                eyebrow = "Konto",
+                lead = "Verwalte deinen Beitrag, deine Rechnungen und deinen Status bei Mildcrowd."
+            )
             LoadableView(state.overview, onRetry = onRefresh) { overview ->
                 OverviewSections(
                     overview,

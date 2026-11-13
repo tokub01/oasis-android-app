@@ -133,9 +133,9 @@ class AccountModelsTest {
             )
         )
         roundTrip(OasisJoined.serializer(), OasisJoined(true))
-        val term = GlossaryTerm("Posts", "tropfen", "Ein Beitrag")
+        val term = GlossaryTerm("Posts", "posts", "Ein Beitrag")
         roundTrip(GlossaryTerm.serializer(), term)
-        assertEquals("tropfen", term.slug)
+        assertEquals("posts", term.slug)
     }
 
     @Test

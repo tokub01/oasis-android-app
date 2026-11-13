@@ -185,7 +185,7 @@ fun CarryScreen(
         viewModel.load()
         composer.loadIfNeeded()
     }
-    OasisScreen(title = "Weitertragen") {
+    OasisScreen(title = "Teilen") {
         LoadableView(
             source,
             onRetry = viewModel.retry {
@@ -198,7 +198,7 @@ fun CarryScreen(
             NetworkPage {
                 block {
                     PageHeader(
-                        "Weitertragen",
+                        "Teilen",
                         lead = if (plain) PLAIN_CARRY_LEAD else QUOTE_CARRY_LEAD
                     )
                 }
@@ -225,7 +225,7 @@ const val PLAIN_CARRY_LEAD = "Teile den Post mit den Menschen, die dir folgen."
 
 /** Why the carry page has no text field. */
 fun plainCarryNote(author: String): String =
-    "$author lässt nicht alle antworten. Du kannst den Post deshalb nur ohne eigene Worte weitertragen."
+    "$author lässt nicht alle antworten. Du kannst den Post deshalb nur ohne eigene Worte teilen."
 
 /**
  * "Tropfen bearbeiten" (/tropfen/{id}/bearbeiten): the text within the edit window; images and audience stay. A changed
@@ -350,7 +350,7 @@ fun PostDetailScreen(
         onDismissError = viewModel::dismissError,
         actions = {
             detail.valueOrNull?.post?.let { post ->
-                IconButton(onClick = { share(context, post.url) }) { Icon(Icons.Outlined.Share, contentDescription = "Teilen") }
+                IconButton(onClick = { share(context, post.url) }) { Icon(Icons.Outlined.Share, contentDescription = "Link teilen") }
             }
         }
     ) {

@@ -48,7 +48,7 @@
      },
      {
       "key": "follower_count_audience",
-      "title": "Wer sieht, wie groß deine Karawane ist?",
+      "title": "Wer sieht, wie viele Follower du hast?",
       "help": "Die Zahl der Menschen, die dir folgen. Namen zeigen wir nie öffentlich.",
       "kind": "choice",
       "value": "members",
@@ -208,8 +208,8 @@
      },
      {
       "key": "carry_audience",
-      "title": "Wer darf deine Posts weitertragen?",
-      "help": "Weitertragen zeigt deinen Post mit den Worten einer anderen Person.",
+      "title": "Wer darf deine Posts teilen?",
+      "help": "Teilen zeigt deinen Post mit den Worten einer anderen Person.",
       "kind": "choice",
       "value": "members",
       "choices": [

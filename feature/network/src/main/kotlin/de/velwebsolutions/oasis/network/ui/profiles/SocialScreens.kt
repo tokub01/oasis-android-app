@@ -222,7 +222,7 @@ fun StatisticsScreen(viewModel: StatisticsViewModel = hiltViewModel<StatisticsVi
             statistics,
             "Deine Zahlen",
             onRetry = viewModel.retry(viewModel::load),
-            feature = "Wie deine Karawane wächst, welche Posts ankommen und wie lebendig deine Crowds sind: leise Zahlen über " +
+            feature = "Wie die Zahl deiner Follower wächst, welche Posts ankommen und wie lebendig deine Crowds sind: leise Zahlen über " +
                 "zwölf Wochen, die nur du siehst. Wer reagiert hat, zeigen sie nie."
         ) { stats ->
             NetworkPage(onRefresh = viewModel::load) {
@@ -232,25 +232,25 @@ fun StatisticsScreen(viewModel: StatisticsViewModel = hiltViewModel<StatisticsVi
                         eyebrow = "Nur für dich sichtbar",
                         lead =
                             "Niemand sonst sieht diese Zahlen. Wer reagiert hat, zeigen wir auch dir nicht – es zählt, was gesagt wird. " +
-                                "Deine Karawane sind die Menschen, die dir folgen."
+                                "Deine Follower sind die Menschen, die dir folgen."
                     )
                 }
                 block("tiles") {
                     StatGrid(
                         listOf(
-                            stats.totals.followers to "In deiner Karawane",
+                            stats.totals.followers to "Deine Follower",
                             stats.totals.following to "Du folgst",
                             stats.totals.posts to "Posts",
                             stats.totals.reactions to "Reaktionen erhalten",
                             stats.totals.replies to "Antworten erhalten",
-                            stats.totals.carries to "Mal weitergetragen"
+                            stats.totals.carries to "Mal geteilt"
                         )
                     )
                 }
                 block("weeks") {
                     WeekChart(
                         "Die letzten 12 Wochen",
-                        listOf("Neu in der Karawane", "Posts", "Reaktionen"),
+                        listOf("Neue Follower", "Posts", "Reaktionen"),
                         stats.weekly.map { WeekRow(it.week, listOf(it.followers, it.posts, it.reactions)) }
                     )
                 }
@@ -591,10 +591,14 @@ fun InvitationScreen(
                         val inviter = info.inviter
                         if (inviter != null) {
                             Eyebrow("Einladung")
-                            Text("${inviter.displayName} lädt dich zu Mildcrowd ein.", style = OasisType.display(26), color = OasisColors.Night)
                             Text(
-                                "Mildcrowd ist ein werbefreies soziales Netzwerk mit einem Feed, der aufhört. Wenn du dich jetzt anmeldest, " +
-                                    "folgt ihr euch automatisch.",
+                                "${inviter.displayName} lädt dich zu Mildcrowd ein.",
+                                style = OasisType.display(26),
+                                color = OasisColors.Night
+                            )
+                            Text(
+                                "Mildcrowd ist ein werbefreies soziales Netzwerk mit einem Feed, der aufhört. Wenn du dich jetzt " +
+                                    "anmeldest, folgt ihr euch automatisch.",
                                 style = OasisType.Body,
                                 color = OasisColors.Ink2
                             )
@@ -643,8 +647,8 @@ fun InvitationGroupScreen(
                                 modifier = Modifier.testTag("group.progress")
                             )
                             Text(
-                                "Mildcrowd ist ein werbefreies soziales Netzwerk mit einem Feed, der aufhört. Wenn du dich jetzt anmeldest, " +
-                                    "folgt ihr euch automatisch; deinen Beitrag wählst du selbst.",
+                                "Mildcrowd ist ein werbefreies soziales Netzwerk mit einem Feed, der aufhört. Wenn du dich jetzt " +
+                                    "anmeldest, folgt ihr euch automatisch; deinen Beitrag wählst du selbst.",
                                 style = OasisType.Body,
                                 color = OasisColors.Ink2
                             )

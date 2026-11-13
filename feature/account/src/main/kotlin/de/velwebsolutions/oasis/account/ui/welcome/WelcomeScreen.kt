@@ -149,7 +149,7 @@ private fun Header(ui: WelcomeUiState, tour: WelcomeTour, finish: suspend () -> 
     Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
         FlowRow(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween, verticalArrangement = Arrangement.Center) {
             Eyebrow("Willkommen · Schritt ${ui.step} von ${tour.steps.size}", Modifier.align(Alignment.CenterVertically))
-            OasisTextButton("Später – direkt zur Quelle", { once.run(finish) }, Modifier.testTag("welcome.later"))
+            OasisTextButton("Später – direkt zur Startseite", { once.run(finish) }, Modifier.testTag("welcome.later"))
         }
         Text(
             tour.steps.getOrNull(ui.step - 1)?.title.orEmpty(),
@@ -295,7 +295,7 @@ private fun ColumnScope.OasesStep(tour: WelcomeTour, viewModel: WelcomeViewModel
             "Hier stehen die Crowds mit den meisten Mitgliedern – der Reihe nach, ohne Empfehlung nach deinen Interessen."
         }
     Text(
-        "Crowds sind Gruppen zu einem Thema. Tritt ein paar bei, dann füllt sich deine Quelle. $origin",
+        "Crowds sind Gruppen zu einem Thema. Tritt ein paar bei, dann füllt sich deine Startseite. $origin",
         style = OasisType.Body,
         color = OasisColors.Ink2
     )
@@ -345,7 +345,7 @@ private fun ColumnScope.OasesStep(tour: WelcomeTour, viewModel: WelcomeViewModel
 private fun ColumnScope.PeopleStep(open: (AppRoute) -> Unit) {
     var search by remember { mutableStateOf("") }
     Text(
-        "Deine Quelle zeigt, was Menschen teilen, denen du folgst – der Reihe nach und mit Ende. Such nach Menschen, die du kennst, oder lade sie ein.",
+        "Deine Startseite zeigt, was Menschen teilen, denen du folgst – der Reihe nach und mit Ende. Such nach Menschen, die du kennst, oder lade sie ein.",
         style = OasisType.Body,
         color = OasisColors.Ink2
     )

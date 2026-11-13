@@ -2,18 +2,18 @@
  "data": [
   {
    "term": "Posts",
-   "slug": "tropfen",
-   "explanation": "Ein Beitrag auf Mildcrowd – ein Gedanke, eine Frage, ein Bild. Wie ein Tweet oder Post, nur ruhiger."
+   "slug": "posts",
+   "explanation": "Ein Post ist ein Beitrag auf Mildcrowd – ein Gedanke, eine Frage, ein Bild."
   },
   {
-   "term": "Quelle",
-   "slug": "quelle",
+   "term": "Start",
+   "slug": "start",
    "explanation": "Deine Startseite: Posts von Menschen und Crowds, denen du folgst, der Reihe nach und mit Ende. Unter „Ganz Mildcrowd“ siehst du alle öffentlichen Posts."
   },
   {
    "term": "Crowd",
-   "slug": "oase",
-   "explanation": "Eine Gruppe zu einem Thema, zum Beispiel Garten, Fotografie oder deine Stadt. Tritt bei, dann landen ihre Posts in deiner Quelle."
+   "slug": "crowd",
+   "explanation": "Eine Gruppe zu einem Thema, zum Beispiel Garten, Fotografie oder deine Stadt. Tritt bei, dann landen ihre Posts auf deiner Startseite."
   }
  ]
 }

@@ -55,7 +55,7 @@ class LiveUiTest {
         }
         compose.onNodeWithText("Heute").assertIsDisplayed()
         compose.onNodeWithText("Neu").assertIsDisplayed()
-        compose.onNodeWithText("Neue Person in deiner Karawane · Emil Novak").performClick()
+        compose.onNodeWithText("Neu bei deinen Followern · Emil Novak").performClick()
         assertEquals("http://localhost/profil/emil", opened.single())
         compose.onNodeWithTag("hints.readAll").performClick()
         compose.waitUntil { readAll == 1 }

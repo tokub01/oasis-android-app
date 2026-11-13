@@ -106,7 +106,7 @@ fun SourceScreen(viewModel: SourceViewModel = hiltViewModel<SourceViewModel>()) 
     LaunchedEffect(scrollToTop) { if (scrollToTop > 0) listState.animateScrollToItem(0) }
 
     OasisScreen(
-        title = "Quelle",
+        title = "Start",
         message = state.status,
         error = state.actionError?.userMessage,
         onDismissMessage = viewModel.list::dismissStatus,
@@ -171,7 +171,7 @@ fun LazyListScope.sourceContent(
     val showAll = context?.showAll ?: false
     block("header") {
         Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-            Eyebrow("Quelle")
+            Eyebrow("Start")
             Text(
                 "Hallo $displayName.",
                 style = OasisType.display(28),
@@ -348,7 +348,7 @@ private fun LazyListScope.sideBlocks(context: SourceContext?, meetups: List<Meet
                 Row(verticalAlignment = Alignment.Top) {
                     WeekNumber(week.reactions, "Reaktionen", Modifier.weight(1f))
                     WeekNumber(week.followers, "neu dabei", Modifier.weight(1f))
-                    WeekNumber(week.karawane, "Karawane", Modifier.weight(1f))
+                    WeekNumber(week.karawane, "Follower", Modifier.weight(1f))
                 }
                 UnderlinedLink("Alle deine Zahlen", { navigator.open(NetworkRoute.Statistics) }, color = OasisColors.OnNight2)
             }

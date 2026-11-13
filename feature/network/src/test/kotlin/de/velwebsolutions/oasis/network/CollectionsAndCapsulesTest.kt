@@ -296,7 +296,7 @@ class CollectionsAndCapsulesTest(private val answersAtOnce: Boolean) {
         }
         val invitation = decodeInvitation(invitationJson(1, "invited"))
         assertEquals(
-            "Geht auf am 24. Dezember 2026 um 18:00 Uhr in der Quelle von Mira Sol · Beitragen bis 24. Dezember 2026 um 17:00 Uhr",
+            "Geht auf am 24. Dezember 2026 um 18:00 Uhr auf dem Profil von Mira Sol · Beitragen bis 24. Dezember 2026 um 17:00 Uhr",
             invitationLine(invitation)
         )
         assertEquals(

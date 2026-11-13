@@ -400,7 +400,7 @@ class ScreenFlowsTest {
         )
         val model15 = models.keep(ProfileViewModel("jonas", network.repository))
         show { ProfileScreen("jonas", model15) }
-        text("Karawane: 3").assertIsDisplayed()
+        text("Follower: 3").assertIsDisplayed()
         capture("profile")
         compose.onNodeWithTag("profile.unfollow").performClick()
         text("Jonas Weber nicht mehr folgen?").assertIsDisplayed()
@@ -452,7 +452,7 @@ class ScreenFlowsTest {
         val model18 = models.keep(StatisticsViewModel(network.repository))
         switchTo { StatisticsScreen(model18) }
         compose.settle {
-            compose.onAllNodes(androidx.compose.ui.test.hasContentDescription("In deiner Karawane", substring = true))
+            compose.onAllNodes(androidx.compose.ui.test.hasContentDescription("Deine Follower", substring = true))
                 .fetchSemanticsNodes().isNotEmpty()
         }
         capture("statistics")

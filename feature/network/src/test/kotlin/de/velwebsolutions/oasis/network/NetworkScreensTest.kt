@@ -137,7 +137,7 @@ class NetworkScreensTest {
             NetworkPage { feedSection(PostListState<NoContext>(posts = listOf(own, statsOnly), state = Loadable.Loaded(Unit)), handlers) }
         }
 
-        compose.onNodeWithText("Frage an meine Karawane").assertIsDisplayed()
+        compose.onNodeWithText("Frage an meine Follower").assertIsDisplayed()
         compose.onNodeWithText("Zurückgehalten und dem Moderationsteam gemeldet").assertIsDisplayed()
         // Holding never locks the account (since 6 November 2026 only a human decision does).
         compose.onNodeWithText("dein Konto bleibt offen", substring = true).assertExists()
@@ -192,7 +192,7 @@ class NetworkScreensTest {
         capture("card-long-press")
         compose.onNodeWithText("Reagieren").performClick()
         compose.onNodeWithTag("post.card.4").performTouchInput { longClick(Offset(centerX, 4f)) }
-        compose.onNodeWithText("Weitertragen").performClick()
+        compose.onNodeWithText("Teilen").performClick()
         assertEquals(NetworkRoute.CarryPost(4), navigator.stack(MainTab.Source).last())
 
         compose.onNodeWithText("Schnell antworten").performClick()
@@ -577,7 +577,7 @@ class NetworkScreensTest {
         show { SwipeContent(SwipeDeck()) { _, _ -> } }
         compose.onNodeWithText("Gerade gibt es nichts Neues.").assertIsDisplayed()
         compose.onNodeWithText("Alles gelesen – nichts wartet auf dich.").assertIsDisplayed()
-        compose.onNodeWithText("Zur Quelle").performClick()
+        compose.onNodeWithText("Zur Startseite").performClick()
         assertEquals(MainTab.Source, navigator.selectedTab)
         capture("swipe-empty")
     }
@@ -618,7 +618,7 @@ class NetworkScreensTest {
         compose.onNodeWithText("Bild 1 entfernen").performClick()
         scrollTo("Art des Posts")
         compose.onNodeWithTag("compose.kind").performClick()
-        compose.onNodeWithText("Frage an meine Karawane").performClick()
+        compose.onNodeWithText("Frage an meine Follower").performClick()
         compose.onNodeWithTag("compose.visibility").performClick()
         compose.onNodeWithText("Nur für Mitglieder").performClick()
         compose.onNodeWithTag("compose.submit").performClick()

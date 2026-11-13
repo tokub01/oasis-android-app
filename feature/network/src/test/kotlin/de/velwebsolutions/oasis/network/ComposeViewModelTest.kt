@@ -330,8 +330,8 @@ class ComposeViewModelTest(private val answersAtOnce: Boolean) {
         assertEquals("Antworten", composer(network, replyTo = 1).state.value.submitLabel)
         assertEquals("Deine Antwort", composer(network, replyTo = 1).state.value.bodyLabel)
         assertEquals("Deine Worte dazu (freiwillig)", composer(network, carried = 1).state.value.bodyLabel)
-        assertEquals("Weitertragen", composer(network, carried = 1).state.value.submitLabel)
-        assertEquals("Post teilen", composer(network).state.value.submitLabel)
+        assertEquals("Teilen", composer(network, carried = 1).state.value.submitLabel)
+        assertEquals("Posten", composer(network).state.value.submitLabel)
         assertEquals("Dein Post", composer(network).state.value.bodyLabel)
     }
 
@@ -386,7 +386,7 @@ class ComposeViewModelTest(private val answersAtOnce: Boolean) {
     fun `a plain carry sends neither words nor images`() = runTest {
         val network = StubbedNetwork(
             stub("GET", "network/composer", Fixtures.composer),
-            stub("POST", "network/posts", """{"message":"Weitergetragen.","data":${postJson(44)}}""", 201)
+            stub("POST", "network/posts", """{"message":"Geteilt.","data":${postJson(44)}}""", 201)
         )
         val model = composer(network, carried = 12)
         model.load()
@@ -394,7 +394,7 @@ class ComposeViewModelTest(private val answersAtOnce: Boolean) {
         model.add(ImageUpload(byteArrayOf(1), "a.jpg", "image/jpeg"))
         model.carryPlainly()
         assertTrue(model.state.value.plainCarry)
-        assertEquals("Weitergetragen.", model.publish()?.message)
+        assertEquals("Geteilt.", model.publish()?.message)
         val sent = network.last("network/posts").body!!
         assertTrue(sent.contains("name=\"carried\""))
         assertFalse(sent.contains("Meine Worte"))

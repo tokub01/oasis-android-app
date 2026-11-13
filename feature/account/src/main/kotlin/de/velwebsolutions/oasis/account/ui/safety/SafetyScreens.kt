@@ -319,7 +319,7 @@ internal fun SafetyScreen(viewModel: SafetyViewModel = hiltViewModel()) {
                         )
                         SafetyListCard(
                             "Stummgeschaltete Personen",
-                            "Posts dieser Personen erscheinen nicht mehr in deiner Quelle, Entdecken oder Antworten. Ihr Profil bleibt für dich aufrufbar.",
+                            "Posts dieser Personen erscheinen nicht mehr auf deiner Startseite, in Entdecken oder in Antworten. Ihr Profil bleibt für dich aufrufbar.",
                             lists.muted,
                             "Du hast aktuell niemanden stummgeschaltet.",
                             "Nicht mehr stummschalten",
@@ -517,6 +517,6 @@ private fun Thanks(form: ReportForm, onDone: () -> Unit) {
             color = OasisColors.Ink2
         )
         SupportContacts()
-        OasisButton("Zurück zur Quelle", onDone, fullWidth = false)
+        OasisButton("Zurück zur Startseite", onDone, fullWidth = false)
     }
 }

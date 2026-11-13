@@ -143,7 +143,7 @@ class ShellUiTest {
         compose.onNodeWithContentDescription("Zurück").performClick()
         compose.onNodeWithText("Inhalt ${NetworkRoute.Source}").assertIsDisplayed()
         compose.onNodeWithTag("tab.oases").performClick()
-        compose.onNodeWithContentDescription("Mildcrowd – zur Quelle").performClick()
+        compose.onNodeWithContentDescription("Mildcrowd – zur Startseite").performClick()
         assertEquals(MainTab.Source, navigator.selectedTab)
     }
 

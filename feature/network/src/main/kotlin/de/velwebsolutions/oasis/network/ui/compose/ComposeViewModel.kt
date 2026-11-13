@@ -86,9 +86,9 @@ data class ComposeUiState(
     val submitLabel: String get() = if (isReply) {
         "Antworten"
     } else if (isCarry) {
-        "Weitertragen"
+        "Teilen"
     } else {
-        "Post teilen"
+        "Posten"
     }
 
     fun fieldError(field: String): String? = error?.message(field)

@@ -245,7 +245,7 @@ private fun AppHeader(me: Me, viewModel: RootViewModel, actions: @Composable Row
                     navigator.popToRoot(MainTab.Source)
                     navigator.selectedTab = MainTab.Source
                 }
-                .semantics { contentDescription = "Mildcrowd – zur Quelle" }
+                .semantics { contentDescription = "Mildcrowd – zur Startseite" }
         ) {
             OasisLogo()
         }

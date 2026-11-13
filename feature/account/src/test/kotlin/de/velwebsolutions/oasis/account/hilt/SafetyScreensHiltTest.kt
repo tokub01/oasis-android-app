@@ -154,7 +154,7 @@ class SafetyScreensHiltTest : HiltScreenTest() {
         compose.onNodeWithTag("report.send").tap()
         waitForTag("report.thanks")
         shot("report-thanks")
-        compose.onNodeWithText("Zurück zur Quelle").tap()
+        compose.onNodeWithText("Zurück zur Startseite").tap()
         assertEquals(null, navigator.sheet)
     }
 
@@ -168,7 +168,7 @@ class SafetyScreensHiltTest : HiltScreenTest() {
         compose.onNodeWithTag("report.category.spam").tap()
         compose.onNodeWithTag("report.send").tap()
         waitForTag("report.thanks")
-        compose.onNodeWithText("Zurück zur Quelle").tap()
+        compose.onNodeWithText("Zurück zur Startseite").tap()
         assertTrue(stack().isEmpty())
     }
 

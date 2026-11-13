@@ -2,8 +2,8 @@ Mildcrowd ist das werbefreie soziale Netzwerk. Es zeigt dir, was deine Leute tei
 
 Alles, was Social Media gut macht. Ohne den Sog.
 
-• Die Quelle: Du siehst, was Menschen und Crowds teilen, denen du folgst – der Reihe nach. Wenn du alles gesehen hast, sagt Mildcrowd es dir.
-• Posts: So heißen Beiträge bei Mildcrowd. Text und Bilder, Antworten, Weitertragen und Merken.
+• Die Startseite: Du siehst, was Menschen und Crowds teilen, denen du folgst – der Reihe nach. Wenn du alles gesehen hast, sagt Mildcrowd es dir.
+• Posts: Text und Bilder, Antworten, Teilen und Merken.
 • Crowds: Themenräume mit Gastgeber:innen und eigenen Hausregeln – von analoger Fotografie über Gärtnern bis zum Lesekreis. Einer Crowd folgst du wie einem Menschen und schreibst dort mit.
 • Leise Zahlen: Wie viele reagiert haben, sieht nur, wer geschrieben hat. Kein öffentliches Wettrennen um Likes.
 • Chat mit Ende-zu-Ende-Verschlüsselung: Deine Nachrichten kann nur lesen, wer im Chat ist. Mildcrowd speichert sie nur verschlüsselt und hat keinen Schlüssel dazu.

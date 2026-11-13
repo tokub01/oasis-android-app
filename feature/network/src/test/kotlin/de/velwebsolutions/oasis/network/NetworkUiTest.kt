@@ -199,7 +199,7 @@ class NetworkUiTest {
         compose.onNodeWithText("Erntet gerade Tomaten").assertIsDisplayed()
         compose.onNodeWithText("Jonas Weber nimmt gerade nur Nachrichten von bestimmten Personen an.").performScrollTo().assertIsDisplayed()
         compose.onNodeWithText("Schreiben").assertDoesNotExist()
-        compose.onNodeWithText("Karawane: 3").performScrollTo().assertIsDisplayed()
+        compose.onNodeWithText("Follower: 3").performScrollTo().assertIsDisplayed()
         compose.onNodeWithTag("profile.unfollow").performScrollTo().performClick()
         assertEquals(listOf(ProfileConfirmation.Unfollow), asked)
     }
