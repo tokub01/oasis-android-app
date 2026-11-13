@@ -263,7 +263,7 @@ private fun PastCapsule(capsule: TimeCapsule, viewModel: TimeCapsulesViewModel) 
                 style = OasisType.BodyBold
             )
         } else if (reason != null) {
-            Text("Nicht aufgegangen: $reason", style = OasisType.BodyBold, color = OasisColors.SunText)
+            Text("Nicht aufgegangen: $reason", style = OasisType.BodyBold, color = OasisColors.Danger)
         } else {
             // Claimed by the server, its Tropfen is being published right now (web: „Geht gerade auf …“).
             Text("Geht gerade auf …", style = OasisType.BodyBold, color = OasisColors.Ink2)

@@ -15,7 +15,7 @@ import de.velwebsolutions.oasis.design.navigation.AccountRoute
 /**
  * The whole app: restores the session, then shows sign-in, the e-mail confirmation, the lock screen, the mobile-number
  * confirmation, "Mitglied werden" (no membership yet) or the tabs. New members land in the tabs too; the Quelle offers
- * the welcome tour with its card „Mach dein Tal lebendig“ (docs/oasis-accounts.md, „Nach der Registrierung“).
+ * the welcome tour with its card „Mach deine Startseite lebendig“ (docs/oasis-accounts.md, „Nach der Registrierung“).
  */
 @Composable
 fun RootScreen(viewModel: RootViewModel = hiltViewModel()) {

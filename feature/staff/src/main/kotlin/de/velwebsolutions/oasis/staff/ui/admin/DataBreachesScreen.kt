@@ -227,7 +227,7 @@ private fun BreachCard(
                     )}). Sofort melden und die Verzögerung begründen."
                 },
                 style = OasisType.BodyBold,
-                color = OasisColors.SunText
+                color = OasisColors.Danger
             )
         }
         breach.reportText?.let { report ->

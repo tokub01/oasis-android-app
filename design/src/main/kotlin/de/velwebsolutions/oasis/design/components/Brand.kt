@@ -18,10 +18,13 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.geometry.CornerRadius
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Rect
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.Path
 import androidx.compose.ui.graphics.StrokeCap
+import androidx.compose.ui.graphics.StrokeJoin
 import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.graphics.toArgb
 import androidx.compose.ui.platform.LocalDensity
@@ -43,8 +46,8 @@ import de.velwebsolutions.oasis.design.theme.OasisRadius
 import de.velwebsolutions.oasis.design.theme.OasisType
 
 /**
- * The Oasis logo like `x-oasis.logo`: a half sun over two waves, with the word mark "oasis" next to it. The web's header
- * draws the sign at 40 px and the word mark at 30 px; [size] is the sign, the word mark follows at three quarters.
+ * The Mildcrowd logo like `x-oasis.logo`: the sign – a lowercase "m" made of two people, white on a rounded tile in the
+ * accent colour – with the word mark "mildcrowd" next to it. [size] is the sign, the word mark follows at 65 % of it.
  */
 @Composable
 fun OasisLogo(modifier: Modifier = Modifier, size: Dp = 38.dp, wordmark: Boolean = true) {
@@ -55,41 +58,39 @@ fun OasisLogo(modifier: Modifier = Modifier, size: Dp = 38.dp, wordmark: Boolean
     ) {
         LogoSign(Modifier.size(size))
         if (wordmark) {
-            val fontSize = with(LocalDensity.current) { (size * 0.75f).toSp() }
-            // tracking-[-0.5px] at 30 px, leading-none.
+            val fontSize = with(LocalDensity.current) { (size * 0.65f).toSp() }
             Text(
-                "oasis",
-                style = OasisType.display().copy(fontSize = fontSize, lineHeight = fontSize, letterSpacing = (-0.0167).em),
-                color = OasisColors.Night
+                "mildcrowd",
+                style = OasisType.display().copy(fontSize = fontSize, lineHeight = fontSize, letterSpacing = (-0.02).em),
+                color = OasisColors.Night,
+                maxLines = 1
             )
         }
     }
 }
 
-/** The sign of the logo, drawn in the web SVG's 120 × 120 grid. */
+/** The accent blue of the tile (`sun` in light mode): the sign keeps its colours in dark mode, like on the web. */
+private val SignTile = Color(0xFF5560E0)
+
+/** The sign of the logo, drawn in the web SVG's 64 × 64 grid. */
 @Composable
 private fun LogoSign(modifier: Modifier) {
     Canvas(modifier) {
-        val unit = size.width / 120f
-        fun point(x: Float, y: Float) = Offset(x * unit, y * unit)
-        val sun = Path().apply {
-            arcTo(Rect(center = point(60f, 62f), radius = 34f * unit), 180f, 180f, forceMoveTo = true)
-            close()
+        val unit = size.width / 64f
+        drawRoundRect(SignTile, cornerRadius = CornerRadius(15f * unit))
+        // Two arches that share the middle leg: the bodies of the two people.
+        val bodies = Path().apply {
+            listOf(17.48f, 32f).forEach { left ->
+                moveTo(left * unit, 47.18f * unit)
+                lineTo(left * unit, 35.3f * unit)
+                arcTo(Rect(center = Offset((left + 7.26f) * unit, 35.3f * unit), radius = 7.26f * unit), 180f, 180f, forceMoveTo = false)
+                lineTo((left + 14.52f) * unit, 47.18f * unit)
+            }
         }
-        drawPath(sun, OasisColors.Sun)
-        val stroke = Stroke(width = 7f * unit, cap = StrokeCap.Round)
-        drawPath(wave(point(14f, 76f), 4, 23f * unit, 9f * unit), OasisColors.Spring, style = stroke)
-        drawPath(wave(point(32f, 92f), 3, 19f * unit, 8f * unit), OasisColors.Spring.copy(alpha = 0.6f), style = stroke)
-    }
-}
-
-/** `q (w/2) -depth w 0` repeated, like the SVG's `q … t …` wave. */
-private fun wave(start: Offset, crests: Int, width: Float, depth: Float) = Path().apply {
-    moveTo(start.x, start.y)
-    for (index in 0 until crests) {
-        val x = start.x + index * width
-        val up = index % 2 == 0
-        quadraticTo(x + width / 2, start.y + if (up) -depth else depth, x + width, start.y)
+        drawPath(bodies, Color.White, style = Stroke(width = 5.94f * unit, cap = StrokeCap.Round, join = StrokeJoin.Round))
+        listOf(24.74f, 39.26f).forEach { centre ->
+            drawCircle(Color.White, radius = 4.29f * unit, center = Offset(centre * unit, 18.14f * unit))
+        }
     }
 }
 

@@ -95,7 +95,7 @@ fun OasisTextField(
                     Modifier
                         .fillMaxWidth()
                         .background(OasisColors.Field, shape)
-                        .border(if (error == null) 1.dp else 2.dp, if (error == null) OasisColors.FieldLine else OasisColors.SunText, shape)
+                        .border(if (error == null) 1.dp else 2.dp, if (error == null) OasisColors.FieldLine else OasisColors.Danger, shape)
                         .padding(start = 14.dp, top = 12.dp, bottom = 12.dp, end = if (trailing == null) 14.dp else 2.dp),
                     verticalAlignment = Alignment.CenterVertically
                 ) {
@@ -121,9 +121,9 @@ fun OasisTextField(
 @Composable
 fun FieldError(message: String, modifier: Modifier = Modifier) {
     Row(modifier, verticalAlignment = Alignment.CenterVertically) {
-        Icon(Icons.Outlined.ErrorOutline, contentDescription = null, tint = OasisColors.SunText, modifier = Modifier.size(16.dp))
+        Icon(Icons.Outlined.ErrorOutline, contentDescription = null, tint = OasisColors.Danger, modifier = Modifier.size(16.dp))
         Spacer(Modifier.width(6.dp))
-        Text(message, style = OasisType.Caption, color = OasisColors.SunText)
+        Text(message, style = OasisType.Caption, color = OasisColors.Danger)
     }
 }
 

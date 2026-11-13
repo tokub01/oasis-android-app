@@ -71,8 +71,8 @@ import de.velwebsolutions.oasis.design.theme.OasisType
 import java.time.Instant
 import kotlinx.coroutines.launch
 
-/** Quelle at 30 % on paper, as a solid colour (the app does not draw see-through surfaces). */
-private val ThisDeviceTint = Color(0xFFBDDDD6)
+/** Pfirsich (spring) at 30 % on paper, as a solid colour (the app does not draw see-through surfaces). */
+private val ThisDeviceTint = Color(0xFFFFE5DA)
 
 /** Pull to refresh around a page that reloads its view model. */
 @OptIn(ExperimentalMaterial3Api::class)

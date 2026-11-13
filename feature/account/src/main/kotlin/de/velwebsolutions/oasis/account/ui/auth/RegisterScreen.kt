@@ -285,9 +285,9 @@ private fun UsernameLine(check: UsernameCheck?, onTake: (String) -> Unit) {
                 verticalArrangement = Arrangement.Center
             ) {
                 if (suggestion == null) {
-                    Text("@${check.username} ist schon vergeben.", style = OasisType.Caption, color = OasisColors.SunText)
+                    Text("@${check.username} ist schon vergeben.", style = OasisType.Caption, color = OasisColors.Danger)
                 } else {
-                    Text("@${check.username} ist schon vergeben – wie wäre es mit ", style = OasisType.Caption, color = OasisColors.SunText)
+                    Text("@${check.username} ist schon vergeben – wie wäre es mit ", style = OasisType.Caption, color = OasisColors.Danger)
                     Text(
                         "@$suggestion",
                         style = OasisType.Caption.copy(fontWeight = FontWeight.Bold, textDecoration = TextDecoration.Underline),
@@ -295,7 +295,7 @@ private fun UsernameLine(check: UsernameCheck?, onTake: (String) -> Unit) {
                         modifier = Modifier.clickable(role = Role.Button, onClickLabel = "@$suggestion nehmen") { onTake(suggestion) }
                             .testTag("register.username.suggestion")
                     )
-                    Text("?", style = OasisType.Caption, color = OasisColors.SunText)
+                    Text("?", style = OasisType.Caption, color = OasisColors.Danger)
                 }
             }
         }
@@ -439,7 +439,7 @@ private fun BirthDateField(ui: RegisterUiState, message: String?, onPick: () -> 
                 .fillMaxWidth()
                 .heightIn(min = 48.dp)
                 .background(OasisColors.Field, shape)
-                .border(if (message == null) 1.dp else 2.dp, if (message == null) OasisColors.FieldLine else OasisColors.SunText, shape)
+                .border(if (message == null) 1.dp else 2.dp, if (message == null) OasisColors.FieldLine else OasisColors.Danger, shape)
                 .clickable(role = Role.Button, onClick = onPick)
                 .semantics {
                     contentDescription = "Geburtsdatum"

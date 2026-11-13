@@ -245,7 +245,7 @@ fun ConfirmDialog(question: String, confirm: String, onConfirm: () -> Unit, onDi
             OasisTextButton(confirm, {
                 onDismiss()
                 onConfirm()
-            }, color = OasisColors.SunText)
+            }, color = OasisColors.Danger)
         },
         dismissButton = { OasisTextButton("Abbrechen", onDismiss) },
         containerColor = OasisColors.Paper

@@ -189,7 +189,7 @@ fun OasisFormScreen(
                     val slug = edit.oasis.slug
                     block("close") {
                         val navigator = LocalNavigator.current
-                        PaperBox(border = OasisColors.SunText) {
+                        PaperBox(border = OasisColors.Danger) {
                             SectionTitle("Crowd schließen")
                             Text(
                                 "Die Crowd verschwindet für alle. Die Posts bleiben bei den Menschen, die sie geschrieben haben.",
@@ -313,7 +313,7 @@ private fun BannerSection(state: OasisFormState, editing: Boolean, error: String
     }
 }
 
-/** The four colours with their German names (Sonne, Quelle, Nacht, Düne). */
+/** The four colours with their German names (Blau, Pfirsich, Nacht, Nebel). */
 @Composable
 fun ColorChoice(
     choices: List<Choice>,

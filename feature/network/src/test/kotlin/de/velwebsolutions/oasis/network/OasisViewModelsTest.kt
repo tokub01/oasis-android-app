@@ -74,7 +74,7 @@ class OasisViewModelsTest(private val answersAtOnce: Boolean) {
         |"display_name": "Mira Sol", "role": "host", "role_label": "Gastgeber:in"}, {"id": 3, "username": "aylin",
         |"display_name": "Aylin Demir", "role": "member", "role_label": "Mitglied"}], "options": {"visibilities":
         |[{"value": "public", "label": "Alle"}, {"value": "members", "label": "Nur Mitglieder"}], "colors": [{"value": "spring",
-        |"label": "Quelle"}]}}}
+        |"label": "Pfirsich"}]}}}
         """.trimMargin()
 
     private val banner = ImageUpload(byteArrayOf(1, 2, 3), "banner.jpg", "image/jpeg")

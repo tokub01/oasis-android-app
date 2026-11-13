@@ -203,7 +203,7 @@ internal fun CollectionFormView(form: CollectionForm, actions: OasisCollectionAc
         )
         form.error?.takeIf {
             it !is ApiError.Validation
-        }?.let { Text(it.userMessage, style = OasisType.Small, color = OasisColors.SunText) }
+        }?.let { Text(it.userMessage, style = OasisType.Small, color = OasisColors.Danger) }
         ButtonFlow {
             AsyncOasisButton(
                 if (creating) "Sammlung anlegen" else "Änderung speichern",

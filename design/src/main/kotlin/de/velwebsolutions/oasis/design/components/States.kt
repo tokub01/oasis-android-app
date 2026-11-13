@@ -156,7 +156,7 @@ fun ErrorStateView(error: ApiError, onRetry: suspend () -> Unit, modifier: Modif
         verticalArrangement = Arrangement.spacedBy(16.dp, Alignment.CenterVertically),
         horizontalAlignment = Alignment.CenterHorizontally
     ) {
-        Icon(Icons.Outlined.WarningAmber, contentDescription = null, tint = OasisColors.SunText, modifier = Modifier.size(32.dp))
+        Icon(Icons.Outlined.WarningAmber, contentDescription = null, tint = OasisColors.Danger, modifier = Modifier.size(32.dp))
         Text(error.userMessage, style = OasisType.Body, color = OasisColors.Ink, textAlign = TextAlign.Center)
         AsyncOasisButton("Noch einmal versuchen", onRetry, kind = OasisButtonKind.Secondary, fullWidth = false)
     }
@@ -236,7 +236,7 @@ enum class BannerKind { Error, Info, Success }
 @Composable
 fun Banner(text: String, modifier: Modifier = Modifier, kind: BannerKind = BannerKind.Error) {
     val (icon, foreground, background) = when (kind) {
-        BannerKind.Error -> Triple(Icons.Outlined.ErrorOutline, OasisColors.SunText, OasisColors.Sun.copy(alpha = 0.12f))
+        BannerKind.Error -> Triple(Icons.Outlined.ErrorOutline, OasisColors.Danger, OasisColors.Danger.copy(alpha = 0.12f))
         BannerKind.Info -> Triple(Icons.Outlined.Info, OasisColors.Ink, OasisColors.Dune)
         BannerKind.Success -> Triple(Icons.Outlined.CheckCircle, OasisColors.SpringText, OasisColors.Spring.copy(alpha = 0.14f))
     }

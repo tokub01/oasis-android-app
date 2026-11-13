@@ -204,7 +204,7 @@ private fun Tile(region: MapRegion, active: Boolean, size: Dp, modifier: Modifie
     }
     val text = when {
         active -> OasisColors.OnNight
-        filled -> OasisColors.SunInk
+        filled -> OasisColors.SpringInk
         else -> OasisColors.Ink2
     }
     val shape = RoundedCornerShape(size * 0.19f)
@@ -239,7 +239,7 @@ private fun RegionOases(name: String?, oases: Loadable<List<OasisSummary>>) {
         }
         SectionTitle("Crowds in $name")
         when (oases) {
-            is Loadable.Failed -> Text(oases.error.userMessage, style = OasisType.Body, color = OasisColors.SunText)
+            is Loadable.Failed -> Text(oases.error.userMessage, style = OasisType.Body, color = OasisColors.Danger)
 
             is Loadable.Loaded -> {
                 if (oases.value.isEmpty()) DashedNote("In $name hat noch keine Crowd ihr Zuhause angegeben.")

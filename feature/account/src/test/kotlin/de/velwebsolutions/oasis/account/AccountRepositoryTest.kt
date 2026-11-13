@@ -69,7 +69,7 @@ class AccountRepositoryTest {
         assertTrue(api.safety().blocked.isEmpty())
         val tour = api.welcome()
         assertEquals(listOf("profil", "sichtbarkeit", "oasen", "menschen"), tour.steps.map { it.key })
-        assertEquals("Sonne", tour.colors.first().label)
+        assertEquals("Blau", tour.colors.first().label)
         assertTrue(tour.oases.isNotEmpty())
         assertTrue(tour.oasesHandPicked)
         assertEquals("Posts", api.glossary().first().term)

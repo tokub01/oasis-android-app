@@ -290,7 +290,7 @@ private fun TimeField(
                 .fillMaxWidth()
                 .heightIn(min = 48.dp)
                 .background(OasisColors.Field, shape)
-                .border(if (error == null) 1.dp else 2.dp, if (error == null) OasisColors.FieldLine else OasisColors.SunText, shape)
+                .border(if (error == null) 1.dp else 2.dp, if (error == null) OasisColors.FieldLine else OasisColors.Danger, shape)
                 .clickable(enabled = enabled, role = Role.Button) { picking = true }
                 .padding(horizontal = 14.dp)
                 .semantics { contentDescription = "$label $value" }

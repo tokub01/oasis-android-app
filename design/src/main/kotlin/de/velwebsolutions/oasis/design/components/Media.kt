@@ -47,9 +47,10 @@ object AvatarTint {
     }
 
     fun foreground(name: String): Color = when (name) {
+        "sun" -> OasisColors.SunInk
+        "spring" -> OasisColors.SpringInk
         "night" -> OasisColors.OnNight
-        "dune" -> OasisColors.Night
-        else -> OasisColors.SunInk
+        else -> OasisColors.Night
     }
 
     /** „Automatisch“ in the colour choice of initials (`avatar_color` "auto"): the server resolves it per member. */

@@ -127,7 +127,7 @@ class AccountModelsTest {
                 listOf(
                     WelcomeStep("oasen", "Crowds")
                 ),
-                true, "Bio", "Ort", "spring", listOf(PrivacyChoice("sun", "Sonne")), "everyone", "public",
+                true, "Bio", "Ort", "spring", listOf(PrivacyChoice("sun", "Blau")), "everyone", "public",
                 listOf(PrivacyChoice("everyone", "Alle")), listOf(PrivacyChoice("public", "Öffentlich")),
                 listOf(StarterOasis(1, "g", "Garten"), StarterOasis(2, "l", "Lesen", "d", "sun", 3, "http://b", true))
             )

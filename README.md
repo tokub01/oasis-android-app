@@ -9,7 +9,7 @@ Die native Android-App von [Mildcrowd](https://mildcrowd.com) – werbefrei, chr
 | --- | --- |
 | `:core` | API-Client (Retrofit/OkHttp, kotlinx.serialization), Fehler, Session, Token im Android Keystore, Formate (OasisCore) |
 | `:core-testing` | `StubTransport` und Test-Helfer für alle Module |
-| `:design` | Farben, Schriften (Fraunces, Manrope), Komponenten, Routen, Navigator, Deep Links (OasisDesign) |
+| `:design` | Farben, Schriften (Bricolage Grotesque, Manrope), Komponenten, Routen, Navigator, Deep Links (OasisDesign) |
 | `:chat-crypto` | Ende-zu-Ende-Krypto, byte-kompatibel mit Web und iOS (OasisChatCrypto) |
 | `:realtime` | Reverb-Client (Pusher-Protokoll) (OasisRealtime) |
 | `:feature:*` | network, chat, account, live, membership, staff – je API, Repository, ViewModels, Screens |

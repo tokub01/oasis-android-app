@@ -136,7 +136,7 @@ private fun MolliePanel(lookup: MollieLookup, onClose: () -> Unit) {
         val payment = data?.payment
         val customer = data?.customer
         when {
-            lookup.error != null -> Text(lookup.error, style = OasisType.BodyBold, color = OasisColors.SunText)
+            lookup.error != null -> Text(lookup.error, style = OasisType.BodyBold, color = OasisColors.Danger)
 
             data?.kind == "payment" && payment != null -> {
                 PaymentFacts(payment)
@@ -257,7 +257,7 @@ private fun RecordCard(record: PaymentRecord, state: AdminPaymentsUiState, viewM
                 buildAnnotatedString {
                     append("${record.customerName ?: "–"} · ${record.customerEmail ?: "–"}")
                     if (record.accountDeleted) {
-                        withStyle(SpanStyle(fontWeight = FontWeight.Bold, color = OasisColors.SunText)) {
+                        withStyle(SpanStyle(fontWeight = FontWeight.Bold, color = OasisColors.Danger)) {
                             append(" · Konto gelöscht – Beleg gesperrt")
                         }
                     }

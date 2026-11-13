@@ -292,7 +292,7 @@ class ScreenFlowsTest {
         val editForm =
             """{"data": {"oasis": $summary, "house_rules": "Freundlich bleiben.", "members": [{"id": 3, "username": "aylin",
             |"display_name": "Aylin Demir", "role": "member", "role_label": "Mitglied"}], "options": {"visibilities":
-            |[{"value": "public", "label": "Alle"}], "colors": [{"value": "spring", "label": "Quelle"}, {"value": "sun", "label": "Sonne"}]},
+            |[{"value": "public", "label": "Alle"}], "colors": [{"value": "spring", "label": "Pfirsich"}, {"value": "sun", "label": "Blau"}]},
             |"hidden_members": 2}}
             """.trimMargin()
         val network = StubbedNetwork(stub("GET", "network/oases", Fixtures.oases), stub("GET", "network/oases/stadtgarten/edit", editForm))
@@ -306,7 +306,7 @@ class ScreenFlowsTest {
         text("Stadtgarten bearbeiten").assertIsDisplayed()
         text("Zu Gastgeber:in machen").assertIsDisplayed()
         text("2 weitere Mitglieder zeigen sich hier nur Freund:innen", substring = true).assertExists()
-        compose.onNodeWithContentDescription("Sonne").performClick()
+        compose.onNodeWithContentDescription("Blau").performClick()
         compose.onNodeWithTag("oasisForm.close").performClick()
         assertEquals(NetworkRoute.CloseOasis("stadtgarten"), navigator.stack(MainTab.Source).last())
         capture("oasis-edit")

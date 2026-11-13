@@ -157,7 +157,7 @@ internal fun DraftAttachments(state: ConversationState, actions: AttachmentActio
             Text(
                 VIEW_ONCE_SENDER_NOTE,
                 style = OasisType.Caption,
-                color = OasisColors.SunText,
+                color = OasisColors.Danger,
                 modifier = Modifier.testTag("chat.composer.viewOnceNote")
             )
         }
@@ -361,7 +361,7 @@ private fun Consent(
         color = OasisColors.Ink,
         modifier = Modifier.testTag("chat.attachment.consent")
     )
-    if (kind == AttachmentKind.File) Text(FILE_TRUST_NOTE, style = OasisType.Small, color = OasisColors.SunText)
+    if (kind == AttachmentKind.File) Text(FILE_TRUST_NOTE, style = OasisType.Small, color = OasisColors.Danger)
     if (viewOnce) Text("Einmal ansehen: $VIEW_ONCE_RECIPIENT_NOTE", style = OasisType.Small, color = OasisColors.Ink2)
     FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
         AsyncOasisButton("Annehmen", {

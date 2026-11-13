@@ -13,11 +13,11 @@ import kotlinx.coroutines.flow.first
  */
 enum class ChatBackground(val key: String, val label: String, val dark: Boolean = false) {
     Standard("standard", "Standard"),
-    Duene("duene", "Düne"),
-    Oase("oase", "Oase"),
-    Abendsonne("abendsonne", "Abendsonne"),
-    Nachtwasser("nachtwasser", "Nachtwasser", dark = true),
-    Sandkoerner("sandkoerner", "Sandkörner"),
+    Duene("duene", "Nebel"),
+    Oase("oase", "Morgen"),
+    Abendsonne("abendsonne", "Pfirsich"),
+    Nachtwasser("nachtwasser", "Nacht", dark = true),
+    Sandkoerner("sandkoerner", "Punkte"),
     Photo("photo", "Eigenes Foto");
 
     companion object {

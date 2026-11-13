@@ -230,7 +230,7 @@ private fun EndCard(deck: SwipeDeck) {
         verticalArrangement = Arrangement.spacedBy(18.dp)
     ) {
         Box(Modifier.size(56.dp).background(OasisColors.Spring, CircleShape), contentAlignment = Alignment.Center) {
-            Icon(Icons.Outlined.Check, contentDescription = null, tint = OasisColors.SunInk, modifier = Modifier.size(30.dp))
+            Icon(Icons.Outlined.Check, contentDescription = null, tint = OasisColors.SpringInk, modifier = Modifier.size(30.dp))
         }
         Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
             Text(

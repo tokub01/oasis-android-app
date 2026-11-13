@@ -121,7 +121,7 @@ fun DateTimeField(
             Modifier
                 .fillMaxWidth()
                 .defaultMinSize(minHeight = 48.dp)
-                .border(if (error == null) 1.dp else 2.dp, if (error == null) OasisColors.FieldLine else OasisColors.SunText, shape)
+                .border(if (error == null) 1.dp else 2.dp, if (error == null) OasisColors.FieldLine else OasisColors.Danger, shape)
                 .pressable({ pickingDate = true })
                 .padding(horizontal = 14.dp)
                 .semantics { contentDescription = "$label: ${GermanTime.dayAndTime(value)}" },
@@ -193,7 +193,7 @@ fun ConfirmDialog(
                     onConfirm()
                 },
                 modifier = if (confirmTag != null) Modifier.testTag(confirmTag) else Modifier,
-                color = if (destructive) OasisColors.SunText else OasisColors.Night
+                color = if (destructive) OasisColors.Danger else OasisColors.Night
             )
         },
         dismissButton = { OasisTextButton("Abbrechen", onDismiss) }

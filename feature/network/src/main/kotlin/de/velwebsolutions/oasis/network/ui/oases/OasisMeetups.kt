@@ -145,7 +145,7 @@ internal fun MeetupCard(meetup: Meetup, actions: OasisMeetupActions) {
         Text(
             meetupWhen(meetup.startsAt) + state,
             style = OasisType.SmallBold,
-            color = if (meetup.cancelled) OasisColors.SunText else OasisColors.Ink2
+            color = if (meetup.cancelled) OasisColors.Danger else OasisColors.Ink2
         )
         Text(
             meetup.title,
@@ -270,7 +270,7 @@ internal fun MeetupFormView(form: MeetupForm, actions: OasisMeetupActions) {
         // A refusal without a field (no right any more, the server failed) stands under the form.
         form.error?.takeIf {
             it !is ApiError.Validation
-        }?.let { Text(it.userMessage, style = OasisType.Small, color = OasisColors.SunText) }
+        }?.let { Text(it.userMessage, style = OasisType.Small, color = OasisColors.Danger) }
         ButtonFlow {
             AsyncOasisButton(
                 if (creating) "Treffen anlegen" else "Änderung speichern",

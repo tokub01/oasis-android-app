@@ -62,7 +62,7 @@ object CoreModule {
     fun session(tokenStore: TokenStore, deviceName: DeviceName, @AppScope scope: CoroutineScope, auth: Lazy<AuthApi>): Session =
         Session(tokenStore, deviceName.value, scope) { auth.get() }
 
-    /** „Später“ of the Quelle's card „Mach dein Tal lebendig“, on this device. */
+    /** „Später“ of the Quelle's card „Mach deine Startseite lebendig“, on this device. */
     @Provides
     @Singleton
     fun onboardingCard(@ApplicationContext context: Context): OnboardingCardStore = PreferencesOnboardingCardStore(context)

@@ -17,8 +17,8 @@ import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.ui.unit.dp
 
 /**
- * Material 3 with the Oasis tokens of the mode shown: sand pages, paper cards, Nachtwasser for primary actions,
- * Abendsonne as accent.
+ * Material 3 with the Mildcrowd tokens of the mode shown: sand pages, paper cards, night (Tinte) for primary actions,
+ * the accent blue as accent.
  */
 private fun oasisColorScheme(dark: Boolean): ColorScheme {
     val scheme = if (dark) darkColorScheme() else lightColorScheme()
@@ -28,7 +28,7 @@ private fun oasisColorScheme(dark: Boolean): ColorScheme {
         primaryContainer = OasisColors.Dune,
         onPrimaryContainer = OasisColors.Night,
         secondary = OasisColors.Spring,
-        onSecondary = OasisColors.SunInk,
+        onSecondary = OasisColors.SpringInk,
         secondaryContainer = OasisColors.Dune,
         onSecondaryContainer = OasisColors.Night,
         tertiary = OasisColors.Sun,

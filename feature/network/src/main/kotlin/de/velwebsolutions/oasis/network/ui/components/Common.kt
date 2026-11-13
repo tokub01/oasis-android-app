@@ -363,7 +363,7 @@ fun ConfirmDialog(
                 },
                 modifier = Modifier.testTag("dialog.confirm")
             ) {
-                Text(confirmLabel, style = OasisType.BodyBold, color = if (destructive) OasisColors.SunText else OasisColors.Night)
+                Text(confirmLabel, style = OasisType.BodyBold, color = if (destructive) OasisColors.Danger else OasisColors.Night)
             }
         },
         dismissButton = {

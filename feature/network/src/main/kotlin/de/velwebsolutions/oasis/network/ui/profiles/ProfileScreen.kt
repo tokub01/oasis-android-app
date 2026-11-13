@@ -389,7 +389,7 @@ private fun MoreMenu(profile: Profile, callbacks: ProfileCallbacks) {
             @Composable
             fun item(title: String, destructive: Boolean = false, action: () -> Unit) {
                 DropdownMenuItem(
-                    text = { Text(title, style = OasisType.Body, color = if (destructive) OasisColors.SunText else OasisColors.Ink) },
+                    text = { Text(title, style = OasisType.Body, color = if (destructive) OasisColors.Danger else OasisColors.Ink) },
                     onClick = {
                         open = false
                         action()

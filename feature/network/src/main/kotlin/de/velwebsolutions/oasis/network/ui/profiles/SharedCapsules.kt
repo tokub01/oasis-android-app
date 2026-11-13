@@ -96,7 +96,7 @@ internal fun SharedSealSection(
                 Modifier.testTag("capsule.invitee.${person.username}")
             )
         }
-        fields["invitees"]?.let { Text(it, style = OasisType.Small, color = OasisColors.SunText) }
+        fields["invitees"]?.let { Text(it, style = OasisType.Small, color = OasisColors.Danger) }
         DateTimeField(
             "Beitragen bis",
             draft.contributeUntil ?: draft.opensAt.minusSeconds(3_600),
@@ -162,7 +162,7 @@ private fun InvitationCard(invitation: CapsuleInvitation, text: String, error: S
             }, style = OasisType.BodyBold)
 
             invitation.status == "failed" -> {
-                Text("Nicht erschienen: ${invitation.failedReason.orEmpty()}", style = OasisType.BodyBold, color = OasisColors.SunText)
+                Text("Nicht erschienen: ${invitation.failedReason.orEmpty()}", style = OasisType.BodyBold, color = OasisColors.Danger)
                 Text(invitation.body.orEmpty(), style = OasisType.Body, color = OasisColors.Ink2, maxLines = 2)
                 AsyncOasisButton(
                     "Beitrag entfernen",

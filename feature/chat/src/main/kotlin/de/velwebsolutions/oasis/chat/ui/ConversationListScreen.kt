@@ -451,7 +451,7 @@ private fun SwipeRow(
                     .padding(horizontal = 16.dp),
                 contentAlignment = Alignment.CenterStart
             ) {
-                Text("Als gelesen markieren", style = OasisType.SmallBold, color = OasisColors.SunInk)
+                Text("Als gelesen markieren", style = OasisType.SmallBold, color = OasisColors.SpringInk)
             }
         }
         if (open || leftward) {

@@ -8,5 +8,7 @@
         <!-- Mildcrowd draws its own dark mode (values-night, „Darstellung“); the system must not darken it again. -->
         <item name="android:forceDarkAllowed" tools:targetApi="29">false</item>
     </style>
-    <color name="sand">#F4EDE1</color>
+    <color name="sand">#F4F5FA</color>
+    <!-- The accent blue behind the launcher icon; the same in dark mode. -->
+    <color name="launcher">#5560E0</color>
 </resources>

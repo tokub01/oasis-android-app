@@ -143,6 +143,6 @@ fun regionOasisJson(slug: String, city: String?) = """
 
 fun editFormJson() = """
     {"data":{"oasis":${regionOasisJson("isar", "München")},"house_rules":"Freundlich bleiben.","members":[],
-    "options":{"visibilities":[{"value":"public","label":"Alle"}],"colors":[{"value":"spring","label":"Quelle"}],
+    "options":{"visibilities":[{"value":"public","label":"Alle"}],"colors":[{"value":"spring","label":"Pfirsich"}],
     "regions":[{"value":"BY","label":"Bayern"},{"value":"HB","label":"Bremen"}]}}}
 """.trimIndent()

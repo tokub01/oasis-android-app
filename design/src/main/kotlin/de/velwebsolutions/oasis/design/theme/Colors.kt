@@ -27,6 +27,7 @@ data class OasisPalette(
     val sunText: Color,
     val sunOnNight: Color,
     val spring: Color,
+    val springInk: Color,
     val springText: Color,
     val onNight: Color,
     val onNight2: Color,
@@ -36,67 +37,70 @@ data class OasisPalette(
 ) {
     companion object {
         val Light = OasisPalette(
-            night = Color(0xFF0E2B2F),
-            night2 = Color(0xFF12353A),
-            nightLine = Color(0xFF2C4B4F),
-            sand = Color(0xFFF4EDE1),
-            paper = Color(0xFFFBF8F2),
-            field = Color(0xFFFFFDF8),
-            dune = Color(0xFFEADFCC),
-            duneLine = Color(0xFFD6C8B0),
-            paperLine = Color(0xFFE5DBC9),
-            fieldLine = Color(0xFF9C8E77),
-            ink = Color(0xFF1C2422),
-            ink2 = Color(0xFF3E4A47),
-            muted = Color(0xFF5E6B67),
-            sun = Color(0xFFE06A43),
-            sunInk = Color(0xFF0B2326),
-            sunText = Color(0xFFA3441F),
-            sunOnNight = Color(0xFFF2906B),
-            spring = Color(0xFF2E9E95),
-            springText = Color(0xFF1F6F69),
-            onNight = Color(0xFFF4EDE1),
-            onNight2 = Color(0xFFC9D6D2),
-            onNightMuted = Color(0xFFA9BDB8),
-            danger = Color(0xFFA3441F),
+            night = Color(0xFF171A2E),
+            night2 = Color(0xFF1F2340),
+            nightLine = Color(0xFF353A5C),
+            sand = Color(0xFFF4F5FA),
+            paper = Color(0xFFFFFFFF),
+            field = Color(0xFFFFFFFF),
+            dune = Color(0xFFE6E8F5),
+            duneLine = Color(0xFFC9CDE6),
+            paperLine = Color(0xFFDDE0EF),
+            fieldLine = Color(0xFF7E84A6),
+            ink = Color(0xFF1B1E33),
+            ink2 = Color(0xFF3D4160),
+            muted = Color(0xFF5A5F7A),
+            sun = Color(0xFF5560E0),
+            sunInk = Color(0xFFFFFFFF),
+            sunText = Color(0xFF4A54D1),
+            sunOnNight = Color(0xFFA9B0FF),
+            spring = Color(0xFFFFA982),
+            springInk = Color(0xFF171A2E),
+            springText = Color(0xFF4A54D1),
+            onNight = Color(0xFFF4F5FA),
+            onNight2 = Color(0xFFC9CCE0),
+            onNightMuted = Color(0xFFA0A5C0),
+            danger = Color(0xFFB42318),
             onDanger = Color(0xFFFFFFFF)
         )
 
         val Dark = OasisPalette(
-            night = Color(0xFFF4EDE1),
-            night2 = Color(0xFFE6DDCC),
-            nightLine = Color(0xFFC2B8A6),
-            sand = Color(0xFF0F1A1B),
-            paper = Color(0xFF162426),
-            field = Color(0xFF1A2A2C),
-            dune = Color(0xFF22322F),
-            duneLine = Color(0xFF3D4F4B),
-            paperLine = Color(0xFF2C3C3D),
-            fieldLine = Color(0xFF7E8F8B),
-            ink = Color(0xFFECE6DA),
-            ink2 = Color(0xFFC8D1CD),
-            muted = Color(0xFF9DABA7),
-            sun = Color(0xFFE8784F),
-            sunInk = Color(0xFF0B2326),
-            sunText = Color(0xFFF2906B),
-            sunOnNight = Color(0xFFA3441F),
-            spring = Color(0xFF2E9E95),
-            springText = Color(0xFF5CC4BA),
-            onNight = Color(0xFF0E2B2F),
-            onNight2 = Color(0xFF2C4B4F),
-            onNightMuted = Color(0xFF46625F),
-            danger = Color(0xFFF2906B),
-            onDanger = Color(0xFF0B2326)
+            night = Color(0xFFF4F5FA),
+            night2 = Color(0xFFE3E6F4),
+            nightLine = Color(0xFFC3C7DE),
+            sand = Color(0xFF0F1120),
+            paper = Color(0xFF171A2E),
+            field = Color(0xFF1C2038),
+            dune = Color(0xFF232846),
+            duneLine = Color(0xFF3A4066),
+            paperLine = Color(0xFF2A2F4E),
+            fieldLine = Color(0xFF8187AD),
+            ink = Color(0xFFECEEF8),
+            ink2 = Color(0xFFC9CCE0),
+            muted = Color(0xFFA0A5C0),
+            sun = Color(0xFF8E97FF),
+            sunInk = Color(0xFF0F1120),
+            sunText = Color(0xFFA9B0FF),
+            sunOnNight = Color(0xFF4A54D1),
+            spring = Color(0xFFFFA982),
+            springInk = Color(0xFF171A2E),
+            springText = Color(0xFFA9B0FF),
+            onNight = Color(0xFF171A2E),
+            onNight2 = Color(0xFF353A5C),
+            onNightMuted = Color(0xFF555B80),
+            danger = Color(0xFFFF9B8F),
+            onDanger = Color(0xFF2A0E0A)
         )
     }
 }
 
 /**
- * The Oasis palette (docs/oasis-design/assets/tokens.css in the Laravel project). Names follow the CSS tokens; each
- * value is the one of the mode [Appearance] shows, so screens and drawings follow a switch at once.
+ * The Mildcrowd palette „Blaue Stunde“ (docs/mildcrowd-design.md in the Laravel project). Names follow the CSS tokens,
+ * which are older than the look; each value is the one of the mode [Appearance] shows, so screens and drawings follow
+ * a switch at once.
  */
 object OasisColors {
-    /** Nachtwasser – headings, dark buttons, emphasis surfaces (the light colour in dark mode). */
+    /** Tinte – headings, dark buttons, emphasis surfaces (the light colour in dark mode). */
     val Night: Color get() = Appearance.palette.night
 
     /** Hover of night. */
@@ -135,20 +139,23 @@ object OasisColors {
     /** Meta text. */
     val Muted: Color get() = Appearance.palette.muted
 
-    /** Abendsonne – accent buttons, logo. */
+    /** Mild, the accent blue – accent buttons, the sign. */
     val Sun: Color get() = Appearance.palette.sun
 
-    /** Text on sun and spring. */
+    /** Text on sun. */
     val SunInk: Color get() = Appearance.palette.sunInk
 
-    /** Coral as text (errors, warnings, links needing attention). */
+    /** The accent as text (links, markers). */
     val SunText: Color get() = Appearance.palette.sunText
 
     /** Accent text on night. */
     val SunOnNight: Color get() = Appearance.palette.sunOnNight
 
-    /** Quelle – progress, focus, success. */
+    /** Pfirsich – the second colour, only as a surface (text [SpringInk]). */
     val Spring: Color get() = Appearance.palette.spring
+
+    /** Text on spring. */
+    val SpringInk: Color get() = Appearance.palette.springInk
 
     /** The second accent as text. */
     val SpringText: Color get() = Appearance.palette.springText
@@ -162,7 +169,7 @@ object OasisColors {
     /** Muted text on night. */
     val OnNightMuted: Color get() = Appearance.palette.onNightMuted
 
-    /** Destructive buttons. */
+    /** Errors, warnings and destructive buttons. */
     val Danger: Color get() = Appearance.palette.danger
 
     /** Text on danger. */

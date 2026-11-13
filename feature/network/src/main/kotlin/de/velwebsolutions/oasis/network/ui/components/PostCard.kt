@@ -448,7 +448,7 @@ private fun MenuItems(
     }
     entries.forEach { entry ->
         DropdownMenuItem(
-            text = { Text(entry.title, style = OasisType.Body, color = if (entry.destructive) OasisColors.SunText else OasisColors.Ink) },
+            text = { Text(entry.title, style = OasisType.Body, color = if (entry.destructive) OasisColors.Danger else OasisColors.Ink) },
             onClick = {
                 close()
                 entry.action()

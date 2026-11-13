@@ -221,6 +221,8 @@ class ComponentsTest {
         assertEquals(OasisColors.Night, AvatarTint.foreground("dune"))
         assertEquals(OasisColors.OnNight, AvatarTint.foreground("night"))
         assertEquals(OasisColors.SunInk, AvatarTint.foreground("sun"))
+        assertEquals(OasisColors.SpringInk, AvatarTint.foreground("spring"))
+        assertEquals(OasisColors.Night, AvatarTint.foreground("unbekannt"))
         OasisMotion.spec<Float>()
     }
 

@@ -127,7 +127,7 @@ fun SourceScreen(viewModel: SourceViewModel = hiltViewModel<SourceViewModel>()) 
                             viewModel::dismissMemories,
                             viewModel::showOlderPosts,
                             meetups,
-                            // „Mach dein Tal lebendig“ until the tour is done, unless „Später“ hides it.
+                            // „Mach deine Startseite lebendig“ until the tour is done, unless „Später“ hides it.
                             onSnoozeOnboarding = viewModel::snoozeOnboardingCard.takeIf { me?.onboarded == false && !cardSnoozed }
                         )
                     )
@@ -147,7 +147,7 @@ class SourceExtras(
     val onShowOlder: () -> Unit,
     /** „Nächste Treffen“. */
     val meetups: List<Meetup> = emptyList(),
-    /** „Später“ of the card „Mach dein Tal lebendig“; null while the card does not show. */
+    /** „Später“ of the card „Mach deine Startseite lebendig“; null while the card does not show. */
     val onSnoozeOnboarding: (() -> Unit)? = null
 ) {
     companion object {
@@ -284,15 +284,15 @@ fun LazyListScope.sourceContent(
 }
 
 /**
- * „Mach dein Tal lebendig“ (docs/oasis-accounts.md, „Nach der Registrierung“): the welcome tour is no hurdle after
+ * „Mach deine Startseite lebendig“ (docs/oasis-accounts.md, „Nach der Registrierung“): the welcome tour is no hurdle after
  * registering any more, this card offers it until it is done; „Später“ hides the card for 14 days on this device.
  */
 private fun LazyListScope.onboardingCard(onSnooze: () -> Unit) {
     block("source.onboarding") {
         val navigator = LocalNavigator.current
         Panel(tone = PanelTone.Dune, spacing = 10, modifier = Modifier.testTag("source.onboarding")) {
-            SectionTitle("Mach dein Tal lebendig")
-            Text("Wähl ein paar Crowds und Menschen, dann füllt sich dein Tal.", style = OasisType.Body, color = OasisColors.Ink2)
+            SectionTitle("Mach deine Startseite lebendig")
+            Text("Wähl ein paar Crowds und Menschen, dann füllt sich deine Startseite.", style = OasisType.Body, color = OasisColors.Ink2)
             Row(horizontalArrangement = Arrangement.spacedBy(10.dp), verticalAlignment = Alignment.CenterVertically) {
                 OasisButton(
                     "Los geht’s",

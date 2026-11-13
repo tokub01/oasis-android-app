@@ -131,7 +131,7 @@ fun <C> LazyListScope.feedSection(
 @Composable
 fun RetryNote(message: String, title: String, retry: suspend () -> Unit) {
     Column(Modifier.fillMaxWidth(), horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.spacedBy(8.dp)) {
-        Text(message, style = OasisType.Small, color = OasisColors.SunText)
+        Text(message, style = OasisType.Small, color = OasisColors.Danger)
         AsyncOasisButton(title, retry, kind = OasisButtonKind.Secondary, fullWidth = false)
     }
 }

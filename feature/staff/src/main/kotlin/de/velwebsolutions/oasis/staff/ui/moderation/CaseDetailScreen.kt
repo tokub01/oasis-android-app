@@ -315,7 +315,7 @@ private fun ReportSection(detail: ModerationCaseDetail, state: CaseDetailUiState
                     Text(
                         "Zurückgehalten seit ${StaffDate.short(held)}. „Keine Maßnahme“ macht ihn wieder sichtbar.",
                         style = OasisType.SmallBold,
-                        color = OasisColors.SunText
+                        color = OasisColors.Danger
                     )
                 }
             }

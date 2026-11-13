@@ -777,7 +777,7 @@ private fun ConversationComposer(
             Text(
                 "Ohne Zugriff aufs Mikrofon geht keine Sprachnachricht. Du kannst ihn in den Einstellungen deines Geräts erlauben.",
                 style = OasisType.Small,
-                color = OasisColors.SunText,
+                color = OasisColors.Danger,
                 modifier = Modifier.testTag("chat.composer.microphoneDenied")
             )
         }
@@ -853,7 +853,7 @@ private fun ConversationComposer(
             Text(
                 state.counter,
                 style = OasisType.Caption,
-                color = if (state.atLimit) OasisColors.SunText else OasisColors.Muted,
+                color = if (state.atLimit) OasisColors.Danger else OasisColors.Muted,
                 modifier = Modifier.padding(horizontal = 12.dp).testTag("chat.composer.counter")
             )
         }
@@ -1273,7 +1273,7 @@ private fun BubbleColumn(
                     .background(fill, shape)
                     .then(
                         when {
-                            // On „Nachtwasser“ the own (night) bubbles get an outline, so they stand out.
+                            // On „Nacht“ the own (night) bubbles get an outline, so they stand out.
                             mine && LocalChatLook.current.dark -> Modifier.border(
                                 1.dp,
                                 LookColors.NightLine,

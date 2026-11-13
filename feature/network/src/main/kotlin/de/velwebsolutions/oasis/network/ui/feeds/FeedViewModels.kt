@@ -74,7 +74,7 @@ class SourceViewModel @Inject constructor(
 
     private val mutableCardSnoozed = MutableStateFlow(onboardingCard.snoozedUntil()?.isAfter(Instant.now()) == true)
 
-    /** „Später“ on „Mach dein Tal lebendig“ hides the card for 14 days on this device. */
+    /** „Später“ on „Mach deine Startseite lebendig“ hides the card for 14 days on this device. */
     val cardSnoozed: StateFlow<Boolean> = mutableCardSnoozed.asStateFlow()
 
     private val mutableShowOlder = MutableStateFlow(false)
@@ -99,7 +99,7 @@ class SourceViewModel @Inject constructor(
         launch { list.reload() }
     }
 
-    /** „Später“ on the card „Mach dein Tal lebendig“. */
+    /** „Später“ on the card „Mach deine Startseite lebendig“. */
     fun snoozeOnboardingCard() {
         onboardingCard.snooze(Instant.now().plus(OnboardingCardStore.SNOOZE))
         mutableCardSnoozed.value = true

@@ -84,7 +84,7 @@ class NetworkRepositoryTest(private val answersAtOnce: Boolean) {
         assertEquals(listOf("jonas"), group.members)
         assertTrue(group.url!!.endsWith("/gemeinsam/Grp2Grp2Grp2Grp2Grp2Grp2Grp2Grp2"))
         val own = repository.ownProfile()
-        assertEquals("Sonne", own.colors.first().label)
+        assertEquals("Blau", own.colors.first().label)
         assertNull(own.bannerUrl)
         val profile = repository.profile("jonas")
         assertEquals("jonas", profile.member.username)

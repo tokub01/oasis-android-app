@@ -118,7 +118,7 @@ object DeadlineLook {
     }
 
     /** The text colour for a waiting time state. */
-    fun foreground(state: String?): Color = if (state == "overdue") OasisColors.SunText else OasisColors.Night
+    fun foreground(state: String?): Color = if (state == "overdue") OasisColors.Danger else OasisColors.Night
 }
 
 /** The pages of the web's staff navigation. */

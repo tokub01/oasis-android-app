@@ -139,7 +139,7 @@ private fun PasskeyRow(passkey: Passkey, viewModel: PasskeysViewModel) {
             OasisTextButton("Umbenennen", { viewModel.startRename(passkey) }, Modifier.testTag("passkey.${passkey.id}.rename"))
             OasisTextButton("Entfernen", {
                 viewModel.askRemove(passkey)
-            }, Modifier.testTag("passkey.${passkey.id}.remove"), color = OasisColors.SunText)
+            }, Modifier.testTag("passkey.${passkey.id}.remove"), color = OasisColors.Danger)
         }
     }
 }

@@ -441,7 +441,7 @@ private fun MemberRowView(row: MemberRow, onRemove: () -> Unit) {
                 )
             }
         }
-        row.warning?.let { Text(it, style = OasisType.SmallBold, color = OasisColors.SunText) }
+        row.warning?.let { Text(it, style = OasisType.SmallBold, color = OasisColors.Danger) }
         row.safetyNumber?.let { number ->
             SelectionContainer {
                 Text(

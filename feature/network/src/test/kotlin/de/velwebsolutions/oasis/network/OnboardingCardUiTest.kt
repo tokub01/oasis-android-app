@@ -127,7 +127,7 @@ import org.robolectric.RobolectricTestRunner
 import org.robolectric.annotation.Config
 import org.robolectric.annotation.GraphicsMode
 
-/** „Mach dein Tal lebendig“ on the Quelle (docs/oasis-accounts.md, „Nach der Registrierung“): no forced tour any more. */
+/** „Mach deine Startseite lebendig“ on the Quelle (docs/oasis-accounts.md, „Nach der Registrierung“): no forced tour any more. */
 @RunWith(RobolectricTestRunner::class)
 @GraphicsMode(GraphicsMode.Mode.NATIVE)
 @Config(qualifiers = "w411dp-h3000dp")
@@ -180,8 +180,8 @@ class OnboardingCardUiTest {
         show(ScreenChrome()) { SourceScreen(model) }
         text("Hallo Mira Sol.")
         assertNull("no tour forced on the member", navigator.sheet)
-        text("Mach dein Tal lebendig")
-        text("Wähl ein paar Crowds und Menschen, dann füllt sich dein Tal.")
+        text("Mach deine Startseite lebendig")
+        text("Wähl ein paar Crowds und Menschen, dann füllt sich deine Startseite.")
         compose.onNodeWithTag("source.onboarding.start").performClick()
         assertEquals(AccountRoute.Welcome, navigator.sheet)
         compose.onNodeWithTag("source.onboarding.later").performClick()

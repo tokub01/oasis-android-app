@@ -31,7 +31,7 @@ class StaffFormatsTest {
         assertEquals(OasisColors.Sun.copy(alpha = 0.35f), DeadlineLook.background("overdue"))
         assertEquals(OasisColors.Sun.copy(alpha = 0.2f), DeadlineLook.background("soon"))
         assertEquals(OasisColors.Dune, DeadlineLook.background(null))
-        assertEquals(OasisColors.SunText, DeadlineLook.foreground("overdue"))
+        assertEquals(OasisColors.Danger, DeadlineLook.foreground("overdue"))
         assertEquals(OasisColors.Night, DeadlineLook.foreground("ok"))
     }
 

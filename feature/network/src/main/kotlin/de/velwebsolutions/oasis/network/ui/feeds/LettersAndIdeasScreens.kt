@@ -258,7 +258,7 @@ private fun IdeasPage(ideas: List<Idea>, nextPage: Int?, viewModel: IdeasViewMod
                         maxLength = 1000
                     )
                     open.error?.takeIf { it.fieldMessages.isEmpty() }?.let {
-                        Text(it.userMessage, style = OasisType.Small, color = OasisColors.SunText)
+                        Text(it.userMessage, style = OasisType.Small, color = OasisColors.Danger)
                     }
                     ButtonFlow {
                         AsyncOasisButton("Idee einreichen", viewModel::suggest, Modifier.testTag("ideas.submit"), fullWidth = false)
@@ -354,7 +354,7 @@ internal fun IdeaCard(idea: Idea, actions: IdeaActions) {
                     Text(
                         "Ausgeblendet nach einer Meldung. Nur du siehst diese Idee.",
                         style = OasisType.SmallBold,
-                        color = OasisColors.SunText
+                        color = OasisColors.Danger
                     )
                 }
             }

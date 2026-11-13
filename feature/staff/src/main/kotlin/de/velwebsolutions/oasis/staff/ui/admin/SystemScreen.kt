@@ -60,7 +60,7 @@ fun SystemScreen(viewModel: SystemViewModel = hiltViewModel()) {
                             Text(
                                 "${if (check.ok) "✓" else "✕"} ${check.detail}",
                                 style = if (check.ok) OasisType.Small else OasisType.SmallBold,
-                                color = if (check.ok) OasisColors.Ink2 else OasisColors.SunText
+                                color = if (check.ok) OasisColors.Ink2 else OasisColors.Danger
                             )
                         }
                     }

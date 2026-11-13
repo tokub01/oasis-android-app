@@ -230,7 +230,7 @@ private fun PassphraseForm(
                 "Passphrase",
                 state.passphrase,
                 onPassphraseChange,
-                hint = "Mindestens $MIN_PASSPHRASE_LENGTH Zeichen. Gut merkbar sind mehrere Wörter, z. B. „Palme Regen Kompass Tee“.",
+                hint = "Mindestens $MIN_PASSPHRASE_LENGTH Zeichen. Gut merkbar sind mehrere Wörter, z. B. „Wolke Regen Kompass Tee“.",
                 isSecure = true,
                 // "Weiter" moves on to the repetition, like iOS' submit label.
                 keyboardOptions = OasisKeyboard.Password.copy(imeAction = ImeAction.Next),
