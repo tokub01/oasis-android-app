@@ -112,7 +112,10 @@ object Fixtures {
     const val NOT_RUNNING = "Du hast derzeit keine laufende, ungekündigte Mitgliedschaft, deren Stufe du ändern könntest."
 
     /** The running subscription after the change to Mäzen. */
-    val maezenOverview = subscriptionOverview.replace(""""tier":"oase","tier_name":"Mittendrin"""", """"tier":"maezen","tier_name":"Mäzen"""")
+    val maezenOverview = subscriptionOverview.replace(
+        """"tier":"oase","tier_name":"Mittendrin"""",
+        """"tier":"maezen","tier_name":"Mäzen""""
+    )
 
     const val OBJECTED = "Dein Widerspruch ist am 06.11.2026 um 14:32 Uhr eingegangen. Für dich gilt die bisherige Fassung weiter."
 

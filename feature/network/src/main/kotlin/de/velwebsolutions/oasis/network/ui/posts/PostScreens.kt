@@ -224,8 +224,7 @@ const val QUOTE_CARRY_LEAD = "Magst du ein paar eigene Worte dazuschreiben? Waru
 const val PLAIN_CARRY_LEAD = "Teile den Post mit den Menschen, die dir folgen."
 
 /** Why the carry page has no text field. */
-fun plainCarryNote(author: String): String =
-    "$author lässt nicht alle antworten. Du kannst den Post deshalb nur ohne eigene Worte teilen."
+fun plainCarryNote(author: String): String = "$author lässt nicht alle antworten. Du kannst den Post deshalb nur ohne eigene Worte teilen."
 
 /**
  * "Tropfen bearbeiten" (/tropfen/{id}/bearbeiten): the text within the edit window; images and audience stay. A changed
