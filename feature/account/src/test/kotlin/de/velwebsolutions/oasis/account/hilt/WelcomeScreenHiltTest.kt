@@ -42,7 +42,7 @@ class WelcomeScreenHiltTest : HiltScreenTest() {
         compose.mainClock.advanceTimeBy(1_000)
         waitForText("Kurzer Hinweis", substring = true)
         shot("welcome-profile")
-        compose.onNodeWithContentDescription("Start").tap()
+        compose.onNodeWithContentDescription("Pfirsich").tap()
         compose.onNodeWithTag("welcome.next").tap()
         waitForText("Bitte freundlich.")
         compose.onNodeWithTag("welcome.toneConfirmed").tap()

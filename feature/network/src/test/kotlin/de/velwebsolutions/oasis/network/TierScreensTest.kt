@@ -185,7 +185,7 @@ class TierScreensTest {
         val locked = StubbedNetwork(stub("GET", "network/time-capsules", TierFixtures.lockedCapsules))
         val lockedModel = models.keep(TimeCapsulesViewModel(locked.repository))
         show { TimeCapsulesScreen(lockedModel) }
-        text("AB OASE")
+        text("AB MITTENDRIN")
         text("Schreib heute einen Post, der erst an einem Tag deiner Wahl erscheint", substring = true)
         text("Mitgliedschaft ansehen").performClick()
         assertEquals(MembershipRoute.Overview, navigator.stack(MainTab.Profile).last())
@@ -289,7 +289,7 @@ class TierScreensTest {
         val host = models.keep(OasisStatisticsViewModel("stadtgarten", network.repository))
         show { YearbookScreen(2024, book) }
         text("Dein Jahrbuch")
-        text("AB OASE")
+        text("AB MITTENDRIN")
         text("Deine Posts und Fotos eines Jahres", substring = true)
 
         switchTo { StatisticsScreen(numbers) }

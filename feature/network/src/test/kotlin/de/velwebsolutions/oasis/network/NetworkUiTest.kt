@@ -136,7 +136,7 @@ class NetworkUiTest {
         }
 
         compose.onNode(hasSetTextAction() and hasAnyAncestor(hasTestTag("compose.body"))).performTextInput("UI-Test Post")
-        compose.onNodeWithText("15/500").assertIsDisplayed()
+        compose.onNodeWithText("12/500").assertIsDisplayed()
         compose.onNodeWithTag("network.page").performScrollToNode(hasTestTag("compose.submit"))
         compose.onNodeWithText("Posts lesen nur angemeldete Mitglieder, nie Gäste oder Suchmaschinen.").assertIsDisplayed()
         compose.onNodeWithTag("compose.submit").performClick()

@@ -31,7 +31,7 @@ class ReleasesHiltTest : HiltScreenTest() {
         stub("GET", "releases", Fixtures.releases)
         show { AccountScreen(AccountRoute.Releases) }
         waitForTag("release.0.24.0")
-        compose.onNodeWithText("DEINE APP: OASIS 0.24.0").assertIsDisplayed()
+        compose.onNodeWithText("DEINE APP: MILDCROWD 0.24.0").assertIsDisplayed()
         compose.onNodeWithText("Wie Mildcrowd entsteht").assertIsDisplayed()
         compose.onNodeWithText("Aktuell").assertExists()
         compose.onNodeWithText("• Der Chat startet ruhiger.").assertExists()

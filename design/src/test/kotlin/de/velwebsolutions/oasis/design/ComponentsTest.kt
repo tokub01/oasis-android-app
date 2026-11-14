@@ -164,7 +164,7 @@ class ComponentsTest {
         }
         compose.onNodeWithText("99+").assertExists()
         compose.onNodeWithContentDescription("5 neu").assertExists()
-        compose.onNodeWithText("QUELLE").assertExists()
+        compose.onNodeWithText("START").assertExists()
         compose.onRoot().captureRoboImage("build/outputs/roborazzi/design-surfaces.png")
     }
 
@@ -277,7 +277,7 @@ class ComponentsTest {
                 }
             }
         }
-        compose.onNodeWithText("AB OASE", ignoreCase = true).assertExists()
+        compose.onNodeWithText("AB MITTENDRIN", ignoreCase = true).assertExists()
         compose.onNodeWithText("Schreib heute einen Post.").assertExists()
         compose.onNodeWithText("Das gibt es ab der Mitgliedschaft Mittendrin.").assertDoesNotExist()
     }
