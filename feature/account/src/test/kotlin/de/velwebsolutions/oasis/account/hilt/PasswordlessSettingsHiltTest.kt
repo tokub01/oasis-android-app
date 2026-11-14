@@ -112,7 +112,7 @@ class PasswordlessSettingsHiltTest : DeviceScreenTest() {
         waitForText("Bitte gib dem Passkey einen Namen.")
         screenShot("settings-passkey-rename")
         compose.onNodeWithTag("passkey.name.dismiss").press()
-        compose.waitUntil(5_000) { compose.onAllNodes(hasTestTag("passkey.name")).fetchSemanticsNodes().isEmpty() }
+        compose.waitUntil(15_000) { compose.onAllNodes(hasTestTag("passkey.name")).fetchSemanticsNodes().isEmpty() }
         compose.onNodeWithTag("passkey.3.rename").tap()
         stub("PATCH", "account/passkeys/3", """{"data":{"id":3,"name":"Handy"}}""")
         field("Name").performTextClearance()
@@ -165,7 +165,7 @@ class PasswordlessSettingsHiltTest : DeviceScreenTest() {
         stub("GET", "account/phone", PasswordlessFixtures.phone(available = false))
         showWithDevice { AccountScreen(AccountRoute.Settings) }
         waitForTag("passkeys.add")
-        compose.waitUntil(5_000) { transport.requests.any { it.path == "account/phone" } }
+        compose.waitUntil(15_000) { transport.requests.any { it.path == "account/phone" } }
         compose.waitForIdle()
         compose.onNodeWithText("Handynummer").assertDoesNotExist()
         compose.onNodeWithText("SMS sind gerade nicht verfügbar.", substring = true).assertDoesNotExist()
@@ -185,7 +185,7 @@ class PasswordlessSettingsHiltTest : DeviceScreenTest() {
         compose.onNodeWithTag("phone.send").tap()
         waitForTag("confirm.password")
         compose.onAllNodesText("Abbrechen").last().press()
-        compose.waitUntil(5_000) { compose.onAllNodesText("Kurz bestätigen").isEmpty() }
+        compose.waitUntil(15_000) { compose.onAllNodesText("Kurz bestätigen").isEmpty() }
         compose.onNodeWithTag("phone.send").tap()
         waitForTag("confirm.password")
         stub("POST", "account/confirm-password", Fixtures.account)
@@ -194,7 +194,7 @@ class PasswordlessSettingsHiltTest : DeviceScreenTest() {
         compose.onNodeWithTag("confirm.submit").press()
         waitForTag("phone.code")
         waitForText("Wartet auf Bestätigung")
-        compose.waitUntil(5_000) { smsRequests.isNotEmpty() }
+        compose.waitUntil(15_000) { smsRequests.isNotEmpty() }
         shot("settings-phone-pending")
 
         stub("POST", "account/phone/confirm", """{"message":"x","errors":{"code":["Der Code stimmt nicht."]}}""", status = 422)
@@ -213,7 +213,7 @@ class PasswordlessSettingsHiltTest : DeviceScreenTest() {
         compose.onNodeWithTag("phone.edit").tap()
         waitForText("Neue Handynummer")
         compose.onNodeWithTag("phone.cancel").tap()
-        compose.waitUntil(5_000) { compose.onAllNodes(hasTestTag("phone.field")).fetchSemanticsNodes().isEmpty() }
+        compose.waitUntil(15_000) { compose.onAllNodes(hasTestTag("phone.field")).fetchSemanticsNodes().isEmpty() }
         compose.onNodeWithTag("phone.remove").tap()
         waitForText("Deine Handynummer löschen?", substring = true)
         screenShot("settings-phone-remove")

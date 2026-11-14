@@ -185,7 +185,7 @@ class OnboardingCardUiTest {
         compose.onNodeWithTag("source.onboarding.start").performClick()
         assertEquals(AccountRoute.Welcome, navigator.sheet)
         compose.onNodeWithTag("source.onboarding.later").performClick()
-        compose.waitUntil(5_000) { model.cardSnoozed.value }
+        compose.waitUntil(15_000) { model.cardSnoozed.value }
         compose.onNodeWithTag("source.onboarding").assertDoesNotExist()
         val days = java.time.Duration.between(java.time.Instant.now(), card.until).toDays()
         assertEquals("„Später“ hides the card for 14 days", 13L, days)

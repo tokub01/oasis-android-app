@@ -105,7 +105,7 @@ class TransparencyTest {
         compose.onNodeWithText("Überschuss").performScrollTo()
         shot("transparency-report")
         compose.onNodeWithTag("transparency.report.3").performScrollTo().performClick()
-        compose.waitUntil(5_000) { viewModel.state.value.shown?.id == 3 }
+        compose.waitUntil(15_000) { viewModel.state.value.shown?.id == 3 }
         compose.onNodeWithText("Fehlbetrag").performScrollTo()
         Appearance.show(AppearanceChoice.Dark)
         compose.onNodeWithText("Mildcrowd heute").performScrollTo()

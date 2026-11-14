@@ -82,13 +82,13 @@ class MembershipScreensWiringTest {
         show { OverviewScreen(viewModel) }
         compose.onNodeWithTag("membership.objectToTerms").tap()
         compose.onNodeWithTag("membership.termsConfirm").performClick()
-        compose.waitUntil(5_000) { compose.onAllNodesWithTag("membership.termsObjected").fetchSemanticsNodes().isNotEmpty() }
+        compose.waitUntil(15_000) { compose.onAllNodesWithTag("membership.termsObjected").fetchSemanticsNodes().isNotEmpty() }
         assertEquals(listOf("objectToTerms"), repository.calls)
 
         repository.termsObjection = Result.success(Confirmed(Fixtures.overview(Fixtures.termsChangeOverview), Fixtures.OBJECTION_WITHDRAWN))
         compose.onNodeWithTag("membership.withdrawTermsObjection").tap()
         compose.onNodeWithTag("membership.termsConfirm").performClick()
-        compose.waitUntil(5_000) { compose.onAllNodesWithTag("membership.objectToTerms").fetchSemanticsNodes().isNotEmpty() }
+        compose.waitUntil(15_000) { compose.onAllNodesWithTag("membership.objectToTerms").fetchSemanticsNodes().isNotEmpty() }
         assertEquals(listOf("objectToTerms", "withdrawTermsObjection"), repository.calls)
     }
 
@@ -96,12 +96,12 @@ class MembershipScreensWiringTest {
     fun `the overview changes the tier through its view model`() {
         val viewModel = OverviewViewModel(repository, events)
         show { OverviewScreen(viewModel) }
-        compose.waitUntil(5_000) { viewModel.state.value.tier == "oase" }
+        compose.waitUntil(15_000) { viewModel.state.value.tier == "oase" }
         compose.onNodeWithTag("membership.tier.maezen").tap()
         compose.onNodeWithContentDescription("Dein Monatsbeitrag in Euro (ab 12)").performScrollTo().performTextInput("15")
         compose.onNodeWithTag("membership.tier.change").tap()
         compose.onNodeWithTag("membership.tier.confirm").performClick()
-        compose.waitUntil(5_000) { viewModel.state.value.overview.valueOrNull?.subscription?.tier == "maezen" }
+        compose.waitUntil(15_000) { viewModel.state.value.overview.valueOrNull?.subscription?.tier == "maezen" }
         assertEquals(listOf("changeTier TierChangeInput(tier=maezen, amount=15)"), repository.calls)
     }
 

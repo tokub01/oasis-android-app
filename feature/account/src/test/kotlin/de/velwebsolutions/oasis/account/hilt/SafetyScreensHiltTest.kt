@@ -44,7 +44,7 @@ class SafetyScreensHiltTest : HiltScreenTest() {
         compose.onNodeWithTag("devices.app.12").tap()
         waitForRequest("DELETE", "privacy/devices/apps/12")
         compose.onAllNodesText("Abmelden").last().tap()
-        compose.waitUntil(5_000) { transport.requests.any { it.path.startsWith("privacy/devices/sessions/") } }
+        compose.waitUntil(15_000) { transport.requests.any { it.path.startsWith("privacy/devices/sessions/") } }
         compose.onNodeWithText("Vergessen").tap()
         waitForRequest("DELETE", "privacy/devices/known/1")
 
@@ -147,7 +147,7 @@ class SafetyScreensHiltTest : HiltScreenTest() {
         waitForText("Bitte wähle aus, was nicht stimmt.")
         stub("POST", "report", """{"message":"Server Error"}""", status = 500)
         compose.onNodeWithTag("report.send").tap()
-        compose.waitUntil(5_000) { transport.requests.count { it.path == "report" && it.request.method == "POST" } == 2 }
+        compose.waitUntil(15_000) { transport.requests.count { it.path == "report" && it.request.method == "POST" } == 2 }
         stub("POST", "report", "{}")
         compose.onNodeWithTag("report.category.spam").tap()
         type("Möchtest du noch etwas dazu sagen? (freiwillig)", "Seit Wochen.")

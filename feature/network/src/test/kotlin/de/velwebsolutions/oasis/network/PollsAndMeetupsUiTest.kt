@@ -169,17 +169,17 @@ class PollsAndMeetupsUiTest {
         )
         val model = models.keep(OasisViewModel("garten", network.repository))
         show { OasisDetailScreen("garten", model, atMeetups = true) }
-        compose.waitUntil(5_000) { compose.onAllNodes(hasTestTag("oasis.meetups")).fetchSemanticsNodes().isNotEmpty() }
+        compose.waitUntil(15_000) { compose.onAllNodes(hasTestTag("oasis.meetups")).fetchSemanticsNodes().isNotEmpty() }
         capture("meetups")
         compose.onNodeWithTag("meetup.answer.maybe").tap()
-        compose.waitUntil(5_000) { model.meetups.value?.upcoming?.first()?.myAnswer == "maybe" }
+        compose.waitUntil(15_000) { model.meetups.value?.upcoming?.first()?.myAnswer == "maybe" }
         compose.onAllNodes(hasText("Wer geantwortet hat"))[0].tap()
         compose.onNodeWithText("Jonas Weber · Ich komme").assertExists()
         compose.onAllNodes(hasText("Wer geantwortet hat"))[0].tap()
         compose.onNodeWithText("Vergangene Treffen").tap()
         compose.onNodeWithText("Vergangene Treffen").tap()
         compose.onNodeWithTag("meetup.allowMembers").tap()
-        compose.waitUntil(5_000) { model.meetups.value?.membersCreateMeetups == true }
+        compose.waitUntil(15_000) { model.meetups.value?.membersCreateMeetups == true }
 
         compose.onNodeWithTag("meetup.create").tap()
         compose.onNodeWithText("Neues Treffen").performScrollTo()
@@ -191,11 +191,11 @@ class PollsAndMeetupsUiTest {
 
         compose.onAllNodes(hasTestTag("meetup.cancel"))[0].tap()
         compose.onNodeWithText("Absagen").performClick()
-        compose.waitUntil(5_000) { model.meetups.value?.upcoming?.first()?.cancelled == true }
+        compose.waitUntil(15_000) { model.meetups.value?.upcoming?.first()?.cancelled == true }
 
         compose.onNodeWithTag("network.page").performScrollToNode(hasTestTag("oasis.volunteer"))
         compose.onNodeWithTag("oasis.volunteer").tap()
-        compose.waitUntil(5_000) { model.detail.value.valueOrNull?.welcome?.volunteer == true }
+        compose.waitUntil(15_000) { model.detail.value.valueOrNull?.welcome?.volunteer == true }
         compose.onNodeWithText("Freiwillige").assertExists()
 
         compose.onNodeWithTag("network.page").performScrollToNode(hasTestTag("oasis.pate"))

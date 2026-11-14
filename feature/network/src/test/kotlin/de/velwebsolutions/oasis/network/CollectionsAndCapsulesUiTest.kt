@@ -96,7 +96,7 @@ class CollectionsAndCapsulesUiTest {
     }
 
     private fun waitFor(text: String) =
-        compose.waitUntil(5_000) { compose.onAllNodes(hasText(text, substring = true)).fetchSemanticsNodes().isNotEmpty() }
+        compose.waitUntil(15_000) { compose.onAllNodes(hasText(text, substring = true)).fetchSemanticsNodes().isNotEmpty() }
 
     private fun opened(route: NetworkRoute) = MainTab.entries.any { route in navigator.stack(it) }
 
@@ -147,13 +147,13 @@ class CollectionsAndCapsulesUiTest {
         )
         val model = models.keep(OasisViewModel("garten", network.repository))
         show { OasisDetailScreen("garten", model, atCollection = 4) }
-        compose.waitUntil(5_000) { model.shownCollection.value?.posts?.isNotEmpty() == true }
+        compose.waitUntil(15_000) { model.shownCollection.value?.posts?.isNotEmpty() == true }
         compose.onNodeWithTag("network.page").performScrollToNode(hasTestTag("oasis.collections"))
         waitFor("Was wir kochen")
         capture("oasis-collections")
 
         compose.onNodeWithTag("collection.allowMembers").tap()
-        compose.waitUntil(5_000) { model.collections.value?.membersCreateCollections == true }
+        compose.waitUntil(15_000) { model.collections.value?.membersCreateCollections == true }
         compose.onNodeWithTag("collection.edit").tap()
         compose.onNodeWithText("Sammlung ändern").assertExists()
         compose.onNodeWithTag("collection.close").tap()
@@ -167,16 +167,16 @@ class CollectionsAndCapsulesUiTest {
 
         compose.onNodeWithTag("network.page").performScrollToNode(hasTestTag("oasis.collections"))
         compose.onNodeWithTag("collection.6").tap()
-        compose.waitUntil(5_000) { model.shownCollectionId.value == 6 }
+        compose.waitUntil(15_000) { model.shownCollectionId.value == 6 }
         waitFor("Noch kein Post in dieser Sammlung.")
         compose.onNodeWithTag("collection.4").tap()
-        compose.waitUntil(5_000) { model.shownCollection.value?.posts?.isNotEmpty() == true && model.shownCollectionId.value == 4 }
+        compose.waitUntil(15_000) { model.shownCollection.value?.posts?.isNotEmpty() == true && model.shownCollectionId.value == 4 }
         compose.onNodeWithTag("collection.delete").tap()
         compose.onNodeWithText("Ihre Posts bleiben in der Crowd.").assertExists()
         compose.onNodeWithTag("dialog.cancel").performClick()
         compose.onNodeWithTag("collection.delete").tap()
         compose.onNodeWithTag("dialog.confirm").performClick()
-        compose.waitUntil(5_000) { model.shownCollectionId.value == null }
+        compose.waitUntil(15_000) { model.shownCollectionId.value == null }
     }
 
     @Test
@@ -191,7 +191,7 @@ class CollectionsAndCapsulesUiTest {
         waitFor("Rezepte · 2")
         capture("collect-post")
         compose.onNodeWithTag("collect.4").performClick()
-        compose.waitUntil(5_000) { navigator.sheet == null }
+        compose.waitUntil(15_000) { navigator.sheet == null }
         NetworkSignals.confirmation.value = null
 
         val empty = StubbedNetwork(stub("GET", "network/oases/garten/collections", """{"data":{"can_create":false,"collections":[]}}"""))
@@ -240,19 +240,19 @@ class CollectionsAndCapsulesUiTest {
         compose.onNodeWithTag("capsule.contribute.1").tap()
         waitFor("Dein Beitrag ist gespeichert.")
         compose.onNodeWithTag("capsule.remove.2").tap()
-        compose.waitUntil(5_000) { model.capsules.value.valueOrNull?.invitations?.get(1)?.body == null }
+        compose.waitUntil(15_000) { model.capsules.value.valueOrNull?.invitations?.get(1)?.body == null }
         compose.onNode(hasText("Beitrag entfernen") and hasAnyAncestor(hasTestTag("capsule.invitation.6"))).tap()
-        compose.waitUntil(5_000) { model.capsules.value.valueOrNull?.invitations?.get(5)?.status == "declined" }
+        compose.waitUntil(15_000) { model.capsules.value.valueOrNull?.invitations?.get(5)?.status == "declined" }
         compose.onNodeWithTag("capsule.decline.1").tap()
         compose.onNodeWithText("Dein Text wird gelöscht.").assertExists()
         compose.onNodeWithTag("dialog.cancel").performClick()
         compose.onNodeWithTag("capsule.decline.1").tap()
         compose.onNodeWithTag("dialog.confirm").performClick()
-        compose.waitUntil(5_000) { model.capsules.value.valueOrNull?.invitations?.first()?.status == "declined" }
+        compose.waitUntil(15_000) { model.capsules.value.valueOrNull?.invitations?.first()?.status == "declined" }
 
         compose.onNodeWithTag("network.page").performScrollToNode(hasTestTag("capsule.shared"))
         compose.onNodeWithTag("capsule.shared").tap()
-        compose.waitUntil(5_000) { model.candidates.value != null }
+        compose.waitUntil(15_000) { model.candidates.value != null }
         compose.onNodeWithTag("network.page").performScrollToNode(hasTestTag("capsule.invitee.jonas"))
         compose.onNodeWithTag("capsule.invitee.jonas").tap()
         compose.onNodeWithTag("network.page").performScrollToNode(hasTestTag("capsule.invitees"))
@@ -281,7 +281,7 @@ class CollectionsAndCapsulesUiTest {
         )
         val alone = models.keep(TimeCapsulesViewModel(friendless.repository))
         switchTo { TimeCapsulesScreen(alone) }
-        compose.waitUntil(5_000) { alone.capsules.value.valueOrNull != null }
+        compose.waitUntil(15_000) { alone.capsules.value.valueOrNull != null }
         compose.onNodeWithTag("network.page").performScrollToNode(hasTestTag("capsule.shared"))
         compose.onNodeWithTag("capsule.shared").tap()
         waitFor("Noch niemand zum Einladen")

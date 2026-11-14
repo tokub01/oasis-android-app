@@ -172,7 +172,7 @@ class PlayCheckoutTest {
         screen.cancelAndJoin()
         gate.complete(Unit)
         // The purchase goes to the server on OkHttp's thread; wait for it in real time.
-        withContext(Dispatchers.Default) { withTimeout(5_000) { while (viewModel.state.value.purchasing != null) delay(10) } }
+        withContext(Dispatchers.Default) { withTimeout(15_000) { while (viewModel.state.value.purchasing != null) delay(10) } }
         assertEquals("token-${Catalogue.OASE_MONTHLY} ${Catalogue.OASE_MONTHLY}", sent())
         assertEquals(Fixtures.WELCOME, events.take().message)
     }

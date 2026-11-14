@@ -72,7 +72,7 @@ class WelcomeScreenHiltTest : HiltScreenTest() {
         compose.onNodeWithTag("welcome.finish").tap()
         waitForRequest("POST", "onboarding/finish")
         // Opened again from the settings, the tour goes back one screen (here the last page opened from it).
-        compose.waitUntil(5_000) { stack().last() == NetworkRoute.Search("lea") }
+        compose.waitUntil(15_000) { stack().last() == NetworkRoute.Search("lea") }
         assertEquals(listOf(AccountRoute.Welcome, AccountRoute.PrivacyCheckup, NetworkRoute.Oases), stack().take(3))
     }
 

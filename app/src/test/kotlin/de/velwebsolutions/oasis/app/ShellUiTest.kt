@@ -265,7 +265,7 @@ class ShellUiTest {
         auth.me = mira
         compose.activityRule.scenario.moveToState(androidx.lifecycle.Lifecycle.State.STARTED)
         compose.activityRule.scenario.moveToState(androidx.lifecycle.Lifecycle.State.RESUMED)
-        compose.waitUntil(5_000) {
+        compose.waitUntil(15_000) {
             compose.onAllNodes(androidx.compose.ui.test.hasTestTag("tab.source")).fetchSemanticsNodes().isNotEmpty()
         }
     }

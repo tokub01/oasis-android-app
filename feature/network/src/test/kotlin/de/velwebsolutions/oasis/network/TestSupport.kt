@@ -130,7 +130,7 @@ class ViewModelKeeper {
 }
 
 /** Waits (in real time) until work started on OkHttp's threads has arrived. */
-fun eventually(timeoutMillis: Long = 3_000, condition: () -> Boolean) {
+fun eventually(timeoutMillis: Long = 15_000, condition: () -> Boolean) {
     val end = System.currentTimeMillis() + timeoutMillis
     while (!condition() && System.currentTimeMillis() < end) Thread.sleep(10)
     assertTrue("condition not met within $timeoutMillis ms", condition())

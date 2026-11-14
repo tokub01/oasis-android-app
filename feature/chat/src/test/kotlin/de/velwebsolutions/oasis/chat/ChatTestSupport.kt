@@ -108,7 +108,7 @@ class HookedDispatcher(private val before: () -> Unit) : CoroutineDispatcher() {
 suspend fun settle(scheduler: kotlinx.coroutines.test.TestCoroutineScheduler, server: FakeChatServer, done: () -> Boolean) {
     kotlinx.coroutines.withContext(Dispatchers.Default) {
         kotlinx.coroutines.delay(30)
-        kotlinx.coroutines.withTimeout(5_000) {
+        kotlinx.coroutines.withTimeout(15_000) {
             while (!(done() && server.inFlight.get() == 0)) {
                 kotlinx.coroutines.delay(10)
                 kotlinx.coroutines.withContext(Dispatchers.Main) { scheduler.runCurrent() }

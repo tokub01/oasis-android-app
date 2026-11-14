@@ -96,7 +96,7 @@ class AppLinksHiltTest : DeviceScreenTest() {
         waitForText(AccountLinksViewModel.CONFIRMED)
         assertEquals(true, session.me?.emailVerified)
         compose.onNodeWithText("OK").press()
-        compose.waitUntil(5_000) { compose.onAllNodes(hasText(AccountLinksViewModel.CONFIRMED)).fetchSemanticsNodes().isEmpty() }
+        compose.waitUntil(15_000) { compose.onAllNodes(hasText(AccountLinksViewModel.CONFIRMED)).fetchSemanticsNodes().isEmpty() }
 
         navigator.handle(resetLink)
         compose.waitForIdle()

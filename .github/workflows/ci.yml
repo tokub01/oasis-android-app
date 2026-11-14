@@ -28,13 +28,14 @@ jobs:
           distribution: temurin
           java-version: '21'
       - uses: gradle/actions/setup-gradle@v5
-      # gradle.properties allows four workers, sized for the Mac. On the hosted runner four test JVMs at once made the UI
-      # tests that wait in real time run into their timeouts, and four parallel dex merges beside the emulator ended in
-      # an OutOfMemoryError. The file in the Gradle user home takes precedence over the project's.
-      - name: Two Gradle workers on the hosted runner
+      # gradle.properties gives the Gradle daemon 2 GB, sized for a 16 GB Mac that also runs Docker and simulators. On the
+      # hosted runner (4 cores, 16 GB) that was too little for four parallel dex merges of the instrumented tests
+      # (OutOfMemoryError in D8). The file in the Gradle user home takes precedence over the project's.
+      - name: A larger Gradle heap on the hosted runner
         run: |
           echo "Runner: $(nproc) cores, $(free -m | awk '/^Mem:/{print $2}') MB memory"
-          mkdir -p ~/.gradle && echo 'org.gradle.workers.max=2' >> ~/.gradle/gradle.properties
+          mkdir -p ~/.gradle
+          echo 'org.gradle.jvmargs=-Xmx4g -XX:MaxMetaspaceSize=768m -Dfile.encoding=UTF-8' >> ~/.gradle/gradle.properties
       # Firebase for push (FCM): written from the secret when it is set; without it the app builds without push.
       - name: Firebase configuration
         env:
@@ -84,13 +85,14 @@ jobs:
           distribution: temurin
           java-version: '21'
       - uses: gradle/actions/setup-gradle@v5
-      # gradle.properties allows four workers, sized for the Mac. On the hosted runner four test JVMs at once made the UI
-      # tests that wait in real time run into their timeouts, and four parallel dex merges beside the emulator ended in
-      # an OutOfMemoryError. The file in the Gradle user home takes precedence over the project's.
-      - name: Two Gradle workers on the hosted runner
+      # gradle.properties gives the Gradle daemon 2 GB, sized for a 16 GB Mac that also runs Docker and simulators. On the
+      # hosted runner (4 cores, 16 GB) that was too little for four parallel dex merges of the instrumented tests
+      # (OutOfMemoryError in D8). The file in the Gradle user home takes precedence over the project's.
+      - name: A larger Gradle heap on the hosted runner
         run: |
           echo "Runner: $(nproc) cores, $(free -m | awk '/^Mem:/{print $2}') MB memory"
-          mkdir -p ~/.gradle && echo 'org.gradle.workers.max=2' >> ~/.gradle/gradle.properties
+          mkdir -p ~/.gradle
+          echo 'org.gradle.jvmargs=-Xmx4g -XX:MaxMetaspaceSize=768m -Dfile.encoding=UTF-8' >> ~/.gradle/gradle.properties
       - name: Enable KVM
         run: |
           echo 'KERNEL=="kvm", GROUP="kvm", MODE="0666", OPTIONS+="static_node=kvm"' | sudo tee /etc/udev/rules.d/99-kvm4all.rules

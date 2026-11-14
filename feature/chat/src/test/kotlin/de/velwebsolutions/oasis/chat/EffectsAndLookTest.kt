@@ -266,6 +266,6 @@ class EffectsAndLookTest {
     }
 
     private suspend fun waitFor(done: () -> Boolean) = kotlinx.coroutines.withContext(kotlinx.coroutines.Dispatchers.Default) {
-        kotlinx.coroutines.withTimeout(5_000) { while (!done()) kotlinx.coroutines.delay(10) }
+        kotlinx.coroutines.withTimeout(15_000) { while (!done()) kotlinx.coroutines.delay(10) }
     }
 }

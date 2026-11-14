@@ -88,7 +88,7 @@ class ConversationAttachmentsTest {
     }
 
     private suspend fun waitFor(done: () -> Boolean) = withContext(Dispatchers.Default) {
-        withTimeout(5_000) {
+        withTimeout(15_000) {
             while (!done()) delay(10)
         }
     }

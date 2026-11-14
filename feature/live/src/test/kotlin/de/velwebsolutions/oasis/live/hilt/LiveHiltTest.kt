@@ -77,7 +77,7 @@ class LiveHiltTest {
                 }
             }
         }
-        compose.waitUntil(5_000) { transport.requests.any { it.path == "hints" } }
+        compose.waitUntil(15_000) { transport.requests.any { it.path == "hints" } }
         compose.onNodeWithTag("hints.bell").assertExists()
     }
 
@@ -86,8 +86,8 @@ class LiveHiltTest {
         scenario = ActivityScenario.launch(HiltTestActivity::class.java).onActivity { activity ->
             activity.setContent { CompositionLocalProvider(LocalNavigator provides Navigator()) { LiveScreen(LiveRoute.Settings) } }
         }
-        compose.waitUntil(5_000) { transport.requests.any { it.path == "hints/settings" } }
-        compose.waitUntil(5_000) { compose.onAllNodesWithTag("digest").fetchSemanticsNodes().isNotEmpty() }
+        compose.waitUntil(15_000) { transport.requests.any { it.path == "hints/settings" } }
+        compose.waitUntil(15_000) { compose.onAllNodesWithTag("digest").fetchSemanticsNodes().isNotEmpty() }
     }
 
     @Test
