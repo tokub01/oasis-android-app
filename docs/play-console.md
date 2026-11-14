@@ -26,7 +26,7 @@ mit R8 verkleinert und mit dem Upload-Schlüssel signiert. Google signiert sie f
      aktivieren, ein Service-Konto anlegen und einen JSON-Schlüssel erzeugen.
    - In der Play Console → Nutzer und Berechtigungen → Nutzer einladen: die E-Mail des Service-Kontos, für die App
      Mildcrowd mit „Releases für Testtracks verwalten“ (und „Store-Eintrag verwalten“, wenn die Texte mit hochgehen sollen).
-8. **GitHub-Secrets** im Repo `tokub01/oasis-android-app` (Settings → Secrets and variables → Actions):
+8. **GitHub-Secrets** im Repo `tokub01/mildcrowd-android-app` (Settings → Secrets and variables → Actions):
 
    | Secret | Inhalt |
    |---|---|
