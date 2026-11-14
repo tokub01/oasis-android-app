@@ -364,7 +364,7 @@ class ComponentsTest {
         }
         openWebPage(app, "https://mildcrowd.com/app/mitgliedschaft/rechnungen/9")
         assertEquals("org.beispiel.browser", shadowOf(app).nextStartedActivity.`package`)
-        openWebPage(app, "oasis://unbekannt")
+        openWebPage(app, "mildcrowd://unbekannt")
         assertNull("the app is the only handler of its scheme", shadowOf(app).nextStartedActivity)
     }
 

@@ -12,7 +12,7 @@ plugins {
 
 // Push through Firebase Cloud Messaging (project oasis-86acd) when app/google-services.json is there – locally copied,
 // in CI written from the GOOGLE_SERVICES_JSON_B64 secret, never committed. Without it the app builds without push.
-// The file names only de.velwebsolutions.oasis, so the ".staging" variant goes without Firebase.
+// The file names only de.velwebsolutions.mildcrowd, so the ".staging" variant goes without Firebase.
 if (file("google-services.json").exists()) {
     apply(plugin = "com.google.gms.google-services")
     tasks.matching { it.name.startsWith("process") && it.name.contains("Staging") && it.name.endsWith("GoogleServices") }
@@ -51,7 +51,7 @@ android {
     namespace = "de.velwebsolutions.oasis.app"
 
     defaultConfig {
-        applicationId = "de.velwebsolutions.oasis"
+        applicationId = "de.velwebsolutions.mildcrowd"
         versionCode = commitVersionCode
         versionName = "0.28.0"
         buildConfigField("String", "OASIS_GATE_KEY", "\"\"")

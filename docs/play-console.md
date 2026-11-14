@@ -1,7 +1,7 @@
 # Mildcrowd in der Google Play Console
 
 Vorlage für den internen Test – das Gegenstück zu TestFlight. Die App für Play ist die Build-Variante `play`:
-Paketname `de.velwebsolutions.oasis`, spricht mit `staging.mildcrowd.com` (mit Staging-Gate) wie der TestFlight-Build,
+Paketname `de.velwebsolutions.mildcrowd`, spricht mit `staging.mildcrowd.com` (mit Staging-Gate) wie der TestFlight-Build,
 mit R8 verkleinert und mit dem Upload-Schlüssel signiert. Google signiert sie für die Geräte neu (Play App Signing).
 
 ## Was du selbst tun musst (Schritt für Schritt)

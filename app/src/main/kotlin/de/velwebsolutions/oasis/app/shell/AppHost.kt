@@ -44,7 +44,7 @@ object AppHost {
     /** The web URL a notification opens. */
     const val EXTRA_URL = "de.velwebsolutions.oasis.url"
 
-    /** The link an intent carries: an app link or `oasis://`, our push extra, or FCM's own data extra `url`. */
+    /** The link an intent carries: an app link or `mildcrowd://`, our push extra, or FCM's own data extra `url`. */
     fun url(intent: Intent?): String? = intent?.dataString ?: intent?.getStringExtra(EXTRA_URL) ?: intent?.getStringExtra("url")
 
     /** Set by [de.velwebsolutions.oasis.app.ShareReceiverActivity]: a share waits for "Teilen mit …". */

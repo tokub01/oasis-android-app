@@ -27,12 +27,12 @@
                 <action android:name="android.intent.action.MAIN" />
                 <category android:name="android.intent.category.LAUNCHER" />
             </intent-filter>
-            <!-- oasis://mitgliedschaft?checkout=… after a payment, like the iOS URL scheme. -->
+            <!-- mildcrowd://mitgliedschaft?checkout=… after a payment, like the iOS URL scheme. -->
             <intent-filter>
                 <action android:name="android.intent.action.VIEW" />
                 <category android:name="android.intent.category.DEFAULT" />
                 <category android:name="android.intent.category.BROWSABLE" />
-                <data android:scheme="oasis" />
+                <data android:scheme="mildcrowd" />
             </intent-filter>
             <!--
                 Links from mails and shared posts open the app instead of the browser (verified App Links: the host's

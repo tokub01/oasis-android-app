@@ -134,8 +134,8 @@ class NavigationTest {
     @Test
     fun `every web path opens its screen`() {
         links.forEach { (path, route) -> assertEquals(path, route, DeepLink.route(base + path)) }
-        assertEquals(MembershipRoute.Portal, DeepLink.route("oasis://app/mitgliedschaft/portal"))
-        assertNull(DeepLink.route("oasis://"))
+        assertEquals(MembershipRoute.Portal, DeepLink.route("mildcrowd://app/mitgliedschaft/portal"))
+        assertNull(DeepLink.route("mildcrowd://"))
         assertNull(DeepLink.route("mailto:hallo@mildcrowd.com"))
         assertNull(DeepLink.route("kein link mit leerzeichen"))
         assertNull(DeepLink.route("$base/themen/100%"))

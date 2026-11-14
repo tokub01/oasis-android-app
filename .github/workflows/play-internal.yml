@@ -1,4 +1,4 @@
-# Every push to develop builds the Play variant (staging.mildcrowd.com, package de.velwebsolutions.oasis), signs it
+# Every push to develop builds the Play variant (staging.mildcrowd.com, package de.velwebsolutions.mildcrowd), signs it
 # with the upload key and publishes it to Google Play's internal test track – the counterpart of TestFlight on iOS.
 #
 # Repository secrets (GitHub → Settings → Secrets and variables → Actions):

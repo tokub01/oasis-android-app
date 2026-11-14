@@ -58,12 +58,12 @@ class PushContentTest {
         val hint = PushContent.from(mapOf("tag" to "oasis-hinweise", "url" to "https://mildcrowd.com/app/hinweise"), null, null)
         assertEquals(PushChannel.Hints, hint.channel)
         assertEquals(PushChannel.Hints, PushContent.from(emptyMap(), null, null).channel)
-        assertEquals(PushChannel.Hints, PushContent.from(mapOf("tag" to " ", "url" to "oasis://app/hinweise"), null, null).channel)
+        assertEquals(PushChannel.Hints, PushContent.from(mapOf("tag" to " ", "url" to "mildcrowd://app/hinweise"), null, null).channel)
         assertNull("a blank tag is no tag", PushContent.from(mapOf("tag" to " "), null, null).tag)
         assertEquals(
             "http://localhost/app/nachrichten",
             PushContent.from(mapOf("url" to "http://localhost/app/nachrichten"), null, null).url
         )
-        assertEquals("oasis://app/hinweise", PushContent.from(mapOf("url" to "oasis://app/hinweise"), null, null).url)
+        assertEquals("mildcrowd://app/hinweise", PushContent.from(mapOf("url" to "mildcrowd://app/hinweise"), null, null).url)
     }
 }

@@ -25,7 +25,7 @@ import kotlinx.coroutines.launch
 
 /**
  * The main activity (a FragmentActivity, so the chat can show the androidx BiometricPrompt): hosts [AppHost.Content] and
- * passes links (app links, `oasis://`, push taps) and shares from other apps to the navigator – each intent once, so an
+ * passes links (app links, `mildcrowd://`, push taps) and shares from other apps to the navigator – each intent once, so an
  * activity Android creates again (rotation, dark mode) or reopens from the recent apps keeps the screens
  * ([AppHost.created]). While the chat is unlocked, Android's recent apps show no picture of it
  * ([AppHost.recentsScreenshots], Android 13 and later; before, the window is secure meanwhile: [AppHost.secureWhileUnlocked]).

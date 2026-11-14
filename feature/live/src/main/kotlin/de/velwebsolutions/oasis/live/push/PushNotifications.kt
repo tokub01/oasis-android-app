@@ -42,7 +42,7 @@ data class PushContent(val title: String, val body: String, val url: String?, va
         fun from(data: Map<String, String>, notificationTitle: String?, notificationBody: String?): PushContent = PushContent(
             title = data["title"] ?: notificationTitle ?: "Mildcrowd",
             body = data["body"] ?: notificationBody.orEmpty(),
-            url = data["url"]?.takeIf { it.startsWith("https://") || it.startsWith("http://") || it.startsWith("oasis://") },
+            url = data["url"]?.takeIf { it.startsWith("https://") || it.startsWith("http://") || it.startsWith("mildcrowd://") },
             tag = data["tag"]?.takeIf { it.isNotBlank() }
         )
     }

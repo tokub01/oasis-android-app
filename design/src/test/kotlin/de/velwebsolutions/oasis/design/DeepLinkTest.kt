@@ -30,7 +30,7 @@ class DeepLinkTest {
                 IncomingLink.Browser("https://evil.example/email/bestaetigen/1/h?expires=1&signature=s"),
                 DeepLink.incoming("https://evil.example/email/bestaetigen/1/h?expires=1&signature=s")
             )
-            assertEquals(IncomingLink.Screen(MembershipRoute.Overview), DeepLink.incoming("oasis://mitgliedschaft"))
+            assertEquals(IncomingLink.Screen(MembershipRoute.Overview), DeepLink.incoming("mildcrowd://mitgliedschaft"))
             val navigator = Navigator().apply { openWeb = {} }
             assertFalse(navigator.handle("https://evil.example/app/nachrichten#c/5"))
         } finally {
@@ -56,7 +56,7 @@ class DeepLinkTest {
         assertEquals(MembershipRoute.Invoice(9), route("https://mildcrowd.com/app/mitgliedschaft/rechnungen/9"))
         assertEquals(StaffRoute.ModerationCase(3), route("https://mildcrowd.com/moderation/cases/3"))
         assertEquals(StaffRoute.AdminSystem, route("https://mildcrowd.com/admin/system"))
-        assertEquals(MembershipRoute.Overview, route("oasis://mitgliedschaft?checkout=abc"))
+        assertEquals(MembershipRoute.Overview, route("mildcrowd://mitgliedschaft?checkout=abc"))
     }
 
     @Test
@@ -100,7 +100,7 @@ class DeepLinkTest {
         assertEquals(IncomingLink.Screen(NetworkRoute.Invitation("abc")), incoming("/einladung/abc"))
         assertEquals(IncomingLink.Screen(NetworkRoute.InvitationGroup("grp")), incoming("/gemeinsam/grp"))
         assertEquals(IncomingLink.Screen(NetworkRoute.Source), incoming("/app"))
-        assertEquals(IncomingLink.Screen(MembershipRoute.Overview), DeepLink.incoming("oasis://mitgliedschaft?checkout=abc"))
+        assertEquals(IncomingLink.Screen(MembershipRoute.Overview), DeepLink.incoming("mildcrowd://mitgliedschaft?checkout=abc"))
         assertEquals(
             IncomingLink.VerifyEmail("5", "a1b2", "1790000000", "sig%"),
             incoming("/email/bestaetigen/5/a1b2?expires=1790000000&signature=sig%25")
@@ -134,32 +134,32 @@ class DeepLinkTest {
         assertEquals(IncomingLink.Browser("https://mildcrowd.com/email/andere/5/a"), incoming("/email/andere/5/a"))
     }
 
-    /** The website's "In der App öffnen" (mail apps open links in their own browser) hands pages over via oasis://. */
+    /** The website's "In der App öffnen" (mail apps open links in their own browser) hands pages over via mildcrowd://. */
     @Test
     fun `account links handed over by the website, but never a reset token`() {
         assertEquals(
             IncomingLink.VerifyEmail("5", "a1b2", "1790000000", "sig%"),
-            DeepLink.incoming("oasis://email/bestaetigen/5/a1b2?expires=1790000000&signature=sig%25")
+            DeepLink.incoming("mildcrowd://email/bestaetigen/5/a1b2?expires=1790000000&signature=sig%25")
         )
-        assertEquals(IncomingLink.LoginCode, DeepLink.incoming("oasis://anmelden/code"))
-        assertEquals(IncomingLink.Screen(NetworkRoute.Post(12)), DeepLink.incoming("oasis://tropfen/12"))
-        assertFalse(DeepLink.incoming("oasis://passwort-zuruecksetzen/tok") is IncomingLink.ResetPassword)
+        assertEquals(IncomingLink.LoginCode, DeepLink.incoming("mildcrowd://anmelden/code"))
+        assertEquals(IncomingLink.Screen(NetworkRoute.Post(12)), DeepLink.incoming("mildcrowd://tropfen/12"))
+        assertFalse(DeepLink.incoming("mildcrowd://passwort-zuruecksetzen/tok") is IncomingLink.ResetPassword)
     }
 
     /** Handed to the browser, they would come straight back to the app and go to the browser again, without end. */
     @Test
     fun `app links without a screen open the Quelle instead of the browser`() {
         listOf(
-            "oasis://x",
-            "oasis://email/bestaetigen/5/a1b2",
-            "oasis://passwort-zuruecksetzen/tok",
+            "mildcrowd://x",
+            "mildcrowd://email/bestaetigen/5/a1b2",
+            "mildcrowd://passwort-zuruecksetzen/tok",
             "https://mildcrowd.com/app/unbekannt",
             "https://mildcrowd.com/app/moderation/anderes"
         ).forEach { url -> assertEquals(url, IncomingLink.Screen(NetworkRoute.Source), DeepLink.incoming(url)) }
         val opened = mutableListOf<String>()
         val navigator = Navigator().apply { openWeb = { opened += it } }
         navigator.select(MainTab.Chats)
-        assertTrue(navigator.handle("oasis://x"))
+        assertTrue(navigator.handle("mildcrowd://x"))
         assertEquals(MainTab.Source, navigator.selectedTab)
         assertTrue("nothing went to the browser", opened.isEmpty())
     }

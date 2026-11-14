@@ -136,12 +136,12 @@ fun SupportContacts(modifier: Modifier = Modifier) {
  * Opens a public website page (legal pages, help) in a Custom Tab in the Oasis colours; other schemes go to the system.
  * The tab opens in a browser that shows Custom Tabs: without one named, Android would hand a page of the app's own
  * verified App Links (an invoice, the data export, a reset link while signed in) straight back to the app, which would
- * open the tab again, without end. For the same reason the app's own `oasis://` scheme is never handed to the system:
+ * open the tab again, without end. For the same reason the app's own `mildcrowd://` scheme is never handed to the system:
  * the app is its only handler.
  */
 fun openWebPage(context: Context, url: String) {
     val uri = url.toUri()
-    if (uri.scheme == "oasis") return
+    if (uri.scheme == "mildcrowd") return
     if (uri.scheme != "http" && uri.scheme != "https") {
         runCatching { context.startActivity(Intent(Intent.ACTION_VIEW, uri).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)) }
         return
