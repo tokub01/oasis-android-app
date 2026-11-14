@@ -36,7 +36,7 @@ import kotlinx.coroutines.flow.update
 enum class ProfileAction { Follow, Unfollow, RequestFriend, AcceptFriend, RemoveFriend, Mute, Unmute, Restrict, Unrestrict, Block }
 
 /**
- * A member profile (/profil/{handle}): what the viewer may see, the member's Tropfen and the follow, friendship and
+ * A member profile (/profil/{handle}): what the viewer may see, the member's Posts and the follow, friendship and
  * self-protection buttons.
  */
 @HiltViewModel(assistedFactory = ProfileViewModel.Factory::class)
@@ -66,7 +66,7 @@ class ProfileViewModel @AssistedInject constructor(@Assisted handle: String, pri
         posts.reload()
     }
 
-    /** Loads the profile once; Tropfen whose load was cancelled with the screen (a rotation) load again with it. */
+    /** Loads the profile once; Posts whose load was cancelled with the screen (a rotation) load again with it. */
     suspend fun loadIfNeeded() {
         if (profile.value.valueOrNull == null) load() else posts.loadIfNeeded()
     }

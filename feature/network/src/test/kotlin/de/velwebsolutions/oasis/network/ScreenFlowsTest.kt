@@ -128,7 +128,7 @@ class ScreenFlowsTest {
         """.trimMargin()
 
     @Test
-    fun `the Quelle with its floating button`() {
+    fun `the Start with its floating button`() {
         val network = StubbedNetwork(
             stub(
                 "GET",
@@ -153,7 +153,7 @@ class ScreenFlowsTest {
 
     @Test
     @Config(qualifiers = "w360dp-h740dp")
-    fun `the Quelle in dark mode`() {
+    fun `the Start in dark mode`() {
         val network = StubbedNetwork(
             stub(
                 "GET",
@@ -181,7 +181,7 @@ class ScreenFlowsTest {
     }
 
     @Test
-    fun `a read-only Quelle offers the membership instead of writing`() {
+    fun `a read-only Start offers the membership instead of writing`() {
         val network = StubbedNetwork(
             stub("GET", "network/source", pageJson(context = """{"show_all":true,"follows_anyone":true,"can_post":false}"""))
         )
@@ -215,7 +215,7 @@ class ScreenFlowsTest {
     }
 
     @Test
-    fun `an empty topic asks for the first Tropfen or another search`() {
+    fun `an empty topic asks for the first Post or another search`() {
         val network = StubbedNetwork(
             stub("GET", "network/tags/garten", pageJson(context = """{"tag":"garten","can_post":true}""")),
             stub("GET", "network/tags/stille", pageJson(context = """{"tag":"stille","can_post":false}"""))
@@ -258,7 +258,7 @@ class ScreenFlowsTest {
     }
 
     @Test
-    fun `the oases overview and an oasis with its floating button`() {
+    fun `the crowds overview and a crowd with its floating button`() {
         val network = StubbedNetwork(
             stub("GET", "network/oases", Fixtures.oases),
             stub(
@@ -288,7 +288,7 @@ class ScreenFlowsTest {
     }
 
     @Test
-    fun `founding an oasis and editing one`() {
+    fun `founding a crowd and editing one`() {
         val editForm =
             """{"data": {"oasis": $summary, "house_rules": "Freundlich bleiben.", "members": [{"id": 3, "username": "aylin",
             |"display_name": "Aylin Demir", "role": "member", "role_label": "Mitglied"}], "options": {"visibilities":
@@ -313,7 +313,7 @@ class ScreenFlowsTest {
     }
 
     @Test
-    fun `closing an oasis and its statistics`() {
+    fun `closing a crowd and its statistics`() {
         val network = StubbedNetwork(
             stub("GET", "network/oases/stadtgarten/close", """{"data":{"name":"Stadtgarten","members_count":1,"posts_count":9}}"""),
             stub(
@@ -336,7 +336,7 @@ class ScreenFlowsTest {
     }
 
     @Test
-    fun `the Tropfen page, editing and carrying`() {
+    fun `the Post page, editing and carrying`() {
         val network = StubbedNetwork(
             stub("GET", "network/posts/12", Fixtures.post),
             stub("GET", "network/composer", Fixtures.composer),

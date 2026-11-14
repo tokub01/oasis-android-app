@@ -9,7 +9,7 @@ import org.junit.Assert.assertEquals
 import org.junit.Assert.assertNull
 import org.junit.Test
 
-/** Rich text of a Tropfen and the image formats the composer passes on (iOS `RichTextTests`, `ImageTests`). */
+/** Rich text of a Post and the image formats the composer passes on (iOS `RichTextTests`, `ImageTests`). */
 class RichTextAndImageTest {
     @Test
     fun `links mentions, topics and external links`() {

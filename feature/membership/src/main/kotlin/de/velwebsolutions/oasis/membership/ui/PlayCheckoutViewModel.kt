@@ -27,7 +27,7 @@ import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 
-/** One tier in both rhythms, in the checkout's order (Solidar, Oase, Mäzen). */
+/** One tier in both rhythms, in the checkout's order (Solidar, Mittendrin, Mäzen). */
 data class CheckoutOffer(val tier: String, val monthly: PlayProduct?, val yearly: PlayProduct?) {
     /** The product for "monat" or "jahr". */
     fun product(rhythm: String): PlayProduct? = if (rhythm == PlayProducts.YEARLY) yearly else monthly

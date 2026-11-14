@@ -1,4 +1,4 @@
-# Oasis rules on top of detekt's defaults (buildUponDefaultConfig): Compose-friendly naming and sizes.
+# Mildcrowd rules on top of detekt's defaults (buildUponDefaultConfig): Compose-friendly naming and sizes.
 config:
   validation: true
 

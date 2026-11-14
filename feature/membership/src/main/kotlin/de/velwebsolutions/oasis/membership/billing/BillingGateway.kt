@@ -89,7 +89,7 @@ interface BillingGateway {
 
     /**
      * Starts Play's purchase sheet over [activity] and waits for its result. [accountId] (the member's account token)
-     * ties the purchase to the Oasis account, like StoreKit's `appAccountToken`. When the caller stops waiting (its
+     * ties the purchase to the Mildcrowd account, like StoreKit's `appAccountToken`. When the caller stops waiting (its
      * coroutine is cancelled), Play's answer comes through [purchaseUpdates] instead.
      */
     suspend fun purchase(activity: Activity?, product: PlayProduct, accountId: String?): PurchaseOutcome

@@ -9,7 +9,7 @@ import kotlinx.coroutines.launch
 
 /**
  * The checks of one chat before a message leaves: sensitive data ([de.velwebsolutions.oasis.chat.core.ChatSafety]),
- * shouting or repetition (docs/oasis-chat-client.md, „Schreien, Wiederholungen, Fluten“; [ChatSpam]) need a second press
+ * shouting or repetition (docs/mildcrowd-chat-client.md, „Schreien, Wiederholungen, Fluten“; [ChatSpam]) need a second press
  * with the same text, flooding pauses sending. A pause counts down once a second in [scope] and tells [show] the
  * seconds left, then null when it is over.
  */

@@ -65,7 +65,7 @@ import kotlinx.coroutines.launch
 
 /**
  * Register of data breaches (web: livewire.admin.data-breaches): record, 72-hour deadline, drafted Art. 33 report,
- * report, notice to the people affected, addenda and closing. Oasis sends nothing by itself.
+ * report, notice to the people affected, addenda and closing. Mildcrowd sends nothing by itself.
  */
 @Composable
 fun DataBreachesScreen(viewModel: DataBreachesViewModel = hiltViewModel()) {
@@ -90,7 +90,7 @@ fun DataBreachesScreen(viewModel: DataBreachesViewModel = hiltViewModel()) {
                             "werden muss (Art. 33 Abs. 5 DSGVO). Besteht ein Risiko, muss die Aufsichtsbehörde binnen 72 Stunden ab " +
                             "Bekanntwerden informiert werden; bei hohem Risiko auch die Betroffenen. Mildcrowd meldet nichts selbst: Die " +
                             "Seite bereitet die Meldung vor, du schickst sie ab. Der Notfallplan steht in " +
-                            "docs/oasis-incident-response.md.",
+                            "docs/mildcrowd-incident-response.md.",
                         style = OasisType.Small,
                         color = OasisColors.Ink2
                     )

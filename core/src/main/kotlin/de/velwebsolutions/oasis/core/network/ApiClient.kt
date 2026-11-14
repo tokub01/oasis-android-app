@@ -55,7 +55,7 @@ interface TokenProvider {
 }
 
 /**
- * The Oasis API client: adds the bearer token (to requests to the Oasis server only), JSON headers and the app's user
+ * The Mildcrowd API client: adds the bearer token (to requests to the Mildcrowd server only), JSON headers and the app's user
  * agent, decodes answers and maps HTTP errors to [ApiError] (also from Retrofit service calls). Feature modules create
  * their Retrofit services with [create]; images and invoices that need the token go through [okHttp] or [download].
  */
@@ -67,7 +67,7 @@ class ApiClient(
     val baseUrl: HttpUrl = config.baseUrl.trimEnd('/').toHttpUrl()
     private val apiRoot: HttpUrl = baseUrl.newBuilder().addPathSegments("api/v1/").build()
 
-    /** OkHttp with the Oasis headers; also used by the image loader so members-only images load with the token. */
+    /** OkHttp with the Mildcrowd headers; also used by the image loader so members-only images load with the token. */
     val okHttp: OkHttpClient = baseOkHttp.newBuilder()
         .apply { interceptors().add(0, HeaderInterceptor()) }
         .build()
@@ -91,7 +91,7 @@ class ApiClient(
     /** The absolute URL of a path below `/api/v1/`. */
     fun url(path: String): HttpUrl = apiRoot.resolve(path.trimStart('/')) ?: apiRoot
 
-    /** Resolves a URL the API returned (absolute, or relative to the server root like `/tropfen/1/bild/2`). */
+    /** Resolves a URL the API returned (absolute, or relative to the server root like `/posts/1/bild/2`). */
     fun absoluteUrl(raw: String): HttpUrl? = raw.toHttpUrlOrNullSafe() ?: baseUrl.resolve(raw)
 
     /**
@@ -111,7 +111,7 @@ class ApiClient(
     }
 
     /**
-     * Adds the headers to every request and reports 401s. The token and the gate key go to the Oasis server only (the
+     * Adds the headers to every request and reports 401s. The token and the gate key go to the Mildcrowd server only (the
      * scheme, host and port of [baseUrl]): the image loader and [download] also fetch absolute URLs, and a server elsewhere
      * must neither get the member's token nor sign the app out with a 401 of its own.
      */

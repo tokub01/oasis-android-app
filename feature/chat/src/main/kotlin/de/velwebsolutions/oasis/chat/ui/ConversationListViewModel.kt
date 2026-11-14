@@ -191,7 +191,7 @@ class ConversationListViewModel @Inject constructor(context: ChatContext, privat
     /** The error toast was shown. */
     fun dismissActionError() = mutableState.update { it.copy(actionError = null) }
 
-    // region Row actions (swipes, „⋯“ and TalkBack: docs/oasis-chat-client.md, „Gestures“)
+    // region Row actions (swipes, „⋯“ and TalkBack: docs/mildcrowd-chat-client.md, „Gestures“)
 
     /** Line 2: the last message this device decrypted in this session, else „Verschlüsselte Nachricht“. */
     fun preview(conversation: ChatConversation): String = vault.previews[conversation.id] ?: ENCRYPTED_PREVIEW

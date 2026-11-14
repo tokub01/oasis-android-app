@@ -124,7 +124,7 @@ class SettingsScreensHiltTest : HiltScreenTest() {
         clipboard.setPrimaryClip(ClipData.newPlainText("Passwörter", "ABCDEFGHIJKLMNOP"))
         shadowOf(Looper.getMainLooper()).idleFor(Duration.ofMillis(SECRET_CLIP_MILLIS))
         assertTrue("the same text copied elsewhere stays", clipboard.hasPrimaryClip())
-        // Nothing to be seen on the clipboard after the minute (emptied meanwhile, or Oasis in the background from
+        // Nothing to be seen on the clipboard after the minute (emptied meanwhile, or Mildcrowd in the background from
         // Android 10 on): it is emptied all the same.
         copySecret(app, "ABCDEFGHIJKLMNOP")
         clipboard.clearPrimaryClip()

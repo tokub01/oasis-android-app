@@ -50,7 +50,7 @@ fun inviteeStatus(status: String): String = when (status) {
     else -> "Eingeladen"
 }
 
-/** „Geht auf am … in der Oase Garten · Beitragen bis …“ of an invitation. */
+/** „Geht auf am … in der Crowd Garten · Beitragen bis …“ of an invitation. */
 fun invitationLine(invitation: CapsuleInvitation): String {
     val place = invitation.oasis?.let { "in der Crowd ${it.name}" } ?: "auf dem Profil von ${invitation.from.displayName}"
     val until = invitation.contributeUntil?.let { " · Beitragen bis ${capsuleMoment(it)}" }.orEmpty()
@@ -229,7 +229,7 @@ private fun InvitationCard(invitation: CapsuleInvitation, text: String, error: S
     }
 }
 
-/** Below Oase, but invited: the way to the membership in a card, with the invitations below it. */
+/** Below Mittendrin, but invited: the way to the membership in a card, with the invitations below it. */
 @Composable
 internal fun CapsuleLockedPanel(message: String) {
     val navigator = LocalNavigator.current

@@ -4,7 +4,7 @@ import androidx.compose.runtime.Immutable
 import androidx.compose.ui.graphics.Color
 
 /**
- * The token values of one mode (docs/oasis-website.md, „Darstellung“: the web's table in `resources/css/oasis.css`).
+ * The token values of one mode (docs/mildcrowd-website.md, „Darstellung“: the web's table in `resources/css/oasis.css`).
  * The semantics stay the same in both modes; in dark mode `night` is the light colour and `onNight` the dark one.
  */
 @Immutable

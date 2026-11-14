@@ -132,7 +132,7 @@ object QuoteTexts {
 }
 
 /**
- * An informational line in the timeline (docs/oasis-chat-client.md, „C9 Quiet notices“) at the moment it happened
+ * An informational line in the timeline (docs/mildcrowd-chat-client.md, „C9 Quiet notices“) at the moment it happened
  * ([at]); null, or before the loaded messages: at the end of what is loaded.
  */
 data class QuietNotice(val text: String, val at: Instant?)
@@ -1223,7 +1223,7 @@ class ConversationViewModel @AssistedInject constructor(
         }
     }
 
-    // region Swipe hint (docs/oasis-chat-client.md, „C8 Swipe hint once“)
+    // region Swipe hint (docs/mildcrowd-chat-client.md, „C8 Swipe hint once“)
 
     /** A chat with a message of someone else: the hint, and the newest such message nudges once. */
     private suspend fun offerSwipeHint() {

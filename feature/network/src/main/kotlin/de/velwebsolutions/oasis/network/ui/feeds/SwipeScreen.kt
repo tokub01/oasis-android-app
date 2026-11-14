@@ -80,7 +80,7 @@ import de.velwebsolutions.oasis.network.ui.retry
 import kotlinx.coroutines.launch
 
 /**
- * "Durchblättern" (/app/durchblaettern): the deck's Tropfen as cards to swipe, chapter by chapter, with a progress line,
+ * "Durchblättern" (/app/durchblaettern): the deck's Posts as cards to swipe, chapter by chapter, with a progress line,
  * and the end card "Du bist durch" with what waits for the member. A deck with an end – no endless feed.
  */
 @Composable
@@ -102,7 +102,7 @@ fun SwipeScreen(viewModel: SwipeViewModel = hiltViewModel<SwipeViewModel>()) {
     }
 }
 
-/** One card of the deck: a Tropfen of a chapter, or the end card (no post). */
+/** One card of the deck: a Post of a chapter, or the end card (no post). */
 private data class SwipeCard(val index: Int, val chapter: SwipeDeck.Chapter?, val post: Post?, val firstOfChapter: Boolean)
 
 private fun cards(deck: SwipeDeck): List<SwipeCard> = buildList {

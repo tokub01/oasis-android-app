@@ -37,7 +37,7 @@ import de.velwebsolutions.oasis.design.theme.OasisColors
 import de.velwebsolutions.oasis.design.theme.OasisType
 
 /**
- * Oasis is members-only (the web's EnsurePaidAccess): without a paid or gifted membership the app shows "Mitglied
+ * Mildcrowd is members-only (the web's EnsurePaidAccess): without a paid or gifted membership the app shows "Mitglied
  * werden" (a Google Play subscription), the membership overview with voucher redemption, the settings and sign-out.
  * Back in the foreground it asks the server again, so a membership bought on the website opens the app at once.
  */

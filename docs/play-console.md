@@ -55,7 +55,7 @@ das dauert aber einige Tage.
 „Alle oder einige Funktionen sind eingeschränkt“ → Anleitung:
 
 > Mildcrowd ist ein soziales Netzwerk; alle Funktionen setzen ein Konto voraus. Bitte mit dem Demokonto anmelden:
-> Benutzername `mira`, Passwort siehe Feld „Passwort“. Danach sind Quelle, Entdecken, Oasen, Profil und Einstellungen
+> Benutzername `mira`, Passwort siehe Feld „Passwort“. Danach sind Start, Entdecken, Crowds, Profil und Einstellungen
 > sichtbar. Der Chat ist Ende-zu-Ende-verschlüsselt; zum Ansehen in „Chats“ die Chat-Passphrase eingeben.
 
 Das Passwort des Demokontos und die Chat-Passphrase gehören nur in die Play Console, nicht in dieses Repository. Sie
@@ -69,7 +69,7 @@ stehen in den Testdaten des Laravel-Projekts (`database/seeders/DemoContentSeede
 - Kategorie: **Soziale Netzwerke, Foren, nutzergenerierte Inhalte und Kommunikation**.
 - Gewalt, Sexualität, Sprache, kontrollierte Substanzen, Glücksspiel: **Nein** (Mildcrowd selbst zeigt solche Inhalte nicht;
   Nutzerinhalte werden moderiert).
-- Können Nutzer miteinander interagieren oder Inhalte austauschen? **Ja** (Tropfen, Antworten, Chat).
+- Können Nutzer miteinander interagieren oder Inhalte austauschen? **Ja** (Posts, Antworten, Chat).
 - Teilt die App den genauen Standort mit anderen Nutzern? **Nein**.
 - Ermöglicht die App den Kauf digitaler Waren? **Ja** (Mitgliedschaft als Abo).
 - Moderation: Meldefunktion, Sperren und Blockieren vorhanden.
@@ -90,11 +90,11 @@ Alle Übertragungen sind verschlüsselt (HTTPS/TLS). Konto und Daten lassen sich
 | Telefonnummer (Handynummer) | ja | nein | nein | Kontoverwaltung (Bestätigung per SMS-Code, Schutz vor Zweitkonten und Bots); der SMS-Dienstleister seven.io erhält sie nur für den Code, kein anderes Mitglied sieht sie |
 | Nutzer-IDs (Benutzername, Konto-ID) | ja | nein | nein | App-Funktionen, Kontoverwaltung |
 | Sonstige Angaben: Geburtsdatum | ja | nein | nein | Kontoverwaltung (Mindestalter 18) |
-| Fotos (Profilbild, Banner, Bilder in Tropfen; Fotos aus einer gemeldeten Chat-Nachricht) | ja | nein | ja | App-Funktionen; Sicherheit und Moderation (Meldung) |
+| Fotos (Profilbild, Banner, Bilder in Posts; Fotos aus einer gemeldeten Chat-Nachricht) | ja | nein | ja | App-Funktionen; Sicherheit und Moderation (Meldung) |
 | Videos (nur aus einer gemeldeten Chat-Nachricht) | ja | nein | ja | Sicherheit und Moderation (Meldung) |
 | Audiodateien (Sprachnachrichten, nur aus einer gemeldeten Chat-Nachricht) | ja | nein | ja | Sicherheit und Moderation (Meldung) |
 | Dateien und Dokumente (nur aus einer gemeldeten Chat-Nachricht) | ja | nein | ja | Sicherheit und Moderation (Meldung) |
-| Sonstige nutzergenerierte Inhalte (Tropfen, Antworten, Oasen, Meldungen, gemeldete Chat-Nachricht) | ja | nein | ja | App-Funktionen; Sicherheit und Moderation (Meldung) |
+| Sonstige nutzergenerierte Inhalte (Posts, Antworten, Crowds, Meldungen, gemeldete Chat-Nachricht) | ja | nein | ja | App-Funktionen; Sicherheit und Moderation (Meldung) |
 | Kaufverlauf (Mitgliedschaft) | ja | nein | ja | App-Funktionen, Kontoverwaltung |
 | Geräte- oder andere IDs (Push-Token von FCM) | ja | nein | ja | App-Funktionen (Push-Hinweise; nur nach Zustimmung, siehe unten) |
 

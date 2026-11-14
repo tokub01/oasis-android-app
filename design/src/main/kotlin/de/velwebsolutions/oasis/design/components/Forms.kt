@@ -153,7 +153,7 @@ fun SettingToggle(
 }
 
 /**
- * The Oasis switch: off is a 2 dp ink frame with a dark knob on the field colour, on is filled night with a light knob
+ * The Mildcrowd switch: off is a 2 dp ink frame with a dark knob on the field colour, on is filled night with a light knob
  * (the Material default's light grey off state was easy to miss on paper). Same look as iOS' OasisSwitchStyle.
  */
 @Composable
@@ -175,7 +175,7 @@ fun OasisSwitch(checked: Boolean, onCheckedChange: ((Boolean) -> Unit)?, modifie
 }
 
 /**
- * The Oasis checkbox for consents and confirmations ("Ich akzeptiere …", "Ich habe den Inhalt gelesen"), like the web
+ * The Mildcrowd checkbox for consents and confirmations ("Ich akzeptiere …", "Ich habe den Inhalt gelesen"), like the web
  * form: a dark 2 dp frame, filled night with a light tick when checked (iOS' OasisCheckboxStyle).
  */
 @Composable

@@ -81,8 +81,8 @@ import de.velwebsolutions.oasis.network.ui.retry
 import java.time.Instant
 
 /**
- * "Quelle" (/app): own Tropfen and those of friends, followed people and oases, newest first, with bundled replies – or
- * "Ganz Mildcrowd". No ranking and an honest end; the side blocks (Deine Woche, Deine Oasen, a running vote, inviting) follow
+ * "Start" (/app): own Posts and those of friends, followed people and crowds, newest first, with bundled replies – or
+ * "Ganz Mildcrowd". No ranking and an honest end; the side blocks (Deine Woche, Deine Crowds, a running vote, inviting) follow
  * the feed like on a phone-sized web page. Switching the view keeps the page and swaps the cards in place.
  */
 @Composable
@@ -140,7 +140,7 @@ fun SourceScreen(viewModel: SourceViewModel = hiltViewModel<SourceViewModel>()) 
     }
 }
 
-/** „Heute vor einem Jahr“ and „Alles Neue gesehen“ on the Quelle. */
+/** „Heute vor einem Jahr“ and „Alles Neue gesehen“ on the Start. */
 class SourceExtras(
     val memories: List<MemoryYear>,
     val onDismissMemories: suspend () -> Unit,
@@ -155,7 +155,7 @@ class SourceExtras(
     }
 }
 
-/** The Quelle's page: greeting, view switch, composer entry, next steps, memories, the feed and the side blocks. */
+/** The Start's page: greeting, view switch, composer entry, next steps, memories, the feed and the side blocks. */
 @OptIn(ExperimentalMaterial3Api::class)
 fun LazyListScope.sourceContent(
     cut: SeenCut,
@@ -165,7 +165,7 @@ fun LazyListScope.sourceContent(
     extras: SourceExtras = SourceExtras.None
 ) {
     val state = cut.state
-    // Older Tropfen wait for „Ältere Tropfen“ after „Du hast alles Neue gesehen.“
+    // Older Posts wait for „Ältere Posts“ after „Du hast alles Neue gesehen.“
     val handlers = if (cut.seen) FeedHandlers(feedHandlers.perform, {}, feedHandlers.reload) else feedHandlers
     val context = state.context
     val showAll = context?.showAll ?: false
@@ -194,7 +194,7 @@ fun LazyListScope.sourceContent(
     block("view") {
         val navigator = LocalNavigator.current
         // The switch shows the chosen view at once; until the member chooses, what the server chose (members who follow
-        // nobody start with Ganz Oasis).
+        // nobody start with Ganz Mildcrowd).
         val selection = state.filter ?: if (showAll) "alle" else "gefolgt"
         Row(horizontalArrangement = Arrangement.spacedBy(12.dp), verticalAlignment = Alignment.CenterVertically) {
             SingleChoiceSegmentedButtonRow(Modifier.weight(1f).testTag("source.view")) {
@@ -284,7 +284,7 @@ fun LazyListScope.sourceContent(
 }
 
 /**
- * „Mach deine Startseite lebendig“ (docs/oasis-accounts.md, „Nach der Registrierung“): the welcome tour is no hurdle after
+ * „Mach deine Startseite lebendig“ (docs/mildcrowd-accounts.md, „Nach der Registrierung“): the welcome tour is no hurdle after
  * registering any more, this card offers it until it is done; „Später“ hides the card for 14 days on this device.
  */
 private fun LazyListScope.onboardingCard(onSnooze: () -> Unit) {
@@ -313,7 +313,7 @@ private fun LazyListScope.onboardingCard(onSnooze: () -> Unit) {
     }
 }
 
-/** „Erinnerungen“ („Nur für dich“): the member's own Tropfen of this day in earlier years, with „Ausblenden“. */
+/** „Erinnerungen“ („Nur für dich“): the member's own Posts of this day in earlier years, with „Ausblenden“. */
 private fun LazyListScope.memoriesBlock(extras: SourceExtras, handlers: FeedHandlers) {
     block("source.memories") {
         Panel(tone = PanelTone.Dune, spacing = 12, modifier = Modifier.testTag("source.memories")) {
@@ -417,7 +417,7 @@ private fun StepLink(title: String, route: AppRoute) {
 /** "3. November". */
 fun dayMonth(instant: Instant): String = GermanTime.format(instant, "d. MMMM")
 
-/** The entry to the composer at the top of the Quelle and an oasis: a field-like button that opens the composer sheet. */
+/** The entry to the composer at the top of the Start and a crowd: a field-like button that opens the composer sheet. */
 @Composable
 fun ComposeEntry(prompt: String, modifier: Modifier = Modifier, accessibilityLabel: String? = null, onClick: () -> Unit) {
     val shape = RoundedCornerShape(OasisRadius.M.dp)

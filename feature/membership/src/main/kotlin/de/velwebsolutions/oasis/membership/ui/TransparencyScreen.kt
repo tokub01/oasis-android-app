@@ -58,7 +58,7 @@ data class TransparencyUiState(
     val error: String? = null
 )
 
-/** „Wohin dein Beitrag geht“ (/transparenz, docs/oasis-admin.md): the figures and the reports; an earlier one replaces the shown. */
+/** „Wohin dein Beitrag geht“ (/transparenz, docs/mildcrowd-admin.md): the figures and the reports; an earlier one replaces the shown. */
 @HiltViewModel
 class TransparencyViewModel @Inject constructor(private val repository: MembershipRepository) : ViewModel() {
     private val mutableState = MutableStateFlow(TransparencyUiState())

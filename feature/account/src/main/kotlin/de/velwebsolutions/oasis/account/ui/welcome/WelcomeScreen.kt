@@ -80,7 +80,7 @@ import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 
 /**
- * Einstieg (/app/willkommen): about you, who sees you, oases, people. Every step can be skipped, the whole tour too
+ * Einstieg (/app/willkommen): about you, who sees you, crowds, people. Every step can be skipped, the whole tour too
  * („Später“); finishing or skipping ends it for good, so the app stops opening it. A new step fades in at the top. Back
  * from the Privatsphäre-Check, „Wer dich sieht“ shows what was saved there.
  */
@@ -96,7 +96,7 @@ internal fun WelcomeScreen(viewModel: WelcomeViewModel = hiltViewModel()) {
         viewModel.textChanged()
     }
     val finish: suspend () -> Unit = {
-        // Back to where it was opened from: the Quelle's card or the settings.
+        // Back to where it was opened from: the Start's card or the settings.
         if (viewModel.finish()) navigator.back()
     }
     // System back goes one step back first, like the „Zurück“ button.
@@ -287,7 +287,7 @@ private fun ColumnScope.VisibilityStep(ui: WelcomeUiState, tour: WelcomeTour, vi
 
 @Composable
 private fun ColumnScope.OasesStep(tour: WelcomeTour, viewModel: WelcomeViewModel, open: (AppRoute) -> Unit) {
-    // How the list came about (Art. 27 DSA): picked by people, or simply the largest oases.
+    // How the list came about (Art. 27 DSA): picked by people, or simply the largest crowds.
     val origin =
         if (tour.oasesHandPicked) {
             "Diese hier haben Menschen ausgesucht, nicht ein Algorithmus."

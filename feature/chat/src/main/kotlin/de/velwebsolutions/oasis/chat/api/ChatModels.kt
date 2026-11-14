@@ -124,7 +124,7 @@ data class ChatConversation(
     /** Who ended it, as the screens name people: „Mira Sol“ or „@mira“. */
     private val leaver: String? get() = endedBy?.let { by -> by.displayName?.takeIf(String::isNotEmpty) ?: "@${by.username}" }
 
-    /** What happened, in the words of the list's meta line; null while open (docs/oasis-chat.md, „Beendete Chats“). */
+    /** What happened, in the words of the list's meta line; null while open (docs/mildcrowd-chat.md, „Beendete Chats“). */
     val endedSummary: String?
         get() = when {
             !ended -> null
@@ -312,8 +312,8 @@ data class OptionalIdentity(val data: StoredIdentity? = null)
 data class OptionalLinkApproval(val data: LinkApproval? = null)
 
 /**
- * Someone to write first (`GET /chat/suggestions`, docs/oasis-chat.md, „Vorschläge für den ersten Chat“): chat-ready,
- * would accept a message from the member; [reason] says why („Ihr seid befreundet“, „Ihr seid beide in Oase …“).
+ * Someone to write first (`GET /chat/suggestions`, docs/mildcrowd-chat.md, „Vorschläge für den ersten Chat“): chat-ready,
+ * would accept a message from the member; [reason] says why („Ihr seid befreundet“, „Ihr seid beide in Crowd …“).
  */
 @Serializable
 data class ChatSuggestion(

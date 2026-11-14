@@ -51,5 +51,5 @@ einem Emulator. Die CI (`.github/workflows/ci.yml`) macht beides.
   kopiert, in CI aus dem Secret `GOOGLE_SERVICES_JSON_B64`); ohne die Datei baut die App ohne Push.
 - **Google Play Billing:** Die App verkauft die Mitgliedschaft als Play-Abo (gleiche Stufen und Preise wie Web und iOS,
   `PlayProducts.kt`). Der Server prüft und bestätigt jeden Kauf bei Google (`GooglePurchaseController`,
-  `docs/oasis-membership.md` „Google Play“) – nur, solange dort `OASIS_GOOGLE_PLAY` an ist; sonst zeigt der Checkout,
+  `docs/mildcrowd-membership.md` „Google Play“) – nur, solange dort `OASIS_GOOGLE_PLAY` an ist; sonst zeigt der Checkout,
   dass Mitgliedschaften in der App gerade nicht abgeschlossen werden können.

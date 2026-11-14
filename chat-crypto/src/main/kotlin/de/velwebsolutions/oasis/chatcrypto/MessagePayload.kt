@@ -19,7 +19,7 @@ import kotlinx.serialization.json.longOrNull
 import kotlinx.serialization.json.put
 
 /**
- * One file of a message (`Attachment` in docs/oasis-chat.md, "Anhänge"): the upload's id, what it is, the plaintext size,
+ * One file of a message (`Attachment` in docs/mildcrowd-chat.md, "Anhänge"): the upload's id, what it is, the plaintext size,
  * and key and nonce (Base64 URL-safe without padding) to decrypt the downloaded ciphertext. [name] is the file name of a
  * `file` (without path, at most 120 characters); width and height (photos) and the duration (voice messages, videos) are
  * hints for the layout.
@@ -41,7 +41,7 @@ data class MessageAttachment(
 )
 
 /**
- * What a reply quotes (docs/oasis-chat-client.md, "Reactions and replies"): the original's envelope signature [to], its
+ * What a reply quotes (docs/mildcrowd-chat-client.md, "Reactions and replies"): the original's envelope signature [to], its
  * sender's id, [kind] (`text`, `image`, `audio`, `video`, `file` or `once`), the [excerpt] of a text and the original's
  * expiry (`YYYY-MM-DDTHH:MM:SSZ`; the quote shows no longer than the original lives).
  */
@@ -103,7 +103,7 @@ object MessagePayload {
         "video" to listOf("video/mp4", "video/quicktime", "video/webm")
     )
 
-    /** The send effects (docs/oasis-chat-client.md, "Backgrounds and effects"); any other value is ignored when read. */
+    /** The send effects (docs/mildcrowd-chat-client.md, "Backgrounds and effects"); any other value is ignored when read. */
     val EFFECTS = listOf("konfetti", "herzen", "ballons", "feuerwerk")
 
     /** The reactions, in the order the bar and the chips show them. */

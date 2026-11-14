@@ -210,7 +210,7 @@ class NetworkScreensTest {
     }
 
     @Test
-    fun `images, covered images, locked images and carried Tropfen`() {
+    fun `images, covered images, locked images and carried Post`() {
         val images = base.copy(
             id = 6,
             images = listOf(
@@ -255,7 +255,7 @@ class NetworkScreensTest {
     }
 
     @Test
-    fun `the feed's states - loading, empty, failed and older Tropfen`() {
+    fun `the feed's states - loading, empty, failed and older Posts`() {
         show {
             NetworkPage {
                 feedSection(PostListState<NoContext>(state = Loadable.Loading), handlers, keyPrefix = "loading")
@@ -302,7 +302,7 @@ class NetworkScreensTest {
     }
 
     @Test
-    fun `Entdecken lists the largest oases and explains itself`() {
+    fun `Entdecken lists the largest crowds and explains itself`() {
         val discover = page(DiscoverContext.serializer(), Fixtures.discover)
         val state = PostListState(posts = discover.data, context = discover.context, state = Loadable.Loaded(Unit))
         show { NetworkPage { discoverContent(state, handlers) } }
@@ -324,7 +324,7 @@ class NetworkScreensTest {
     }
 
     @Test
-    fun `search results show people, oases and Tropfen`() {
+    fun `search results show people, crowds and Posts`() {
         val results = page(SearchContext.serializer(), Fixtures.search)
         val state = PostListState(posts = results.data, context = results.context, state = Loadable.Loaded(Unit), filter = "ga")
         show { NetworkPage { searchContent("ga", state, handlers, onQuery = {}, onSubmit = {}) } }
@@ -356,7 +356,7 @@ class NetworkScreensTest {
     }
 
     @Test
-    fun `the oases overview with its sections`() {
+    fun `the crowds overview with its sections`() {
         val directory = data(OasisDirectory.serializer(), Fixtures.oases)
         show { NetworkPage { oasesContent(directory.copy(canCreate = true, mine = emptyList())) } }
         compose.onNodeWithText("Räume für das, was dich interessiert").assertIsDisplayed()
@@ -375,7 +375,7 @@ class NetworkScreensTest {
         """.trimMargin()
 
     @Test
-    fun `an oasis for its host with members, rules and host tools`() {
+    fun `a crowd for its host with members, rules and host tools`() {
         val detail = data(OasisDetail.serializer(), oasis)
         val members = OasisMembers(
             members = listOf(OasisMembers.Entry(3, "aylin", "Aylin Demir", "AD", canWrite = true)),
@@ -407,7 +407,7 @@ class NetworkScreensTest {
     }
 
     @Test
-    fun `an oasis for a visitor offers following and reporting`() {
+    fun `a crowd for a visitor offers following and reporting`() {
         val detail = data(OasisDetail.serializer(), oasis).let {
             it.copy(isMember = false, isHost = false, canFollow = true, canPost = false, houseRules = listOf("Nur eine Regel."))
         }
@@ -511,7 +511,7 @@ class NetworkScreensTest {
     }
 
     @Test
-    fun `the Tropfen page with versions, the reply form and the side cards`() {
+    fun `the Post page with versions, the reply form and the side cards`() {
         val detail = data(PostDetail.serializer(), Fixtures.post).let { loaded ->
             loaded.copy(
                 post = loaded.post.copy(
@@ -542,7 +542,7 @@ class NetworkScreensTest {
     }
 
     @Test
-    fun `a reply in an oasis needs its membership`() {
+    fun `a reply in a crowd needs its membership`() {
         val detail = data(PostDetail.serializer(), Fixtures.post).let { loaded ->
             loaded.copy(
                 post = loaded.post.copy(viewer = loaded.post.viewer?.copy(canWriteReply = false, canReply = true)),

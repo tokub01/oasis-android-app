@@ -88,7 +88,7 @@ class ShellUiTest {
     }
 
     @Test
-    fun `a member without a confirmed mobile number confirms it before paying or using Oasis`() {
+    fun `a member without a confirmed mobile number confirms it before paying or using Mildcrowd`() {
         start(mira.copy(phoneVerified = false, hasPaidAccess = false))
         compose.onNodeWithText("Handy-Screen").assertIsDisplayed()
     }
@@ -100,7 +100,7 @@ class ShellUiTest {
     }
 
     @Test
-    fun `a new member lands in the tabs, the tour waits behind the Quelle's card`() {
+    fun `a new member lands in the tabs, the tour waits behind the Start's card`() {
         start(mira.copy(onboarded = false))
         compose.onNodeWithText("Inhalt ${NetworkRoute.Source}").assertIsDisplayed()
     }

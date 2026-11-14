@@ -53,7 +53,7 @@ import de.velwebsolutions.oasis.design.theme.OasisRadius
 import de.velwebsolutions.oasis.design.theme.OasisType
 
 /**
- * The steps of reactions and replies (docs/oasis-chat-client.md, "Reactions and replies"): react to a message (the own
+ * The steps of reactions and replies (docs/mildcrowd-chat-client.md, "Reactions and replies"): react to a message (the own
  * emoji again removes it), answer it, cancel the answer, and find the original of a quote (its position among the
  * bubbles, or null while it is not loaded).
  */

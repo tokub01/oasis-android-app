@@ -57,7 +57,7 @@ fun meetupWhen(instant: Instant): String = GermanTime.format(instant, "EEEE, d. 
 fun meetupCounts(counts: Meetup.Counts): String =
     "${counts.yes} ${if (counts.yes == 1) "kommt" else "kommen"} · ${counts.maybe} vielleicht · ${counts.no} nicht"
 
-/** What the oasis page can do with its meetups and Willkommenspaten. */
+/** What the crowd page can do with its meetups and Willkommenspaten. */
 class OasisMeetupActions(
     val onOpenForm: (Meetup?) -> Unit,
     val onEditForm: ((MeetupForm) -> MeetupForm) -> Unit,
@@ -73,7 +73,7 @@ class OasisMeetupActions(
     }
 }
 
-/** The meetup part of the oasis page: the list and its form, for members only. */
+/** The meetup part of the crowd page: the list and its form, for members only. */
 class OasisMeetupsUi(val meetups: OasisMeetups?, val form: MeetupForm?, val actions: OasisMeetupActions) {
     companion object {
         val None = OasisMeetupsUi(null, null, OasisMeetupActions.None)

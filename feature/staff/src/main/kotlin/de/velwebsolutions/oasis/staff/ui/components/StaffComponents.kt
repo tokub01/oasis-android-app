@@ -259,7 +259,7 @@ internal fun linkRoute(url: String): AppRoute = DeepLink.route(url) ?: WebRoute(
 /** Taps open [url] (built outside composition, so Compose does not memoize the click with extra branches). */
 private fun Modifier.opening(url: String, navigator: Navigator): Modifier = pressable({ navigator.open(linkRoute(url)) })
 
-/** Opens a link of the staff pages: Oasis links in the app, others in the in-app browser. */
+/** Opens a link of the staff pages: Mildcrowd links in the app, others in the in-app browser. */
 @Composable
 fun LinkText(url: String) {
     val navigator = LocalNavigator.current

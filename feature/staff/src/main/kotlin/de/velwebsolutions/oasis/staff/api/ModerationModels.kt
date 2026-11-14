@@ -26,7 +26,7 @@ data class OutcomeOption(val value: String, val label: String, val hint: String?
 
 /**
  * Whether "Konto gesperrt" may be chosen on a case (`SuspensionRule`: a warning or lock within `strike_months` first,
- * except in severe cases), why not, and the durations in days to choose from (`oasis.moderation.suspension_days`).
+ * except in severe cases), why not, and the durations in days to choose from (`mildcrowd.moderation.suspension_days`).
  */
 @Serializable
 data class SuspensionOption(val allowed: Boolean = true, val blockedReason: String? = null, val days: List<Int> = emptyList())
@@ -153,7 +153,7 @@ data class ModerationCaseDetail(
 
     /**
      * The question before lifting the quarantine, after what the case is about (escalation.blade.php, iOS
-     * `liftQuarantineQuestion`): a chat report's attachments, a Tropfen's images, an oasis' banner, or the photo and
+     * `liftQuarantineQuestion`): a chat report's attachments, a Post's images, a crowd' banner, or the photo and
      * banner of a profile – the last two are served again at once.
      */
     val liftQuarantineQuestion: String

@@ -13,7 +13,7 @@ import kotlinx.coroutines.withContext
 
 /**
  * Identity setup/unlock, the member key directory, grants and owner key distribution, following the rotation procedure
- * in docs/oasis-chat.md – the twin of resources/js/chat/client/keyring.js and iOS `ChatKeyring`. Call from the main
+ * in docs/mildcrowd-chat.md – the twin of resources/js/chat/client/keyring.js and iOS `ChatKeyring`. Call from the main
  * thread; the expensive crypto moves to [ChatContext.cryptoDispatcher].
  *
  * The owner is checked like on the web ([ownerIsMember], [ownerTrusted]): a chat that can be written in lists its owner
@@ -29,7 +29,7 @@ class ChatKeyring(private val context: ChatContext) {
 
     /**
      * New keys locked with the passphrase (production Argon2id costs) and published. Replaces an existing identity
-     * (forgotten passphrase): old messages become unreadable and every chat needs a new key. Published while Oasis went
+     * (forgotten passphrase): old messages become unreadable and every chat needs a new key. Published while Mildcrowd went
      * to the background, they become the stored identity, to be unlocked with the passphrase on return.
      * @return the stored identity, or null if the vault was locked meanwhile or Oasis is in the background.
      */

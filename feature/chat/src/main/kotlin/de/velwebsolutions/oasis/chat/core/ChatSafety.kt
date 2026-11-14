@@ -7,7 +7,7 @@ import java.util.regex.Pattern
 /**
  * Safety checks that run only on the device, on decrypted text (resources/js/chat/client/safety.js): nothing is sent
  * unless the member reports. Incoming messages are checked for requests for secrets, sexual offers and words of the
- * server's word list; drafts for card numbers, IBANs, passwords and addresses, plus the same tone hint as Tropfen.
+ * server's word list; drafts for card numbers, IBANs, passwords and addresses, plus the same tone hint as Posts.
  */
 object ChatSafety {
     /** What an incoming message looks like. */

@@ -20,7 +20,7 @@ import org.junit.Rule
 import org.junit.Test
 
 /**
- * Step 1 of the registration in three small pages (docs/oasis-accounts.md, „Registrierung: Schritt 1 in drei kleinen
+ * Step 1 of the registration in three small pages (docs/mildcrowd-accounts.md, „Registrierung: Schritt 1 in drei kleinen
  * Seiten“): the username suggestion and its live check, the checks of each page before „Weiter“, and „Zurück“.
  */
 class RegistrationPagesTest {

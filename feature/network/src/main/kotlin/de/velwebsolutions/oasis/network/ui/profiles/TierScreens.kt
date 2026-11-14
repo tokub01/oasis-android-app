@@ -72,8 +72,8 @@ private const val FROM_OASE = "Das gibt es ab der Mitgliedschaft Mittendrin."
 private enum class CapsuleQuestion { Open, Delete }
 
 /**
- * Zeitkapseln (/app/zeitkapseln, from Oase): the form that seals a Tropfen for a later day, the waiting capsules with
- * "Jetzt öffnen" and "Löschen", and the opened ones. Below Oase the server's message and the way to the membership.
+ * Zeitkapseln (/app/zeitkapseln, from Mittendrin): the form that seals a Post for a later day, the waiting capsules with
+ * "Jetzt öffnen" and "Löschen", and the opened ones. Below Mittendrin the server's message and the way to the membership.
  */
 @Composable
 fun TimeCapsulesScreen(
@@ -265,7 +265,7 @@ private fun PastCapsule(capsule: TimeCapsule, viewModel: TimeCapsulesViewModel) 
         } else if (reason != null) {
             Text("Nicht aufgegangen: $reason", style = OasisType.BodyBold, color = OasisColors.Danger)
         } else {
-            // Claimed by the server, its Tropfen is being published right now (web: „Geht gerade auf …“).
+            // Claimed by the server, its Post is being published right now (web: „Geht gerade auf …“).
             Text("Geht gerade auf …", style = OasisType.BodyBold, color = OasisColors.Ink2)
         }
         Text(capsule.body, style = OasisType.Body, color = OasisColors.Ink2, maxLines = 2)
@@ -293,8 +293,8 @@ private fun PastCapsule(capsule: TimeCapsule, viewModel: TimeCapsulesViewModel) 
 }
 
 /**
- * Dein Jahrbuch (/app/jahrbuch/{year?}, from Oase): the year chips, the cover with the year's totals, the months with
- * their Tropfen, and "Drucken oder als PDF", which opens the printable book on the website. Below Oase the server's
+ * Dein Jahrbuch (/app/jahrbuch/{year?}, from Mittendrin): the year chips, the cover with the year's totals, the months with
+ * their Posts, and "Drucken oder als PDF", which opens the printable book on the website. Below Mittendrin the server's
  * message and the way to the membership.
  */
 @Composable

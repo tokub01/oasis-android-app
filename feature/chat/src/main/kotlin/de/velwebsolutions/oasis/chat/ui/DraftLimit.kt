@@ -11,7 +11,7 @@ import de.velwebsolutions.oasis.chatcrypto.MessageReply
 import java.util.Locale
 
 /**
- * The composer's length limit (docs/oasis-chat-client.md, „Composer limit and draft“): the text with what goes along
+ * The composer's length limit (docs/mildcrowd-chat-client.md, „Composer limit and draft“): the text with what goes along
  * with it (files, the effect, the quote) as [ChatMessages.measure] counts it. Typing beyond the limit does nothing, a
  * paste keeps only the part that fits, deleting always works.
  */

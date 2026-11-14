@@ -43,7 +43,7 @@ interface AppScreens {
     @Composable
     fun QuietBanner()
 
-    /** „Neu in Oasis …“ once after an update. */
+    /** „Neu in Mildcrowd …“ once after an update. */
     @Composable
     fun UpdateNotes()
 }

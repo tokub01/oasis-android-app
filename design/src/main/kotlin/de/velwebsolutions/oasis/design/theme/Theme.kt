@@ -92,7 +92,7 @@ fun OasisTheme(content: @Composable () -> Unit) {
     }
 }
 
-/** The one motion of Oasis: short and settling, for state changes, insertions and removals. */
+/** The one motion of Mildcrowd: short and settling, for state changes, insertions and removals. */
 object OasisMotion {
     fun <T> spec(): FiniteAnimationSpec<T> = spring(dampingRatio = 0.9f, stiffness = 900f)
 }

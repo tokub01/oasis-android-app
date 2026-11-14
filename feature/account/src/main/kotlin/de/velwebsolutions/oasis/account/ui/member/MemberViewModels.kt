@@ -54,7 +54,7 @@ class SuspensionViewModel @Inject constructor(private val repository: AccountRep
 
     fun setComplaintReason(value: String) = mutableUi.update { it.copy(complaintReason = value) }
 
-    /** A lifted lock answers 404 (`state` fails with NotFound), which the screen shows as the way back into Oasis. */
+    /** A lifted lock answers 404 (`state` fails with NotFound), which the screen shows as the way back into Mildcrowd. */
     suspend fun load() {
         val firstLoad = ui.value.state.valueOrNull == null
         mutableUi.update { it.copy(state = it.state.refreshing()) }
@@ -116,7 +116,7 @@ class SuspensionViewModel @Inject constructor(private val repository: AccountRep
             }
     }
 
-    /** „Weiter zu Oasis“ and pull to refresh: the app leaves the lock screen once `me` is no longer locked. */
+    /** „Weiter zu Mildcrowd“ and pull to refresh: the app leaves the lock screen once `me` is no longer locked. */
     suspend fun refreshMe() = session.refreshMe()
 
     suspend fun signOut() = session.signOut()

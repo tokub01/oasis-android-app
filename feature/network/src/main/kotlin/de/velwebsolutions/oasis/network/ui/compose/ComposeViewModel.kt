@@ -50,14 +50,14 @@ data class ComposeUiState(
     val toneHint: String? = null,
     val images: List<PickedImage> = emptyList(),
     val error: ApiError? = null,
-    /** While the Tropfen is sent, also after the form that sent it went away (a rotation during the upload). */
+    /** While the Post is sent, also after the form that sent it went away (a rotation during the upload). */
     val isPublishing: Boolean = false,
     /** „Umfrage hinzufügen“ (null: none). */
     val poll: PollDraft? = null,
-    /** Only plain Weitertragen: the member may not answer, so own words (or images) would be an answer. */
+    /** Only plain Teilen: the member may not answer, so own words (or images) would be an answer. */
     val plainCarry: Boolean = false
 ) {
-    /** A poll fits only a new Tropfen of an oasis (not a reply, not a carry, not in the Quelle). */
+    /** A poll fits only a new Post of a crowd (not a reply, not a carry, not in the Start). */
     val canPoll: Boolean get() = oasisSlug != null && !isReply && !isCarry
 
     val maxLength: Int get() = context.valueOrNull?.maxLength ?: 500
@@ -74,7 +74,7 @@ data class ComposeUiState(
     /** Whether closing would lose something the member wrote or picked. */
     val hasDraft: Boolean get() = body.isNotBlank() || images.isNotEmpty()
 
-    /** The field label like the web ("Deine Antwort", "Deine Worte dazu (freiwillig)", "Dein Tropfen in …", "Dein Tropfen"). */
+    /** The field label like the web ("Deine Antwort", "Deine Worte dazu (freiwillig)", "Dein Post in …", "Dein Post"). */
     val bodyLabel: String
         get() {
             if (isReply) return "Deine Antwort"
@@ -127,7 +127,7 @@ class ComposeDrafts @Inject constructor(session: Session) {
 }
 
 /**
- * The composer for a new Tropfen (Quelle or oasis), a reply or a carry: context from the server, the draft (kept in
+ * The composer for a new Post (Start or crowd), a reply or a carry: context from the server, the draft (kept in
  * [ComposeDrafts] for the signed-in member), local tone hints while typing, images with descriptions and publishing with
  * the web's rules (SubmitPost). Under 18 the server offers no "Öffentlich", and the preselected audience is always one it
  * offers.
@@ -170,7 +170,7 @@ class ComposeViewModel @AssistedInject constructor(
 
     fun setVisibility(value: String) = mutableState.update { it.copy(visibility = value) }
 
-    /** Weitertragen without own words (`can_quote` false): the form hides the text and images and sends neither. */
+    /** Teilen without own words (`can_quote` false): the form hides the text and images and sends neither. */
     fun carryPlainly() = mutableState.update { it.copy(plainCarry = true) }
 
     fun setKind(value: String) = mutableState.update { it.copy(kind = value) }
@@ -210,7 +210,7 @@ class ComposeViewModel @AssistedInject constructor(
         }
     }
 
-    /** Loads the context unless it is there or failed (the reply form on a Tropfen page, a screen shown again). */
+    /** Loads the context unless it is there or failed (the reply form on a Post page, a screen shown again). */
     suspend fun loadIfNeeded() {
         if (current.context == Loadable.Idle) load()
     }
@@ -255,8 +255,8 @@ class ComposeViewModel @AssistedInject constructor(
     }
 
     /**
-     * Publish; returns the new Tropfen on success. A tone question shows "So senden". The upload runs in the view model's
-     * scope: when the form goes away meanwhile (a rotation cancels its coroutine), the Tropfen is still sent once, the
+     * Publish; returns the new Post on success. A tone question shows "So senden". The upload runs in the view model's
+     * scope: when the form goes away meanwhile (a rotation cancels its coroutine), the Post is still sent once, the
      * publishing state ends, the sent draft is gone, and the form shown next takes the answer with [unclaimedPublish].
      */
     suspend fun publish(): PublishResult? {
@@ -283,7 +283,7 @@ class ComposeViewModel @AssistedInject constructor(
 
     /**
      * The answer of a publish whose form went away while it was sent (a rotation during the upload), once: the form shown
-     * next closes with it as after its own tap. Waits while the Tropfen is still on its way; null when no answer waits.
+     * next closes with it as after its own tap. Waits while the Post is still on its way; null when no answer waits.
      */
     suspend fun unclaimedPublish(): PublishResult? {
         val running = sending ?: return null
@@ -315,7 +315,7 @@ class ComposeViewModel @AssistedInject constructor(
         }
         saveDraft()
         NetworkSignals.didPublish(result.data, result.message)
-        // A held Tropfen never locks the account (since 6 November 2026 only a human decision does); `suspended` is true when
+        // A held Post never locks the account (since 6 November 2026 only a human decision does); `suspended` is true when
         // such a lock is in force, and the app then shows why (account area).
         if (result.suspended) session.refreshMe()
         return result

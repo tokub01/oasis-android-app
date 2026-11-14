@@ -45,7 +45,7 @@ import de.velwebsolutions.oasis.design.components.AuthorizedImage
 import de.velwebsolutions.oasis.design.theme.OasisColors
 import de.velwebsolutions.oasis.network.api.Post
 
-/** Shows the images of a Tropfen full screen, starting with [start]: swipe between them, pinch or double-tap to zoom. */
+/** Shows the images of a Post full screen, starting with [start]: swipe between them, pinch or double-tap to zoom. */
 @Composable
 fun ImageViewer(images: List<Post.Image>, start: Post.Image, onDismiss: () -> Unit) {
     Dialog(onDismissRequest = onDismiss, properties = DialogProperties(usePlatformDefaultWidth = false, decorFitsSystemWindows = false)) {

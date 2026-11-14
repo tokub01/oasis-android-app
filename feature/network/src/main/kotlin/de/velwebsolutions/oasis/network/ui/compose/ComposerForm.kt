@@ -82,7 +82,7 @@ class ComposerCallbacks(
     val poll: PollCallbacks = PollCallbacks.None
 )
 
-/** The poll of a new oasis Tropfen in the composer. */
+/** The poll of a new crowd Post in the composer. */
 class PollCallbacks(val onShow: (PollDraft?) -> Unit, val onEdit: ((PollDraft) -> PollDraft) -> Unit) {
     companion object {
         val None = PollCallbacks({}, {})
@@ -136,7 +136,7 @@ fun ComposerForm(
             onFocusHandled()
         }
     }
-    // A Tropfen sent from the form before this one (it went away during the upload, e.g. with a rotation) ends here.
+    // A Post sent from the form before this one (it went away during the upload, e.g. with a rotation) ends here.
     LaunchedEffect(Unit) { callbacks.unclaimedPublish()?.let(onPublished) }
 
     Column(modifier.fillMaxWidth(), verticalArrangement = Arrangement.spacedBy(16.dp)) {
@@ -310,7 +310,7 @@ private fun Options(state: ComposeUiState, callbacks: ComposerCallbacks) {
                 callbacks.onVisibility,
                 Modifier.testTag("compose.visibility")
             )
-            // Oasis is members-only: whatever is chosen, no guest or search engine reads a Tropfen (compose.blade.php).
+            // Mildcrowd is members-only: whatever is chosen, no guest or search engine reads a Post (compose.blade.php).
             Text(
                 "Posts lesen nur angemeldete Mitglieder, nie Gäste oder Suchmaschinen.",
                 style = OasisType.Caption,

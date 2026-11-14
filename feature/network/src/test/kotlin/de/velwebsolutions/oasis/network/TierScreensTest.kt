@@ -57,7 +57,7 @@ import org.robolectric.RobolectricTestRunner
 import org.robolectric.annotation.Config
 
 /**
- * Zeitkapseln, the Jahrbuch, the statistics below Oase and the supporter mark on screen, with their real view models.
+ * Zeitkapseln, the Jahrbuch, the statistics below Mittendrin and the supporter mark on screen, with their real view models.
  *
  * The v2 compose rule runs the screens' effects on a StandardTestDispatcher, so an answer from OkHttp's thread resumes
  * on the main thread as in the app. The v1 rule's UnconfinedTestDispatcher resumed it on OkHttp's thread; after an
@@ -181,7 +181,7 @@ class TierScreensTest {
     }
 
     @Test
-    fun `Zeitkapseln below Oase, without capsules and with a field error`() {
+    fun `Zeitkapseln below Mittendrin, without capsules and with a field error`() {
         val locked = StubbedNetwork(stub("GET", "network/time-capsules", TierFixtures.lockedCapsules))
         val lockedModel = models.keep(TimeCapsulesViewModel(locked.repository))
         show { TimeCapsulesScreen(lockedModel) }
@@ -278,7 +278,7 @@ class TierScreensTest {
     }
 
     @Test
-    fun `below Oase the Jahrbuch and the numbers show the server's message`() {
+    fun `below Mittendrin the Jahrbuch and the numbers show the server's message`() {
         val network = StubbedNetwork(
             stub("GET", "network/yearbook/2024", TierFixtures.LOCKED, 403),
             stub("GET", "network/statistics", TierFixtures.LOCKED, 403),
@@ -303,7 +303,7 @@ class TierScreensTest {
     }
 
     @Test
-    fun `a supporter's profile says that they carry Oasis`() {
+    fun `a supporter's profile says that they carry Mildcrowd`() {
         val supporter = Fixtures.profile.replace(""""founding_badge": false}}""", """"founding_badge": false, "supporter": true}}""")
         val network = StubbedNetwork(
             stub("GET", "network/profiles/jonas", supporter),

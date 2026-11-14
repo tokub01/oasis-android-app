@@ -71,7 +71,7 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 
-/** „Karte der Oasen“ (/app/oasen/karte?region=BY): the Bundesländer with their oases, and the oases of the chosen one. */
+/** „Karte der Crowds“ (/app/crowds/karte?region=BY): the Bundesländer with their crowds, and the crowds of the chosen one. */
 @HiltViewModel(assistedFactory = OasisMapViewModel.Factory::class)
 class OasisMapViewModel @AssistedInject constructor(@Assisted region: String?, private val repository: NetworkRepository) :
     NetworkViewModel() {
@@ -90,7 +90,7 @@ class OasisMapViewModel @AssistedInject constructor(@Assisted region: String?, p
     val chosen: StateFlow<String?> = mutableChosen.asStateFlow()
     private val mutableOases = MutableStateFlow<Loadable<List<OasisSummary>>>(Loadable.Idle)
 
-    /** The oases of the chosen Bundesland. */
+    /** The crowds of the chosen Bundesland. */
     val oases: StateFlow<Loadable<List<OasisSummary>>> = mutableOases.asStateFlow()
 
     suspend fun load() {
@@ -102,7 +102,7 @@ class OasisMapViewModel @AssistedInject constructor(@Assisted region: String?, p
         if (regions.value is Loadable.Idle) load()
     }
 
-    /** A tile: lists that Bundesland's oases. */
+    /** A tile: lists that Bundesland's crowds. */
     suspend fun choose(code: String) {
         mutableChosen.value = code
         mutableOases.value = Loadable.Loading
@@ -114,7 +114,7 @@ class OasisMapViewModel @AssistedInject constructor(@Assisted region: String?, p
 /** The name of Bundesland [code] among [regions]; the code itself when it is unknown. */
 fun regionName(regions: List<MapRegion>, code: String): String = regions.firstOrNull { it.code == code }?.name ?: code
 
-/** „Karte der Oasen“ (/app/oasen/karte). */
+/** „Karte der Crowds“ (/app/crowds/karte). */
 @Composable
 fun OasisMapScreen(
     region: String?,
@@ -166,7 +166,7 @@ fun OasisMapScreen(
     }
 }
 
-/** The 5 × 5 grid of tiles: the chosen one in night, one with oases in spring, one without pale. */
+/** The 5 × 5 grid of tiles: the chosen one in night, one with crowds in spring, one without pale. */
 @Composable
 internal fun RegionTiles(regions: List<MapRegion>, chosen: String?, onChoose: (String) -> Unit) {
     BoxWithConstraints(
@@ -228,7 +228,7 @@ private fun Tile(region: MapRegion, active: Boolean, size: Dp, modifier: Modifie
     }
 }
 
-/** The oases of the chosen Bundesland, or the hint to choose one. */
+/** The crowds of the chosen Bundesland, or the hint to choose one. */
 @Composable
 private fun RegionOases(name: String?, oases: Loadable<List<OasisSummary>>) {
     val navigator = LocalNavigator.current

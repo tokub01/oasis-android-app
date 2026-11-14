@@ -111,8 +111,8 @@ class ProfileCallbacks(val perform: suspend (ProfileAction) -> Unit, val confirm
 
 /**
  * A member profile (/profil/{handle}) – also the "Profil" tab for the own one: header with the banner or colour band,
- * avatar, the buttons (follow, friendship, write, mute, restrict, block, report), bio, location and Karawane where their
- * audiences allow, the member's Tropfen and the side cards.
+ * avatar, the buttons (follow, friendship, write, mute, restrict, block, report), bio, location and Follower where their
+ * audiences allow, the member's Posts and the side cards.
  */
 @Composable
 fun ProfileScreen(
@@ -131,7 +131,7 @@ fun ProfileScreen(
 
     LaunchedEffect(Unit) { viewModel.loadIfNeeded() }
     LaunchedEffect(leave) {
-        // Like the web, blocking leads back to the Quelle: the profile no longer exists for the viewer.
+        // Like the web, blocking leads back to the Start: the profile no longer exists for the viewer.
         if (leave) {
             if (navigator.sheet != null) navigator.dismissSheet()
             navigator.popToRoot()

@@ -40,7 +40,7 @@ import org.junit.runner.RunWith
 import org.robolectric.RobolectricTestRunner
 
 /**
- * Photos, voice messages and videos in a conversation (docs/oasis-chat.md, "Anhänge"): encrypted upload in parts with
+ * Photos, voice messages and videos in a conversation (docs/mildcrowd-chat.md, "Anhänge"): encrypted upload in parts with
  * progress, consent before any download, view once, and every failure the composer and the bubbles explain.
  */
 @RunWith(RobolectricTestRunner::class)

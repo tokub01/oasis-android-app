@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="utf-8"?>
 <manifest xmlns:android="http://schemas.android.com/apk/res/android">
 
-    <!-- The camera app that takes a photo for a Tropfen, a profile or an oasis banner. -->
+    <!-- The camera app that takes a photo for a Post, a profile or a crowd banner. -->
     <queries>
         <intent>
             <action android:name="android.media.action.IMAGE_CAPTURE" />

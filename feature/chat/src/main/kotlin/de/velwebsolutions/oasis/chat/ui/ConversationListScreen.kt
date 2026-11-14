@@ -269,7 +269,7 @@ internal fun ConversationListActions(onLock: () -> Unit, onSettings: () -> Unit)
 }
 
 /**
- * One chat in the list (docs/oasis-chat-client.md, „Conversation list“): avatar 48, name and last activity, line 2 with
+ * One chat in the list (docs/mildcrowd-chat-client.md, „Conversation list“): avatar 48, name and last activity, line 2 with
  * what this device decrypted (else „Verschlüsselte Nachricht“) and the markers; a „⋯“ menu and TalkBack actions do what
  * the swipes do. Requests have no actions ([hasActions] false).
  */
@@ -402,7 +402,7 @@ private fun ConversationRow(
 }
 
 /**
- * A list row with its swipes (docs/oasis-chat-client.md, „Gestures“): left past 64 it snaps open by 160 and shows
+ * A list row with its swipes (docs/mildcrowd-chat-client.md, „Gestures“): left past 64 it snaps open by 160 and shows
  * „Stummschalten“/„Ton an“ and „Chat verlassen“; right past 64 (at most 96) on spring marks an unread chat read. Only
  * clearly horizontal drags count; without motion the row does not follow the finger, the actions still happen.
  */
@@ -557,7 +557,7 @@ class BackupRowActions(val onOpen: () -> Unit, val onSnooze: suspend () -> Unit)
 }
 
 /**
- * The quiet row on top while the account has no backup passphrase (docs/oasis-chat-client.md, „C5 Setup with one
+ * The quiet row on top while the account has no backup passphrase (docs/mildcrowd-chat-client.md, „C5 Setup with one
  * button“): a tap opens the backup-passphrase setup in the chat settings, „Später“ hides it for 14 days on this device.
  */
 @Composable
@@ -588,7 +588,7 @@ private fun BackupRow(actions: BackupRowActions) {
 }
 
 /**
- * „Noch keine Chats“ (docs/oasis-chat-client.md, „C6 Empty chat list“): up to two people to write first, each with
+ * „Noch keine Chats“ (docs/mildcrowd-chat-client.md, „C6 Empty chat list“): up to two people to write first, each with
  * „Schreiben“, and a large „Neuer Chat“ button.
  */
 @Composable

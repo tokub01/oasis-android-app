@@ -7,7 +7,7 @@ import org.junit.Assert.assertEquals
 import org.junit.Assert.assertNull
 import org.junit.Test
 
-/** The text of a push: the generic line, swapped for the named one from the Oasis server. */
+/** The text of a push: the generic line, swapped for the named one from the Mildcrowd server. */
 class PushContentTest {
     private val reference = "Abc123Abc123Abc123Abc123Abc123Abc123Abc1"
 

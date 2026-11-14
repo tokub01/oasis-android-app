@@ -43,7 +43,7 @@ class DraftAttachment(
 class AttachmentProblem(message: String) : Exception(message)
 
 /**
- * Encrypted attachments (docs/oasis-chat.md, "Anhänge"; the web's client/attachments.js): encrypt a draft with a fresh
+ * Encrypted attachments (docs/mildcrowd-chat.md, "Anhänge"; the web's client/attachments.js): encrypt a draft with a fresh
  * key, upload the ciphertext in parts and finish the upload; download a ciphertext and decrypt it. Key and nonce go into
  * the message only.
  */

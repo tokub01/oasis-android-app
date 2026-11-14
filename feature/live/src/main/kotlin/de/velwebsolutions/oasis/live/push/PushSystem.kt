@@ -14,7 +14,7 @@ import com.google.firebase.messaging.FirebaseMessaging
 import kotlin.coroutines.resume
 import kotlinx.coroutines.suspendCancellableCoroutine
 
-/** What the system says about notifications for Oasis. */
+/** What the system says about notifications for Mildcrowd. */
 enum class PushAuthorization { NotDetermined, Denied, Authorized }
 
 /**
@@ -44,7 +44,7 @@ interface PushSystem {
     /** Forgets the FCM token (push switched off on this device). */
     suspend fun deleteToken()
 
-    /** Opens the Android notification settings of Oasis (to allow notifications after denying them). */
+    /** Opens the Android notification settings of Mildcrowd (to allow notifications after denying them). */
     fun openSettings()
 }
 

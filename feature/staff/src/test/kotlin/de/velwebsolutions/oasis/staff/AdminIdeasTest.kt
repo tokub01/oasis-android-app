@@ -29,7 +29,7 @@ import org.robolectric.RobolectricTestRunner
 import org.robolectric.annotation.Config
 import org.robolectric.annotation.GraphicsMode
 
-/** „Ideen“ for admins (docs/oasis-admin.md „Ideen für Oasis“): list, sort, pages and „Stand setzen“, at 360 dp. */
+/** „Ideen“ for admins (docs/mildcrowd-admin.md „Ideen für Mildcrowd“): list, sort, pages and „Stand setzen“, at 360 dp. */
 @RunWith(RobolectricTestRunner::class)
 @GraphicsMode(GraphicsMode.Mode.NATIVE)
 @Config(qualifiers = "w360dp-h740dp")

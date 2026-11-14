@@ -87,7 +87,7 @@ fun LoadingView(modifier: Modifier = Modifier, label: String = "Lädt …") {
 }
 
 /**
- * Placeholder shapes in the layout of the coming content (heading, then Tropfen cards or list rows), so the screen
+ * Placeholder shapes in the layout of the coming content (heading, then Post cards or list rows), so the screen
  * does not jump when the data arrives. One opacity animation for the whole block keeps it cheap.
  */
 @Composable
@@ -164,7 +164,7 @@ fun ErrorStateView(error: ApiError, onRetry: suspend () -> Unit, modifier: Modif
 
 /**
  * [LoadableView] for a feature the member's tier may not include: the server's 403 (`Das gibt es ab der Mitgliedschaft
- * Oase.`) shows [TierLockedView] with [title] instead of an error with retry.
+ * Mittendrin.`) shows [TierLockedView] with [title] instead of an error with retry.
  */
 @Composable
 fun <T> TierLoadableView(
@@ -184,7 +184,7 @@ fun <T> TierLoadableView(
 }
 
 /**
- * The tier named in the server's lock message (`TierFeatures::lockedMessage`: „Das gibt es ab der Mitgliedschaft Oase.“),
+ * The tier named in the server's lock message (`TierFeatures::lockedMessage`: „Das gibt es ab der Mitgliedschaft Mittendrin.“),
  * or null for another text.
  */
 fun lockedTier(message: String): String? = Regex("ab der Mitgliedschaft (.+?)\\.?$").find(message)?.groupValues?.get(1)
@@ -208,7 +208,7 @@ fun TierLockedView(title: String, message: String, modifier: Modifier = Modifier
     }
 }
 
-/** Friendly empty state ("Noch keine Tropfen …"). */
+/** Friendly empty state ("Noch keine Posts …"). */
 @Composable
 fun EmptyStateView(
     title: String,

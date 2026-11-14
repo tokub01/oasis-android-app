@@ -15,7 +15,7 @@ import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.update
 
-/** What a list of Tropfen shows. */
+/** What a list of Posts shows. */
 data class PostListState<C>(
     val posts: List<Post> = emptyList(),
     val context: C? = null,
@@ -37,17 +37,17 @@ data class PostListState<C>(
 }
 
 /**
- * A chronological list of Tropfen with cursor paging (Quelle, Entdecken, oasis, profile, topic, search, Merkliste): the
- * first page with its side information, "Ältere Tropfen" by scrolling, pull to refresh and the card actions. `filter` is
- * the list's one variable input (the Quelle's view, the search term); after changing it, [reload] keeps the current list
+ * A chronological list of Posts with cursor paging (Start, Entdecken, crowd, profile, topic, search, Merkliste): the
+ * first page with its side information, "Ältere Posts" by scrolling, pull to refresh and the card actions. `filter` is
+ * the list's one variable input (the Start's view, the search term); after changing it, [reload] keeps the current list
  * on screen until the new one arrives.
  */
 class PostListModel<C>(
     private val repository: NetworkRepository,
     filter: String? = null,
-    /** The Merkliste drops a Tropfen once it is no longer bookmarked, like the web's re-query. */
+    /** The Merkliste drops a Post once it is no longer bookmarked, like the web's re-query. */
     private val dropsUnbookmarked: Boolean = false,
-    /** The Sammlung this list shows: a Tropfen taken out of it leaves the list. */
+    /** The Sammlung this list shows: a Post taken out of it leaves the list. */
     private val collectionId: Int? = null,
     private val fetch: suspend NetworkRepository.(filter: String?, cursor: String?) -> FeedPage<C>
 ) {
@@ -67,7 +67,7 @@ class PostListModel<C>(
         set(value) = mutableState.update { it.copy(filter = value) }
 
     /**
-     * Load the first page; keeps the shown list until the new one arrives (pull to refresh, a new filter). Older Tropfen
+     * Load the first page; keeps the shown list until the new one arrives (pull to refresh, a new filter). Older Posts
      * still on their way belong to the list that goes and are dropped. When the caller goes away meanwhile (a rotation
      * cancels the screen's coroutine), the list stops showing that it reloads, and a first page that never came loads
      * again with [loadIfNeeded].
@@ -131,7 +131,7 @@ class PostListModel<C>(
 
     /**
      * The next page, when the last card appears. Not while the first page loads again: the page would belong to the list
-     * that goes (the other view of the Quelle, an older state). A reload or [reset] meanwhile ends this load, and its late
+     * that goes (the other view of the Start, an older state). A reload or [reset] meanwhile ends this load, and its late
      * page or error is dropped.
      */
     suspend fun loadMore() {
@@ -177,7 +177,7 @@ class PostListModel<C>(
         if (result.isFailure && undo != null) mutableState.update { it.copy(posts = it.posts.applying(undo, post)) }
     }
 
-    /** A vote for answer [index] of the Tropfen's poll; the answer replaces the Tropfen with its new counts. */
+    /** A vote for answer [index] of the Post's poll; the answer replaces the Post with its new counts. */
     suspend fun vote(post: Post, index: Int) {
         val poll = post.poll ?: return
         changePoll { repository.votePoll(post.id, poll.choosing(index)) }
@@ -207,7 +207,7 @@ class PostListModel<C>(
         mutableState.update { it.copy(actionError = result.apiError) }
     }
 
-    /** „Aus „X“ entfernen“: the card no longer names that collection; a collection's own list drops the Tropfen. */
+    /** „Aus „X“ entfernen“: the card no longer names that collection; a collection's own list drops the Post. */
     suspend fun removeFromCollection(post: Post, collection: Int) {
         val result = attempt { repository.uncollectPost(collection, post.id) }
         result.onSuccess { answer ->
@@ -231,12 +231,12 @@ class PostListModel<C>(
         mutableState.update { it.copy(actionError = result.apiError) }
     }
 
-    /** Put a just-published Tropfen on top. */
+    /** Put a just-published Post on top. */
     fun insert(post: Post) {
         mutableState.update { state -> state.copy(posts = listOf(post) + state.posts.filterNot { it.id == post.id }) }
     }
 
-    /** The confirmation or the error of an action outside the cards (the Quelle's „Ausblenden“). */
+    /** The confirmation or the error of an action outside the cards (the Start's „Ausblenden“). */
     fun answered(result: Result<String>) =
         mutableState.update { state -> state.copy(status = result.getOrNull() ?: state.status, actionError = result.apiError) }
 

@@ -40,7 +40,7 @@ class NetworkRepositoryTest(private val answersAtOnce: Boolean) {
     }
 
     @Test
-    fun `decodes the Quelle with context, conversation and viewer state`() = runTest {
+    fun `decodes the Start with context, conversation and viewer state`() = runTest {
         val network = StubbedNetwork(stub("GET", "network/source", Fixtures.source))
         val page = network.repository.source(view = null, cursor = null)
         val first = page.data.first()
@@ -103,7 +103,7 @@ class NetworkRepositoryTest(private val answersAtOnce: Boolean) {
     }
 
     @Test
-    fun `sends the Tropfen as multipart with images and descriptions`() = runTest {
+    fun `sends the Post as multipart with images and descriptions`() = runTest {
         val network =
             StubbedNetwork(
                 stub("POST", "network/posts", """{"message":"Dein Post ist da.","suspended":false,"data":${postJson(99)}}""", 201)
@@ -131,7 +131,7 @@ class NetworkRepositoryTest(private val answersAtOnce: Boolean) {
     }
 
     @Test
-    fun `pages with the cursor and passes the view of the Quelle`() = runTest {
+    fun `pages with the cursor and passes the view of the Start`() = runTest {
         val network = StubbedNetwork(stub("GET", "network/source", pageJson(postJson(1))))
         network.repository.source(view = "alle", cursor = "abc")
         val url = network.last("network/source").request.url
@@ -174,7 +174,7 @@ class NetworkRepositoryTest(private val answersAtOnce: Boolean) {
     }
 
     @Test
-    fun `maps a refused Tropfen to field errors`() = runTest {
+    fun `maps a refused Post to field errors`() = runTest {
         val network = StubbedNetwork(
             stub("POST", "network/posts", """{"message":"Zu lang.","errors":{"body":["Dein Post ist zu lang."]}}""", 422)
         )

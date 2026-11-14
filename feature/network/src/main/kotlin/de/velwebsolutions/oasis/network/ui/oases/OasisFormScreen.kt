@@ -72,8 +72,8 @@ import de.velwebsolutions.oasis.network.ui.components.rememberImagePicker
 import de.velwebsolutions.oasis.network.ui.retry
 
 /**
- * Found an oasis (/app/oasen/neu) or edit it as host (/oasen/{slug}/bearbeiten): texts, house rules, audience, colour,
- * the optional banner (stored at once when editing, with "Oase eröffnen" when founding), closing and roles.
+ * Found a crowd (/app/crowds/neu) or edit it as host (/crowds/{slug}/bearbeiten): texts, house rules, audience, colour,
+ * the optional banner (stored at once when editing, with "Crowd eröffnen" when founding), closing and roles.
  */
 @Composable
 fun OasisFormScreen(
@@ -94,7 +94,7 @@ fun OasisFormScreen(
     LaunchedEffect(Unit) { viewModel.loadIfNeeded() }
     LaunchedEffect(state.outcome) {
         val outcome = state.outcome ?: return@LaunchedEffect
-        // Back to the oasis (edited), or the new oasis in place of the form.
+        // Back to the crowd (edited), or the new crowd in place of the form.
         navigator.back()
         if (outcome is OasisFormOutcome.Open) navigator.open(NetworkRoute.Oasis(outcome.slug))
         viewModel.consumeOutcome()
@@ -125,7 +125,7 @@ fun OasisFormScreen(
                 }
                 block("form") {
                     PaperBox(spacing = 18) {
-                        // Held by the automated check: the host reads the texts, others „Oase in Prüfung“ (docs/oasis-auto-moderation.md).
+                        // Held by the automated check: the host reads the texts, others „Crowd in Prüfung“ (docs/mildcrowd-auto-moderation.md).
                         if (state.edit?.oasis?.held == true) OasisHeldNote()
                         val failure = error
                         if (failure != null && OasisFormViewModel.FIELDS.none { failure.message(it) != null }) Banner(failure.userMessage)
@@ -184,7 +184,7 @@ fun OasisFormScreen(
                     }
                 }
                 val edit = state.edit
-                // Only an edited oasis has an edit form (and with it its slug).
+                // Only an edited crowd has an edit form (and with it its slug).
                 if (edit != null) {
                     val slug = edit.oasis.slug
                     block("close") {
@@ -345,7 +345,7 @@ fun ColorChoice(
     }
 }
 
-/** „Region (freiwillig, für die Karte der Oasen)“: a Bundesland and, with one, a city or area – never coordinates. */
+/** „Region (freiwillig, für die Karte der Crowds)“: a Bundesland and, with one, a city or area – never coordinates. */
 @Composable
 internal fun RegionFields(regions: List<Choice>, input: OasisInput, error: String?, onChange: ((OasisInput) -> OasisInput) -> Unit) {
     Column(verticalArrangement = Arrangement.spacedBy(8.dp), modifier = Modifier.testTag("oasisForm.regionFields")) {

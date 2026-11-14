@@ -45,7 +45,7 @@ class Gallery : ContentProvider() {
     override fun update(uri: Uri, values: ContentValues?, selection: String?, args: Array<out String>?) = 0
 }
 
-/** Sharing into Oasis: the receiving activity copies the files, keeps the share and opens "Teilen mit …". */
+/** Sharing into Mildcrowd: the receiving activity copies the files, keeps the share and opens "Teilen mit …". */
 @RunWith(RobolectricTestRunner::class)
 @Config(application = Application::class)
 class ShareReceiverTest {

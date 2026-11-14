@@ -27,7 +27,7 @@ import org.junit.runner.RunWith
 import org.robolectric.RobolectricTestRunner
 
 /**
- * The pinned message and polls in the view model (docs/oasis-chat-client.md, "Pinned message and polls"): quiet
+ * The pinned message and polls in the view model (docs/mildcrowd-chat-client.md, "Pinned message and polls"): quiet
  * encrypted control messages, decided only by the decrypted payload, counted by the rules of the spec.
  */
 @OptIn(ExperimentalCoroutinesApi::class)

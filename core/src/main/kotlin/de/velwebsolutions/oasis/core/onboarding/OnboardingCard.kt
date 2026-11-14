@@ -6,7 +6,7 @@ import java.time.Duration
 import java.time.Instant
 
 /**
- * „Später“ on the Quelle's card „Mach deine Startseite lebendig“ (docs/oasis-accounts.md, „Nach der Registrierung“): until when
+ * „Später“ on the Start's card „Mach deine Startseite lebendig“ (docs/mildcrowd-accounts.md, „Nach der Registrierung“): until when
  * the card stays hidden on this device.
  */
 interface OnboardingCardStore {

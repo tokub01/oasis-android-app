@@ -69,14 +69,14 @@ import okhttp3.MediaType.Companion.toMediaType
 import okhttp3.MultipartBody
 import okhttp3.RequestBody.Companion.toRequestBody
 
-/** The network area's calls (NetworkAPI on iOS): feeds, Tropfen, profiles, friends, oases and invitations. */
+/** The network area's calls (NetworkAPI on iOS): feeds, Posts, profiles, friends, crowds and invitations. */
 interface NetworkRepository {
     // Feeds
     suspend fun source(view: String?, cursor: String?): FeedPage<SourceContext>
 
     suspend fun discover(cursor: String?): FeedPage<DiscoverContext>
 
-    /** „Heute vor einem Jahr“: the member's own Tropfen of this calendar day in earlier years (empty when dismissed today). */
+    /** „Heute vor einem Jahr“: the member's own Posts of this calendar day in earlier years (empty when dismissed today). */
     suspend fun memories(): List<MemoryYear>
 
     /** „Ausblenden“ until the end of the day on every device; „Bis morgen ausgeblendet.“ */
@@ -102,10 +102,10 @@ interface NetworkRepository {
     /** The Jahrbuch of [year], the current year when null. */
     suspend fun yearbook(year: Int?): Yearbook
 
-    /** The Bundesländer of the Karte der Oasen with the number of oases the viewer can see. */
+    /** The Bundesländer of the Karte der Crowds with the number of crowds the viewer can see. */
     suspend fun regions(): List<MapRegion>
 
-    /** The oases of Bundesland [code] (404 for an unknown one). */
+    /** The crowds of Bundesland [code] (404 for an unknown one). */
     suspend fun regionOases(code: String): List<OasisSummary>
 
     /** The last 12 Wochenbriefe, newest first. */
@@ -114,7 +114,7 @@ interface NetworkRepository {
     /** Wochenbrief [id], or the newest without one (null before the first). */
     suspend fun weeklyLetter(id: Int?): WeeklyLetter?
 
-    /** A page of „Ideen für Oasis“ in [sort] order, of one [status] or all. */
+    /** A page of „Ideen für Mildcrowd“ in [sort] order, of one [status] or all. */
     suspend fun ideas(sort: String, status: String?, page: Int): Page<Idea>
 
     suspend fun idea(id: Int): Idea
@@ -130,7 +130,7 @@ interface NetworkRepository {
 
     suspend fun tag(tag: String, cursor: String?): FeedPage<TagContext>
 
-    // Tropfen
+    // Posts
     suspend fun post(id: Int): PostDetail
 
     suspend fun editForm(id: Int): PostEditForm
@@ -141,10 +141,10 @@ interface NetworkRepository {
 
     suspend fun composer(oasisSlug: String?, replyTo: Int?, carried: Int?): ComposerContext
 
-    /** Publishes a Tropfen as multipart (`images[]`, `alts[]` in the same order). */
+    /** Publishes a Post as multipart (`images[]`, `alts[]` in the same order). */
     suspend fun publish(draft: PostDraft): PublishResult
 
-    // Sammlungen (docs/oasis-network.md)
+    // Sammlungen (docs/mildcrowd-network.md)
 
     suspend fun collections(slug: String): OasisCollections
 
@@ -152,10 +152,10 @@ interface NetworkRepository {
 
     suspend fun updateCollection(id: Int, input: CollectionInput): Confirmed<OasisCollection>
 
-    /** „Sammlung löschen“: its Tropfen stay in the oasis. */
+    /** „Sammlung löschen“: its Posts stay in the crowd. */
     suspend fun deleteCollection(id: Int): String
 
-    /** A page of 20 Tropfen of a collection, newest added first. */
+    /** A page of 20 Posts of a collection, newest added first. */
     suspend fun collectionPosts(id: Int, page: Int): Page<Post>
 
     /** „Zu Sammlung hinzufügen“. */
@@ -180,7 +180,7 @@ interface NetworkRepository {
     /** „Ablehnen“: final, the own text goes. */
     suspend fun declineInvitation(id: Int): Confirmed<CapsuleInvitation>
 
-    // Treffen and Willkommenspaten (docs/oasis-network.md)
+    // Treffen and Willkommenspaten (docs/mildcrowd-network.md)
 
     suspend fun meetups(slug: String): OasisMeetups
 
@@ -198,16 +198,16 @@ interface NetworkRepository {
     /** „Mitglieder dürfen Treffen anlegen“ (hosts); returns the setting as stored. */
     suspend fun setMembersCreateMeetups(slug: String, allowed: Boolean): MeetupSettings
 
-    /** „Nächste Treffen“ on the Quelle: the own oases' meetups within 30 days. */
+    /** „Nächste Treffen“ on the Start: the own oases' meetups within 30 days. */
     suspend fun upcomingMeetups(): List<Meetup>
 
     /** „Ich bin gern Willkommenspate oder -patin“; returns the setting as stored. */
     suspend fun setWelcomeVolunteer(slug: String, volunteer: Boolean): WelcomeVolunteer
 
-    /** A vote in a Tropfen's poll ([options] empty takes it back) → „Abgestimmt.“ / „Stimme zurückgenommen.“ and the Tropfen. */
+    /** A vote in a Post's poll ([options] empty takes it back) → „Abgestimmt.“ / „Stimme zurückgenommen.“ and the Post. */
     suspend fun votePoll(id: Int, options: List<Int>): Confirmed<Post>
 
-    /** „Umfrage beenden“ (the author) → „Die Umfrage ist beendet.“ and the Tropfen. */
+    /** „Umfrage beenden“ (the author) → „Die Umfrage ist beendet.“ and the Post. */
     suspend fun closePoll(id: Int): Confirmed<Post>
 
     suspend fun deletePost(id: Int): String
@@ -263,7 +263,7 @@ interface NetworkRepository {
 
     suspend fun removeFriend(userId: Int): String
 
-    // Oases
+    // Crowds
     suspend fun oases(): OasisDirectory
 
     suspend fun oasis(slug: String): OasisDetail
@@ -274,7 +274,7 @@ interface NetworkRepository {
 
     suspend fun followOasis(slug: String, on: Boolean): String
 
-    /** Founds an oasis (multipart with the optional banner) and returns its slug. */
+    /** Founds a crowd (multipart with the optional banner) and returns its slug. */
     suspend fun createOasis(input: OasisInput, banner: ImageUpload?): String
 
     suspend fun oasisEditForm(slug: String): OasisEditForm

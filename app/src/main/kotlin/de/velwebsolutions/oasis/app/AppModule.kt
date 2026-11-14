@@ -48,7 +48,7 @@ object AppModule {
             ?: "${Build.MANUFACTURER.replaceFirstChar(Char::uppercase)} ${Build.MODEL}"
     )
 
-    /** The shared product version („Oasis 0.24.0“); installed and never updated since when both times are equal. */
+    /** The shared product version („Mildcrowd 0.24.0“); installed and never updated since when both times are equal. */
     @Provides
     @Singleton
     fun appVersion(@ApplicationContext context: Context): AppVersion {

@@ -36,7 +36,7 @@ import java.time.Instant
 /** The API client of the running app, to resolve image URLs the API returns (null in previews). */
 val LocalApiClient = staticCompositionLocalOf<ApiClient?> { null }
 
-/** The colours members and oases choose (`AvatarColor` on the web: sun, spring, night, dune). */
+/** The colours members and crowds choose (`AvatarColor` on the web: sun, spring, night, dune). */
 object AvatarTint {
     /** The circle behind the initials (`AvatarColor::classes`), where dune is the darker dune line. */
     fun background(name: String): Color = when (name) {
@@ -65,7 +65,7 @@ object AvatarTint {
     /** The colour a choice shows for member [memberId]: „Automatisch“ shows the colour it resolves to. */
     fun shown(choice: String, memberId: Int): String = if (choice == AUTOMATIC) automatic(memberId) else choice
 
-    /** An oasis colour surface (`bg-{color}`), where dune is the light sand tone. */
+    /** A crowd colour surface (`bg-{color}`), where dune is the light sand tone. */
     fun surface(name: String): Color = if (name == "dune") OasisColors.Dune else background(name)
 }
 
@@ -97,7 +97,7 @@ fun AvatarView(initials: String, color: String, modifier: Modifier = Modifier, p
 }
 
 /**
- * Loads an image with the member's token (Tropfen images, banners, profile photos with restricted audience); accepts
+ * Loads an image with the member's token (Post images, banners, profile photos with restricted audience); accepts
  * absolute or root-relative URLs. The app's image loader shares the API client's OkHttp, so the headers are the same.
  * Its disk cache keeps what it loads, whatever `Cache-Control` says: [cacheOnDisk] false keeps an image the server sends
  * with `no-store` (the photos of a reported chat message) off the device's storage, only in memory.

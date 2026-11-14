@@ -38,8 +38,8 @@ fun letterWeek(start: String, end: String): String = "Woche vom ${letterDay(star
 fun newMembersText(count: Int): String = (if (count == 1) "Ein neues Mitglied" else "$count neue Mitglieder") + " diese Woche."
 
 /**
- * „Dein Oasen-Wochenbrief“ (/app/wochenbrief/{id?}): one letter – the newest when none is named – and the earlier
- * ones. Card actions change the Tropfen of the letter; it is not loaded again.
+ * „Dein Crowd-Wochenbrief“ (/app/wochenbrief/{id?}): one letter – the newest when none is named – and the earlier
+ * ones. Card actions change the Posts of the letter; it is not loaded again.
  */
 @HiltViewModel(assistedFactory = WeeklyLetterViewModel.Factory::class)
 class WeeklyLetterViewModel @AssistedInject constructor(@Assisted id: Int?, private val repository: NetworkRepository) :
@@ -101,11 +101,11 @@ class WeeklyLetterViewModel @AssistedInject constructor(@Assisted id: Int?, priv
 /** The shown ideas and the page „Weitere Ideen“ loads ([nextPage] null on the last one). */
 data class IdeaList(val ideas: List<Idea> = emptyList(), val nextPage: Int? = null)
 
-/** The suggest form of „Ideen für Oasis“: title (3–100) and description (≤ 1000); [error] keeps a refusal. */
+/** The suggest form of „Ideen für Mildcrowd“: title (3–100) and description (≤ 1000); [error] keeps a refusal. */
 data class IdeaForm(val title: String = "", val description: String = "", val error: ApiError? = null)
 
 /**
- * „Ideen für Oasis“ (/app/ideen/{id?}, docs/oasis-admin.md): suggest, vote (one per idea, withdrawable), sort, filter
+ * „Ideen für Mildcrowd“ (/app/ideen/{id?}, docs/mildcrowd-admin.md): suggest, vote (one per idea, withdrawable), sort, filter
  * by status, delete the own while open; the idea of an opened link stands in front.
  */
 @HiltViewModel(assistedFactory = IdeasViewModel.Factory::class)

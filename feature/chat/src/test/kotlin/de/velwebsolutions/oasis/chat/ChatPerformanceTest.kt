@@ -24,7 +24,7 @@ import org.junit.runner.RunWith
 import org.robolectric.RobolectricTestRunner
 import org.robolectric.annotation.Config
 
-/** How much of a long chat is composed again while typing (docs/oasis-chat-client.md, „Chat design and gestures“). */
+/** How much of a long chat is composed again while typing (docs/mildcrowd-chat-client.md, „Chat design and gestures“). */
 @RunWith(RobolectricTestRunner::class)
 @Config(qualifiers = "w360dp-h740dp")
 class ChatPerformanceTest {

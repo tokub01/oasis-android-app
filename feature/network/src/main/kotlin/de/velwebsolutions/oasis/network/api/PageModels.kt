@@ -12,7 +12,7 @@ import kotlinx.serialization.json.JsonTransformingSerializer
 import kotlinx.serialization.json.jsonObject
 
 /**
- * A cursor page of Tropfen with the page's side information in `context` (first page only for most lists):
+ * A cursor page of Posts with the page's side information in `context` (first page only for most lists):
  * `{ "data": [...], "meta": { "next_cursor": … }, "context": { … } }`. Later pages may carry PHP's empty array as
  * `"context": []` (Entdecken); that is no side information, not an unexpected answer ([FeedPageSerializer]).
  */
@@ -41,7 +41,7 @@ class NoContext {
     override fun hashCode(): Int = 0
 }
 
-/** An oasis in lists (`OasisSummaryResource`). */
+/** A crowd in lists (`OasisSummaryResource`). */
 @Serializable
 data class OasisSummary(
     val id: Int,
@@ -54,14 +54,14 @@ data class OasisSummary(
     val membersCount: Int? = null,
     /** The viewer's (or the profile owner's) role: "host" or "member". */
     val role: String? = null,
-    /** The Bundesland for the Karte der Oasen; null without. */
+    /** The Bundesland for the Karte der Crowds; null without. */
     val region: RegionRef? = null,
     /** A city or area, only with a region. */
     val city: String? = null,
     /**
-     * Name, description and house rules are held for human review (docs/oasis-auto-moderation.md): the server then
+     * Name, description and house rules are held for human review (docs/mildcrowd-auto-moderation.md): the server then
      * sends everyone but the founder, the hosts and staff the placeholders ([HELD_NAME], a placeholder description, no
-     * house rules). False from servers before the oasis check.
+     * house rules). False from servers before the crowd check.
      */
     val held: Boolean = false
 ) {
@@ -70,8 +70,8 @@ data class OasisSummary(
         get() = region?.let { listOfNotNull(it.name, city?.takeIf(String::isNotBlank)).joinToString(" · ") }
 
     /**
-     * The viewer reads the real texts of a held oasis (founder, host or staff: the server sent no placeholder), so the
-     * page and the form tell them that others see „Oase in Prüfung“ meanwhile.
+     * The viewer reads the real texts of a held crowd (founder, host or staff: the server sent no placeholder), so the
+     * page and the form tell them that others see „Crowd in Prüfung“ meanwhile.
      */
     val showsHeldTexts: Boolean get() = held && name != HELD_NAME
 
@@ -81,11 +81,11 @@ data class OasisSummary(
     }
 }
 
-/** A Bundesland of an oasis (`region: {code, name}`). */
+/** A Bundesland of a crowd (`region: {code, name}`). */
 @Serializable
 data class RegionRef(val code: String, val name: String)
 
-/** The Quelle's side information. */
+/** The Start's side information. */
 @Serializable
 data class SourceContext(
     val showAll: Boolean = false,
@@ -94,8 +94,8 @@ data class SourceContext(
     val week: Week? = null,
     val oases: List<OasisSummary>? = null,
     /**
-     * The newest Tropfen id of the first page at the last visit (first page only, null on the first visit): the Quelle
-     * shows what is newer, then „Du hast alles Neue gesehen.“ (docs/oasis-network.md, „Alles Neue gesehen“).
+     * The newest Post id of the first page at the last visit (first page only, null on the first visit): the Start
+     * shows what is newer, then „Du hast alles Neue gesehen.“ (docs/mildcrowd-network.md, „Alles Neue gesehen“).
      */
     val seenUpTo: String? = null
 ) {
@@ -153,6 +153,6 @@ data class MemberStatistics(val totals: Totals, val weekly: List<Week> = emptyLi
     data class TopPost(val id: Int, val body: String, val reactions: Int = 0, val replies: Int = 0, val createdAt: OasisInstant)
 }
 
-/** One year of „Heute vor einem Jahr“: „Heute vor 1 Jahr“, „Heute vor 2 Jahren“ … with the member's own Tropfen. */
+/** One year of „Heute vor einem Jahr“: „Heute vor 1 Jahr“, „Heute vor 2 Jahren“ … with the member's own Posts. */
 @Serializable
 data class MemoryYear(val yearsAgo: Int, val label: String, val posts: List<Post> = emptyList())

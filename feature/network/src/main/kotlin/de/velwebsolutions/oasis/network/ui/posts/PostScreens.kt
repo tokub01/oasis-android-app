@@ -87,7 +87,7 @@ import de.velwebsolutions.oasis.network.ui.compose.callbacks
 import de.velwebsolutions.oasis.network.ui.retry
 
 /**
- * The composer as a sheet: a new Tropfen in the Quelle or an oasis, or a (quick) reply. While something is written or
+ * The composer as a sheet: a new Post in the Start or a crowd, or a (quick) reply. While something is written or
  * picked, "Schließen" and the back gesture ask before discarding the draft; the sheet closes itself after publishing.
  */
 @Composable
@@ -166,8 +166,8 @@ fun ComposeContent(state: ComposeUiState, callbacks: ComposerCallbacks, onPublis
 }
 
 /**
- * "Weitertragen" (/tropfen/{id}/weitertragen): the original above a composer for own words; links need "Ich habe den
- * Inhalt gelesen". Afterwards the Quelle shows the new Tropfen.
+ * "Teilen" (/posts/{id}/teilen): the original above a composer for own words; links need "Ich habe den
+ * Inhalt gelesen". Afterwards the Start shows the new Post.
  */
 @Composable
 fun CarryScreen(
@@ -227,7 +227,7 @@ const val PLAIN_CARRY_LEAD = "Teile den Post mit den Menschen, die dir folgen."
 fun plainCarryNote(author: String): String = "$author lässt nicht alle antworten. Du kannst den Post deshalb nur ohne eigene Worte teilen."
 
 /**
- * "Tropfen bearbeiten" (/tropfen/{id}/bearbeiten): the text within the edit window; images and audience stay. A changed
+ * "Post bearbeiten" (/posts/{id}/bearbeiten): the text within the edit window; images and audience stay. A changed
  * text is only left through "Änderung speichern" or "Abbrechen", which asks first; a rotation keeps it.
  */
 @Composable
@@ -311,8 +311,8 @@ private fun EditPostPage(viewModel: EditPostViewModel, form: Loadable<PostEditFo
 }
 
 /**
- * One Tropfen with its replies (/tropfen/{id}): earlier versions ("Frühere Fassungen"), the reply form where the author
- * allows replies, the replies oldest first, and the side cards "Geschrieben von", "In der Oase", "Leise Zahlen". Opened
+ * One Post with its replies (/posts/{id}): earlier versions ("Frühere Fassungen"), the reply form where the author
+ * allows replies, the replies oldest first, and the side cards "Geschrieben von", "In der Crowd", "Leise Zahlen". Opened
  * with "Antworten" from a card, the reply field is focused (the web jumps to #antworten).
  */
 @Composable
@@ -376,7 +376,7 @@ fun PostDetailScreen(
     }
 }
 
-/** The Tropfen page's content. */
+/** The Post page's content. */
 @Composable
 fun PostDetailContent(
     detail: PostDetail,
@@ -421,7 +421,7 @@ fun PostDetailContent(
                 }
             }
         } else if (post.viewer?.canReply == true && oasis != null) {
-            // Replies in an oasis land in it, so only its members write them: say so instead of a missing form.
+            // Replies in a crowd land in it, so only its members write them: say so instead of a missing form.
             block("reply.membership") {
                 DashedNote(
                     Modifier

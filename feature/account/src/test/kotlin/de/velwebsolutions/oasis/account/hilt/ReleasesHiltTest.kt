@@ -19,7 +19,7 @@ import org.robolectric.RobolectricTestRunner
 import org.robolectric.annotation.Config
 import org.robolectric.annotation.GraphicsMode
 
-/** Was ist neu and „Neu in Oasis …“ after an update, as the app shows them (the graph's app version is 0.24.0). */
+/** Was ist neu and „Neu in Mildcrowd …“ after an update, as the app shows them (the graph's app version is 0.24.0). */
 @HiltAndroidTest
 @RunWith(RobolectricTestRunner::class)
 @Config(application = HiltTestApplication::class)

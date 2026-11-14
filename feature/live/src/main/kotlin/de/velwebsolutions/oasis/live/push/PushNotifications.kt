@@ -20,7 +20,7 @@ enum class PushChannel(val id: String, val title: String, val description: Strin
 
 /** A push hint as the notification shows it: the generic line, or the named text once the preview was fetched. */
 data class PushContent(val title: String, val body: String, val url: String?, val tag: String? = null) {
-    /** The same push with the named text of the Oasis server (PushPreviewController), if there is one. */
+    /** The same push with the named text of the Mildcrowd server (PushPreviewController), if there is one. */
     fun with(preview: PushPreview?): PushContent = if (preview == null) this else copy(title = preview.title, body = preview.body)
 
     /** Chat messages (`tag` "oasis-chat", or a link into the chat) go to their own channel, everything else to Hinweise. */

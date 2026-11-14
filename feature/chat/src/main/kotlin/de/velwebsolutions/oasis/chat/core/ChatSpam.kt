@@ -5,7 +5,7 @@ import java.util.Locale
 import kotlin.math.ceil
 
 /**
- * Spam checks on the member's own device (docs/oasis-chat-client.md, „Schreien, Wiederholungen, Fluten“; client/spam.js).
+ * Spam checks on the member's own device (docs/mildcrowd-chat-client.md, „Schreien, Wiederholungen, Fluten“; client/spam.js).
  * Chats are end-to-end encrypted, so the server never sees the text: shouting and repetition give a calm hint and need a
  * second press, flooding pauses sending for a moment. The thresholds and the expected decisions are shared with the web
  * and iOS in chat-spam-vectors.json; the server only counts messages per member and chat (429 with [FLOOD_PAUSE]).

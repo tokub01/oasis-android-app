@@ -35,7 +35,7 @@ import org.junit.Assert.assertFalse
 import org.junit.Assert.assertTrue
 import org.junit.Test
 
-/** The chat's layout rules, texts and swipe thresholds (docs/oasis-chat-client.md, „Chat design and gestures“). */
+/** The chat's layout rules, texts and swipe thresholds (docs/mildcrowd-chat-client.md, „Chat design and gestures“). */
 class ChatDesignTest {
     private val now = Instant.parse("2026-11-03T13:00:00Z")
 

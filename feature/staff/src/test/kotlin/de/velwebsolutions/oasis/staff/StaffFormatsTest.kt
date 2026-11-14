@@ -78,7 +78,7 @@ class StaffFormatsTest {
     }
 
     @Test
-    fun `staff links open Oasis pages in the app and others in the browser`() {
+    fun `staff links open Mildcrowd pages in the app and others in the browser`() {
         assertEquals(
             de.velwebsolutions.oasis.design.navigation.MembershipRoute.Overview,
             de.velwebsolutions.oasis.staff.ui.components.linkRoute("http://localhost/app/mitgliedschaft")

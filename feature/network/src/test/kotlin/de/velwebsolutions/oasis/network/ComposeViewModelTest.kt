@@ -200,7 +200,7 @@ class ComposeViewModelTest(private val answersAtOnce: Boolean) {
     }
 
     @Test
-    fun `a Tropfen whose form went away is sent once and its answer waits for the next form`() = runTest {
+    fun `a Post whose form went away is sent once and its answer waits for the next form`() = runTest {
         val gate = CompletableDeferred<Unit>()
         val network = StubbedNetwork(
             stub("GET", "network/composer", Fixtures.composer),
@@ -217,7 +217,7 @@ class ComposeViewModelTest(private val answersAtOnce: Boolean) {
         model.updateBody("Hallo")
         assertNull(model.unclaimedPublish())
 
-        // A rotation cancels the form's coroutine while the Tropfen is on its way; a second tap sends nothing.
+        // A rotation cancels the form's coroutine while the Post is on its way; a second tap sends nothing.
         val form = launch { model.publish() }
         runCurrent()
         form.cancelAndJoin()
@@ -233,7 +233,7 @@ class ComposeViewModelTest(private val answersAtOnce: Boolean) {
     }
 
     @Test
-    fun `an answer taken late leaves the Tropfen sent after it to its own form`() = runTest {
+    fun `an answer taken late leaves the Post sent after it to its own form`() = runTest {
         val gates = List(3) { CompletableDeferred<Unit>() }
         var sent = 0
         val network = StubbedNetwork()
@@ -246,7 +246,7 @@ class ComposeViewModelTest(private val answersAtOnce: Boolean) {
         }
         val model = models.keep(network.composer("nacheinander", repository = slow))
 
-        // The first form gets its answer only after the next Tropfen went out.
+        // The first form gets its answer only after the next Post went out.
         model.updateBody("Erster")
         val first = async { model.publish() }
         runCurrent()
@@ -255,7 +255,7 @@ class ComposeViewModelTest(private val answersAtOnce: Boolean) {
         val second = async(start = CoroutineStart.UNDISPATCHED) { model.publish() }
         assertEquals("Post 1 ist da.", first.await()?.message)
 
-        // The second form goes away (a rotation); the next form takes its answer only after a third Tropfen went out.
+        // The second form goes away (a rotation); the next form takes its answer only after a third Post went out.
         second.cancelAndJoin()
         val next = async { model.unclaimedPublish() }
         runCurrent()
@@ -369,7 +369,7 @@ class ComposeViewModelTest(private val answersAtOnce: Boolean) {
     }
 
     @Test
-    fun `a held Tropfen refreshes the account and a carry is sent as a plain Tropfen`() = runTest {
+    fun `a held Post refreshes the account and a carry is sent as a plain Post`() = runTest {
         val network = StubbedNetwork(
             stub("GET", "network/composer", Fixtures.composer),
             stub("POST", "network/posts", """{"message":"Zurückgehalten.","suspended":true,"data":${postJson(43)}}""", 201)

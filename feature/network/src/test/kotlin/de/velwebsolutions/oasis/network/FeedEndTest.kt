@@ -17,7 +17,7 @@ import org.junit.Test
 
 /**
  * The end of every paginated list with the server's real last pages (taken from the local API, round N): the list ends
- * quietly, without „Die Antwort von Oasis war unerwartet“ and without a spinner.
+ * quietly, without „Die Antwort von Mildcrowd war unerwartet“ and without a spinner.
  */
 class FeedEndTest {
     /** GET /network/discover?cursor=… – the last page, with PHP's empty array as `context`. */
@@ -34,7 +34,7 @@ class FeedEndTest {
         "prev_cursor":"eyJpZCI6N30"},"context":{"show_all":true,"follows_anyone":true,"can_post":true}}
     """.trimIndent()
 
-    /** An empty last page (profile, oasis, Merkliste: no `context`). */
+    /** An empty last page (profile, crowd, Merkliste: no `context`). */
     private val emptyLast = """
         {"data":[],"links":{"first":null,"last":null,"prev":null,"next":null},"meta":{"path":"http://localhost/api/v1/network/bookmarks",
         "per_page":20,"next_cursor":null,"prev_cursor":"eyJpZCI6N30"}}

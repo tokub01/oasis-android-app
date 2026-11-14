@@ -7,7 +7,7 @@ import org.gradle.kotlin.dsl.configure
 import org.gradle.kotlin.dsl.dependencies
 
 /**
- * A feature module (network, chat, account, live, membership, staff) like one OasisKit target: Compose with the Oasis
+ * A feature module (network, chat, account, live, membership, staff) like one OasisKit target: Compose with the Mildcrowd
  * design, Hilt view models, and the core API client. Features never depend on each other; they meet through the routes
  * in `:design`, as on iOS.
  */

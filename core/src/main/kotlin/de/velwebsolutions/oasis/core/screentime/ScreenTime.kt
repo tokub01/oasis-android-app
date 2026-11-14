@@ -15,7 +15,7 @@ import kotlinx.serialization.json.longOrNull
 
 /** The seconds per local calendar day (`YYYY-MM-DD`) of one account, kept only on this device. */
 interface ScreenTimeStore {
-    /** Whether this device counts at all: off until the member switches it on in „Deine Zeit in Oasis“. */
+    /** Whether this device counts at all: off until the member switches it on in „Deine Zeit in Mildcrowd“. */
     var enabled: Boolean
 
     fun read(userId: Int): Map<String, Long>
@@ -57,15 +57,15 @@ class PreferencesScreenTimeStore(context: Context) : ScreenTimeStore {
     }
 }
 
-/** One row of „Deine Zeit in Oasis“: „Heute“ or the weekday („Mo“ …) and its whole minutes. */
+/** One row of „Deine Zeit in Mildcrowd“: „Heute“ or the weekday („Mo“ …) and its whole minutes. */
 data class ScreenTimeDay(val label: String, val minutes: Long)
 
 /** The last 7 days, oldest first, and their total in whole minutes. */
 data class ScreenTimeWeek(val days: List<ScreenTimeDay>, val total: Long)
 
 /**
- * „Deine Zeit in Oasis“ (docs/oasis-privacy.md, „Bildschirmzeit“; resources/js/screen-time.js): only while the member
- * switched counting on ([enabled], off by default, this device only), a second counts while Oasis is in the foreground
+ * „Deine Zeit in Mildcrowd“ (docs/mildcrowd-privacy.md, „Bildschirmzeit“; resources/js/screen-time.js): only while the member
+ * switched counting on ([enabled], off by default, this device only), a second counts while Mildcrowd is in the foreground
  * with the screen on ([count] runs only then) and the member did something within the last 60 seconds ([touched]);
  * seconds go to the device's local calendar day, only 8 days are kept, written at most every 15 seconds and when the
  * app leaves the foreground. Per account and never sent anywhere.
@@ -78,7 +78,7 @@ class ScreenTime(
     @Volatile private var lastInput = 0L
     private var pending = 0L
 
-    /** The switch in „Deine Zeit in Oasis“: counting starts or stops with the next second. */
+    /** The switch in „Deine Zeit in Mildcrowd“: counting starts or stops with the next second. */
     var enabled: Boolean
         get() = store.enabled
         set(value) {

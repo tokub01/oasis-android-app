@@ -38,7 +38,7 @@ import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.update
 
 /**
- * A list screen around a [PostListModel]: after a Tropfen was written it is put on top where [belongsOnTop] says it
+ * A list screen around a [PostListModel]: after a Post was written it is put on top where [belongsOnTop] says it
  * belongs (and the page scrolls up, [scrollToTop]), otherwise the list loads again.
  */
 abstract class FeedViewModel<C>(val list: PostListModel<C>) : NetworkViewModel() {
@@ -59,11 +59,11 @@ abstract class FeedViewModel<C>(val list: PostListModel<C>) : NetworkViewModel()
         }
     }
 
-    /** Whether a just-written Tropfen goes on top of this list instead of loading it again. */
+    /** Whether a just-written Post goes on top of this list instead of loading it again. */
     protected open fun belongsOnTop(post: Post): Boolean = false
 }
 
-/** Quelle (/app): own Tropfen and those of friends, followed people and oases – or "Ganz Mildcrowd". */
+/** Start (/app): own Posts and those of friends, followed people and crowds – or "Ganz Mildcrowd". */
 @HiltViewModel
 class SourceViewModel @Inject constructor(
     private val repository: NetworkRepository,
@@ -80,7 +80,7 @@ class SourceViewModel @Inject constructor(
     private val mutableShowOlder = MutableStateFlow(false)
     private val mutableMemories = MutableStateFlow<List<MemoryYear>>(emptyList())
 
-    /** „Ältere Tropfen“ was tapped after „Du hast alles Neue gesehen.“: from then on the usual list. */
+    /** „Ältere Posts“ was tapped after „Du hast alles Neue gesehen.“: from then on the usual list. */
     val showOlder: StateFlow<Boolean> = mutableShowOlder.asStateFlow()
 
     private val mutableMeetups = MutableStateFlow<List<Meetup>>(emptyList())
@@ -105,7 +105,7 @@ class SourceViewModel @Inject constructor(
         mutableCardSnoozed.value = true
     }
 
-    /** „Ältere Tropfen“ after „Du hast alles Neue gesehen.“ */
+    /** „Ältere Posts“ after „Du hast alles Neue gesehen.“ */
     fun showOlderPosts() {
         mutableShowOlder.value = true
     }
@@ -128,8 +128,8 @@ class SourceViewModel @Inject constructor(
     }
 
     /**
-     * An own new Tropfen goes on top of the followed Quelle, unless it is a reply (bundled under its Tropfen). "Ganz Mildcrowd"
-     * loads again instead, like the web's `$refresh` after `post-published`: whether it lists the Tropfen depends on the
+     * An own new Post goes on top of the followed Start, unless it is a reply (bundled under its Post). "Ganz Mildcrowd"
+     * loads again instead, like the web's `$refresh` after `post-published`: whether it lists the Post depends on the
      * author (profile open to members, not under 18; PostFeed::byOpenAuthors), not on its visibility, and only the
      * server knows that.
      */
@@ -139,13 +139,13 @@ class SourceViewModel @Inject constructor(
     }
 }
 
-/** The Quelle up to what was seen at the last visit, and whether „Du hast alles Neue gesehen.“ follows. */
+/** The Start up to what was seen at the last visit, and whether „Du hast alles Neue gesehen.“ follows. */
 data class SeenCut(val state: PostListState<SourceContext>, val seen: Boolean) {
     companion object {
         /**
-         * Only the Tropfen newer than `context.seen_up_to` while older ones are among the loaded – they wait for „Ältere
-         * Tropfen“ ([showOlder]), and no older page loads meanwhile (the list does not end there either). Without a
-         * marker (the first visit), after „Ältere Tropfen“, and while every loaded Tropfen is new, the list as it is.
+         * Only the Posts newer than `context.seen_up_to` while older ones are among the loaded – they wait for „Ältere
+         * Posts“ ([showOlder]), and no older page loads meanwhile (the list does not end there either). Without a
+         * marker (the first visit), after „Ältere Posts“, and while every loaded Post is new, the list as it is.
          */
         fun of(state: PostListState<SourceContext>, showOlder: Boolean): SeenCut {
             val marker = state.context?.seenUpTo?.toIntOrNull()
@@ -155,12 +155,12 @@ data class SeenCut(val state: PostListState<SourceContext>, val seen: Boolean) {
     }
 }
 
-/** Entdecken (/app/entdecken): public Tropfen of public profiles, newest first, and the largest oases. */
+/** Entdecken (/app/entdecken): public Posts of public profiles, newest first, and the largest crowds. */
 @HiltViewModel
 class DiscoverViewModel @Inject constructor(repository: NetworkRepository) :
     FeedViewModel<DiscoverContext>(PostListModel(repository) { _, cursor -> discover(cursor) })
 
-/** Gemerkt (/app/gemerkt): the private bookmark list; a Tropfen leaves it once it is no longer bookmarked. */
+/** Gemerkt (/app/gemerkt): the private bookmark list; a Post leaves it once it is no longer bookmarked. */
 @HiltViewModel
 class BookmarksViewModel @Inject constructor(repository: NetworkRepository) :
     FeedViewModel<NoContext>(PostListModel(repository, dropsUnbookmarked = true) { _, cursor -> bookmarks(cursor) })
@@ -176,7 +176,7 @@ class TagViewModel @AssistedInject constructor(@Assisted tag: String, repository
 }
 
 /**
- * The member search (/app/suche): people, oases and Tropfen, updated while typing; the results stay on screen while the
+ * The member search (/app/suche): people, crowds and Posts, updated while typing; the results stay on screen while the
  * next ones load. Every request counts against the search budget of 30 per minute.
  */
 @HiltViewModel(assistedFactory = SearchViewModel.Factory::class)

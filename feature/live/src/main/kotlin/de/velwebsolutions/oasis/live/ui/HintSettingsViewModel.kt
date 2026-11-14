@@ -34,7 +34,7 @@ data class HintSettingsUiState(
     val error: String? = null,
     /** Messages of refused quiet hours by wire name (`quiet_from`, `quiet_until`). */
     val fieldErrors: Map<String, String> = emptyMap(),
-    /** Whether Android allows notifications for Oasis. */
+    /** Whether Android allows notifications for Mildcrowd. */
     val authorization: PushAuthorization = PushAuthorization.NotDetermined,
     /** Whether this build can get push hints at all (Firebase set up); whether the server sends them is `push.available`. */
     val pushSupported: Boolean = false,

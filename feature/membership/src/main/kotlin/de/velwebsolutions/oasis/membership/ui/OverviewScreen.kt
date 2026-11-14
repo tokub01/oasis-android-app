@@ -568,7 +568,7 @@ fun TierChangeCard(
 }
 
 /**
- * „Derzeit: Stufe „Oase“. Die neue Stufe gilt ab sofort, der neue Beitrag ab deiner nächsten Abbuchung am … .
+ * „Derzeit: Stufe „Mittendrin“. Die neue Stufe gilt ab sofort, der neue Beitrag ab deiner nächsten Abbuchung am … .
  * Wechselst du in eine kleinere Stufe, …“ (portal.blade.php; the contribution itself is on the invoices).
  */
 fun tierChangeLead(overview: MembershipOverview): String {

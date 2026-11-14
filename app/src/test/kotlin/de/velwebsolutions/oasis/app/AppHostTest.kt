@@ -123,7 +123,7 @@ class AppHostTest {
         val look = de.velwebsolutions.oasis.chat.core.MemoryLook()
         look.set("1:bg:default", "oase")
         look.write("1:photo:default", byteArrayOf(1))
-        // And the counted time of „Deine Zeit in Oasis“.
+        // And the counted time of „Deine Zeit in Mildcrowd“.
         val time = de.velwebsolutions.oasis.core.screentime.ScreenTime(
             de.velwebsolutions.oasis.core.screentime.PreferencesScreenTimeStore(context),
             userId = { 1 }

@@ -55,7 +55,7 @@ import de.velwebsolutions.oasis.network.ui.components.block
 import de.velwebsolutions.oasis.network.ui.components.membersLabel
 import de.velwebsolutions.oasis.network.ui.retry
 
-/** "Oasen" (/app/oasen): the member's oases and all others as cards; "Oase eröffnen" for members who may write. */
+/** "Crowds" (/app/crowds): the member's crowds and all others as cards; "Crowd eröffnen" for members who may write. */
 @Composable
 fun OasesScreen(viewModel: OasesViewModel = hiltViewModel<OasesViewModel>()) {
     val directory by viewModel.directory.collectAsStateWithLifecycle()
@@ -117,7 +117,7 @@ private fun LazyListScope.section(key: String, title: String, oases: List<OasisS
     oases.forEach { oasis -> block("$key.${oasis.id}") { OasisSummaryCard(oasis) } }
 }
 
-/** An oasis card of the overview: banner strip or colour surface, name, description and members. */
+/** A crowd card of the overview: banner strip or colour surface, name, description and members. */
 @Composable
 fun OasisSummaryCard(oasis: OasisSummary) {
     val navigator = LocalNavigator.current
@@ -142,7 +142,7 @@ fun OasisSummaryCard(oasis: OasisSummary) {
     }
 }
 
-/** The banner of an oasis, or its colour surface with the web's soft circle. */
+/** The banner of a crowd, or its colour surface with the web's soft circle. */
 @Composable
 fun OasisBanner(oasis: OasisSummary, modifier: Modifier = Modifier, height: Dp = 128.dp) {
     Box(
@@ -173,5 +173,5 @@ fun OasisBanner(oasis: OasisSummary, modifier: Modifier = Modifier, height: Dp =
     }
 }
 
-/** The soft circle on an oasis colour; on the night surface a fixed line colour instead of see-through white. */
+/** The soft circle on a crowd colour; on the night surface a fixed line colour instead of see-through white. */
 internal fun softCircle(color: String): Color = if (color == "night") OasisColors.NightLine else OasisColors.Paper.copy(alpha = 0.25f)

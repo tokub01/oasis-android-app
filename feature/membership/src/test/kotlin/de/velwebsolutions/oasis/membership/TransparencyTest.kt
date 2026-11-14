@@ -33,7 +33,7 @@ import org.robolectric.RobolectricTestRunner
 import org.robolectric.annotation.Config
 import org.robolectric.annotation.GraphicsMode
 
-/** „Wohin dein Beitrag geht“ (docs/oasis-admin.md): the figures and the reports, at 360 dp in both modes. */
+/** „Wohin dein Beitrag geht“ (docs/mildcrowd-admin.md): the figures and the reports, at 360 dp in both modes. */
 @RunWith(RobolectricTestRunner::class)
 @GraphicsMode(GraphicsMode.Mode.NATIVE)
 @Config(qualifiers = "w360dp-h740dp")

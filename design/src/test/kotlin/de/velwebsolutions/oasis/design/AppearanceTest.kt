@@ -28,7 +28,7 @@ import org.robolectric.RobolectricTestRunner
 import org.robolectric.annotation.Config
 import org.robolectric.annotation.GraphicsMode
 
-/** „Darstellung: Automatisch / Hell / Dunkel“ (docs/oasis-website.md): the stored choice, the system's mode and the tokens. */
+/** „Darstellung: Automatisch / Hell / Dunkel“ (docs/mildcrowd-website.md): the stored choice, the system's mode and the tokens. */
 @RunWith(RobolectricTestRunner::class)
 @GraphicsMode(GraphicsMode.Mode.NATIVE)
 @Config(qualifiers = "w360dp-h740dp")

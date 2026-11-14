@@ -50,7 +50,7 @@ data class PinBar(val to: String, val text: String, val gone: Boolean) {
 }
 
 /**
- * The poll form above the field (docs/oasis-chat-client.md, "Pinned message and polls"): the question, 2–6 answers and
+ * The poll form above the field (docs/mildcrowd-chat-client.md, "Pinned message and polls"): the question, 2–6 answers and
  * „Mehrere Antworten erlaubt“, with the message of the last failed „Umfrage senden“.
  */
 data class PollForm(

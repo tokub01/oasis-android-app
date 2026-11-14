@@ -34,7 +34,7 @@ import org.junit.Assert.assertTrue
 import org.junit.Rule
 import org.junit.Test
 
-/** Answers of the tier endpoints (TimeCapsuleController, YearbookController) for a member with Oase. */
+/** Answers of the tier endpoints (TimeCapsuleController, YearbookController) for a member with Mittendrin. */
 object TierFixtures {
     val capsules = """
         {"data":{"available":true,"locked_message":null,"max_length":1000,"max_waiting":50,"max_years":10,
@@ -259,7 +259,7 @@ class TierViewModelsTest {
     }
 
     @Test
-    fun `the cover counts photos and oases in German`() {
+    fun `the cover counts photos and crowds in German`() {
         assertEquals("2 Posts · 1 Foto · in 1 Crowd", yearbookTotals(Yearbook.Totals(2, 1, 1)))
         assertEquals("5 Posts · 3 Fotos · in 2 Crowds", yearbookTotals(Yearbook.Totals(5, 3, 2)))
         assertEquals("1 Post · 0 Fotos", yearbookTotals(Yearbook.Totals(1, 0, 0)))

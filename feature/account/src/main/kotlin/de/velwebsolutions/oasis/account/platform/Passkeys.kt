@@ -39,7 +39,7 @@ sealed class PasskeyFailure(val userMessage: String?) : Exception(userMessage ?:
      */
     class Cancelled : PasskeyFailure(null)
 
-    /** No passkey for Oasis on this device or in the password manager. */
+    /** No passkey for Mildcrowd on this device or in the password manager. */
     class NoPasskey : PasskeyFailure(
         "Auf diesem Gerät ist kein Passkey für Mildcrowd gespeichert. Melde dich mit Passwort oder Code an und richte in den Einstellungen einen Passkey ein."
     )

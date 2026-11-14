@@ -9,7 +9,7 @@ import org.junit.runner.RunWith
 
 /**
  * The real app on a device: the session restores (or fails offline, as on CI without a backend) and the app ends on
- * the sign-in page or, with a stored session, on the Quelle – never on a crash or an endless start screen.
+ * the sign-in page or, with a stored session, on the Start – never on a crash or an endless start screen.
  */
 @RunWith(AndroidJUnit4::class)
 class AppStartTest {

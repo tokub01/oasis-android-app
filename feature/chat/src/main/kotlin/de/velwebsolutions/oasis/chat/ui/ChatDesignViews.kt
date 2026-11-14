@@ -157,7 +157,7 @@ internal fun DayPill(label: String) {
 }
 
 /**
- * A quiet notice in the timeline (docs/oasis-chat-client.md, „C9 Quiet notices“): centred, small and muted; on a chosen
+ * A quiet notice in the timeline (docs/mildcrowd-chat-client.md, „C9 Quiet notices“): centred, small and muted; on a chosen
  * background in the paper pill. A tap opens the details with the safety numbers.
  */
 @Composable
@@ -310,7 +310,7 @@ internal fun Modifier.bubbleTail(show: Boolean, mine: Boolean, color: Color): Mo
 }
 
 /**
- * Swipe a message right → „Antworten“ (docs/oasis-chat-client.md, „Gestures“): only a clearly horizontal drag past the
+ * Swipe a message right → „Antworten“ (docs/mildcrowd-chat-client.md, „Gestures“): only a clearly horizontal drag past the
  * slop, the bubble follows 1:1 to 48 and then with resistance to 64, one tick at 48, releasing past 48 replies. Without
  * motion (the system's animations off) nothing moves, the icon still shows the progress.
  */

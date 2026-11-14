@@ -129,7 +129,7 @@ internal fun PrivacyCenterScreen(viewModel: PrivacyViewModel = hiltViewModel()) 
     val scope = rememberCoroutineScope()
     LifecycleEventEffect(Lifecycle.Event.ON_RESUME) { scope.launch { viewModel.appeared() } }
     var refreshing by remember { mutableStateOf(false) }
-    // The number of public Tropfen while „Tropfen begrenzen“ asks for confirmation.
+    // The number of public Posts while „Posts begrenzen“ asks for confirmation.
     var limitCount by remember { mutableStateOf<Int?>(null) }
     OasisScreen(
         title = "Privatsphäre",

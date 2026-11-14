@@ -127,7 +127,7 @@ import org.robolectric.RobolectricTestRunner
 import org.robolectric.annotation.Config
 import org.robolectric.annotation.GraphicsMode
 
-/** „Mach deine Startseite lebendig“ on the Quelle (docs/oasis-accounts.md, „Nach der Registrierung“): no forced tour any more. */
+/** „Mach deine Startseite lebendig“ on the Start (docs/mildcrowd-accounts.md, „Nach der Registrierung“): no forced tour any more. */
 @RunWith(RobolectricTestRunner::class)
 @GraphicsMode(GraphicsMode.Mode.NATIVE)
 @Config(qualifiers = "w411dp-h3000dp")
@@ -170,7 +170,7 @@ class OnboardingCardUiTest {
     }
 
     @Test
-    fun `the Quelle offers a new member the welcome tour on a card and scrolls up for a new Tropfen`() {
+    fun `the Start offers a new member the welcome tour on a card and scrolls up for a new Post`() {
         val network = StubbedNetwork(
             stub("GET", "network/source", pageJson(postJson(3), context = """{"show_all":false,"follows_anyone":true,"can_post":true}"""))
         )

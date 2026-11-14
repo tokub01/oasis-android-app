@@ -27,9 +27,9 @@ import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 
 /**
- * The Tropfen page (/tropfen/{id}): the post with earlier versions, its replies and the side cards, plus the card
- * actions. Actions that make the Tropfen unreadable for the viewer (delete, block its author, remove it from the oasis)
- * leave the page, like the web goes back to the Quelle.
+ * The Post page (/posts/{id}): the post with earlier versions, its replies and the side cards, plus the card
+ * actions. Actions that make the Post unreadable for the viewer (delete, block its author, remove it from the crowd)
+ * leave the page, like the web goes back to the Start.
  */
 @HiltViewModel(assistedFactory = PostDetailViewModel.Factory::class)
 class PostDetailViewModel @AssistedInject constructor(@Assisted val id: Int, private val repository: NetworkRepository) :
@@ -100,7 +100,7 @@ class PostDetailViewModel @AssistedInject constructor(@Assisted val id: Int, pri
         apply(action, post)
     }
 
-    /** A vote for answer [index] of the page's poll; the answer brings the Tropfen with its new counts. */
+    /** A vote for answer [index] of the page's poll; the answer brings the Post with its new counts. */
     suspend fun vote(post: Post, index: Int) {
         val poll = post.poll ?: return
         changePoll { repository.votePoll(post.id, poll.choosing(index)) }
@@ -118,7 +118,7 @@ class PostDetailViewModel @AssistedInject constructor(@Assisted val id: Int, pri
         mutableDetail.value = Loadable.Loaded(current.copy(post = answer.data))
     }
 
-    /** „Aus „X“ entfernen“: the Tropfen no longer names that collection. */
+    /** „Aus „X“ entfernen“: the Post no longer names that collection. */
     suspend fun removeFromCollection(post: Post, collection: Int) {
         val result = attempt { repository.uncollectPost(collection, post.id) }
         mutableError.value = result.apiError
@@ -130,18 +130,18 @@ class PostDetailViewModel @AssistedInject constructor(@Assisted val id: Int, pri
         mutableDetail.value = Loadable.Loaded(current.copy(post = shown))
     }
 
-    /** The effect on the page: the Tropfen itself when it was the target or its author's state changed, and the replies. */
+    /** The effect on the page: the Post itself when it was the target or its author's state changed, and the replies. */
     private fun apply(action: PostAction, post: Post) {
         val current = detail.value.valueOrNull ?: return
         val page = (listOf(current.post) + current.replies).applying(action, post)
-        // The Tropfen of the page stays when its author is muted or blocked from one of the replies.
+        // The Post of the page stays when its author is muted or blocked from one of the replies.
         val shown = page.firstOrNull { it.id == current.post.id } ?: current.post
         mutableDetail.value = Loadable.Loaded(current.copy(post = shown, replies = page.filterNot { it.id == current.post.id }))
     }
 }
 
 /**
- * "Tropfen bearbeiten" (/tropfen/{id}/bearbeiten): the text within the edit window; images and audience stay.
+ * "Post bearbeiten" (/posts/{id}/bearbeiten): the text within the edit window; images and audience stay.
  */
 @HiltViewModel(assistedFactory = EditPostViewModel.Factory::class)
 class EditPostViewModel @AssistedInject constructor(@Assisted val id: Int, private val repository: NetworkRepository) :
@@ -189,7 +189,7 @@ class EditPostViewModel @AssistedInject constructor(@Assisted val id: Int, priva
     }
 }
 
-/** "Weitertragen" (/tropfen/{id}/weitertragen): the original above a composer for own words. */
+/** "Teilen" (/posts/{id}/teilen): the original above a composer for own words. */
 @HiltViewModel(assistedFactory = CarryViewModel.Factory::class)
 class CarryViewModel @AssistedInject constructor(@Assisted val id: Int, private val repository: NetworkRepository) :
     NetworkViewModel() {

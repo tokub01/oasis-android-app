@@ -24,7 +24,7 @@ import org.junit.Test
 import org.junit.runner.RunWith
 import org.junit.runners.Parameterized
 
-/** The screens' view models: the Tropfen page, profiles, oases, search, Durchblättern and the Quelle. */
+/** The screens' view models: the Post page, profiles, crowds, search, Durchblättern and the Start. */
 @RunWith(Parameterized::class)
 class ScreenViewModelTest(private val answersAtOnce: Boolean) {
     companion object {
@@ -56,7 +56,7 @@ class ScreenViewModelTest(private val answersAtOnce: Boolean) {
     }
 
     @Test
-    fun `leaves the Tropfen page after deleting it and hands the confirmation to the tab bar`() = runTest {
+    fun `leaves the Post page after deleting it and hands the confirmation to the tab bar`() = runTest {
         val network = StubbedNetwork(
             stub("GET", "network/posts/12", Fixtures.post),
             stub("DELETE", "network/posts/12", """{"message":"Dein Post ist gelöscht."}""")
@@ -71,7 +71,7 @@ class ScreenViewModelTest(private val answersAtOnce: Boolean) {
     }
 
     @Test
-    fun `reacting to a reply on the Tropfen page changes only that reply`() = runTest {
+    fun `reacting to a reply on the Post page changes only that reply`() = runTest {
         val network = StubbedNetwork(
             stub("GET", "network/posts/12", Fixtures.post),
             stub("POST", "network/posts/23/reaction", """{"message":"Reaktion gesendet."}""")
@@ -88,7 +88,7 @@ class ScreenViewModelTest(private val answersAtOnce: Boolean) {
     }
 
     @Test
-    fun `a profile shows the neutral chat hint and its Tropfen`() = runTest {
+    fun `a profile shows the neutral chat hint and its Posts`() = runTest {
         val network = StubbedNetwork(
             stub("GET", "network/profiles/jonas", Fixtures.profile),
             stub("GET", "network/profiles/jonas/posts", pageJson(postJson(10)))
@@ -121,7 +121,7 @@ class ScreenViewModelTest(private val answersAtOnce: Boolean) {
     }
 
     @Test
-    fun `an oasis loads its Tropfen and, for members, its member list`() = runTest {
+    fun `a crowd loads its Posts and, for members, its member list`() = runTest {
         val detail = """
             {"data": {"oasis": {"id": 2, "slug": "stadtgarten", "name": "Stadtgarten", "description": "Gärtnern.", "color": "spring",
             "visibility": "public", "banner_url": null, "members_count": 4, "role": "member"}, "url": "http://localhost/oasen/stadtgarten",
@@ -151,7 +151,7 @@ class ScreenViewModelTest(private val answersAtOnce: Boolean) {
     }
 
     @Test
-    fun `founding an oasis opens it`() = runTest {
+    fun `founding a crowd opens it`() = runTest {
         val network = StubbedNetwork(
             stub("GET", "network/oases", Fixtures.oases),
             stub("POST", "network/oases", """{"data":{"slug":"ui-oase"}}""", 201)
@@ -197,7 +197,7 @@ class ScreenViewModelTest(private val answersAtOnce: Boolean) {
     }
 
     @Test
-    fun `the Quelle puts an own new Tropfen on top but reloads for a reply`() = runTest {
+    fun `the Start puts an own new Post on top but reloads for a reply`() = runTest {
         val network = StubbedNetwork(
             stub("GET", "network/source", pageJson(postJson(3), context = """{"show_all":false,"follows_anyone":true,"can_post":true}"""))
         )
@@ -216,7 +216,7 @@ class ScreenViewModelTest(private val answersAtOnce: Boolean) {
     }
 
     @Test
-    fun `Ganz Oasis loads again after an own Tropfen, as the server decides what it lists`() = runTest {
+    fun `Ganz Mildcrowd loads again after an own Post, as the server decides what it lists`() = runTest {
         val network = StubbedNetwork(
             stub("GET", "network/source", pageJson(postJson(3), context = """{"show_all":true,"follows_anyone":true,"can_post":true}"""))
         )

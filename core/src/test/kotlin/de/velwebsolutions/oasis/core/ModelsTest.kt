@@ -144,7 +144,7 @@ class ModelsTest {
     }
 
     @Test
-    fun `only members with a paid or gifted membership may use Oasis`() {
+    fun `only members with a paid or gifted membership may use Mildcrowd`() {
         val me = de.velwebsolutions.oasis.core.model.Me(1, "m", "M", "M", "m@example.org")
         assertTrue(me.mayUseOasis)
         assertFalse(me.copy(hasPaidAccess = false).mayUseOasis)

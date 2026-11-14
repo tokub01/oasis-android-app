@@ -734,7 +734,7 @@ class ModerationUiTest {
         compose.onNodeWithText("Beweise löschen").assertDoesNotExist()
         compose.onNodeWithText("Quarantäne aufheben").performScrollTo().assertIsDisplayed()
 
-        // The question follows what the case is about: a profile's or oasis' images are served again at once.
+        // The question follows what the case is about: a profile's or crowd's images are served again at once.
         val tropfen = detail.copy(subjectUrl = "https://mildcrowd.com/tropfen/9")
         val profile = detail.copy(subjectUrl = "https://mildcrowd.com/profil/mira")
         val chat = detail.copy(report = detail.report.copy(kind = "chat_report"))

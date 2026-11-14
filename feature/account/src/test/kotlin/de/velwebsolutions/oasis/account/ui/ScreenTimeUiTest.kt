@@ -29,7 +29,7 @@ import org.robolectric.RobolectricTestRunner
 import org.robolectric.annotation.Config
 import org.robolectric.annotation.GraphicsMode
 
-/** „Deine Zeit in Oasis“ at 360 dp, and nothing without an account. */
+/** „Deine Zeit in Mildcrowd“ at 360 dp, and nothing without an account. */
 @RunWith(RobolectricTestRunner::class)
 @GraphicsMode(GraphicsMode.Mode.NATIVE)
 @Config(qualifiers = "w360dp-h740dp")

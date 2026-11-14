@@ -42,7 +42,7 @@ class PreferencesReleaseNotesStore(context: Context) : ReleaseNotesStore {
     }
 }
 
-/** Was ist neu (/neuigkeiten): every version, newest first, and how Oasis is built. */
+/** Was ist neu (/neuigkeiten): every version, newest first, and how Mildcrowd is built. */
 @HiltViewModel
 class ReleasesViewModel @Inject constructor(private val repository: AccountRepository, appVersion: AppVersion) : ViewModel() {
     private val mutableState = MutableStateFlow<Loadable<ReleaseList>>(Loadable.Idle)
@@ -72,7 +72,7 @@ class ReleasesViewModel @Inject constructor(private val repository: AccountRepos
 }
 
 /**
- * „Neu in Oasis 0.23.0“ once after an update: when the version seen last on this device differs from the app's. A
+ * „Neu in Mildcrowd 0.23.0“ once after an update: when the version seen last on this device differs from the app's. A
  * fresh install only remembers its version. Without an answer (offline) or without notes for this version nothing
  * shows, and the next start asks again.
  */

@@ -49,7 +49,7 @@ class MainActivity : FragmentActivity() {
         navigator.openWeb = { url -> openWebPage(this, url) }
         setContent { AppHost.Content(navigator, apiClient) }
         AppHost.created(intent, savedInstanceState, navigator)
-        // „Deine Zeit in Oasis“: counts only while the app is in front (resumed: the screen is on), on this device.
+        // „Deine Zeit in Mildcrowd“: counts only while the app is in front (resumed: the screen is on), on this device.
         lifecycleScope.launch { repeatOnLifecycle(Lifecycle.State.RESUMED) { screenTime.count() } }
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
             hideFromRecentsWhileChatUnlocked()
@@ -58,7 +58,7 @@ class MainActivity : FragmentActivity() {
         }
     }
 
-    /** A tap or a key: the member is doing something („Deine Zeit in Oasis“). */
+    /** A tap or a key: the member is doing something („Deine Zeit in Mildcrowd“). */
     override fun onUserInteraction() {
         super.onUserInteraction()
         screenTime.touched()

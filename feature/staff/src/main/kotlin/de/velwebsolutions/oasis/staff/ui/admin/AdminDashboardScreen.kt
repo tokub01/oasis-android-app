@@ -164,7 +164,7 @@ private fun RevenueCard(revenue: AdminDashboard.Revenue, onShow: (String) -> Uni
     }
 }
 
-/** "Die letzten 12 Wochen": new accounts and Tropfen per week as bars, read out per week by TalkBack. */
+/** "Die letzten 12 Wochen": new accounts and Posts per week as bars, read out per week by TalkBack. */
 @Composable
 private fun WeekChart(weeks: List<AdminDashboard.Week>) {
     val maximum = maxOf(1, weeks.maxOfOrNull { maxOf(it.registered, it.posts) } ?: 1)

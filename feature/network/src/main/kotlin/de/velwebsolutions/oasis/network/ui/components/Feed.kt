@@ -39,7 +39,7 @@ import de.velwebsolutions.oasis.network.ui.PostAction
 import de.velwebsolutions.oasis.network.ui.PostListModel
 import de.velwebsolutions.oasis.network.ui.PostListState
 
-/** What a feed can ask its list for: card actions, the next page, a new first page and the polls of its Tropfen. */
+/** What a feed can ask its list for: card actions, the next page, a new first page and the polls of its Posts. */
 class FeedHandlers(
     val perform: (PostAction, Post) -> Unit,
     val loadMore: () -> Unit,
@@ -48,13 +48,13 @@ class FeedHandlers(
     val collections: CollectionActions? = null
 )
 
-/** „Aus „X“ entfernen“ in the card menu: takes a Tropfen out of one of its oasis' Sammlungen (by id). */
+/** „Aus „X“ entfernen“ in the card menu: takes a Post out of one of its crowd's Sammlungen (by id). */
 class CollectionActions(val remove: (Post, Int) -> Unit)
 
 /** The collection actions of the cards below; none: the menu offers no removal. */
 val LocalCollectionActions = staticCompositionLocalOf<CollectionActions?> { null }
 
-/** Voting in and ending the poll of a Tropfen (docs/oasis-network.md, „Umfragen in Tropfen“). */
+/** Voting in and ending the poll of a Post (docs/mildcrowd-network.md, „Umfragen in Posts“). */
 class PollActions(val vote: (Post, Int) -> Unit, val close: (Post) -> Unit)
 
 /** The poll actions of the cards below; none: the poll shows without buttons. */
@@ -70,19 +70,19 @@ fun <C> PostListModel<C>.handlers(launch: (suspend () -> Unit) -> Unit) = FeedHa
 )
 
 /**
- * The cards of a Tropfen list with the web feed's states (`x-network.feed`): card shapes while the first page loads, an
- * empty text, older Tropfen loading while scrolling, and the honest end ("Du bist auf dem neuesten Stand." / "Zeit zum
+ * The cards of a Post list with the web feed's states (`x-network.feed`): card shapes while the first page loads, an
+ * empty text, older Posts loading while scrolling, and the honest end ("Du bist auf dem neuesten Stand." / "Zeit zum
  * Durchatmen.").
  */
 fun <C> LazyListScope.feedSection(
     state: PostListState<C>,
     handlers: FeedHandlers,
-    /** The note of an empty list; null for none (the Quelle's „Du hast alles Neue gesehen.“ follows instead). */
+    /** The note of an empty list; null for none (the Start's „Du hast alles Neue gesehen.“ follows instead). */
     empty: String? = "Hier ist noch nichts.",
     /** A closing line instead of the feed wording (search results are not a feed). */
     end: String? = null,
     keyPrefix: String = "feed",
-    /** Fades the cards while a new view of the list loads (the Quelle's switch). */
+    /** Fades the cards while a new view of the list loads (the Start's switch). */
     dimmed: Boolean = false
 ) {
     when (val first = state.state) {
@@ -103,7 +103,7 @@ fun <C> LazyListScope.feedSection(
             CompositionLocalProvider(LocalPollActions provides handlers.poll, LocalCollectionActions provides handlers.collections) {
                 PostCard(post, onAction = handlers.perform, modifier = Modifier.alpha(if (dimmed) 0.5f else 1f))
             }
-            // Asked again once a reload is over: older Tropfen wait for the new first page.
+            // Asked again once a reload is over: older Posts wait for the new first page.
             if (post.id == lastId) LaunchedEffect(post.id, state.isReloading) { handlers.loadMore() }
         }
     }
@@ -136,7 +136,7 @@ fun RetryNote(message: String, title: String, retry: suspend () -> Unit) {
     }
 }
 
-/** The shape of a Tropfen card while the list loads, so the page does not jump when the cards arrive. */
+/** The shape of a Post card while the list loads, so the page does not jump when the cards arrive. */
 @Composable
 fun PostCardSkeleton() {
     Column(

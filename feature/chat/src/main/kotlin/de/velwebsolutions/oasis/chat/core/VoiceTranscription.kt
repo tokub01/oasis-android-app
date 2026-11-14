@@ -29,7 +29,7 @@ sealed class TranscriptionProblem(val text: String) : Exception(text) {
     /** Nothing was recognised, or the recognizer failed. */
     data object Failed : TranscriptionProblem("Das ließ sich nicht in Text umwandeln.")
 
-    /** The speech recognition is not allowed for Oasis. */
+    /** The speech recognition is not allowed for Mildcrowd. */
     data object Denied : TranscriptionProblem(
         "Erlaube die Spracherkennung in den Einstellungen, dann kann Mildcrowd Sprachnachrichten in Text umwandeln."
     )

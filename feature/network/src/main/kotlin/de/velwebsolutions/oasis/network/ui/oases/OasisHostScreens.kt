@@ -31,9 +31,9 @@ import de.velwebsolutions.oasis.network.ui.components.postsStayLine
 import de.velwebsolutions.oasis.network.ui.retry
 
 /**
- * "„…“ schließen?" (/oasen/{slug}/schliessen): host-only confirmation with an explicit checkbox; Tropfen stay with their
- * authors. Like the web, closing leads to the oasis overview; the closed oasis' screens leave the tab they were opened
- * on (an oasis reached from the Quelle or a profile) as well.
+ * "„…“ schließen?" (/crowds/{slug}/schliessen): host-only confirmation with an explicit checkbox; Posts stay with their
+ * authors. Like the web, closing leads to the crowd overview; the closed crowd's screens leave the tab they were opened
+ * on (a crowd reached from the Start or a profile) as well.
  */
 @Composable
 fun CloseOasisScreen(
@@ -88,7 +88,7 @@ fun CloseOasisScreen(
     }
 }
 
-/** Host statistics (/oasen/{slug}/statistik): sums only, never lists of people. */
+/** Host statistics (/crowds/{slug}/statistik): sums only, never lists of people. */
 @Composable
 fun OasisStatisticsScreen(
     slug: String,

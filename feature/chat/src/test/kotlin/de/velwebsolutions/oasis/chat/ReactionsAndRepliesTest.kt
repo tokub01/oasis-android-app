@@ -31,7 +31,7 @@ import org.junit.runner.RunWith
 import org.robolectric.RobolectricTestRunner
 
 /**
- * Reactions and replies in the view model (docs/oasis-chat-client.md, "Reactions and replies"): quiet encrypted
+ * Reactions and replies in the view model (docs/mildcrowd-chat-client.md, "Reactions and replies"): quiet encrypted
  * reaction messages that show as chips, never as bubbles, and quotes that go along inside the payload.
  */
 @OptIn(ExperimentalCoroutinesApi::class)

@@ -74,7 +74,7 @@ import org.robolectric.annotation.GraphicsMode
 
 /**
  * Every chat element at a narrow and a large phone and with larger text (font scale 1.3 and 1.5), light and dark, as
- * screenshots to look at (docs/oasis-chat-client.md, „Chat design and gestures“).
+ * screenshots to look at (docs/mildcrowd-chat-client.md, „Chat design and gestures“).
  */
 @RunWith(RobolectricTestRunner::class)
 @GraphicsMode(GraphicsMode.Mode.NATIVE)

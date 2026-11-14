@@ -69,7 +69,7 @@ import de.velwebsolutions.oasis.network.ui.components.handlers
 import kotlinx.coroutines.delay
 
 /**
- * The member search (/app/suche): people and oases (exact handle first, then alphabetical) and Tropfen newest first,
+ * The member search (/app/suche): people and crowds (exact handle first, then alphabetical) and Posts newest first,
  * updated while typing – the results stay on screen while the next ones load. A term that is exactly one #Thema leads to
  * its topic page; every request counts against the search budget of 30 per minute.
  */
@@ -106,7 +106,7 @@ fun SearchScreen(
     }
 }
 
-/** The search page: field, people and oases, then the Tropfen (or the topic button). */
+/** The search page: field, people and crowds, then the Posts (or the topic button). */
 fun LazyListScope.searchContent(
     query: String,
     state: PostListState<SearchContext>,

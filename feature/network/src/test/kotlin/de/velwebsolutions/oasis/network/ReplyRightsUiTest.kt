@@ -38,7 +38,7 @@ import org.junit.runner.RunWith
 import org.robolectric.RobolectricTestRunner
 
 /**
- * Round N on the cards: „Antworten“ only where the viewer may answer (else the server's hint), Weitertragen without own
+ * Round N on the cards: „Antworten“ only where the viewer may answer (else the server's hint), Teilen without own
  * words, the plain carry's own head and one meta line pattern in every list.
  */
 @RunWith(RobolectricTestRunner::class)
@@ -89,7 +89,7 @@ class ReplyRightsUiTest {
     }
 
     @Test
-    fun `a plain carry shows who carried it and the carried Tropfen as the card`() {
+    fun `a plain carry shows who carried it and the carried Post as the card`() {
         val original = Post.Carried.Original(3, base.author.copy(id = 3, username = "lea", displayName = "Lea"), "Das Beet blüht.")
         val carry = base.copy(body = "", segments = emptyList(), carried = Post.Carried(Post.Carried.State.Visible, original))
         assertTrue(carry.isPlainCarry)
@@ -127,7 +127,7 @@ class ReplyRightsUiTest {
     }
 
     @Test
-    fun `Weitertragen without the right to answer offers no text field`() {
+    fun `Teilen without the right to answer offers no text field`() {
         val carrySource = """{"data":{"id":12,"author":{"id":4,"username":"lukas","display_name":"Lukas Brandt","initials":"LB",
             |"avatar_color":"dune","photo_url":null},"body":"Samstag Werkstatt.","segments":[],"links":[],"can_quote":false}}
         """.trimMargin()
@@ -142,7 +142,7 @@ class ReplyRightsUiTest {
     }
 
     @Test
-    fun `Weitertragen with the right to answer keeps the optional words`() {
+    fun `Teilen with the right to answer keeps the optional words`() {
         val carrySource = """{"data":{"id":12,"author":{"id":4,"username":"lukas","display_name":"Lukas Brandt","initials":"LB",
             |"avatar_color":"dune","photo_url":null},"body":"Samstag Werkstatt.","segments":[],"links":[]}}
         """.trimMargin()

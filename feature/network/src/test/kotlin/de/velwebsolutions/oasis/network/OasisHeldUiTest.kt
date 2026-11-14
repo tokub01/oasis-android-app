@@ -23,7 +23,7 @@ import org.junit.runner.RunWith
 import org.robolectric.RobolectricTestRunner
 
 /**
- * An oasis whose texts the automated check holds (docs/oasis-auto-moderation.md): the founder, the hosts and staff read
+ * A crowd whose texts the automated check holds (docs/mildcrowd-auto-moderation.md): the founder, the hosts and staff read
  * the real texts with the „Zurückgehalten“ note on the page and in the form, everyone else the placeholder without it.
  */
 @RunWith(RobolectricTestRunner::class)

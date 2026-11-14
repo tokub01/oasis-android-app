@@ -59,7 +59,7 @@ import de.velwebsolutions.oasis.network.ui.retry
 
 /**
  * A list page around its content: card skeletons, the error with retry, then the page with pull to refresh and the
- * status toast. After a Tropfen was written the view model puts it on top (and the page scrolls up) or loads again.
+ * status toast. After a Post was written the view model puts it on top (and the page scrolls up) or loads again.
  */
 @Composable
 fun <C> FeedScaffold(
@@ -92,7 +92,7 @@ fun FeedPage(listState: LazyListState, handlers: FeedHandlers, bottomInset: Dp =
     NetworkPage(state = listState, onRefresh = handlers.reload, bottomInset = bottomInset, content = content)
 }
 
-/** "Entdecken" (/app/entdecken): public Tropfen of public profiles, newest first, and the largest oases. No ranking. */
+/** "Entdecken" (/app/entdecken): public Posts of public profiles, newest first, and the largest crowds. No ranking. */
 @Composable
 fun DiscoverScreen(viewModel: DiscoverViewModel = hiltViewModel<DiscoverViewModel>()) {
     FeedScaffold(viewModel, "Entdecken") { state, handlers ->
@@ -172,7 +172,7 @@ fun LazyListScope.discoverContent(state: PostListState<DiscoverContext>, handler
 }
 
 /**
- * "Gemerkt" (/app/gemerkt): the private bookmark list, newest bookmark first. A Tropfen leaves it once it is no longer
+ * "Gemerkt" (/app/gemerkt): the private bookmark list, newest bookmark first. A Post leaves it once it is no longer
  * bookmarked.
  */
 @Composable
@@ -213,7 +213,7 @@ fun BookmarksScreen(viewModel: BookmarksViewModel = hiltViewModel<BookmarksViewM
     }
 }
 
-/** A topic page (/themen/{tag}): every readable Tropfen with #tag, newest first. */
+/** A topic page (/themen/{tag}): every readable Post with #tag, newest first. */
 @Composable
 fun TagScreen(
     tag: String,

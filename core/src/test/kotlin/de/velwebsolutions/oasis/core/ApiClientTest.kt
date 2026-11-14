@@ -84,7 +84,7 @@ class ApiClientTest {
     }
 
     @Test
-    fun `the gate key goes to the Oasis host only`() = runTest {
+    fun `the gate key goes to the Mildcrowd host only`() = runTest {
         val stub = StubTransport(StubTransport.Stub("GET", "auth/me", json = """{"data":$me}"""))
         stub.add(StubTransport.Stub("GET", "/bild.png", json = ""))
         val tokens = object : de.velwebsolutions.oasis.core.network.TokenProvider {
@@ -107,7 +107,7 @@ class ApiClientTest {
 
     /** Images and downloads may come from absolute URLs: a server elsewhere never sees the member's token. */
     @Test
-    fun `the token goes to the Oasis server only, and only its 401 signs out`() = runTest {
+    fun `the token goes to the Mildcrowd server only, and only its 401 signs out`() = runTest {
         val stub = StubTransport(StubTransport.Stub("GET", "/bild.png", json = ""), StubTransport.Stub("GET", "/weg.png", 401, ""))
         stub.client.download("/bild.png")
         assertEquals("Bearer token", stub.requests.last().request.header("Authorization"))

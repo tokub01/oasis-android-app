@@ -60,7 +60,7 @@ object AppHost {
     }
 
     /**
-     * Oasis came to the front with a share still waiting (files that did not fit into the last message): "Teilen mit …"
+     * Mildcrowd came to the front with a share still waiting (files that did not fit into the last message): "Teilen mit …"
      * opens in the Chats tab, unless it is open already (iOS `ChatShares.openIfPending`).
      */
     fun openPendingShare(navigator: Navigator) {
@@ -84,7 +84,7 @@ object AppHost {
      * After a sign-out the next member starts on the roots of the tabs, not on the screens of the one who left (a
      * search, profiles, a conversation, an open sheet, a waiting link). The navigator is reset once the session is signed
      * out – not while the server still signs the device out, which would change the screens under the member – and links
-     * opened while nobody is signed in (a Tropfen from a mail) still wait for the sign-in, and so does a share made then;
+     * opened while nobody is signed in (a Post from a mail) still wait for the sign-in, and so does a share made then;
      * one still waiting at the sign-out is discarded with its cache copies. [onSignedOut] clears what the device keeps
      * of the member besides ([clearAfterSignOut]). Runs as long as the app.
      */
@@ -151,7 +151,7 @@ object AppHost {
      * After a sign-out: the images the member saw (memory and disk cache – also ones a moderation quarantine withdrew
      * since) and the notifications with their previews go, like on iOS. The chat vault locks through its own listener.
      * The chat backgrounds and own background photos belong to the member who left, so they go too, and so does the
-     * counted time („Deine Zeit in Oasis“).
+     * counted time („Deine Zeit in Mildcrowd“).
      */
     fun clearAfterSignOut(context: Context, lookStore: LookStore, lookPhotos: LookPhotos, scope: CoroutineScope, screenTime: ScreenTime) {
         clearAfterSignOut(context)

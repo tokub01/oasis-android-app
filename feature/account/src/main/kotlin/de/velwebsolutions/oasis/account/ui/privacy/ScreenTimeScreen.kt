@@ -44,7 +44,7 @@ import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 
 /**
- * „Deine Zeit in Oasis“: the signed-in account's last 7 days as counted on this device, and the switch that lets the
+ * „Deine Zeit in Mildcrowd“: the signed-in account's last 7 days as counted on this device, and the switch that lets the
  * device count at all (off by default, kept only on the device).
  */
 @HiltViewModel
@@ -69,7 +69,7 @@ class ScreenTimeViewModel @Inject constructor(private val screenTime: ScreenTime
     }
 }
 
-/** „Deine Zeit in Oasis“ (/app/privatsphaere/zeit, docs/oasis-privacy.md „Bildschirmzeit“). */
+/** „Deine Zeit in Mildcrowd“ (/app/privatsphaere/zeit, docs/mildcrowd-privacy.md „Bildschirmzeit“). */
 @Composable
 internal fun ScreenTimeScreen(viewModel: ScreenTimeViewModel = hiltViewModel()) {
     val week by viewModel.week.collectAsStateWithLifecycle()

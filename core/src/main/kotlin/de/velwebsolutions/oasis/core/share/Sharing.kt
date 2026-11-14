@@ -12,7 +12,7 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 
-/** One file another app shared into Oasis, copied into the app cache right away (the share's read permission is brief). */
+/** One file another app shared into Mildcrowd, copied into the app cache right away (the share's read permission is brief). */
 class SharedFile(val file: File, val name: String, val mime: String)
 
 /**
@@ -23,7 +23,7 @@ class Share(val files: List<SharedFile>, val text: String?, val folder: File? = 
 
 /**
  * The share waiting for "Teilen mit …" – in memory only, also while the member signs in or unlocks the chat; the copies
- * live in the cache until a chat takes the share or it is discarded (docs/oasis-chat.md, "Sharing into Mildcrowd").
+ * live in the cache until a chat takes the share or it is discarded (docs/mildcrowd-chat.md, "Sharing into Mildcrowd").
  */
 object PendingShare {
     private val state = MutableStateFlow<Share?>(null)
@@ -70,9 +70,9 @@ object PendingShare {
  * sending app) and keeps the shared text. Of a file larger than [maxBytes] only a little more than that is copied, so the
  * chat can tell it is too large without holding all of it.
  *
- * Only another app's content is read: a `content://` URI of a provider that is not Oasis' own. The copy runs with
- * Oasis' permissions, so a `file://` path into its sandbox or a URI of its own providers (chat files, invoices, the data
- * export, evidence – not exported, but always open to Oasis itself) would let any app slip Oasis' private files into
+ * Only another app's content is read: a `content://` URI of a provider that is not Mildcrowd's own. The copy runs with
+ * Mildcrowd's permissions, so a `file://` path into its sandbox or a URI of its own providers (chat files, invoices, the data
+ * export, evidence – not exported, but always open to Mildcrowd itself) would let any app slip Mildcrowd's private files into
  * "Teilen mit …" as drafts. Such URIs are skipped like missing files.
  *
  * Every share is copied into a folder of its own (`shared-in/<process>/<share>/<index>/<name>`), so a newer share never
@@ -88,7 +88,7 @@ object ShareInbox {
     /** This process' folder below `shared-in`; every other folder there is left over from an earlier process. */
     private val processFolder = UUID.randomUUID().toString()
 
-    /** The share of an intent, or null when it carries nothing Oasis can use. */
+    /** The share of an intent, or null when it carries nothing Mildcrowd can use. */
     fun read(context: Context, intent: Intent, maxBytes: Long = MAX_BYTES): Share? {
         val uris = when (intent.action) {
             Intent.ACTION_SEND -> listOfNotNull(IntentCompat.getParcelableExtra(intent, Intent.EXTRA_STREAM, Uri::class.java))
@@ -107,12 +107,12 @@ object ShareInbox {
         return Share(files, text, folder)
     }
 
-    /** Whether [uri] is content of another app: `content://` of a provider whose authority is not Oasis' own. */
+    /** Whether [uri] is content of another app: `content://` of a provider whose authority is not Mildcrowd's own. */
     private fun isOtherAppsContent(context: Context, uri: Uri): Boolean {
         if (uri.scheme != ContentResolver.SCHEME_CONTENT) return false
         // The name the resolver looks the provider up by: the decoded authority after its last '@' (a user id,
         // `content://0@…`), as in ContentProvider.getAuthorityWithoutUserId. Not Uri.host: that splits the encoded
-        // authority, so `content://0%40<own provider>/…` would pass as another app's while the resolver opens Oasis' own.
+        // authority, so `content://0%40<own provider>/…` would pass as another app's while the resolver opens Mildcrowd's own.
         val authority = uri.authority.orEmpty().substringAfterLast('@')
         val own = context.packageName
         return !authority.equals(own, ignoreCase = true) && !authority.startsWith("$own.", ignoreCase = true)

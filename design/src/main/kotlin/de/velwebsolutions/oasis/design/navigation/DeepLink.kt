@@ -22,14 +22,14 @@ sealed interface IncomingLink {
 }
 
 /**
- * Maps Oasis web URLs (the same links used in mails, push payloads and shared posts) to app routes, so a link to
+ * Maps Mildcrowd web URLs (the same links used in mails, push payloads and shared posts) to app routes, so a link to
  * mildcrowd.com opens the matching screen. Unknown paths return null ([route]); [incoming] opens them in the browser,
- * or on the Quelle when they belong to the app.
+ * or on the Start when they belong to the app.
  */
 object DeepLink {
     /**
      * The host of this build's server (set once at start from its base URL). A web link to any other host never opens a
-     * screen or an account link of the app – a hint, push or post could otherwise dress up a foreign page as Oasis'.
+     * screen or an account link of the app – a hint, push or post could otherwise dress up a foreign page as Mildcrowd'.
      * Null (tests, previews) checks no host.
      */
     @Volatile
@@ -43,7 +43,7 @@ object DeepLink {
 
     /**
      * What the app does with an incoming [url]: a screen, an account link, or the browser. An `mildcrowd://` link or a page
-     * of the app area (`/app/…`) without a screen of its own opens the Quelle, like iOS: handed to the browser it would
+     * of the app area (`/app/…`) without a screen of its own opens the Start, like iOS: handed to the browser it would
      * come straight back and open the browser again, without end – the app is the only handler of its scheme, and its
      * verified App Links take every page of the app area.
      */

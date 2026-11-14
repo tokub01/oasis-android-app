@@ -84,7 +84,7 @@ import de.velwebsolutions.oasis.network.ui.retry
 import kotlinx.coroutines.delay
 
 /**
- * One oasis (/oasen/{slug}): banner, description, following, house rules, the composer for members, the Tropfen, hosts,
+ * One crowd (/crowds/{slug}): banner, description, following, house rules, the composer for members, the Posts, hosts,
  * the member list for members and the host tools.
  */
 @Composable
@@ -158,7 +158,7 @@ fun OasisDetailScreen(
                     compose(oasis)
                 }
             }
-            // iOS: the pen in the toolbar; on Android the oasis' main action is the floating button.
+            // iOS: the pen in the toolbar; on Android the crowd's main action is the floating button.
             if (loaded?.canPost == true) {
                 ComposeFab(
                     listState,
@@ -236,7 +236,7 @@ internal fun OasisViewModel.collectionActions() = OasisCollectionActions(
 /** The row of „Treffen“ on the page: after the header, the pate, the house rules and the composer entry. */
 internal fun meetupsIndex(detail: OasisDetail): Int = 2 + (if (detail.welcome?.pate != null) 1 else 0) + (if (detail.canPost) 1 else 0)
 
-/** The oasis page's content. */
+/** The crowd page's content. */
 fun LazyListScope.oasisContent(
     detail: OasisDetail,
     posts: PostListState<NoContext>,
@@ -368,7 +368,7 @@ fun HouseRules(rules: List<String>) {
     }
 }
 
-/** The member list for members of the oasis, with "Schreiben" where the person accepts messages. */
+/** The member list for members of the crowd, with "Schreiben" where the person accepts messages. */
 @Composable
 private fun MemberListCard(members: OasisMembers, query: String, onQuery: (String) -> Unit) {
     val navigator = LocalNavigator.current
@@ -445,9 +445,9 @@ private fun MemberListCard(members: OasisMembers, query: String, onQuery: (Strin
 }
 
 /**
- * „Zurückgehalten und dem Moderationsteam gemeldet“ for the founder, the hosts and staff of an oasis whose texts the
- * automated check holds (oasis-show.blade.php; docs/oasis-auto-moderation.md): they still read name, description and
- * house rules, everyone else sees „Oase in Prüfung“ until a person decided. Like the note on a held Tropfen.
+ * „Zurückgehalten und dem Moderationsteam gemeldet“ for the founder, the hosts and staff of a crowd whose texts the
+ * automated check holds (oasis-show.blade.php; docs/mildcrowd-auto-moderation.md): they still read name, description and
+ * house rules, everyone else sees „Crowd in Prüfung“ until a person decided. Like the note on a held Post.
  */
 @Composable
 fun OasisHeldNote() {

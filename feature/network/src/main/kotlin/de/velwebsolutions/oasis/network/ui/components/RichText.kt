@@ -26,7 +26,7 @@ import okhttp3.HttpUrl
 import okhttp3.HttpUrl.Companion.toHttpUrlOrNull
 
 /**
- * Builds the text of a Tropfen from the server's segments (`RichText`): @mentions and #topics link to the app's profile
+ * Builds the text of a Post from the server's segments (`RichText`): @mentions and #topics link to the app's profile
  * and topic screens (as web URLs, which [openNetworkLink] maps to routes), external links show their host and open in
  * the browser.
  */
@@ -61,7 +61,7 @@ object RichTextBuilder {
     }
 }
 
-/** Opens a link to an Oasis web page (profile, topic, Tropfen …) as an app screen; everything else in the browser. */
+/** Opens a link to a Mildcrowd web page (profile, topic, Post …) as an app screen; everything else in the browser. */
 fun openNetworkLink(url: String, navigator: Navigator, baseUrl: HttpUrl?) {
     val host = url.toHttpUrlOrNull()?.host
     val route = if (baseUrl != null && host == baseUrl.host) DeepLink.route(url) else null
@@ -73,7 +73,7 @@ fun openNetworkLink(url: String, navigator: Navigator, baseUrl: HttpUrl?) {
     navigator.open(route)
 }
 
-/** Rich text of a Tropfen; links to Oasis pages open inside the app. The text can be selected. */
+/** Rich text of a Post; links to Mildcrowd pages open inside the app. The text can be selected. */
 @Composable
 fun RichTextView(
     segments: List<TextSegment>,

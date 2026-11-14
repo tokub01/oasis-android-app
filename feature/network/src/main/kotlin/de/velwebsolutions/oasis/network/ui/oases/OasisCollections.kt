@@ -58,7 +58,7 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 
-/** What the oasis page can do with its Sammlungen. */
+/** What the crowd page can do with its Sammlungen. */
 class OasisCollectionActions(
     val onChoose: (Int?) -> Unit,
     val onOpenForm: (OasisCollection?) -> Unit,
@@ -73,7 +73,7 @@ class OasisCollectionActions(
     }
 }
 
-/** The collection part of the oasis page: the list, the chosen one with its Tropfen, and the form. */
+/** The collection part of the crowd page: the list, the chosen one with its Posts, and the form. */
 class OasisCollectionsUi(
     val collections: OasisCollections?,
     val chosenId: Int?,
@@ -92,7 +92,7 @@ class OasisCollectionsUi(
 
 /**
  * „Sammlungen“ (`#sammlungen`): „Sammlung anlegen“ for those allowed, the form, the collections as chips („Rezepte · 4“),
- * the chosen one with its Tropfen, and – for hosts – „Mitglieder dürfen Sammlungen anlegen“.
+ * the chosen one with its Posts, and – for hosts – „Mitglieder dürfen Sammlungen anlegen“.
  */
 internal fun LazyListScope.collectionsSection(ui: OasisCollectionsUi, isHost: Boolean) {
     val collections = ui.collections ?: return
@@ -222,7 +222,7 @@ internal fun CollectionFormView(form: CollectionForm, actions: OasisCollectionAc
     }
 }
 
-/** „Zu Sammlung hinzufügen“ (a sheet): the collections of the Tropfen's oasis it may go into. */
+/** „Zu Sammlung hinzufügen“ (a sheet): the collections of the Post's crowd it may go into. */
 @HiltViewModel(assistedFactory = CollectPostViewModel.Factory::class)
 class CollectPostViewModel @AssistedInject constructor(
     @Assisted val postId: Int,
@@ -236,18 +236,18 @@ class CollectPostViewModel @AssistedInject constructor(
 
     private val mutableCollections = MutableStateFlow<Loadable<List<OasisCollection>>>(Loadable.Idle)
 
-    /** The collections a Tropfen may go into. */
+    /** The collections a Post may go into. */
     val collections: StateFlow<Loadable<List<OasisCollection>>> = mutableCollections.asStateFlow()
     private val mutableDone = MutableStateFlow(false)
 
-    /** Set once the Tropfen went into a collection: the sheet closes. */
+    /** Set once the Post went into a collection: the sheet closes. */
     val done: StateFlow<Boolean> = mutableDone.asStateFlow()
 
     suspend fun load() {
         mutableCollections.load { repository.collections(slug).collections.filter { it.canAdd } }
     }
 
-    /** Adds the Tropfen; the tab shows the confirmation, oasis pages show the collections again. */
+    /** Adds the Post; the tab shows the confirmation, crowd pages show the collections again. */
     suspend fun add(collection: OasisCollection) {
         val result = attempt { repository.collectPost(collection.id, postId) }
         mutableError.value = result.apiError

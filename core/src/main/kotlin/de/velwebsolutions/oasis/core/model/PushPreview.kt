@@ -3,8 +3,8 @@ package de.velwebsolutions.oasis.core.model
 import kotlinx.serialization.Serializable
 
 /**
- * The named text of a push ("Jonas Weber" · "Hat auf deinen Tropfen geantwortet."). The push service only carries a
- * generic line and a random `preview` reference; the app swaps in this text from the Oasis server (Laravel's
+ * The named text of a push ("Jonas Weber" · "Hat auf deinen Posts geantwortet."). The push service only carries a
+ * generic line and a random `preview` reference; the app swaps in this text from the Mildcrowd server (Laravel's
  * PushDelivery and PushPreviewController), so no name passes through Google or Apple.
  */
 @Serializable

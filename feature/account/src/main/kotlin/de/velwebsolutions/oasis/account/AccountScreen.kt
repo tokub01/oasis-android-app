@@ -62,7 +62,7 @@ fun AccountScreen(route: AccountRoute) {
     }
 }
 
-/** „Neu in Oasis …“ once after an update (placed by the app over the tabs). */
+/** „Neu in Mildcrowd …“ once after an update (placed by the app over the tabs). */
 @Composable
 fun UpdateNotesPrompt() {
     UpdateNotesDialog()

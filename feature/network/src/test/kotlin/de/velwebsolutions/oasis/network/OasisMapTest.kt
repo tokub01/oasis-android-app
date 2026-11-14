@@ -22,7 +22,7 @@ import org.junit.Test
 import org.junit.runner.RunWith
 import org.robolectric.ParameterizedRobolectricTestRunner
 
-/** The Karte der Oasen and an oasis's region (docs/oasis-network.md, „Karte der Oasen“). */
+/** The Karte der Crowds and a crowd's region (docs/mildcrowd-network.md, „Karte der Crowds“). */
 @RunWith(ParameterizedRobolectricTestRunner::class)
 class OasisMapTest(private val answersAtOnce: Boolean) {
     companion object {

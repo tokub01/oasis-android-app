@@ -36,7 +36,7 @@ import de.velwebsolutions.oasis.design.theme.OasisColors
 import de.velwebsolutions.oasis.design.theme.OasisRadius
 import de.velwebsolutions.oasis.design.theme.OasisType
 
-/** Was ist neu (/neuigkeiten): every version of Oasis with its notes for this app, newest first, and how Oasis is built. */
+/** Was ist neu (/neuigkeiten): every version of Mildcrowd with its notes for this app, newest first, and how Mildcrowd is built. */
 @Composable
 internal fun ReleasesScreen(viewModel: ReleasesViewModel = hiltViewModel()) {
     val state by viewModel.state.collectAsStateWithLifecycle()
@@ -57,7 +57,7 @@ internal fun ReleasesScreen(viewModel: ReleasesViewModel = hiltViewModel()) {
     }
 }
 
-/** How Oasis is built, with AI: paragraphs separated by an empty line. */
+/** How Mildcrowd is built, with AI: paragraphs separated by an empty line. */
 @Composable
 private fun AboutCard(about: String) {
     Column(
@@ -113,7 +113,7 @@ private fun ReleaseNotes(release: Release) {
     }
 }
 
-/** „Neu in Oasis 0.24.0“ once after an update, with „Verstanden“. */
+/** „Neu in Mildcrowd 0.24.0“ once after an update, with „Verstanden“. */
 @Composable
 internal fun UpdateNotesDialog(viewModel: UpdateNotesViewModel = hiltViewModel()) {
     LaunchedEffect(viewModel) { viewModel.check() }

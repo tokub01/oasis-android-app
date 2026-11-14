@@ -14,10 +14,10 @@ sealed interface AppRoute : NavKey
 @Serializable
 data class WebRoute(val url: String) : AppRoute
 
-/** Screens of the network area (Tropfen, Oasen, profiles, discovery, search). Owned by `:feature:network`. */
+/** Screens of the network area (Posts, Crowds, profiles, discovery, search). Owned by `:feature:network`. */
 @Serializable
 sealed interface NetworkRoute : AppRoute {
-    /** Quelle – the home feed (/app). */
+    /** Start – the home feed (/app). */
     @Serializable data object Source : NetworkRoute
 
     /** Entdecken (/app/entdecken). */
@@ -26,37 +26,37 @@ sealed interface NetworkRoute : AppRoute {
     /** Durchblättern (/app/durchblaettern). */
     @Serializable data object Swipe : NetworkRoute
 
-    /** One Tropfen with replies (/tropfen/{id}). */
+    /** One Post with replies (/posts/{id}). */
     @Serializable data class Post(val id: Int) : NetworkRoute
 
-    /** Edit a Tropfen (/tropfen/{id}/bearbeiten). */
+    /** Edit a Post (/posts/{id}/bearbeiten). */
     @Serializable data class EditPost(val id: Int) : NetworkRoute
 
-    /** Weitertragen – share a Tropfen into an oasis or the own feed (/tropfen/{id}/weitertragen). */
+    /** Teilen – share a Post into a crowd or the own feed (/posts/{id}/teilen). */
     @Serializable data class CarryPost(val id: Int, val quote: Boolean = true) : NetworkRoute
 
-    /** Write a new Tropfen, optionally into an oasis or as a reply. */
+    /** Write a new Post, optionally into a crowd or as a reply. */
     @Serializable data class Compose(val oasisSlug: String? = null, val replyTo: Int? = null) : NetworkRoute
 
-    /** Oasen overview (/app/oasen). */
+    /** Crowds overview (/app/crowds). */
     @Serializable data object Oases : NetworkRoute
 
-    /** One oasis (/oasen/{slug}); [meetups] opens it at „Treffen“, [collection] with that collection chosen in „Sammlungen“. */
+    /** One crowd (/crowds/{slug}); [meetups] opens it at „Treffen“, [collection] with that collection chosen in „Sammlungen“. */
     @Serializable data class Oasis(val slug: String, val meetups: Boolean = false, val collection: Int? = null) : NetworkRoute
 
-    /** „Zu Sammlung hinzufügen …“ for a Tropfen of the oasis [slug] (a sheet). */
+    /** „Zu Sammlung hinzufügen …“ for a Post of the crowd [slug] (a sheet). */
     @Serializable data class CollectPost(val postId: Int, val slug: String) : NetworkRoute
 
-    /** Create an oasis (/app/oasen/neu). */
+    /** Create a crowd (/app/crowds/neu). */
     @Serializable data object CreateOasis : NetworkRoute
 
-    /** Edit an oasis (/oasen/{slug}/bearbeiten). */
+    /** Edit a crowd (/crowds/{slug}/bearbeiten). */
     @Serializable data class EditOasis(val slug: String) : NetworkRoute
 
-    /** Close an oasis (/oasen/{slug}/schliessen). */
+    /** Close a crowd (/crowds/{slug}/schliessen). */
     @Serializable data class CloseOasis(val slug: String) : NetworkRoute
 
-    /** Statistics of an oasis (/oasen/{slug}/statistik). */
+    /** Statistics of a crowd (/crowds/{slug}/statistik). */
     @Serializable data class OasisStatistics(val slug: String) : NetworkRoute
 
     /** A member profile (/profil/{handle}). */
@@ -71,13 +71,13 @@ sealed interface NetworkRoute : AppRoute {
     /** Deine Zahlen (/app/statistik). */
     @Serializable data object Statistics : NetworkRoute
 
-    /** Zeitkapseln – Tropfen sealed for a later day (/app/zeitkapseln). */
+    /** Zeitkapseln – Posts sealed for a later day (/app/zeitkapseln). */
     @Serializable data object TimeCapsules : NetworkRoute
 
     /** Zeitkapseln at „Einladungen“ (capsule hints: /app/zeitkapseln#einladungen). */
     @Serializable data object CapsuleInvitations : NetworkRoute
 
-    /** Dein Jahrbuch – the own Tropfen of a year, the current one without [year] (/app/jahrbuch/{year?}). */
+    /** Dein Jahrbuch – the own Posts of a year, the current one without [year] (/app/jahrbuch/{year?}). */
     @Serializable data class Yearbook(val year: Int? = null) : NetworkRoute
 
     /** Menschen einladen (/app/einladen). */
@@ -98,13 +98,13 @@ sealed interface NetworkRoute : AppRoute {
     /** Gemerkt (/app/gemerkt). */
     @Serializable data object Bookmarks : NetworkRoute
 
-    /** Karte der Oasen (/app/oasen/karte?region=BY): the Bundesländer, [region] chosen. */
+    /** Karte der Crowds (/app/crowds/karte?region=BY): the Bundesländer, [region] chosen. */
     @Serializable data class OasisMap(val region: String? = null) : NetworkRoute
 
-    /** Dein Oasen-Wochenbrief (/app/wochenbrief/{id?}): letter [id], the newest without one. */
+    /** Dein Crowd-Wochenbrief (/app/wochenbrief/{id?}): letter [id], the newest without one. */
     @Serializable data class WeeklyLetter(val id: Int? = null) : NetworkRoute
 
-    /** Ideen für Oasis (/app/ideen/{id?}): the wish list, idea [id] in front when its link was opened. */
+    /** Ideen für Mildcrowd (/app/ideen/{id?}): the wish list, idea [id] in front when its link was opened. */
     @Serializable data class Ideas(val id: Int? = null) : NetworkRoute
 }
 
@@ -135,7 +135,7 @@ sealed interface ChatRoute : AppRoute {
     /** Devices that may open the chat (biometric unlock, device links). */
     @Serializable data object Devices : ChatRoute
 
-    /** "Teilen mit …": pick the chat for what another app shared into Oasis (it becomes that chat's drafts). */
+    /** "Teilen mit …": pick the chat for what another app shared into Mildcrowd (it becomes that chat's drafts). */
     @Serializable data object Share : ChatRoute
 }
 
@@ -157,7 +157,7 @@ sealed interface AccountRoute : AppRoute {
     /** Geräte & Anmeldungen (/app/privatsphaere/geraete). */
     @Serializable data object Devices : AccountRoute
 
-    /** Deine Zeit in Oasis (/app/privatsphaere/zeit): minutes per day, counted only on this device. */
+    /** Deine Zeit in Mildcrowd (/app/privatsphaere/zeit): minutes per day, counted only on this device. */
     @Serializable data object ScreenTime : AccountRoute
 
     /** Willkommen / onboarding (/app/willkommen). */
@@ -172,7 +172,7 @@ sealed interface AccountRoute : AppRoute {
     /** Begriffe erklärt (/app/begriffe). */
     @Serializable data object Glossary : AccountRoute
 
-    /** Was ist neu: the versions of Oasis and how it is built (/neuigkeiten). */
+    /** Was ist neu: the versions of Mildcrowd and how it is built (/neuigkeiten). */
     @Serializable data object Releases : AccountRoute
 
     /** Gesperrt (/app/gesperrt). */

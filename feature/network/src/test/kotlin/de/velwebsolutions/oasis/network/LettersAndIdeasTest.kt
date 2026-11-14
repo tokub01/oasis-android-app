@@ -27,7 +27,7 @@ import org.junit.runner.RunWith
 import org.robolectric.ParameterizedRobolectricTestRunner
 
 /**
- * The Oasen-Wochenbrief (docs/oasis-notifications.md) and „Ideen für Oasis“ (docs/oasis-admin.md): what the view models
+ * The Crowd-Wochenbrief (docs/mildcrowd-notifications.md) and „Ideen für Mildcrowd“ (docs/mildcrowd-admin.md): what the view models
  * send and how the answers change what is shown.
  */
 @RunWith(ParameterizedRobolectricTestRunner::class)

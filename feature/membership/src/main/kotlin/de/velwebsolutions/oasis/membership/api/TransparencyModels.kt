@@ -6,7 +6,7 @@ import kotlin.math.roundToInt
 import kotlinx.serialization.Serializable
 
 /**
- * „Wohin dein Beitrag geht“ (GET /api/v1/transparency, docs/oasis-admin.md): only figures the server knows and finance
+ * „Wohin dein Beitrag geht“ (GET /api/v1/transparency, docs/mildcrowd-admin.md): only figures the server knows and finance
  * reports an admin published – never estimated.
  */
 @Serializable

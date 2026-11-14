@@ -36,7 +36,7 @@ import org.junit.runner.RunWith
 import org.robolectric.ParameterizedRobolectricTestRunner
 
 /**
- * Sammlungen of an oasis and gemeinsame Zeitkapseln (docs/oasis-network.md): what the view models send and how the
+ * Sammlungen of a crowd and gemeinsame Zeitkapseln (docs/mildcrowd-network.md): what the view models send and how the
  * answers change what is shown.
  */
 @RunWith(ParameterizedRobolectricTestRunner::class)
@@ -395,7 +395,7 @@ fun collectionsJson() = """
 fun memberJson(id: Int, username: String) =
     """{"id":$id,"username":"$username","display_name":"${username.replaceFirstChar(Char::uppercase)}","initials":"X"}"""
 
-/** A Tropfen of the oasis „garten“ in the collections [collections] (4 is „Rezepte“). */
+/** A Post of the crowd „garten“ in the collections [collections] (4 is „Rezepte“). */
 fun collectedPostJson(id: Int, vararg collections: Int): String {
     val refs = collections.joinToString(",") { """{"id":$it,"name":"${if (it == 4) "Rezepte" else "Tipps"}","can_remove":true}""" }
     return postJson(id)
@@ -406,7 +406,7 @@ fun collectedPostJson(id: Int, vararg collections: Int): String {
 fun collectionPageJson(current: Int, last: Int, vararg posts: String) =
     """{"data":[${posts.joinToString(",")}],"meta":{"current_page":$current,"last_page":$last}}"""
 
-/** The cards of [collectionPageJson] as a list page (for list models built without the oasis page). */
+/** The cards of [collectionPageJson] as a list page (for list models built without the crowd page). */
 suspend fun de.velwebsolutions.oasis.network.data.NetworkRepository.collectionPagePosts(id: Int) =
     de.velwebsolutions.oasis.network.api.FeedPage<NoContext>(collectionPosts(id, 1).data)
 

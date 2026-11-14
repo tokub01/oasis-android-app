@@ -137,7 +137,7 @@ class AccessViewModelTest {
         assertEquals("Der Chat wird gerade neu gesichert. Versuch es gleich noch einmal.", refused.state.value.formError)
         assertFalse(refused.state.value.busy)
 
-        // Published while Oasis went to the background: the new keys wait to be unlocked on return.
+        // Published while Mildcrowd went to the background: the new keys wait to be unlocked on return.
         val awayContext = support.context(3)
         val away = loaded(awayContext)
         away.setPassphrase(TEST_PASSPHRASE)
@@ -178,7 +178,7 @@ class AccessViewModelTest {
         assertEquals(Biometrics.COPY_NOT_STORED, withoutCopy.vault.announcement.value)
         assertNull(opened.state.value.deviceSetupStatus)
 
-        // Published while Oasis went to the background: unlocked with the biometric prompt on return.
+        // Published while Mildcrowd went to the background: unlocked with the biometric prompt on return.
         val awayContext = support.context(2, secrets = MemoryDeviceSecretStore(available = true))
         val away = loaded(awayContext)
         server.onRequest = { if (it == "PUT identity") awayContext.vault.lockForBackground() }
@@ -409,7 +409,7 @@ class AccessViewModelTest {
         assertEquals("Verbunden – deine Chats sind offen.", laptop.vault.announcement.value)
         laptop.vault.lock()
 
-        // Approved while Oasis is in the background (the browser on this phone): picked up on the return, in front.
+        // Approved while Mildcrowd is in the background (the browser on this phone): picked up on the return, in front.
         model.requestLink()
         val meanwhile = server.deviceLinks.keys.max()
         val meanwhileKey = server.deviceLinks.getValue(meanwhile).getValue("public_key").jsonPrimitive.content

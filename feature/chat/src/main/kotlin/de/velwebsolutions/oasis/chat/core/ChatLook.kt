@@ -8,7 +8,7 @@ import java.io.File
 import kotlinx.coroutines.flow.first
 
 /**
- * The personal chat backgrounds (docs/oasis-chat-client.md, "Backgrounds and effects"; ui/chat-look.js): stable keys,
+ * The personal chat backgrounds (docs/mildcrowd-chat-client.md, "Backgrounds and effects"; ui/chat-look.js): stable keys,
  * German names, and whether the background is dark (own bubbles get an outline there). Only for oneself on this device.
  */
 enum class ChatBackground(val key: String, val label: String, val dark: Boolean = false) {

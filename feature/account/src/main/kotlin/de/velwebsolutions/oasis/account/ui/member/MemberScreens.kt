@@ -73,7 +73,7 @@ private fun bold(before: String, bold: String, after: String = "") = buildAnnota
 /**
  * Konto gesperrt (/app/gesperrt): a lock with a duration ("bis zum …") or the permanent ban, the accusation, the strike
  * count of the last months and the statement; plus what the member can still do. Without an active lock the app goes
- * back to the Quelle.
+ * back to the Start.
  */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -310,7 +310,7 @@ private fun ComplaintSection(
 /** The web's `maxlength` of a complaint's reason (SubmitComplaint::rules). */
 private const val COMPLAINT_MAX = 10_000
 
-/** The DSA contact address (`oasis.mail.dsa`) when an older server sends none. */
+/** The DSA contact address (`mildcrowd.mail.dsa`) when an older server sends none. */
 private const val DSA_EMAIL = "info@velwebsolutions.de"
 
 /** Beschwerde einlegen (/app/moderation/complaint/{decision}) for the affected member. */
@@ -396,7 +396,7 @@ internal fun ComplaintContent(
     }
 }
 
-/** Oasis-Begriffe (/app/begriffe). */
+/** Mildcrowd-Begriffe (/app/begriffe). */
 @Composable
 internal fun GlossaryScreen(viewModel: GlossaryViewModel = hiltViewModel()) {
     val state by viewModel.state.collectAsStateWithLifecycle()

@@ -48,7 +48,7 @@ import org.robolectric.RobolectricTestRunner
 import org.robolectric.annotation.Config
 import org.robolectric.annotation.GraphicsMode
 
-/** The Karte der Oasen, the region on the oasis page and in its form, at 360 dp (light and dark). */
+/** The Karte der Crowds, the region on the crowd page and in its form, at 360 dp (light and dark). */
 @RunWith(RobolectricTestRunner::class)
 @GraphicsMode(GraphicsMode.Mode.NATIVE)
 @Config(qualifiers = "w360dp-h740dp")

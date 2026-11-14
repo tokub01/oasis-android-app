@@ -68,7 +68,7 @@ private fun OasisButtonKind.border(): BorderStroke? = when (this) {
  */
 private val PillShape = RoundedCornerShape(24.dp)
 
-/** The Oasis pill button. While [loading] it shows a spinner and ignores taps (AsyncButton on iOS). */
+/** The Mildcrowd pill button. While [loading] it shows a spinner and ignores taps (AsyncButton on iOS). */
 @Composable
 fun OasisButton(
     text: String,

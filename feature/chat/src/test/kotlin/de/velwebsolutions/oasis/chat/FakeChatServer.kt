@@ -583,7 +583,7 @@ class FakeChatServer : Interceptor {
                     val ids = body["attachment_ids"]?.jsonArray?.map { it.jsonPrimitive.content.toInt() }.orEmpty()
                     val linked = ids.mapNotNull { uploads[it] }.filter { it.uploader == user && it.completed && it.messageId == null }
                     val kind = body["kind"]?.jsonPrimitive?.content ?: "message"
-                    // A control message (reaction, pin, vote) carries no files (docs/oasis-chat.md).
+                    // A control message (reaction, pin, vote) carries no files (docs/mildcrowd-chat.md).
                     if (linked.size != ids.size || (kind != "message" && ids.isNotEmpty())) {
                         return 422 to buildJsonObject {
                             put("message", "x")

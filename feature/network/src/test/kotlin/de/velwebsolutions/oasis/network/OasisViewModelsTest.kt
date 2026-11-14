@@ -28,7 +28,7 @@ import org.junit.Test
 import org.junit.runner.RunWith
 import org.junit.runners.Parameterized
 
-/** The oasis screens' view models: overview, one oasis, the form with banner and roles, closing and statistics. */
+/** The crowd screens' view models: overview, one crowd, the form with banner and roles, closing and statistics. */
 @RunWith(Parameterized::class)
 class OasisViewModelsTest(private val answersAtOnce: Boolean) {
     companion object {
@@ -80,7 +80,7 @@ class OasisViewModelsTest(private val answersAtOnce: Boolean) {
     private val banner = ImageUpload(byteArrayOf(1, 2, 3), "banner.jpg", "image/jpeg")
 
     @Test
-    fun `the overview loads once and again when an oasis changed`() = runTest {
+    fun `the overview loads once and again when a crowd changed`() = runTest {
         val network = StubbedNetwork(stub("GET", "network/oases", Fixtures.oases))
         val model = models.keep(OasesViewModel(network.repository))
         model.loadIfNeeded()
@@ -152,7 +152,7 @@ class OasisViewModelsTest(private val answersAtOnce: Boolean) {
     }
 
     @Test
-    fun `a published Tropfen reloads the oasis' Tropfen`() = runTest {
+    fun `a published Post reloads the crowd's Posts`() = runTest {
         val network = StubbedNetwork(
             stub("GET", "network/oases/stadtgarten", detail(member = false)),
             stub("GET", "network/oases/stadtgarten/posts", pageJson(postJson(4)))
@@ -257,7 +257,7 @@ class OasisViewModelsTest(private val answersAtOnce: Boolean) {
     }
 
     @Test
-    fun `Tropfen and the member list whose load was cancelled with the oasis page load again with it`() = runTest {
+    fun `Posts and the member list whose load was cancelled with the crowd page load again with it`() = runTest {
         val asked = CompletableDeferred<Unit>()
         val gate = CompletableDeferred<Unit>()
         val network = StubbedNetwork(
@@ -273,7 +273,7 @@ class OasisViewModelsTest(private val answersAtOnce: Boolean) {
             }
         }
         val model = models.keep(OasisViewModel("stadtgarten", slow))
-        // A rotation while the oasis' Tropfen load cancels the screen's coroutine, before the member list was asked for.
+        // A rotation while the crowd's Posts load cancels the screen's coroutine, before the member list was asked for.
         val screen = launch { model.loadIfNeeded() }
         asked.await()
         screen.cancelAndJoin()
@@ -305,7 +305,7 @@ class OasisViewModelsTest(private val answersAtOnce: Boolean) {
     }
 
     @Test
-    fun `a banner picked while founding waits for Oase eröffnen`() = runTest {
+    fun `a banner picked while founding waits for Crowd eröffnen`() = runTest {
         val network = StubbedNetwork(stub("GET", "network/oases", Fixtures.oases))
         val model = models.keep(OasisFormViewModel(null, network.repository))
         assertFalse(model.editing)

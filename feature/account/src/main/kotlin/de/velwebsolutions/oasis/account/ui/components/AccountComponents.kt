@@ -268,7 +268,7 @@ internal fun writeFile(resolver: ContentResolver, uri: Uri, bytes: ByteArray): B
 /**
  * „Daten herunterladen“ (the web's direct download of `oasis-daten.zip`): fetches the ZIP, then lets the member save it
  * where they like (the system's file picker). Used in Einstellungen and on the lock screen. The ZIP can be large
- * (Tropfen with their images), so it is written off the main thread.
+ * (Posts with their images), so it is written off the main thread.
  */
 @Composable
 fun DataExportButton(download: suspend () -> ByteArray, failed: (String) -> Unit) {

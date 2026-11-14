@@ -55,7 +55,7 @@ data class LookStyle(val chosen: Boolean = false, val dark: Boolean = false) {
 /** The look of the message area for the bubbles and texts in it. */
 val LocalChatLook = staticCompositionLocalOf { LookStyle() }
 
-/** The colours of the backgrounds (docs/oasis-chat-client.md, "Backgrounds and effects"), top → bottom. */
+/** The colours of the backgrounds (docs/mildcrowd-chat-client.md, "Backgrounds and effects"), top → bottom. */
 internal object LookColors {
     val Sand = Color(0xFFF4F5FA)
     val Dune = Color(0xFFE6E8F5)

@@ -145,7 +145,7 @@ internal fun ChatGate(content: @Composable () -> Unit) {
 }
 
 /**
- * „Deine Chats sind privat“ (docs/oasis-chat-client.md, „C5 Setup with one button“): one button, „Mit Fingerabdruck
+ * „Deine Chats sind privat“ (docs/mildcrowd-chat-client.md, „C5 Setup with one button“): one button, „Mit Fingerabdruck
  * einrichten“, where the device can; „Lieber mit Passphrase“ opens the passphrase form, which is the only way on devices
  * without biometrics. No backup passphrase is asked here: the chat list offers it afterwards. After „Chats neu
  * einrichten“ the same screen says what that means.

@@ -44,7 +44,7 @@ class DeepLinkTest {
         assertEquals(NetworkRoute.EditPost(12), route("https://mildcrowd.com/tropfen/12/bearbeiten"))
         assertEquals(NetworkRoute.Oasis("garten"), route("https://mildcrowd.com/oasen/garten"))
         assertEquals(NetworkRoute.OasisStatistics("garten"), route("https://mildcrowd.com/oasen/garten/statistik"))
-        // The Konto-Hinweis `oasis_held` („Oase bearbeiten“) links the edit form of the held oasis.
+        // The Konto-Hinweis `oasis_held` („Crowd bearbeiten“) links the edit form of the held crowd.
         assertEquals(NetworkRoute.EditOasis("garten"), route("https://mildcrowd.com/oasen/garten/bearbeiten"))
         assertEquals(NetworkRoute.CloseOasis("garten"), route("https://mildcrowd.com/oasen/garten/schliessen"))
         assertEquals(NetworkRoute.Profile("mira"), route("https://mildcrowd.com/profil/mira"))
@@ -148,7 +148,7 @@ class DeepLinkTest {
 
     /** Handed to the browser, they would come straight back to the app and go to the browser again, without end. */
     @Test
-    fun `app links without a screen open the Quelle instead of the browser`() {
+    fun `app links without a screen open the Start instead of the browser`() {
         listOf(
             "mildcrowd://x",
             "mildcrowd://email/bestaetigen/5/a1b2",

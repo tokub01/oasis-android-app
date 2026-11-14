@@ -344,7 +344,7 @@ class ComponentsTest {
 
     /** Without a browser named, Android would hand a page of the app's own App Links straight back to the app. */
     @Test
-    fun `web pages open in a browser with Custom Tabs, and oasis links never leave the app`() {
+    fun `web pages open in a browser with Custom Tabs, and crowd links never leave the app`() {
         val app = RuntimeEnvironment.getApplication()
         val browser = ComponentName("org.beispiel.browser", "org.beispiel.browser.Browser")
         val tabs = ComponentName("org.beispiel.browser", "org.beispiel.browser.Tabs")

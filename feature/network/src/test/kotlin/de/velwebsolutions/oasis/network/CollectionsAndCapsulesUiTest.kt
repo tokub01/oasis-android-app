@@ -58,7 +58,7 @@ import org.robolectric.RobolectricTestRunner
 import org.robolectric.annotation.Config
 import org.robolectric.annotation.GraphicsMode
 
-/** „In Sammlung“ on a card, the Sammlungen of an oasis, the sheet and the gemeinsamen Zeitkapseln at 360 dp. */
+/** „In Sammlung“ on a card, the Sammlungen of a crowd, the sheet and the gemeinsamen Zeitkapseln at 360 dp. */
 @RunWith(RobolectricTestRunner::class)
 @GraphicsMode(GraphicsMode.Mode.NATIVE)
 @Config(qualifiers = "w360dp-h740dp")

@@ -116,7 +116,7 @@ class PerksScreensTest {
     }
 
     @Test
-    fun `accepting a companion link goes to the Quelle, an expired one leads to the membership`() {
+    fun `accepting a companion link goes to the Start, an expired one leads to the membership`() {
         val model = CompanionLinkViewModel(token, repository, events, Fixtures.session())
         show { CompanionLinkScreen(token, model) }
         waitFor("Mia Mäzen nimmt dich mit nach Mildcrowd")

@@ -31,7 +31,7 @@ import org.junit.runner.RunWith
 import org.robolectric.RobolectricTestRunner
 
 /**
- * The calmer start of round J (docs/oasis-chat-client.md, „Calmer start“): the backup row and the people to write first
+ * The calmer start of round J (docs/mildcrowd-chat-client.md, „Calmer start“): the backup row and the people to write first
  * on the list, „Einmal ansehen“ for the next message, the swipe hint and the places of quiet notices.
  */
 @OptIn(ExperimentalCoroutinesApi::class)

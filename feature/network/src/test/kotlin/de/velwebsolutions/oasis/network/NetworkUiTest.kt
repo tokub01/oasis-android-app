@@ -67,7 +67,7 @@ import org.junit.Test
 import org.junit.runner.RunWith
 import org.robolectric.RobolectricTestRunner
 
-/** The core flows on screen (iOS `NetworkUITests`): the Quelle, writing a Tropfen and a profile. */
+/** The core flows on screen (iOS `NetworkUITests`): the Start, writing a Post and a profile. */
 @RunWith(RobolectricTestRunner::class)
 class NetworkUiTest {
     @get:Rule
@@ -94,7 +94,7 @@ class NetworkUiTest {
     private val noFeed = FeedHandlers(perform = { _, _ -> }, loadMore = {}, reload = {})
 
     @Test
-    fun `the Quelle shows the feed, its end and switches to Ganz Oasis`() {
+    fun `the Start shows the feed, its end and switches to Ganz Mildcrowd`() {
         val page = OasisJson.snake.decodeFromString(FeedPage.serializer(SourceContext.serializer()), Fixtures.source)
         val state = PostListState(posts = page.data, context = page.context, state = Loadable.Loaded(Unit))
         var view: String? = null
@@ -121,7 +121,7 @@ class NetworkUiTest {
     }
 
     @Test
-    fun `writes a Tropfen and closes the composer`() {
+    fun `writes a Post and closes the composer`() {
         val network = StubbedNetwork(
             stub("GET", "network/composer", Fixtures.composer),
             stub("POST", "network/tone", """{"data":{"hint":null,"nudge":false}}"""),
@@ -149,7 +149,7 @@ class NetworkUiTest {
     }
 
     @Test
-    fun `a Tropfen still on its way after a rotation closes the form shown next, once`() {
+    fun `a Post still on its way after a rotation closes the form shown next, once`() {
         val gate = CompletableDeferred<Unit>()
         val network = StubbedNetwork(
             stub("GET", "network/composer", Fixtures.composer),
@@ -175,7 +175,7 @@ class NetworkUiTest {
         compose.onNodeWithTag("network.page").performScrollToNode(hasTestTag("compose.submit"))
         compose.onNodeWithTag("compose.submit").performClick()
         compose.settle { model.state.value.isPublishing }
-        // The rotation: the form goes away with its coroutine, a new one shows while the Tropfen is still sent.
+        // The rotation: the form goes away with its coroutine, a new one shows while the Post is still sent.
         shown = false
         compose.waitForIdle()
         shown = true
@@ -238,7 +238,7 @@ class NetworkUiTest {
     }
 
     @Test
-    fun `the floating button of an oasis says where the Tropfen goes`() {
+    fun `the floating button of a crowd says where the Post goes`() {
         var opened = false
         show {
             Box(Modifier.fillMaxSize()) {

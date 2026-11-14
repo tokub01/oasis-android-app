@@ -113,7 +113,7 @@ class PrivacyViewModel @Inject constructor(private val repository: AccountReposi
         viewModelScope.launch { save(setting.key, value, previous) }
     }
 
-    /** „Tropfen begrenzen“. */
+    /** „Posts begrenzen“. */
     suspend fun limitPastPosts() {
         catching { repository.limitPastPosts() }
             .onSuccess { message ->

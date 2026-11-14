@@ -5,7 +5,7 @@ import de.velwebsolutions.oasis.core.network.OasisJson
 import de.velwebsolutions.oasis.membership.api.FinanceReport
 import de.velwebsolutions.oasis.membership.api.Transparency
 
-/** „Wohin dein Beitrag geht“ as `GET transparency` answers it (docs/oasis-admin.md). */
+/** „Wohin dein Beitrag geht“ as `GET transparency` answers it (docs/mildcrowd-admin.md). */
 object TransparencyFixtures {
     fun reportJson(id: Int, label: String, balance: Double = 157.44) = """
         {"id":$id,"period_type":"month","period_start":"2026-11-01","period_end":"2026-11-30","period_label":"$label",

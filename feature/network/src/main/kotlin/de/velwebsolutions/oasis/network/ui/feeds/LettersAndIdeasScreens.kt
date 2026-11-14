@@ -71,7 +71,7 @@ import de.velwebsolutions.oasis.network.ui.components.UnderlinedLink
 import de.velwebsolutions.oasis.network.ui.components.block
 import de.velwebsolutions.oasis.network.ui.retry
 
-/** „Dein Oasen-Wochenbrief“ (/app/wochenbrief/{id?}). */
+/** „Dein Crowd-Wochenbrief“ (/app/wochenbrief/{id?}). */
 @Composable
 fun WeeklyLetterScreen(
     id: Int?,
@@ -156,7 +156,7 @@ internal fun WeeklyLetterContent(
     }
 }
 
-/** One oasis of the letter: its name, new members, Tropfen, meetups and new collections. */
+/** One crowd of the letter: its name, new members, Posts, meetups and new collections. */
 @Composable
 private fun LetterOasis(entry: WeeklyLetter.Entry, onAction: (PostAction, Post) -> Unit) {
     val navigator = LocalNavigator.current
@@ -192,7 +192,7 @@ private fun LetterOasis(entry: WeeklyLetter.Entry, onAction: (PostAction, Post) 
     }
 }
 
-/** „Ideen für Oasis“ (/app/ideen/{id?}). */
+/** „Ideen für Mildcrowd“ (/app/ideen/{id?}). */
 @Composable
 fun IdeasScreen(
     id: Int?,
@@ -331,7 +331,7 @@ private fun IdeasPage(ideas: List<Idea>, nextPage: Int?, viewModel: IdeasViewMod
 internal class IdeaActions(val vote: (Idea) -> Unit, val delete: (Idea) -> Unit)
 
 /**
- * One idea: the vote with its count, status, author and day, title, description, the answer of Oasis, the linked vote,
+ * One idea: the vote with its count, status, author and day, title, description, the answer of Mildcrowd, the linked vote,
  * and „Löschen“ for the own open idea or „Melden“.
  */
 @Composable

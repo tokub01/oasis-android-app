@@ -4,8 +4,8 @@ import de.velwebsolutions.oasis.core.network.OasisInstant
 import kotlinx.serialization.Serializable
 
 /**
- * Zeitkapseln (GET /api/v1/network/time-capsules, from Oase): the waiting capsules (soonest first), the last opened or
- * failed ones and the limits. Below Oase [available] is false and [lockedMessage] names the tier that offers them.
+ * Zeitkapseln (GET /api/v1/network/time-capsules, from Mittendrin): the waiting capsules (soonest first), the last opened or
+ * failed ones and the limits. Below Mittendrin [available] is false and [lockedMessage] names the tier that offers them.
  */
 @Serializable
 data class TimeCapsules(
@@ -14,18 +14,18 @@ data class TimeCapsules(
     val maxLength: Int = 500,
     val maxWaiting: Int = 50,
     val maxYears: Int = 10,
-    /** The oases the member belongs to, where a capsule may appear instead of the own Quelle. */
+    /** The crowds the member belongs to, where a capsule may appear instead of the own Start. */
     val oases: List<Oasis> = emptyList(),
     val waiting: List<TimeCapsule> = emptyList(),
     val past: List<TimeCapsule> = emptyList(),
-    /** Invitations to others' gemeinsame Zeitkapseln (also below Oase). */
+    /** Invitations to others' gemeinsame Zeitkapseln (also below Mittendrin). */
     val invitations: List<CapsuleInvitation> = emptyList()
 ) {
     @Serializable
     data class Oasis(val id: Int, val slug: String, val name: String)
 }
 
-/** One Zeitkapsel: sealed until [opensAt], then a Tropfen ([postId]) or not opened for [failedReason]. */
+/** One Zeitkapsel: sealed until [opensAt], then a Post ([postId]) or not opened for [failedReason]. */
 @Serializable
 data class TimeCapsule(
     val id: Int,
@@ -46,7 +46,7 @@ data class TimeCapsule(
     data class Invitee(val member: Member, val status: String)
 }
 
-/** Where a Zeitkapsel or a Tropfen of the Jahrbuch appeared: an oasis by slug and name. */
+/** Where a Zeitkapsel or a Post of the Jahrbuch appeared: a crowd by slug and name. */
 @Serializable
 data class NamedOasis(val slug: String, val name: String)
 
@@ -62,11 +62,11 @@ data class TimeCapsuleInput(
     val contributeUntil: String? = null
 )
 
-/** Dein Jahrbuch (GET /api/v1/network/yearbook/{year?}, from Oase; 403 below): the own Tropfen of one year by month. */
+/** Dein Jahrbuch (GET /api/v1/network/yearbook/{year?}, from Mittendrin; 403 below): the own Posts of one year by month. */
 @Serializable
 data class Yearbook(
     val year: Int,
-    /** The years with Tropfen, newest first. */
+    /** The years with Posts, newest first. */
     val years: List<Int> = emptyList(),
     val totals: Totals = Totals(),
     /** The printable book on the website ("Drucken oder als PDF"). */
@@ -76,11 +76,11 @@ data class Yearbook(
     @Serializable
     data class Totals(val posts: Int = 0, val images: Int = 0, val oases: Int = 0)
 
-    /** One month ("Januar") with its Tropfen. */
+    /** One month ("Januar") with its Posts. */
     @Serializable
     data class Month(val name: String, val posts: List<Entry> = emptyList())
 
-    /** A Tropfen of the book. */
+    /** A Post of the book. */
     @Serializable
     data class Entry(
         val id: Int,

@@ -5,7 +5,7 @@ import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
 
 /**
- * A member as shown next to a Tropfen and in lists (`MemberResource`): name, handle and avatar (initials in the chosen
+ * A member as shown next to a Post and in lists (`MemberResource`): name, handle and avatar (initials in the chosen
  * colour, or the photo where the viewer may see it).
  */
 @Serializable
@@ -19,7 +19,7 @@ data class Member(
 )
 
 /**
- * One piece of a Tropfen's text (`App\Support\Network\RichText`): plain text, an external link (shown by host), a
+ * One piece of a Post's text (`App\Support\Network\RichText`): plain text, an external link (shown by host), a
  * linkable @mention or a #topic.
  */
 @Serializable
@@ -46,7 +46,7 @@ data class TextSegment(
     }
 }
 
-/** A Tropfen card (`PostResource`) – the same information and decisions as the web's `x-network.post-card`. */
+/** A Post card (`PostResource`) – the same information and decisions as the web's `x-network.post-card`. */
 @Serializable
 data class Post(
     val id: Int,
@@ -70,17 +70,17 @@ data class Post(
     val stats: Stats? = null,
     val conversation: Conversation? = null,
     val viewer: Viewer? = null,
-    /** The poll of a Tropfen in an oasis (docs/oasis-network.md, „Umfragen in Tropfen“). */
+    /** The poll of a Post in a crowd (docs/mildcrowd-network.md, „Umfragen in Posts“). */
     val poll: Poll? = null,
-    /** The Sammlungen of its oasis it is in. */
+    /** The Sammlungen of its crowd it is in. */
     val collections: List<CollectionRef> = emptyList()
 ) {
     @Serializable
     data class CollectionRef(val id: Int, val name: String, val canRemove: Boolean = false)
 
     /**
-     * Counts per answer and the number of voters for everyone who may read the Tropfen – never who voted; only the
-     * own choice ([myOptions]). [canVote] for members of the oasis while it runs, [canClose] for its author.
+     * Counts per answer and the number of voters for everyone who may read the Post – never who voted; only the
+     * own choice ([myOptions]). [canVote] for members of the crowd while it runs, [canClose] for its author.
      */
     @Serializable
     data class Poll(
@@ -140,7 +140,7 @@ data class Post(
         data class Original(val id: Int, val author: Member, val body: String, val segments: List<TextSegment> = emptyList())
     }
 
-    /** A Tropfen the automated check holds for a human review: only its author sees it, and the account stays open. */
+    /** A Post the automated check holds for a human review: only its author sees it, and the account stays open. */
     @Serializable
     data class Held(val reason: String, val checkReason: String? = null, val reviewHours: Int = 48)
 
@@ -169,7 +169,7 @@ data class Post(
          */
         val replyHint: String? = null,
         /**
-         * Weitertragen with own words; without it only plain Weitertragen (own words would be an answer). Servers before
+         * Teilen with own words; without it only plain Teilen (own words would be an answer). Servers before
          * round N leave it out: with words, as before.
          */
         val canQuote: Boolean = true,
@@ -183,16 +183,16 @@ data class Post(
 
     val isQuestion: Boolean get() = kind == "question"
 
-    /** Weitergetragen without own words: the card shows the carried Tropfen under „{Name} hat das weitergetragen“. */
+    /** Geteilt without own words: the card shows the carried Post under „{Name} hat das geteilt“. */
     val isPlainCarry: Boolean get() = carried != null && body.isBlank()
     val isMembersOnly: Boolean get() = visibility == "members"
 }
 
-/** An earlier text of an edited Tropfen. */
+/** An earlier text of an edited Post. */
 @Serializable
 data class PostRevision(val id: Int, val body: String, val replacedAt: OasisInstant)
 
-/** The Tropfen page: the post, earlier versions, replies and the side cards. */
+/** The Post page: the post, earlier versions, replies and the side cards. */
 @Serializable
 data class PostDetail(
     val post: Post,
@@ -202,15 +202,15 @@ data class PostDetail(
     val oasisDescription: String? = null
 )
 
-/** The edit form of a Tropfen. */
+/** The edit form of a Post. */
 @Serializable
 data class PostEditForm(val body: String, val until: OasisInstant)
 
-/** An external link in a Tropfen that needs "Ich habe den Inhalt gelesen" before carrying. */
+/** An external link in a Post that needs "Ich habe den Inhalt gelesen" before carrying. */
 @Serializable
 data class ExternalLink(val url: String, val host: String)
 
-/** The carry page: the original Tropfen and its links. */
+/** The carry page: the original Post and its links. */
 @Serializable
 data class CarrySource(
     val id: Int,
@@ -218,7 +218,7 @@ data class CarrySource(
     val body: String,
     val segments: List<TextSegment> = emptyList(),
     val links: List<ExternalLink> = emptyList(),
-    /** Weitertragen with own words; false: only plain Weitertragen (the member may not answer this Tropfen). */
+    /** Teilen with own words; false: only plain Teilen (the member may not answer this Post). */
     val canQuote: Boolean = true
 )
 
@@ -236,20 +236,20 @@ data class ComposerContext(
     val links: List<ExternalLink> = emptyList(),
     val maxLength: Int = 500,
     val maxImages: Int = 4,
-    /** The longest edge of a Tropfen photo in pixels (2048, or 4096 from Mäzen); servers before tiers leave it out. */
+    /** The longest edge of a Post photo in pixels (2048, or 4096 from Mäzen); servers before tiers leave it out. */
     val imageEdge: Int = ImageEdge.DEFAULT
 ) {
     @Serializable
     data class OasisName(val slug: String, val name: String)
 }
 
-/** The longest edge of Tropfen photos the server keeps. */
+/** The longest edge of Post photos the server keeps. */
 object ImageEdge {
     /** What every membership gets, and the size before the server sent `image_edge`. */
     const val DEFAULT = 2048
 }
 
-/** The answer after publishing; `suspended` reflects a lock from a human decision, never the held Tropfen itself. */
+/** The answer after publishing; `suspended` reflects a lock from a human decision, never the held Post itself. */
 @Serializable
 data class PublishResult(val message: String, val suspended: Boolean = false, val data: Post)
 
@@ -273,11 +273,11 @@ data class PostDraft(
     val toneConfirmed: Boolean = false,
     val images: List<ImageUpload> = emptyList(),
     val alts: List<String> = emptyList(),
-    /** „Umfrage hinzufügen“: only in a new Tropfen of an oasis. */
+    /** „Umfrage hinzufügen“: only in a new Post of a crowd. */
     val poll: PollDraft? = null
 )
 
-/** The poll of a new Tropfen: question, 2–6 answers, single or multiple choice, runtime `1d`, `3d`, `1w` or none. */
+/** The poll of a new Post: question, 2–6 answers, single or multiple choice, runtime `1d`, `3d`, `1w` or none. */
 data class PollDraft(
     val question: String = "",
     val options: List<String> = listOf("", ""),

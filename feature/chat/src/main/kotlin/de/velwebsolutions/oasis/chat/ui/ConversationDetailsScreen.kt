@@ -291,7 +291,7 @@ class LookActions(
 }
 
 /**
- * „Hintergrund“ (docs/oasis-chat-client.md, "Backgrounds and effects"): seven swatches with their names, „Foto wählen“ /
+ * „Hintergrund“ (docs/mildcrowd-chat-client.md, "Backgrounds and effects"): seven swatches with their names, „Foto wählen“ /
  * „Foto entfernen“, „Für alle Chats verwenden“ and „Effekte abspielen“ – only on this device, only for oneself.
  */
 @OptIn(ExperimentalLayoutApi::class)

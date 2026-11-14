@@ -16,7 +16,7 @@ import org.robolectric.RobolectricTestRunner
 import org.robolectric.annotation.Config
 import org.robolectric.annotation.GraphicsMode
 
-/** The welcome tour: about you with the tone hint, who sees you, oases, people – and leaving it. */
+/** The welcome tour: about you with the tone hint, who sees you, crowds, people – and leaving it. */
 @HiltAndroidTest
 @RunWith(RobolectricTestRunner::class)
 @Config(application = HiltTestApplication::class)
@@ -121,7 +121,7 @@ class WelcomeScreenHiltTest : HiltScreenTest() {
         stub("POST", "onboarding/oases/1", """{"message":"Server Error"}""", status = 500)
         show { AccountScreen(AccountRoute.Welcome) }
         waitForText("Noch gibt es keine Crowds.", substring = true)
-        // Without hand-picked oases (an older server leaves oases_hand_picked out) the list is the largest oases in order.
+        // Without hand-picked crowds (an older server leaves oases_hand_picked out) the list is the largest crowds in order.
         waitForText(
             "Hier stehen die Crowds mit den meisten Mitgliedern – der Reihe nach, ohne Empfehlung nach deinen Interessen.",
             substring = true

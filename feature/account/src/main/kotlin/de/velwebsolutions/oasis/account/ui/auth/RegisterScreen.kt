@@ -116,7 +116,7 @@ internal class RegisterActions(
 
 /**
  * Registration, the first of the four steps (account, e-mail address, mobile number, contribution) of /testen, in three
- * small pages (docs/oasis-accounts.md, „Registrierung: Schritt 1 in drei kleinen Seiten“).
+ * small pages (docs/mildcrowd-accounts.md, „Registrierung: Schritt 1 in drei kleinen Seiten“).
  */
 @Composable
 internal fun RegisterScreen(onSignIn: () -> Unit, onLegal: (String) -> Unit) {
@@ -475,7 +475,7 @@ private fun BirthDateField(ui: RegisterUiState, message: String?, onPick: () -> 
     }
 }
 
-/** Days up to [latest] (UTC midnight in milliseconds): a birth date at least 18 years back (Oasis is 18+). */
+/** Days up to [latest] (UTC midnight in milliseconds): a birth date at least 18 years back (Mildcrowd is 18+). */
 @OptIn(ExperimentalMaterial3Api::class)
 internal class PastDates(private val latest: Long) : SelectableDates {
     override fun isSelectableDate(utcTimeMillis: Long) = utcTimeMillis <= latest

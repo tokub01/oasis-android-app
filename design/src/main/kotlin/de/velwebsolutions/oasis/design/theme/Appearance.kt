@@ -21,7 +21,7 @@ enum class AppearanceChoice(val stored: String?, val label: String) {
 }
 
 /**
- * „Darstellung: Automatisch / Hell / Dunkel“ (docs/oasis-website.md): Oasis follows the system unless this device chose
+ * „Darstellung: Automatisch / Hell / Dunkel“ (docs/mildcrowd-website.md): Mildcrowd follows the system unless this device chose
  * otherwise. Stored only on the device (`oasis-theme`: `light`, `dark`, or missing for automatic, like the web's
  * localStorage key); nothing goes to the server. Both values are snapshot state, so every screen follows a change.
  */
@@ -38,7 +38,7 @@ object Appearance {
     /** Whether the system is in dark mode (set by the activity from its configuration). */
     var systemDark by mutableStateOf(false)
 
-    /** Whether Oasis shows its dark mode now. */
+    /** Whether Mildcrowd shows its dark mode now. */
     val isDark: Boolean
         get() = when (choice) {
             AppearanceChoice.Automatic -> systemDark

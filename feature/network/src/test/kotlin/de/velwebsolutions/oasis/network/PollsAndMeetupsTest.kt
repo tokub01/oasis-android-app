@@ -33,7 +33,7 @@ import org.junit.runner.RunWith
 import org.robolectric.ParameterizedRobolectricTestRunner
 
 /**
- * Polls in Tropfen, meetups of an oasis and Willkommenspaten (docs/oasis-network.md): what the view models send, how
+ * Polls in Posts, meetups of a crowd and Willkommenspaten (docs/mildcrowd-network.md): what the view models send, how
  * the answers replace what is shown, and the texts.
  */
 @RunWith(ParameterizedRobolectricTestRunner::class)
@@ -302,7 +302,7 @@ class PollsAndMeetupsTest(private val answersAtOnce: Boolean) {
     }
 }
 
-/** A Tropfen of an oasis with a poll of two answers. */
+/** A Post of a crowd with a poll of two answers. */
 fun pollPostJson(id: Int, mine: String = "[]", counts: String = "[1,0]", closed: Boolean = false): String =
     postJson(id).trimEnd().removeSuffix("}") +
         """

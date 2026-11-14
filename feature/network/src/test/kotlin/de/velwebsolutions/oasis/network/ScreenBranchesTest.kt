@@ -245,7 +245,7 @@ class ScreenBranchesTest {
     }
 
     @Test
-    fun `on the Tropfen page Antworten focuses the reply field`() {
+    fun `on the Post page Antworten focuses the reply field`() {
         show { NetworkPage { block { PostCard(base, onAction = { _, _ -> }, isDetail = true) } } }
         compose.onNodeWithTag("post.action.Antworten").performClick()
         assertEquals(1, NetworkSignals.replyFocus.value)
@@ -300,7 +300,7 @@ class ScreenBranchesTest {
     }
 
     @Test
-    fun `an oasis mark with a banner, the tone rules link and the oasis banner image`() {
+    fun `a crowd mark with a banner, the tone rules link and the crowd banner image`() {
         val withBanner = OasisSummary(1, "garten", "Garten", bannerUrl = "http://localhost/banner.webp")
         show {
             NetworkPage {
@@ -343,7 +343,7 @@ class ScreenBranchesTest {
     }
 
     @Test
-    fun `Entdecken without oases, a topic with Tropfen and the end of short lists`() {
+    fun `Entdecken without crowds, a topic with Posts and the end of short lists`() {
         val discover = OasisJson.snake.decodeFromString(FeedPage.serializer(DiscoverContext.serializer()), Fixtures.discover)
         var state by mutableStateOf(
             PostListState(posts = discover.data, context = DiscoverContext(), state = Loadable.Loaded(Unit), nextCursor = "x")
@@ -402,7 +402,7 @@ class ScreenBranchesTest {
     }
 
     @Test
-    fun `the Quelle's page before its context and when it follows somebody`() {
+    fun `the Start's page before its context and when it follows somebody`() {
         var state by mutableStateOf(PostListState<SourceContext>(state = Loadable.Loaded(Unit)))
         show { NetworkPage { sourceContent(SeenCut(state, false), "Mira", handlers, onSelectView = {}) } }
         text("Hallo Mira.")
@@ -447,7 +447,7 @@ class ScreenBranchesTest {
         """.trimMargin()
 
     @Test
-    fun `an oasis filters its members, writes from its page, follows and closes its rules again`() {
+    fun `a crowd filters its members, writes from its page, follows and closes its rules again`() {
         val members = """{"data":{"members":[],"hidden_members":3,"own_list_audience":null}}"""
         val network = StubbedNetwork(
             stub("GET", "network/oases/garten", oasisJson.replace("MEMBER", "true")),
@@ -482,7 +482,7 @@ class ScreenBranchesTest {
     }
 
     @Test
-    fun `the oasis form saves, founds, chooses an audience and closes`() {
+    fun `the crowd form saves, founds, chooses an audience and closes`() {
         val summary = """{"id": 2, "slug": "garten", "name": "Garten", "description": "x", "color": "spring", "visibility": "public",
             |"banner_url": "http://localhost/b.webp", "members_count": 4, "role": "host"}
         """.trimMargin()
@@ -523,7 +523,7 @@ class ScreenBranchesTest {
         compose.onNodeWithTag("closeOasis.confirm").performClick()
         compose.onNodeWithTag("closeOasis.submit").performClick()
         waitFor { navigator.selectedTab == MainTab.Oases }
-        // The oasis was reached on the Quelle: its screens leave that tab, too.
+        // The crowd was reached on the Start: its screens leave that tab, too.
         assertTrue(navigator.stack(MainTab.Source).isEmpty())
     }
 
@@ -602,7 +602,7 @@ class ScreenBranchesTest {
     }
 
     @Test
-    fun `the Tropfen page leaves after deleting, shares, and shows its parts for every viewer`() {
+    fun `the Post page leaves after deleting, shares, and shows its parts for every viewer`() {
         val detail = """{"data":{"post":${postJson(12, author = 4).replace("\"edited_at\":null", "\"edited_at\":\"2026-10-22T11:00:00Z\"")
             .replace("\"can_delete\":false", "\"can_delete\":true").replace("\"can_write_reply\":true", "\"can_write_reply\":false")
             .replace("\"can_reply\":true", "\"can_reply\":false")},"revisions":[{"id":1,"body":"Alt","replaced_at":"2026-10-22T11:00:00Z"}],
@@ -658,7 +658,7 @@ class ScreenBranchesTest {
     }
 
     @Test
-    fun `blocking a profile from a sheet leads back to the Quelle, its menu mutes and restricts`() {
+    fun `blocking a profile from a sheet leads back to the Start, its menu mutes and restricts`() {
         val network = StubbedNetwork(
             stub("GET", "network/profiles/jonas", Fixtures.profile.replace("\"oases\"", "\"oases_hidden\"")),
             stub("GET", "network/profiles/jonas/posts", pageJson()),
@@ -858,7 +858,7 @@ class ScreenBranchesTest {
     }
 
     @Test
-    fun `the Tropfen page for every kind of reader`() {
+    fun `the Post page for every kind of reader`() {
         val detail = data(de.velwebsolutions.oasis.network.api.PostDetail.serializer(), Fixtures.post)
         val composer = data(ComposerContext.serializer(), Fixtures.composer)
         val noCallbacks = ComposerCallbacks(

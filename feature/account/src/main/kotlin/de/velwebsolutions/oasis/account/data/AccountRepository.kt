@@ -98,7 +98,7 @@ interface AccountRepository {
 
     suspend fun updatePrivacy(key: String, value: PrivacyValue): Confirmed<PrivacySettingItem>
 
-    /** „Tropfen begrenzen“; returns the confirmation with the number of Tropfen. */
+    /** „Posts begrenzen“; returns the confirmation with the number of Posts. */
     suspend fun limitPastPosts(): String
 
     suspend fun hiddenWords(): HiddenWords
@@ -133,7 +133,7 @@ interface AccountRepository {
 
     suspend fun saveWelcomeVisibility(profileAudience: String, defaultPostVisibility: String)
 
-    /** Follows or leaves a starter oasis; returns whether the member follows it now. */
+    /** Follows or leaves a starter crowd; returns whether the member follows it now. */
     suspend fun toggleStarterOasis(id: Int): Boolean
 
     suspend fun finishWelcome()
@@ -143,7 +143,7 @@ interface AccountRepository {
 
     suspend fun glossary(): List<GlossaryTerm>
 
-    /** Was ist neu: every version of Oasis, newest first, and how Oasis is built. */
+    /** Was ist neu: every version of Mildcrowd, newest first, and how Mildcrowd is built. */
     suspend fun releases(): ReleaseList
 
     /** The account's passkeys, newest first. */
@@ -172,7 +172,7 @@ interface AccountRepository {
     suspend fun removePhone()
 }
 
-/** [AccountRepository] over the Oasis API. */
+/** [AccountRepository] over the Mildcrowd API. */
 class DefaultAccountRepository @Inject constructor(private val client: ApiClient, private val common: CommonApi) : AccountRepository {
     private val service = client.create<AccountService>()
 

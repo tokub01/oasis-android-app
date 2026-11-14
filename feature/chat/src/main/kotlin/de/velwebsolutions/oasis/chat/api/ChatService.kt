@@ -17,7 +17,7 @@ import retrofit2.http.Streaming
 
 /**
  * The chat endpoints (`/api/v1/chat/…`, routes/api/v1/members/chat.php – the web's `/app/chat/api` behind the app token;
- * contract in docs/oasis-chat.md). Created with `KeyCoding.Verbatim`; request bodies are JSON objects built by
+ * contract in docs/mildcrowd-chat.md). Created with `KeyCoding.Verbatim`; request bodies are JSON objects built by
  * [de.velwebsolutions.oasis.chat.data.DefaultChatRepository], so explicit `null`s (no passphrase copy, no group name)
  * reach the server.
  */

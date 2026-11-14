@@ -96,7 +96,7 @@ private val MainTab.icon: ImageVector
     }
 
 /**
- * The five main sections as a bottom bar (Quelle, Entdecken, Oasen, Chats, Profil), each with its own stack, plus the
+ * The five main sections as a bottom bar (Start, Entdecken, Crowds, Chats, Profil), each with its own stack, plus the
  * web header's actions on every tab root: search, Hinweise bell and the "Mehr" menu with the account pages.
  */
 @OptIn(ExperimentalMaterial3Api::class)

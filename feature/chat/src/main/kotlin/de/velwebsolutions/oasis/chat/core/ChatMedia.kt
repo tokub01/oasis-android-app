@@ -35,7 +35,7 @@ sealed interface AttachmentView {
     /** A voice message or video in the app cache (deleted when the chat closes or locks), with a poster frame for videos. */
     class Playable(val file: File, val poster: ImageBitmap?) : AttachmentView
 
-    /** Any other file in the app cache under its name, for other apps to open or share (never shown inside Oasis). */
+    /** Any other file in the app cache under its name, for other apps to open or share (never shown inside Mildcrowd). */
     class Document(val file: File, val mime: String) : AttachmentView
 }
 

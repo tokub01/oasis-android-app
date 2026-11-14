@@ -198,7 +198,7 @@ class MemberScreensHiltTest : HiltScreenTest() {
         navigator.stack(navigator.selectedTab).add(AccountRoute.Complaint(7))
         show { AccountScreen(AccountRoute.Complaint(7)) }
         waitForText("Post entfernt · Beleidigung")
-        // AGB § 15 and § 20: the way to court, and no out-of-court dispute body for Oasis (Art. 21 DSA does not apply).
+        // AGB § 15 and § 20: the way to court, and no out-of-court dispute body for Mildcrowd (Art. 21 DSA does not apply).
         waitForText(
             "Du kannst bis zum 22.11.2026 Beschwerde einlegen. Die Beschwerde ist kostenlos. Unabhängig davon steht dir der " +
                 "Rechtsweg offen. Eine außergerichtliche Streitbeilegungsstelle gibt es für Mildcrowd nicht (AGB § 15 und § 20)."

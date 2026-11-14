@@ -49,7 +49,7 @@ class StubbedNetwork(vararg stubs: StubTransport.Stub) {
     val repository = DefaultNetworkRepository(client)
     val common = RemoteCommonApi(client)
 
-    /** A signed-out session: enough for the composer, which refreshes `me` only after a held Tropfen. */
+    /** A signed-out session: enough for the composer, which refreshes `me` only after a held Post. */
     val session = Session(testTokenStore(null), "Pixel Test", CoroutineScope(Dispatchers.Unconfined))
 
     /** The composers' unsent drafts, shared by the composers of one test like the app's one store. */
@@ -86,7 +86,7 @@ private object DirectExecutor : java.util.concurrent.AbstractExecutorService() {
 
 fun stub(method: String, path: String, json: String = "{}", status: Int = 200) = StubTransport.Stub(method, path, status, json)
 
-/** A Tropfen card as the API sends it (the iOS tests' `FeedTests.post`). */
+/** A Post card as the API sends it (the iOS tests' `FeedTests.post`). */
 fun postJson(id: Int, author: Int = 2, reacted: Boolean = false, replyTo: Int? = null, visibility: String = "public"): String {
     val reply = replyTo?.let { """{"id":$it,"username":"u1"}""" } ?: "null"
     return """
@@ -100,14 +100,14 @@ fun postJson(id: Int, author: Int = 2, reacted: Boolean = false, replyTo: Int? =
     """.trimIndent()
 }
 
-/** A page of Tropfen with an optional cursor and context. */
+/** A page of Posts with an optional cursor and context. */
 fun pageJson(vararg posts: String, next: String? = null, context: String? = null): String {
     val cursor = next?.let { "\"$it\"" } ?: "null"
     val side = context?.let { ""","context":$it""" }.orEmpty()
     return """{"data":[${posts.joinToString(",")}],"meta":{"next_cursor":$cursor,"per_page":20}$side}"""
 }
 
-/** Decodes a Tropfen card like the API client does. */
+/** Decodes a Post card like the API client does. */
 fun decodePost(json: String): Post = OasisJson.snake.decodeFromString(Post.serializer(), json)
 
 /**
