@@ -11,7 +11,7 @@ import de.velwebsolutions.oasis.chatcrypto.MessageReply
 import java.time.Instant
 
 /**
- * What the timeline shows besides its bubbles, for the member [myId] at [now] (docs/oasis-chat-client.md, "Reactions
+ * What the timeline shows besides its bubbles, for the member [myId] at [now] (docs/mildcrowd-chat-client.md, "Reactions
  * and replies", "Pinned message and polls"): the reaction chips, the quotes of replies, the pin bar and the polls.
  */
 internal class TimelineViews(val myId: String, private val senderName: (String) -> String, val now: Instant) {

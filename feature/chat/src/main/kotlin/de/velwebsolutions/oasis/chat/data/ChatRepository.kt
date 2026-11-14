@@ -49,7 +49,7 @@ sealed interface SettingValue {
  */
 interface ChatRepository {
     companion object {
-        /** The kinds of a sent message (docs/oasis-chat.md, "Reactions and replies (server)"). */
+        /** The kinds of a sent message (docs/mildcrowd-chat.md, "Reactions and replies (server)"). */
         const val MESSAGE = "message"
         const val REACTION = "reaction"
         const val PIN = "pin"
@@ -188,7 +188,7 @@ interface ChatRepository {
     suspend fun report(conversationId: String, envelope: MessageEnvelope, plaintext: String, reason: String)
 }
 
-/** [ChatRepository] over the Oasis API client. */
+/** [ChatRepository] over the Mildcrowd API client. */
 class DefaultChatRepository(client: ApiClient) : ChatRepository {
     private val service = client.create<ChatService>(KeyCoding.Verbatim)
 

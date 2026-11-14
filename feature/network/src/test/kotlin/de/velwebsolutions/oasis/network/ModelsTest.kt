@@ -78,7 +78,7 @@ class ModelsTest {
     }
 
     @Test
-    fun `Tropfen and their parts`() {
+    fun `Posts and their parts`() {
         val post = Post(1, "u", "b", createdAt = now, author = member)
         roundTrip(Member.serializer(), member)
         roundTrip(TextSegment.serializer(), TextSegment(text = "Hallo"))
@@ -127,7 +127,7 @@ class ModelsTest {
     }
 
     @Test
-    fun `oases`() {
+    fun `crowds`() {
         roundTrip(OasisOptions.serializer(), OasisOptions())
         roundTrip(OasisDirectory.serializer(), OasisDirectory())
         roundTrip(OasisDetail.serializer(), OasisDetail(summary, "u"))
@@ -144,7 +144,7 @@ class ModelsTest {
     }
 
     @Test
-    fun `a held oasis tells only those who read its real texts`() {
+    fun `a held crowd tells only those who read its real texts`() {
         val lenient = OasisJson.snake.decodeFromString(OasisSummary.serializer(), """{"id":2,"slug":"garten","name":"Garten"}""")
         assertEquals("servers before the oasis check", false, lenient.held)
         assertFalse(lenient.showsHeldTexts)

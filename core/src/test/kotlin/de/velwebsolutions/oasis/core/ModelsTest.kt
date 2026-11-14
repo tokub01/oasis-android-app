@@ -129,7 +129,7 @@ class ModelsTest {
             ApiError.TooManyRequests(30) to "Zu viele Versuche. Bitte warte einen Moment.",
             ApiError.Server(500, null) to "Da ist etwas schiefgelaufen. Bitte versuch es gleich noch einmal.",
             ApiError.Server(503, "Wartung") to "Wartung",
-            ApiError.Decoding("x") to "Die Antwort von Oasis war unerwartet. Bitte aktualisiere die App."
+            ApiError.Decoding("x") to "Die Antwort von Mildcrowd war unerwartet. Bitte aktualisiere die App."
         )
         messages.forEach { (error, text) -> assertEquals(text, error.userMessage) }
         assertEquals(
@@ -144,7 +144,7 @@ class ModelsTest {
     }
 
     @Test
-    fun `only members with a paid or gifted membership may use Oasis`() {
+    fun `only members with a paid or gifted membership may use Mildcrowd`() {
         val me = de.velwebsolutions.oasis.core.model.Me(1, "m", "M", "M", "m@example.org")
         assertTrue(me.mayUseOasis)
         assertFalse(me.copy(hasPaidAccess = false).mayUseOasis)

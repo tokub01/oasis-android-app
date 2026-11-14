@@ -66,14 +66,14 @@ import java.time.Instant
 import java.time.ZoneId
 
 /** The text of a locked tier page when an old server sends no message of its own. */
-private const val FROM_OASE = "Das gibt es ab der Mitgliedschaft Oase."
+private const val FROM_OASE = "Das gibt es ab der Mitgliedschaft Mittendrin."
 
 /** The question before a capsule is opened early or deleted. */
 private enum class CapsuleQuestion { Open, Delete }
 
 /**
- * Zeitkapseln (/app/zeitkapseln, from Oase): the form that seals a Tropfen for a later day, the waiting capsules with
- * "Jetzt öffnen" and "Löschen", and the opened ones. Below Oase the server's message and the way to the membership.
+ * Zeitkapseln (/app/zeitkapseln, from Mittendrin): the form that seals a Post for a later day, the waiting capsules with
+ * "Jetzt öffnen" and "Löschen", and the opened ones. Below Mittendrin the server's message and the way to the membership.
  */
 @Composable
 fun TimeCapsulesScreen(
@@ -114,7 +114,7 @@ fun TimeCapsulesScreen(
                 TierLockedView(
                     "Zeitkapseln",
                     info.lockedMessage ?: FROM_OASE,
-                    feature = "Schreib heute einen Tropfen, der erst an einem Tag deiner Wahl erscheint: zum Geburtstag, zum " +
+                    feature = "Schreib heute einen Post, der erst an einem Tag deiner Wahl erscheint: zum Geburtstag, zum " +
                         "Jahrestag oder für dein künftiges Ich. Bis dahin sieht ihn kein anderes Mitglied."
                 )
             } else {
@@ -151,7 +151,7 @@ fun TimeCapsulesScreen(
                                 listOf(
                                     "Frühestens in einer Stunde, spätestens in ${info.maxYears} Jahren.",
                                     "Bis zu ${info.maxWaiting} Zeitkapseln können gleichzeitig warten.",
-                                    "Beim Versiegeln und beim Aufgehen prüfen wir sie wie jeden Tropfen. " +
+                                    "Beim Versiegeln und beim Aufgehen prüfen wir sie wie jeden Post. " +
                                         "Läuft deine Mitgliedschaft beim Aufgehen nicht, bleibt sie zu."
                                 )
                             )
@@ -171,10 +171,10 @@ private fun CapsuleForm(
     fields: Map<String, String>,
     viewModel: TimeCapsulesViewModel
 ) {
-    val places = listOf(Choice("", "in deiner Quelle")) + info.oases.map { Choice("${it.id}", "in der Oase ${it.name}") }
+    val places = listOf(Choice("", "auf deinem Profil")) + info.oases.map { Choice("${it.id}", "in der Crowd ${it.name}") }
     PaperBox(spacing = 16) {
         OasisTextField(
-            "Dein Tropfen",
+            "Dein Post",
             draft.body,
             viewModel::updateBody,
             lines = 4..10,
@@ -217,7 +217,7 @@ private fun WaitingCapsule(capsule: TimeCapsule, viewModel: TimeCapsulesViewMode
     var question by remember { mutableStateOf<CapsuleQuestion?>(null) }
     PaperBox(spacing = 8, modifier = Modifier.testTag("capsule.waiting.${capsule.id}")) {
         Text(
-            "Geht auf am ${capsuleTime(capsule.opensAt)} ${capsule.oasis?.let { "in ${it.name}" } ?: "in deiner Quelle"}",
+            "Geht auf am ${capsuleTime(capsule.opensAt)} ${capsule.oasis?.let { "in ${it.name}" } ?: "auf deinem Profil"}",
             style = OasisType.SmallBold,
             color = OasisColors.Ink2
         )
@@ -234,7 +234,7 @@ private fun WaitingCapsule(capsule: TimeCapsule, viewModel: TimeCapsulesViewMode
             "Jetzt öffnen",
             onConfirm = { viewModel.launch { viewModel.openNow(capsule.id) } },
             onDismiss = { question = null },
-            message = "Dann erscheint sie gleich als Tropfen.",
+            message = "Dann erscheint sie gleich als Post.",
             destructive = false
         )
     }
@@ -263,9 +263,9 @@ private fun PastCapsule(capsule: TimeCapsule, viewModel: TimeCapsulesViewModel) 
                 style = OasisType.BodyBold
             )
         } else if (reason != null) {
-            Text("Nicht aufgegangen: $reason", style = OasisType.BodyBold, color = OasisColors.SunText)
+            Text("Nicht aufgegangen: $reason", style = OasisType.BodyBold, color = OasisColors.Danger)
         } else {
-            // Claimed by the server, its Tropfen is being published right now (web: „Geht gerade auf …“).
+            // Claimed by the server, its Post is being published right now (web: „Geht gerade auf …“).
             Text("Geht gerade auf …", style = OasisType.BodyBold, color = OasisColors.Ink2)
         }
         Text(capsule.body, style = OasisType.Body, color = OasisColors.Ink2, maxLines = 2)
@@ -293,8 +293,8 @@ private fun PastCapsule(capsule: TimeCapsule, viewModel: TimeCapsulesViewModel) 
 }
 
 /**
- * Dein Jahrbuch (/app/jahrbuch/{year?}, from Oase): the year chips, the cover with the year's totals, the months with
- * their Tropfen, and "Drucken oder als PDF", which opens the printable book on the website. Below Oase the server's
+ * Dein Jahrbuch (/app/jahrbuch/{year?}, from Mittendrin): the year chips, the cover with the year's totals, the months with
+ * their Posts, and "Drucken oder als PDF", which opens the printable book on the website. Below Mittendrin the server's
  * message and the way to the membership.
  */
 @Composable
@@ -311,7 +311,7 @@ fun YearbookScreen(
             book,
             "Dein Jahrbuch",
             onRetry = viewModel.retry(viewModel::load),
-            feature = "Deine Tropfen und Fotos eines Jahres, gestaltet als Buch zum Durchblättern, Drucken oder als PDF zum " +
+            feature = "Deine Posts und Fotos eines Jahres, gestaltet als Buch zum Durchblättern, Drucken oder als PDF zum " +
                 "Aufheben. Damit bleibt, was du geteilt hast, auch ohne Bildschirm."
         ) { shown ->
             NetworkPage(onRefresh = viewModel::load) {
@@ -338,7 +338,7 @@ fun YearbookScreen(
                 }
                 block("cover") { Cover(shown) }
                 if (shown.months.isEmpty()) {
-                    block("empty") { DashedNote("In ${shown.year} hast du noch keine Tropfen geteilt. Was du schreibst, landet hier.") }
+                    block("empty") { DashedNote("In ${shown.year} hast du noch keine Posts geteilt. Was du schreibst, landet hier.") }
                 }
                 shown.months.forEach { month ->
                     block("month.${shown.year}.${month.name}") {

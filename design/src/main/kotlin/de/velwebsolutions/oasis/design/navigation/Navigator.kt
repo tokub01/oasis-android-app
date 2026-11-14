@@ -10,9 +10,9 @@ import androidx.compose.runtime.staticCompositionLocalOf
 
 /** The main sections of the bottom bar – the same five as the web's app navigation (layouts/app.blade.php). */
 enum class MainTab(val title: String) {
-    Source("Quelle"),
+    Source("Start"),
     Discover("Entdecken"),
-    Oases("Oasen"),
+    Oases("Crowds"),
     Chats("Chats"),
     Profile("Profil")
 }

@@ -26,7 +26,7 @@ import org.junit.Test
 import org.junit.runner.RunWith
 import org.junit.runners.Parameterized
 
-/** The Tropfen page, editing and carrying, the feeds' view models and the card actions' endpoints. */
+/** The Post page, editing and carrying, the feeds' view models and the card actions' endpoints. */
 @RunWith(Parameterized::class)
 class PostViewModelsTest(private val answersAtOnce: Boolean) {
     companion object {
@@ -88,7 +88,7 @@ class PostViewModelsTest(private val answersAtOnce: Boolean) {
     }
 
     @Test
-    fun `removing the Tropfen from the oasis or blocking its author leaves the page`() = runTest {
+    fun `removing the Post from the crowd or blocking its author leaves the page`() = runTest {
         listOf(PostAction.RemoveFromOasis to "POST network/posts/12/remove-from-oasis", PostAction.Block to "POST network/users/4/block")
             .forEach { (action, call) ->
                 val (method, path) = call.split(" ")
@@ -215,7 +215,7 @@ class PostViewModelsTest(private val answersAtOnce: Boolean) {
     }
 
     @Test
-    fun `Entdecken, Gemerkt and a topic load their lists and reload after a new Tropfen`() = runTest {
+    fun `Entdecken, Gemerkt and a topic load their lists and reload after a new Post`() = runTest {
         val network = StubbedNetwork(
             stub("GET", "network/discover", pageJson(postJson(3), context = """{"oases":[]}""")),
             stub("GET", "network/bookmarks", pageJson(postJson(2))),
@@ -231,13 +231,13 @@ class PostViewModelsTest(private val answersAtOnce: Boolean) {
         assertEquals(listOf(2), bookmarks.list.posts.map { it.id })
         assertEquals(true, tag.list.state.value.context?.canPost)
 
-        NetworkSignals.didPublish(decodePost(postJson(8)), "Dein Tropfen ist da.")
+        NetworkSignals.didPublish(decodePost(postJson(8)), "Dein Post ist da.")
         eventually { network.transport.requests.size == 6 }
         assertEquals(0, discover.scrollToTop.value)
     }
 
     @Test
-    fun `the Quelle switches its view and Ganz Oasis loads again after an own Tropfen`() = runTest {
+    fun `the Start switches its view and Ganz Mildcrowd loads again after an own Post`() = runTest {
         val network = StubbedNetwork(
             stub("GET", "network/source", pageJson(postJson(3), context = """{"show_all":true,"follows_anyone":true,"can_post":true}"""))
         )
@@ -249,11 +249,11 @@ class PostViewModelsTest(private val answersAtOnce: Boolean) {
         eventually { model.list.posts.isNotEmpty() }
         assertEquals("alle", network.last("network/source").request.url.queryParameter("view"))
 
-        NetworkSignals.didPublish(decodePost(postJson(8, visibility = "friends")), "Dein Tropfen ist da.")
+        NetworkSignals.didPublish(decodePost(postJson(8, visibility = "friends")), "Dein Post ist da.")
         eventually { network.transport.requests.size == 2 && !model.list.state.value.isReloading }
         assertEquals(listOf(3), model.list.posts.map { it.id })
-        // Whatever its visibility: the server decides what Ganz Oasis lists (the web's refresh).
-        NetworkSignals.didPublish(decodePost(postJson(9)), "Dein Tropfen ist da.")
+        // Whatever its visibility: the server decides what Ganz Mildcrowd lists (the web's refresh).
+        NetworkSignals.didPublish(decodePost(postJson(9)), "Dein Post ist da.")
         eventually { network.transport.requests.size == 3 && !model.list.state.value.isReloading }
         assertEquals(listOf(3), model.list.posts.map { it.id })
     }
@@ -291,7 +291,7 @@ class PostViewModelsTest(private val answersAtOnce: Boolean) {
         )
         assertNull(CardConfirmation.Delete.message)
         assertEquals("Blockieren bestätigen", CardConfirmation.Block.button)
-        assertEquals("Wirklich aus der Oase entfernen?", CardConfirmation.RemoveFromOasis.title)
+        assertEquals("Wirklich aus der Crowd entfernen?", CardConfirmation.RemoveFromOasis.title)
         assertEquals("Noch hat niemand geantwortet", answeredLabel(0))
         assertEquals("1 Mensch hat geantwortet", answeredLabel(1))
         assertEquals("3 Menschen haben geantwortet", answeredLabel(3))

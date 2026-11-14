@@ -38,9 +38,9 @@ fun SystemScreen(viewModel: SystemViewModel = hiltViewModel()) {
                     Eyebrow("Admin")
                     StaffTitle("Systemzustand")
                     Text(
-                        "Alles, wovon die Versprechen von Oasis abhängen: Löschfristen, Mollie-Abgleich, Mails und Sicherungen. " +
+                        "Alles, wovon die Versprechen von Mildcrowd abhängen: Löschfristen, Mollie-Abgleich, Mails und Sicherungen. " +
                             "Probleme meldet der Zeitplaner alle 15 Minuten per E-Mail. Was zu tun ist, steht in " +
-                            "docs/oasis-operations.md.",
+                            "docs/mildcrowd-operations.md.",
                         style = OasisType.Small,
                         color = OasisColors.Ink2
                     )
@@ -60,7 +60,7 @@ fun SystemScreen(viewModel: SystemViewModel = hiltViewModel()) {
                             Text(
                                 "${if (check.ok) "✓" else "✕"} ${check.detail}",
                                 style = if (check.ok) OasisType.Small else OasisType.SmallBold,
-                                color = if (check.ok) OasisColors.Ink2 else OasisColors.SunText
+                                color = if (check.ok) OasisColors.Ink2 else OasisColors.Danger
                             )
                         }
                     }
@@ -77,7 +77,7 @@ fun SystemScreen(viewModel: SystemViewModel = hiltViewModel()) {
                         }
                     }
                     Text(
-                        "Nur Zähler, ohne Adressen oder Konten (docs/oasis-bot-protection.md).",
+                        "Nur Zähler, ohne Adressen oder Konten (docs/mildcrowd-bot-protection.md).",
                         style = OasisType.Caption,
                         color = OasisColors.Muted
                     )

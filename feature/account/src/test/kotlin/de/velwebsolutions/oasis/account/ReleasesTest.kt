@@ -23,7 +23,7 @@ import org.junit.runner.RunWith
 import org.robolectric.RobolectricTestRunner
 import org.robolectric.RuntimeEnvironment
 
-/** Was ist neu: the versions from `releases`, the notes for Android and „Neu in Oasis …“ once after an update. */
+/** Was ist neu: the versions from `releases`, the notes for Android and „Neu in Mildcrowd …“ once after an update. */
 @RunWith(RobolectricTestRunner::class)
 class ReleasesTest {
     @get:Rule val main = MainDispatcherRule()

@@ -55,13 +55,13 @@ import de.velwebsolutions.oasis.network.ui.components.block
 import de.velwebsolutions.oasis.network.ui.components.membersLabel
 import de.velwebsolutions.oasis.network.ui.retry
 
-/** "Oasen" (/app/oasen): the member's oases and all others as cards; "Oase eröffnen" for members who may write. */
+/** "Crowds" (/app/crowds): the member's crowds and all others as cards; "Crowd eröffnen" for members who may write. */
 @Composable
 fun OasesScreen(viewModel: OasesViewModel = hiltViewModel<OasesViewModel>()) {
     val directory by viewModel.directory.collectAsStateWithLifecycle()
     val error by viewModel.error.collectAsStateWithLifecycle()
     LaunchedEffect(Unit) { viewModel.loadIfNeeded() }
-    OasisScreen(title = "Oasen", error = error?.userMessage, onDismissError = viewModel::dismissError) {
+    OasisScreen(title = "Crowds", error = error?.userMessage, onDismissError = viewModel::dismissError) {
         LoadableView(directory, onRetry = viewModel.retry(viewModel::load)) { list ->
             NetworkPage(onRefresh = viewModel::load) { oasesContent(list) }
         }
@@ -76,7 +76,7 @@ fun LazyListScope.oasesContent(list: OasisDirectory) {
             Modifier.fillMaxWidth().background(OasisColors.Night, RoundedCornerShape(OasisRadius.L.dp)).padding(24.dp),
             verticalArrangement = Arrangement.spacedBy(12.dp)
         ) {
-            Eyebrow("Oasen", onNight = true)
+            Eyebrow("Crowds", onNight = true)
             Text(
                 "Räume für das, was dich interessiert",
                 style = OasisType.display(26),
@@ -84,14 +84,14 @@ fun LazyListScope.oasesContent(list: OasisDirectory) {
                 modifier = Modifier.semantics { heading() }
             )
             Text(
-                "Themenräume mit Gastgeber:innen und eigenen Hausregeln. Einer Oase folgst du wie einem Menschen – dann kannst du dort auch schreiben.",
+                "Themenräume mit Gastgeber:innen und eigenen Hausregeln. Einer Crowd folgst du wie einem Menschen – dann kannst du dort auch schreiben.",
                 style = OasisType.Body,
                 color = OasisColors.OnNight2
             )
             ButtonFlow {
                 if (list.canCreate) {
                     OasisButton(
-                        "Oase eröffnen",
+                        "Crowd eröffnen",
                         { navigator.open(NetworkRoute.CreateOasis) },
                         kind = OasisButtonKind.Accent,
                         fullWidth = false,
@@ -107,8 +107,8 @@ fun LazyListScope.oasesContent(list: OasisDirectory) {
             }
         }
     }
-    section("mine", "Deine Oasen", list.mine, "Du folgst noch keiner Oase.")
-    section("others", "Weitere Oasen", list.others, "Noch keine weiteren Oasen.")
+    section("mine", "Deine Crowds", list.mine, "Du folgst noch keiner Crowd.")
+    section("others", "Weitere Crowds", list.others, "Noch keine weiteren Crowds.")
 }
 
 private fun LazyListScope.section(key: String, title: String, oases: List<OasisSummary>, empty: String) {
@@ -117,7 +117,7 @@ private fun LazyListScope.section(key: String, title: String, oases: List<OasisS
     oases.forEach { oasis -> block("$key.${oasis.id}") { OasisSummaryCard(oasis) } }
 }
 
-/** An oasis card of the overview: banner strip or colour surface, name, description and members. */
+/** A crowd card of the overview: banner strip or colour surface, name, description and members. */
 @Composable
 fun OasisSummaryCard(oasis: OasisSummary) {
     val navigator = LocalNavigator.current
@@ -142,7 +142,7 @@ fun OasisSummaryCard(oasis: OasisSummary) {
     }
 }
 
-/** The banner of an oasis, or its colour surface with the web's soft circle. */
+/** The banner of a crowd, or its colour surface with the web's soft circle. */
 @Composable
 fun OasisBanner(oasis: OasisSummary, modifier: Modifier = Modifier, height: Dp = 128.dp) {
     Box(
@@ -173,5 +173,5 @@ fun OasisBanner(oasis: OasisSummary, modifier: Modifier = Modifier, height: Dp =
     }
 }
 
-/** The soft circle on an oasis colour; on the night surface a fixed line colour instead of see-through white. */
+/** The soft circle on a crowd colour; on the night surface a fixed line colour instead of see-through white. */
 internal fun softCircle(color: String): Color = if (color == "night") OasisColors.NightLine else OasisColors.Paper.copy(alpha = 0.25f)

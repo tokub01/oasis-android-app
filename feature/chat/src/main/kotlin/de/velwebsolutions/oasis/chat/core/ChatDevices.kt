@@ -37,7 +37,7 @@ class ChatDevices(private val context: ChatContext) {
      * First use without a passphrase: the secret first (nothing is stored when the device cannot), then fresh keys
      * published without a passphrase copy, then the device copy. A failed copy does not throw published keys away: they
      * stay open and [ChatKeyringException.DeviceCopyNotStored] says so, so the member can still keep a copy; the keystore
-     * secret stays too, since the server may have stored the row before its answer got lost. Published while Oasis went
+     * secret stays too, since the server may have stored the row before its answer got lost. Published while Mildcrowd went
      * to the background, they become the stored identity, to be unlocked with the device copy on return (keys never stay
      * open in the background: without a copy they are gone then).
      * @return the stored identity, or null if the vault was locked meanwhile or Oasis is in the background.

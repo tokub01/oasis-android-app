@@ -28,7 +28,7 @@ import org.robolectric.RobolectricTestRunner
 import org.robolectric.annotation.Config
 import org.robolectric.annotation.GraphicsMode
 
-/** „Darstellung: Automatisch / Hell / Dunkel“ (docs/oasis-website.md): the stored choice, the system's mode and the tokens. */
+/** „Darstellung: Automatisch / Hell / Dunkel“ (docs/mildcrowd-website.md): the stored choice, the system's mode and the tokens. */
 @RunWith(RobolectricTestRunner::class)
 @GraphicsMode(GraphicsMode.Mode.NATIVE)
 @Config(qualifiers = "w360dp-h740dp")
@@ -73,29 +73,34 @@ class AppearanceTest {
     fun theTokensAreTheWebsTable() {
         val light = OasisPalette.Light
         val dark = OasisPalette.Dark
-        assertEquals(Color(0xFF0E2B2F), light.night)
-        assertEquals(Color(0xFFF4EDE1), dark.night)
-        assertEquals(Color(0xFF12353A), light.night2)
-        assertEquals(Color(0xFFE6DDCC), dark.night2)
-        assertEquals(Color(0xFF0F1A1B), dark.sand)
-        assertEquals(Color(0xFFA3441F), light.danger)
-        assertEquals(Color(0xFFF2906B), dark.danger)
+        assertEquals(Color(0xFF171A2E), light.night)
+        assertEquals(Color(0xFFF4F5FA), dark.night)
+        assertEquals(Color(0xFF1F2340), light.night2)
+        assertEquals(Color(0xFFE3E6F4), dark.night2)
+        assertEquals(Color(0xFF0F1120), dark.sand)
+        assertEquals(Color(0xFFB42318), light.danger)
+        assertEquals(Color(0xFFFF9B8F), dark.danger)
         assertEquals(Color(0xFFFFFFFF), light.onDanger)
-        assertEquals(Color(0xFF0B2326), dark.onDanger)
-        assertEquals(Color(0xFF5CC4BA), dark.springText)
+        assertEquals(Color(0xFF2A0E0A), dark.onDanger)
+        assertEquals(Color(0xFFA9B0FF), dark.springText)
+        assertEquals(Color(0xFF5560E0), light.sun)
+        assertEquals(Color(0xFFFFFFFF), light.sunInk)
+        assertEquals(Color(0xFF0F1120), dark.sunInk)
+        assertEquals(Color(0xFFFFA982), light.spring)
+        assertEquals(Color(0xFF171A2E), dark.springInk)
         Appearance.show(AppearanceChoice.Dark)
         val shown = listOf(
             OasisColors.Night, OasisColors.Night2, OasisColors.NightLine, OasisColors.Sand, OasisColors.Paper, OasisColors.Field,
             OasisColors.Dune, OasisColors.DuneLine, OasisColors.PaperLine, OasisColors.FieldLine, OasisColors.Ink, OasisColors.Ink2,
             OasisColors.Muted, OasisColors.Sun, OasisColors.SunInk, OasisColors.SunText, OasisColors.SunOnNight, OasisColors.Spring,
-            OasisColors.SpringText, OasisColors.OnNight, OasisColors.OnNight2, OasisColors.OnNightMuted, OasisColors.Danger,
-            OasisColors.OnDanger
+            OasisColors.SpringInk, OasisColors.SpringText, OasisColors.OnNight, OasisColors.OnNight2, OasisColors.OnNightMuted,
+            OasisColors.Danger, OasisColors.OnDanger
         )
         assertEquals(
             listOf(
                 dark.night, dark.night2, dark.nightLine, dark.sand, dark.paper, dark.field, dark.dune, dark.duneLine, dark.paperLine,
                 dark.fieldLine, dark.ink, dark.ink2, dark.muted, dark.sun, dark.sunInk, dark.sunText, dark.sunOnNight, dark.spring,
-                dark.springText, dark.onNight, dark.onNight2, dark.onNightMuted, dark.danger, dark.onDanger
+                dark.springInk, dark.springText, dark.onNight, dark.onNight2, dark.onNightMuted, dark.danger, dark.onDanger
             ),
             shown
         )

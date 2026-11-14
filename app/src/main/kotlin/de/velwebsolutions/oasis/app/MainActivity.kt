@@ -25,7 +25,7 @@ import kotlinx.coroutines.launch
 
 /**
  * The main activity (a FragmentActivity, so the chat can show the androidx BiometricPrompt): hosts [AppHost.Content] and
- * passes links (app links, `oasis://`, push taps) and shares from other apps to the navigator – each intent once, so an
+ * passes links (app links, `mildcrowd://`, push taps) and shares from other apps to the navigator – each intent once, so an
  * activity Android creates again (rotation, dark mode) or reopens from the recent apps keeps the screens
  * ([AppHost.created]). While the chat is unlocked, Android's recent apps show no picture of it
  * ([AppHost.recentsScreenshots], Android 13 and later; before, the window is secure meanwhile: [AppHost.secureWhileUnlocked]).
@@ -49,7 +49,7 @@ class MainActivity : FragmentActivity() {
         navigator.openWeb = { url -> openWebPage(this, url) }
         setContent { AppHost.Content(navigator, apiClient) }
         AppHost.created(intent, savedInstanceState, navigator)
-        // „Deine Zeit in Oasis“: counts only while the app is in front (resumed: the screen is on), on this device.
+        // „Deine Zeit in Mildcrowd“: counts only while the app is in front (resumed: the screen is on), on this device.
         lifecycleScope.launch { repeatOnLifecycle(Lifecycle.State.RESUMED) { screenTime.count() } }
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
             hideFromRecentsWhileChatUnlocked()
@@ -58,7 +58,7 @@ class MainActivity : FragmentActivity() {
         }
     }
 
-    /** A tap or a key: the member is doing something („Deine Zeit in Oasis“). */
+    /** A tap or a key: the member is doing something („Deine Zeit in Mildcrowd“). */
     override fun onUserInteraction() {
         super.onUserInteraction()
         screenTime.touched()

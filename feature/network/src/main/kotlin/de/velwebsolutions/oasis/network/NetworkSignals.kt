@@ -7,9 +7,9 @@ import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.update
 
 /**
- * Signals of network actions whose screen has closed (a published Tropfen, a closed oasis), shown by the tab shell, and
- * the changes that make other screens load again: a Tropfen was published or edited (the web's `post-published`), an
- * oasis was joined, left, founded, edited or closed, or the own profile changed.
+ * Signals of network actions whose screen has closed (a published Post, a closed crowd), shown by the tab shell, and
+ * the changes that make other screens load again: a Post was published or edited (the web's `post-published`), an
+ * crowd was joined, left, founded, edited or closed, or the own profile changed.
  */
 object NetworkSignals {
     /** The confirmation shown as a toast on the tab in front, then cleared. */
@@ -23,21 +23,21 @@ object NetworkSignals {
     /** Counts publishes and edits; screens reload (or put [lastPublished] on top) when it changes. */
     val published: StateFlow<Int> = publishedCount.asStateFlow()
 
-    /** Counts changes to oases. */
+    /** Counts changes to crowds. */
     val oases: StateFlow<Int> = oasesCount.asStateFlow()
 
-    /** Changes whenever a Tropfen went into or out of a Sammlung. */
+    /** Changes whenever a Post went into or out of a Sammlung. */
     val collections: StateFlow<Int> = collectionsCount.asStateFlow()
 
     /** Counts changes to the own profile. */
     val profile: StateFlow<Int> = profileCount.asStateFlow()
 
-    /** The Tropfen just written, for the Quelle to put on top (null after an edit). */
+    /** The Post just written, for the Start to put on top (null after an edit). */
     @Volatile
     var lastPublished: Post? = null
         private set
 
-    /** A Tropfen whose page opens with the reply field focused ("Antworten" in a card); the page clears it. */
+    /** A Post whose page opens with the reply field focused ("Antworten" in a card); the page clears it. */
     internal val replyFocus = MutableStateFlow<Int?>(null)
 
     fun didPublish(post: Post?, confirmation: String) {
@@ -46,7 +46,7 @@ object NetworkSignals {
         publishedCount.update { it + 1 }
     }
 
-    /** A Tropfen went into or out of a Sammlung: oasis pages show their collections and cards again. */
+    /** A Post went into or out of a Sammlung: crowd pages show their collections and cards again. */
     fun didChangeCollections() {
         collectionsCount.update { it + 1 }
     }

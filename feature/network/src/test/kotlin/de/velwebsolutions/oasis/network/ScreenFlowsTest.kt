@@ -128,7 +128,7 @@ class ScreenFlowsTest {
         """.trimMargin()
 
     @Test
-    fun `the Quelle with its floating button`() {
+    fun `the Start with its floating button`() {
         val network = StubbedNetwork(
             stub(
                 "GET",
@@ -153,7 +153,7 @@ class ScreenFlowsTest {
 
     @Test
     @Config(qualifiers = "w360dp-h740dp")
-    fun `the Quelle in dark mode`() {
+    fun `the Start in dark mode`() {
         val network = StubbedNetwork(
             stub(
                 "GET",
@@ -173,7 +173,7 @@ class ScreenFlowsTest {
         Appearance.show(AppearanceChoice.Dark)
         try {
             show(ScreenChrome()) { SourceScreen(model) }
-            text("Tropfen 3").assertIsDisplayed()
+            text("Post 3").assertIsDisplayed()
             capture("source-dark")
         } finally {
             Appearance.show(AppearanceChoice.Automatic)
@@ -181,7 +181,7 @@ class ScreenFlowsTest {
     }
 
     @Test
-    fun `a read-only Quelle offers the membership instead of writing`() {
+    fun `a read-only Start offers the membership instead of writing`() {
         val network = StubbedNetwork(
             stub("GET", "network/source", pageJson(context = """{"show_all":true,"follows_anyone":true,"can_post":false}"""))
         )
@@ -191,7 +191,7 @@ class ScreenFlowsTest {
         show(ScreenChrome()) { SourceScreen(model) }
         text("Gerade kannst du nichts veröffentlichen. Prüf deine Mitgliedschaft.").assertIsDisplayed()
         compose.onNodeWithTag("source.compose").assertDoesNotExist()
-        text("Noch hat niemand etwas geteilt. Schreib den ersten Tropfen!").assertIsDisplayed()
+        text("Noch hat niemand etwas geteilt. Schreib den ersten Post!").assertIsDisplayed()
     }
 
     @Test
@@ -209,20 +209,20 @@ class ScreenFlowsTest {
         val bookmarks = StubbedNetwork(stub("GET", "network/bookmarks", pageJson()))
         val model2 = models.keep(BookmarksViewModel(bookmarks.repository))
         switchTo { BookmarksScreen(model2) }
-        text("Du hast dir noch keine Tropfen gemerkt.", substring = true).assertIsDisplayed()
+        text("Du hast dir noch keine Posts gemerkt.", substring = true).assertIsDisplayed()
         text("Konten verwalten").performClick()
         capture("bookmarks")
     }
 
     @Test
-    fun `an empty topic asks for the first Tropfen or another search`() {
+    fun `an empty topic asks for the first Post or another search`() {
         val network = StubbedNetwork(
             stub("GET", "network/tags/garten", pageJson(context = """{"tag":"garten","can_post":true}""")),
             stub("GET", "network/tags/stille", pageJson(context = """{"tag":"stille","can_post":false}"""))
         )
         val model3 = models.keep(TagViewModel("garten", network.repository))
         show { TagScreen("Garten", model3) }
-        text("Den ersten Tropfen schreiben").performClick()
+        text("Den ersten Post schreiben").performClick()
         assertEquals(NetworkRoute.Compose(), navigator.sheet)
         capture("tag")
     }
@@ -258,7 +258,7 @@ class ScreenFlowsTest {
     }
 
     @Test
-    fun `the oases overview and an oasis with its floating button`() {
+    fun `the crowds overview and a crowd with its floating button`() {
         val network = StubbedNetwork(
             stub("GET", "network/oases", Fixtures.oases),
             stub(
@@ -279,20 +279,20 @@ class ScreenFlowsTest {
         switchTo { OasisDetailScreen("stadtgarten", model8) }
         text("Du bist in Mitgliederlisten für niemanden sichtbar.").assertIsDisplayed()
         capture("oasis")
-        compose.onNodeWithContentDescription("Tropfen in Stadtgarten schreiben").performClick()
+        compose.onNodeWithContentDescription("Post in Stadtgarten schreiben").performClick()
         assertEquals(NetworkRoute.Compose(oasisSlug = "stadtgarten"), navigator.sheet)
         navigator.dismissSheet()
         text("Gefolgt ✓").performClick()
-        text("Der Oase „Stadtgarten“ nicht mehr folgen?").assertIsDisplayed()
+        text("Der Crowd „Stadtgarten“ nicht mehr folgen?").assertIsDisplayed()
         compose.onNodeWithTag("dialog.cancel").performClick()
     }
 
     @Test
-    fun `founding an oasis and editing one`() {
+    fun `founding a crowd and editing one`() {
         val editForm =
             """{"data": {"oasis": $summary, "house_rules": "Freundlich bleiben.", "members": [{"id": 3, "username": "aylin",
             |"display_name": "Aylin Demir", "role": "member", "role_label": "Mitglied"}], "options": {"visibilities":
-            |[{"value": "public", "label": "Alle"}], "colors": [{"value": "spring", "label": "Quelle"}, {"value": "sun", "label": "Sonne"}]},
+            |[{"value": "public", "label": "Alle"}], "colors": [{"value": "spring", "label": "Pfirsich"}, {"value": "sun", "label": "Blau"}]},
             |"hidden_members": 2}}
             """.trimMargin()
         val network = StubbedNetwork(stub("GET", "network/oases", Fixtures.oases), stub("GET", "network/oases/stadtgarten/edit", editForm))
@@ -306,14 +306,14 @@ class ScreenFlowsTest {
         text("Stadtgarten bearbeiten").assertIsDisplayed()
         text("Zu Gastgeber:in machen").assertIsDisplayed()
         text("2 weitere Mitglieder zeigen sich hier nur Freund:innen", substring = true).assertExists()
-        compose.onNodeWithContentDescription("Sonne").performClick()
+        compose.onNodeWithContentDescription("Blau").performClick()
         compose.onNodeWithTag("oasisForm.close").performClick()
         assertEquals(NetworkRoute.CloseOasis("stadtgarten"), navigator.stack(MainTab.Source).last())
         capture("oasis-edit")
     }
 
     @Test
-    fun `closing an oasis and its statistics`() {
+    fun `closing a crowd and its statistics`() {
         val network = StubbedNetwork(
             stub("GET", "network/oases/stadtgarten/close", """{"data":{"name":"Stadtgarten","members_count":1,"posts_count":9}}"""),
             stub(
@@ -325,7 +325,7 @@ class ScreenFlowsTest {
         val model11 = models.keep(CloseOasisViewModel("stadtgarten", network.repository))
         show { CloseOasisScreen("stadtgarten", model11) }
         text("„Stadtgarten“ schließen?").assertIsDisplayed()
-        text("Die Oase verschwindet für alle 1 Mitglied.").assertIsDisplayed()
+        text("Die Crowd verschwindet für alle 1 Mitglied.").assertIsDisplayed()
         compose.onNodeWithTag("closeOasis.confirm").performClick()
         capture("oasis-close")
 
@@ -336,7 +336,7 @@ class ScreenFlowsTest {
     }
 
     @Test
-    fun `the Tropfen page, editing and carrying`() {
+    fun `the Post page, editing and carrying`() {
         val network = StubbedNetwork(
             stub("GET", "network/posts/12", Fixtures.post),
             stub("GET", "network/composer", Fixtures.composer),
@@ -357,7 +357,7 @@ class ScreenFlowsTest {
 
         val edit = models.keep(EditPostViewModel(12, network.repository))
         switchTo { EditPostScreen(12, edit) }
-        text("Tropfen bearbeiten").assertIsDisplayed()
+        text("Post bearbeiten").assertIsDisplayed()
         compose.onNode(hasSetTextAction()).performTextInput(" Welt")
         compose.waitForIdle()
         compose.onNodeWithContentDescription("Zurück").performClick()
@@ -378,7 +378,7 @@ class ScreenFlowsTest {
         val model = models.keep(network.composer("sheet-test"))
         navigator.present(NetworkRoute.Compose(oasisSlug = "sheet-test"))
         show(ScreenChrome(onClose = { navigator.dismissSheet() })) { ComposeScreen("sheet-test", null, model) }
-        text("Tropfen schreiben").assertIsDisplayed()
+        text("Post schreiben").assertIsDisplayed()
         compose.onNode(hasSetTextAction()).performTextInput("Entwurf")
         compose.waitForIdle()
         compose.onNodeWithTag("compose.close").performClick()
@@ -400,7 +400,7 @@ class ScreenFlowsTest {
         )
         val model15 = models.keep(ProfileViewModel("jonas", network.repository))
         show { ProfileScreen("jonas", model15) }
-        text("Karawane: 3").assertIsDisplayed()
+        text("Follower: 3").assertIsDisplayed()
         capture("profile")
         compose.onNodeWithTag("profile.unfollow").performClick()
         text("Jonas Weber nicht mehr folgen?").assertIsDisplayed()
@@ -452,7 +452,7 @@ class ScreenFlowsTest {
         val model18 = models.keep(StatisticsViewModel(network.repository))
         switchTo { StatisticsScreen(model18) }
         compose.settle {
-            compose.onAllNodes(androidx.compose.ui.test.hasContentDescription("In deiner Karawane", substring = true))
+            compose.onAllNodes(androidx.compose.ui.test.hasContentDescription("Deine Follower", substring = true))
                 .fetchSemanticsNodes().isNotEmpty()
         }
         capture("statistics")
@@ -471,7 +471,7 @@ class ScreenFlowsTest {
 
         val model20 = models.keep(InvitationViewModel("abc", network.repository))
         switchTo { InvitationScreen("abc", model20) }
-        text("Aylin Demir lädt dich zu Oasis ein.").assertIsDisplayed()
+        text("Aylin Demir lädt dich zu Mildcrowd ein.").assertIsDisplayed()
         text("Zum Profil von Aylin Demir").performClick()
         assertEquals(NetworkRoute.Profile("aylin"), navigator.stack(MainTab.Source).last())
         capture("invitation")

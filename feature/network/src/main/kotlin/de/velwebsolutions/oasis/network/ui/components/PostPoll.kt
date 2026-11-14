@@ -51,8 +51,8 @@ fun pollFooter(poll: Post.Poll): String {
 }
 
 /**
- * The poll of a Tropfen: the question, one row per answer with its count (who voted is never shown), the own vote
- * marked. Members of the oasis vote while it runs (where the screen hands [LocalPollActions] down); its author ends it.
+ * The poll of a Post: the question, one row per answer with its count (who voted is never shown), the own vote
+ * marked. Members of the crowd vote while it runs (where the screen hands [LocalPollActions] down); its author ends it.
  */
 @Composable
 internal fun PostPollView(post: Post, poll: Post.Poll) {

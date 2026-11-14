@@ -41,7 +41,7 @@ fun MemberAvatar(member: Member, modifier: Modifier = Modifier, size: Dp = 44.dp
     AvatarView(member.initials, member.avatarColor, modifier, photoUrl = member.photoUrl, size = size)
 }
 
-/** The small mark of an oasis in compact lists (`x-network.oasis-mark`): a strip of its banner, or the colour dot. */
+/** The small mark of a crowd in compact lists (`x-network.oasis-mark`): a strip of its banner, or the colour dot. */
 @Composable
 fun OasisMark(oasis: OasisSummary, modifier: Modifier = Modifier) {
     val banner = oasis.bannerUrl
@@ -69,7 +69,16 @@ fun OasisMark(oasis: OasisSummary, modifier: Modifier = Modifier) {
 /** "12 Mitglieder" / "1 Mitglied". */
 fun membersLabel(count: Int): String = "$count ${if (count == 1) "Mitglied" else "Mitglieder"}"
 
-/** A row with an oasis mark, name and member count (Quelle, Entdecken, Suche, profile). */
+/** "12 Posts" / "1 Post". */
+fun postsLabel(count: Int): String = "$count ${if (count == 1) "Post" else "Posts"}"
+
+/** What happens to the posts of a crowd that closes: one line of the closing page. */
+fun postsStayLine(count: Int): String {
+    if (count == 1) return "Ihr Post bleibt bei dem Menschen, der ihn geschrieben hat – nur ohne Crowd."
+    return "Ihre $count Posts bleiben bei den Menschen, die sie geschrieben haben – nur ohne Crowd."
+}
+
+/** A row with a crowd mark, name and member count (Start, Entdecken, Suche, profile). */
 @Composable
 fun OasisRow(oasis: OasisSummary, modifier: Modifier = Modifier, detail: String? = null) {
     val navigator = LocalNavigator.current

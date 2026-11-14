@@ -140,7 +140,7 @@ fun NetworkPage(
 val FabInset = 72.dp
 
 /**
- * "Tropfen schreiben" – the main action of the Quelle and an oasis (iOS: the composer entry and the oasis' toolbar
+ * "Post schreiben" – the main action of the Start and a crowd (iOS: the composer entry and the crowd's toolbar
  * button) as Android's floating button, bottom right. It shows its label at the top of the page and shrinks to the pen
  * while the page is scrolled.
  */
@@ -149,15 +149,15 @@ fun BoxScope.ComposeFab(
     listState: LazyListState,
     onClick: () -> Unit,
     modifier: Modifier = Modifier,
-    /** What TalkBack reads ("Tropfen in … schreiben" in an oasis). */
-    description: String = "Tropfen schreiben"
+    /** What TalkBack reads ("Post in … schreiben" in a crowd). */
+    description: String = "Post schreiben"
 ) {
     val expanded by remember(listState) { derivedStateOf { listState.firstVisibleItemIndex == 0 } }
     ExtendedFloatingActionButton(
         onClick = onClick,
         expanded = expanded,
         icon = { Icon(Icons.Outlined.Edit, contentDescription = null) },
-        text = { Text("Tropfen schreiben", style = OasisType.Button) },
+        text = { Text("Post schreiben", style = OasisType.Button) },
         containerColor = OasisColors.Night,
         contentColor = OasisColors.OnNight,
         modifier = modifier
@@ -181,7 +181,7 @@ fun LazyListScope.block(key: Any? = null, contentType: Any? = null, content: @Co
     }
 }
 
-/** A section heading inside a page ("Tropfen", "Antworten"): Manrope 800 at 21 like the web's `h2`. */
+/** A section heading inside a page ("Posts", "Antworten"): Manrope 800 at 21 like the web's `h2`. */
 @Composable
 fun SectionTitle(text: String, modifier: Modifier = Modifier, onNight: Boolean = false) {
     Text(
@@ -192,7 +192,7 @@ fun SectionTitle(text: String, modifier: Modifier = Modifier, onNight: Boolean =
     )
 }
 
-/** An underlined link at the end of a side card ("Alle Oasen", "Zur Suche"), like the web's `o-link`. */
+/** An underlined link at the end of a side card ("Alle Crowds", "Zur Suche"), like the web's `o-link`. */
 @Composable
 fun TextLink(title: String, route: AppRoute, modifier: Modifier = Modifier) {
     val navigator = LocalNavigator.current
@@ -302,7 +302,7 @@ fun ChoiceList(choices: List<Choice>, selection: String, onSelect: (String) -> U
     }
 }
 
-/** A box that opens and closes (iOS `DisclosureGroup`): "Frühere Fassungen", "Hausregeln dieser Oase". */
+/** A box that opens and closes (iOS `DisclosureGroup`): "Frühere Fassungen", "Hausregeln dieser Crowd". */
 @Composable
 fun Disclosure(
     title: String,
@@ -363,7 +363,7 @@ fun ConfirmDialog(
                 },
                 modifier = Modifier.testTag("dialog.confirm")
             ) {
-                Text(confirmLabel, style = OasisType.BodyBold, color = if (destructive) OasisColors.SunText else OasisColors.Night)
+                Text(confirmLabel, style = OasisType.BodyBold, color = if (destructive) OasisColors.Danger else OasisColors.Night)
             }
         },
         dismissButton = {

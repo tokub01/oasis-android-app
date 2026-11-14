@@ -114,7 +114,11 @@ fun OverviewContent(
         onDismissError = onDismissError
     ) {
         MembershipPage(onRefresh) {
-            PageHeader("Mitgliedschaft", eyebrow = "Konto", lead = "Verwalte deinen Beitrag, deine Rechnungen und deinen Status bei Oasis.")
+            PageHeader(
+                "Mitgliedschaft",
+                eyebrow = "Konto",
+                lead = "Verwalte deinen Beitrag, deine Rechnungen und deinen Status bei Mildcrowd."
+            )
             LoadableView(state.overview, onRetry = onRefresh) { overview ->
                 OverviewSections(
                     overview,
@@ -181,7 +185,7 @@ private fun OverviewSections(
         overview.termsAcceptedMoment?.let { accepted -> ContractTextCard(accepted, openWebsite) }
         SideCard("Fair finanziert", tone = PanelTone.Night) {
             Text(
-                "Oasis ist werbefrei und lebt von den Beiträgen seiner Mitglieder. Deine Wünsche und Vorschläge sammeln wir in „Ideen für Oasis“."
+                "Mildcrowd ist werbefrei und lebt von den Beiträgen seiner Mitglieder. Deine Wünsche und Vorschläge sammeln wir in „Ideen für Mildcrowd“."
             )
             InlineLink("Zu den Ideen", { navigator.open(NetworkRoute.Ideas()) }, color = OasisColors.OnNight)
         }
@@ -304,7 +308,7 @@ private fun SubscriptionStatus(overview: MembershipOverview, onSubscriptionManag
             boldMarkdown(
                 "**Kündigung vorgemerkt:** Dein Vertrag endet am ${MembershipFormat.day(
                     subscription.endsAt
-                )}. Bis dahin kannst du Oasis ohne " +
+                )}. Bis dahin kannst du Mildcrowd ohne " +
                     "Einschränkungen weiternutzen. Danach endet dein Zugang, und du hast 30 Tage, um deine Daten herunterzuladen."
             ),
             style = OasisType.Small,
@@ -367,7 +371,7 @@ private fun CompanionStatus(seat: MembershipOverview.CompanionSeat) {
     StatusPill("Dein Platz bei ${seat.sponsor}", Icons.Outlined.Group, Modifier.testTag("membership.companion"))
     Text(
         boldMarkdown(
-            "${seat.sponsor} nimmt dich als Mäzen mit. Du hast Oasis mit allem aus der Stufe **${seat.tierName}** und zahlst nichts, " +
+            "${seat.sponsor} nimmt dich als Mäzen mit. Du hast Mildcrowd mit allem aus der Stufe **${seat.tierName}** und zahlst nichts, " +
                 "solange ${seat.sponsor} Mäzen bleibt."
         ),
         style = OasisType.Body,
@@ -381,7 +385,7 @@ private fun ExpiredStatus(overview: MembershipOverview) {
     val navigator = LocalNavigator.current
     StatusPill("Noch keine Mitgliedschaft", Icons.Outlined.Lock, Modifier.testTag("membership.expired"), StatusTone.Sun)
     Text(
-        "Oasis ist werbefrei und wird von den Mitgliedern getragen, deshalb gibt es keinen kostenlosen Zugang. Wähle deinen Beitrag, " +
+        "Mildcrowd ist werbefrei und wird von den Mitgliedern getragen, deshalb gibt es keinen kostenlosen Zugang. Wähle deinen Beitrag, " +
             "dann geht es los. Bis dahin kannst du in den Einstellungen deine Daten herunterladen oder dein Konto löschen.",
         style = OasisType.Body,
         color = OasisColors.Ink
@@ -564,7 +568,7 @@ fun TierChangeCard(
 }
 
 /**
- * „Derzeit: Stufe „Oase“. Die neue Stufe gilt ab sofort, der neue Beitrag ab deiner nächsten Abbuchung am … .
+ * „Derzeit: Stufe „Mittendrin“. Die neue Stufe gilt ab sofort, der neue Beitrag ab deiner nächsten Abbuchung am … .
  * Wechselst du in eine kleinere Stufe, …“ (portal.blade.php; the contribution itself is on the invoices).
  */
 fun tierChangeLead(overview: MembershipOverview): String {

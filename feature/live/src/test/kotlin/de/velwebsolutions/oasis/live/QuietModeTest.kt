@@ -40,7 +40,7 @@ import org.robolectric.annotation.Config
 import org.robolectric.annotation.GraphicsMode
 
 /**
- * The Ruhemodus (docs/oasis-notifications.md): its status texts, the banner on every screen with „Beenden“, and the
+ * The Ruhemodus (docs/mildcrowd-notifications.md): its status texts, the banner on every screen with „Beenden“, and the
  * section in Hinweise einstellen – one state for both.
  */
 @RunWith(RobolectricTestRunner::class)

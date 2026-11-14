@@ -69,7 +69,7 @@ import de.velwebsolutions.oasis.network.ui.components.handlers
 import kotlinx.coroutines.delay
 
 /**
- * The member search (/app/suche): people and oases (exact handle first, then alphabetical) and Tropfen newest first,
+ * The member search (/app/suche): people and crowds (exact handle first, then alphabetical) and Posts newest first,
  * updated while typing – the results stay on screen while the next ones load. A term that is exactly one #Thema leads to
  * its topic page; every request counts against the search budget of 30 per minute.
  */
@@ -106,7 +106,7 @@ fun SearchScreen(
     }
 }
 
-/** The search page: field, people and oases, then the Tropfen (or the topic button). */
+/** The search page: field, people and crowds, then the Posts (or the topic button). */
 fun LazyListScope.searchContent(
     query: String,
     state: PostListState<SearchContext>,
@@ -132,7 +132,7 @@ fun LazyListScope.searchContent(
         if (query.length > SearchViewModel.MAX_LENGTH) FieldError("Dein Suchbegriff darf höchstens 100 Zeichen lang sein.")
         Spacer(Modifier.size(8.dp))
         Text(
-            "Mindestens 2 Zeichen. Mit # davor findest du alle Tropfen zu einem Thema.",
+            "Mindestens 2 Zeichen. Mit # davor findest du alle Posts zu einem Thema.",
             style = OasisType.Caption,
             color = OasisColors.Muted
         )
@@ -142,7 +142,7 @@ fun LazyListScope.searchContent(
         block("topic") {
             val navigator = LocalNavigator.current
             OasisButton(
-                "Alle Tropfen zu #$topic",
+                "Alle Posts zu #$topic",
                 { navigator.open(NetworkRoute.Tag(topic)) },
                 fullWidth = false,
                 leading = {
@@ -162,8 +162,8 @@ fun LazyListScope.searchContent(
         }
     }
     block("oases") {
-        SideCard("Oasen") {
-            if (oases.isEmpty()) Text(if (isSearching) "Keine Oase gefunden." else "Such nach Name oder Thema einer Oase.")
+        SideCard("Crowds") {
+            if (oases.isEmpty()) Text(if (isSearching) "Keine Crowd gefunden." else "Such nach Name oder Thema einer Crowd.")
             oases.forEach { OasisRow(it) }
         }
     }
@@ -171,9 +171,9 @@ fun LazyListScope.searchContent(
     when {
         trimmed.length < 2 -> block("how") {
             DashedNote {
-                Text("So sucht Oasis", style = OasisType.BodyBold, color = OasisColors.Night)
+                Text("So sucht Mildcrowd", style = OasisType.BodyBold, color = OasisColors.Night)
                 Text(
-                    "Neueste Tropfen zuerst. Keine Ergebnisse, die nach Klicks sortiert sind, und keine, die jemand bezahlt hat.",
+                    "Neueste Posts zuerst. Keine Ergebnisse, die nach Klicks sortiert sind, und keine, die jemand bezahlt hat.",
                     style = OasisType.Body,
                     color = OasisColors.Ink2
                 )
@@ -183,8 +183,8 @@ fun LazyListScope.searchContent(
         failure != null -> block("failed") { Banner(SearchViewModel.message(failure)) }
 
         else -> {
-            block("posts.title") { SectionTitle("Tropfen") }
-            feedSection(state, handlers, empty = "Keine Tropfen mit „$trimmed“.", end = "Das sind alle Treffer.")
+            block("posts.title") { SectionTitle("Posts") }
+            feedSection(state, handlers, empty = "Keine Posts mit „$trimmed“.", end = "Das sind alle Treffer.")
         }
     }
 }
@@ -206,7 +206,7 @@ private fun SearchField(query: String, onQuery: (String) -> Unit, onSubmit: () -
         Icon(Icons.Outlined.Search, contentDescription = null, tint = OasisColors.Muted)
         Spacer(Modifier.width(8.dp))
         Box(Modifier.weight(1f)) {
-            if (query.isEmpty()) Text("Menschen, Oasen, Tropfen oder #Thema", style = OasisType.Body, color = OasisColors.Muted)
+            if (query.isEmpty()) Text("Menschen, Crowds, Posts oder #Thema", style = OasisType.Body, color = OasisColors.Muted)
             BasicTextField(
                 value = query,
                 onValueChange = onQuery,

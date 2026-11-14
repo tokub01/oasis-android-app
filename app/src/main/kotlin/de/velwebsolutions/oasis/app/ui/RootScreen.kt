@@ -14,8 +14,8 @@ import de.velwebsolutions.oasis.design.navigation.AccountRoute
 
 /**
  * The whole app: restores the session, then shows sign-in, the e-mail confirmation, the lock screen, the mobile-number
- * confirmation, "Mitglied werden" (no membership yet) or the tabs. New members land in the tabs too; the Quelle offers
- * the welcome tour with its card „Mach dein Tal lebendig“ (docs/oasis-accounts.md, „Nach der Registrierung“).
+ * confirmation, "Mitglied werden" (no membership yet) or the tabs. New members land in the tabs too; the Start offers
+ * the welcome tour with its card „Mach deine Startseite lebendig“ (docs/mildcrowd-accounts.md, „Nach der Registrierung“).
  */
 @Composable
 fun RootScreen(viewModel: RootViewModel = hiltViewModel()) {
@@ -30,7 +30,7 @@ fun RootScreen(viewModel: RootViewModel = hiltViewModel()) {
 
                 me.isSuspended -> StandaloneStack(AccountRoute.Suspended)
 
-                // Every account but staff confirms a mobile number by SMS before it pays or uses Oasis (web: app.phone).
+                // Every account but staff confirms a mobile number by SMS before it pays or uses Mildcrowd (web: app.phone).
                 !me.phoneVerified -> screens.ConfirmPhone()
 
                 // Members-only: without a paid or gifted membership only "Mitglied werden" and the account pages.
@@ -43,6 +43,6 @@ fun RootScreen(viewModel: RootViewModel = hiltViewModel()) {
         SessionState.SignedOut -> screens.SignedOut()
 
         // SessionState.Loading: the stored token is being checked.
-        else -> LoadingView(Modifier.fillMaxSize().oasisScreenBackground(), "Oasis startet …")
+        else -> LoadingView(Modifier.fillMaxSize().oasisScreenBackground(), "Mildcrowd startet …")
     }
 }

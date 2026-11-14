@@ -3,7 +3,7 @@ package de.velwebsolutions.oasis.network.api
 import de.velwebsolutions.oasis.core.network.OasisInstant
 import kotlinx.serialization.Serializable
 
-/** A Sammlung of an oasis (docs/oasis-network.md, „Sammlungen“): its Tropfen count and what the viewer may do. */
+/** A Sammlung of a crowd (docs/mildcrowd-network.md, „Sammlungen“): its Post count and what the viewer may do. */
 @Serializable
 data class OasisCollection(
     val id: Int,
@@ -15,7 +15,7 @@ data class OasisCollection(
     val canAdd: Boolean = false
 )
 
-/** The Sammlungen of an oasis (alphabetical) and who may create one. */
+/** The Sammlungen of a crowd (alphabetical) and who may create one. */
 @Serializable
 data class OasisCollections(
     val canCreate: Boolean = false,
@@ -35,7 +35,7 @@ data class CollectionSettings(val membersCreateCollections: Boolean)
 internal data class CollectPostBody(val postId: Int)
 
 /**
- * An invitation to someone else's gemeinsame Zeitkapsel (docs/oasis-network.md, „Gemeinsame Zeitkapseln“): from whom,
+ * An invitation to someone else's gemeinsame Zeitkapsel (docs/mildcrowd-network.md, „Gemeinsame Zeitkapseln“): from whom,
  * where and when it opens, the deadline, where the own text stands and – while [canEdit] – the own text.
  */
 @Serializable

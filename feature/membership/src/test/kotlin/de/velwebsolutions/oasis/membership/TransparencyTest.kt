@@ -33,7 +33,7 @@ import org.robolectric.RobolectricTestRunner
 import org.robolectric.annotation.Config
 import org.robolectric.annotation.GraphicsMode
 
-/** „Wohin dein Beitrag geht“ (docs/oasis-admin.md): the figures and the reports, at 360 dp in both modes. */
+/** „Wohin dein Beitrag geht“ (docs/mildcrowd-admin.md): the figures and the reports, at 360 dp in both modes. */
 @RunWith(RobolectricTestRunner::class)
 @GraphicsMode(GraphicsMode.Mode.NATIVE)
 @Config(qualifiers = "w360dp-h740dp")
@@ -100,7 +100,7 @@ class TransparencyTest {
     fun `the page shows figures and the report with its earlier ones`() {
         val viewModel = TransparencyViewModel(repository)
         compose.setContent { OasisTheme { TransparencyScreen(viewModel) } }
-        compose.onNodeWithText("Oasis wird betrieben von Tobias Kubina - VelWebSolutions.", substring = true).assertExists()
+        compose.onNodeWithText("Mildcrowd wird betrieben von Tobias Kubina - VelWebSolutions.", substring = true).assertExists()
         shot("transparency")
         compose.onNodeWithText("Überschuss").performScrollTo()
         shot("transparency-report")
@@ -108,7 +108,7 @@ class TransparencyTest {
         compose.waitUntil(5_000) { viewModel.state.value.shown?.id == 3 }
         compose.onNodeWithText("Fehlbetrag").performScrollTo()
         Appearance.show(AppearanceChoice.Dark)
-        compose.onNodeWithText("Oasis heute").performScrollTo()
+        compose.onNodeWithText("Mildcrowd heute").performScrollTo()
         shot("transparency-dark")
     }
 

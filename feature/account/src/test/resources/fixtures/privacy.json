@@ -9,7 +9,7 @@
      {
       "key": "profile_audience",
       "title": "Wer darf dein Profil sehen?",
-      "help": "Deine Profilseite mit Beschreibung und allen deinen Tropfen. Wer einzelne Tropfen per Link lesen darf, legst du bei jedem Tropfen fest.",
+      "help": "Deine Profilseite mit Beschreibung und allen deinen Posts. Wer einzelne Posts per Link lesen darf, legst du bei jedem Post fest.",
       "kind": "choice",
       "value": "everyone",
       "choices": [
@@ -30,8 +30,8 @@
      },
      {
       "key": "default_post_visibility",
-      "title": "Wer liest neue Tropfen standardmäßig?",
-      "help": "Vorauswahl beim Schreiben – du kannst sie bei jedem Tropfen ändern.",
+      "title": "Wer liest neue Posts standardmäßig?",
+      "help": "Vorauswahl beim Schreiben – du kannst sie bei jedem Post ändern.",
       "kind": "choice",
       "value": "public",
       "choices": [
@@ -48,7 +48,7 @@
      },
      {
       "key": "follower_count_audience",
-      "title": "Wer sieht, wie groß deine Karawane ist?",
+      "title": "Wer sieht, wie viele Follower du hast?",
       "help": "Die Zahl der Menschen, die dir folgen. Namen zeigen wir nie öffentlich.",
       "kind": "choice",
       "value": "members",
@@ -100,8 +100,8 @@
      },
      {
       "key": "oases_audience",
-      "title": "Wer sieht, in welchen Oasen du bist?",
-      "help": "Die Liste deiner Oasen auf deinem Profil. In der Oase selbst bleibst du als Mitglied sichtbar.",
+      "title": "Wer sieht, in welchen Crowds du bist?",
+      "help": "Die Liste deiner Crowds auf deinem Profil. In der Crowd selbst bleibst du als Mitglied sichtbar.",
       "kind": "choice",
       "value": "members",
       "choices": [
@@ -126,8 +126,8 @@
      },
      {
       "key": "oasis_list_audience",
-      "title": "Wer sieht dich in Mitgliederlisten von Oasen?",
-      "help": "Zu deinem eigenen Schutz ist voreingestellt, dass dich in den Mitgliederlisten deiner Oasen nur Freund:innen und Menschen sehen, denen du folgst. Alle anderen sehen dich dort nicht und können dich darüber weder anschreiben noch dein Profil öffnen. Du kannst das jederzeit umstellen.",
+      "title": "Wer sieht dich in Mitgliederlisten von Crowds?",
+      "help": "Zu deinem eigenen Schutz ist voreingestellt, dass dich in den Mitgliederlisten deiner Crowds nur Freund:innen und Menschen sehen, denen du folgst. Alle anderen sehen dich dort nicht und können dich darüber weder anschreiben noch dein Profil öffnen. Du kannst das jederzeit umstellen.",
       "kind": "choice",
       "value": "contacts",
       "choices": [
@@ -186,8 +186,8 @@
      },
      {
       "key": "replies_audience",
-      "title": "Wer darf auf deine Tropfen antworten?",
-      "help": "Reagieren und Merken bleibt für alle möglich, die den Tropfen lesen dürfen.",
+      "title": "Wer darf auf deine Posts antworten?",
+      "help": "Reagieren und Merken bleibt für alle möglich, die den Post lesen dürfen.",
       "kind": "choice",
       "value": "members",
       "choices": [
@@ -208,8 +208,8 @@
      },
      {
       "key": "carry_audience",
-      "title": "Wer darf deine Tropfen weitertragen?",
-      "help": "Weitertragen zeigt deinen Tropfen mit den Worten einer anderen Person.",
+      "title": "Wer darf deine Posts teilen?",
+      "help": "Teilen zeigt deinen Post mit den Worten einer anderen Person.",
       "kind": "choice",
       "value": "members",
       "choices": [
@@ -298,8 +298,8 @@
     "settings": [
      {
       "key": "searchable",
-      "title": "In der Oasis-Suche auffindbar",
-      "help": "Mitglieder finden dich über deinen Namen oder Benutzernamen. Ausgeschaltet erscheinst du nicht in der Personensuche; über deine Tropfen und Links bleibt dein Profil erreichbar.",
+      "title": "In der Mildcrowd-Suche auffindbar",
+      "help": "Mitglieder finden dich über deinen Namen oder Benutzernamen. Ausgeschaltet erscheinst du nicht in der Personensuche; über deine Posts und Links bleibt dein Profil erreichbar.",
       "kind": "switch",
       "value": true,
       "choices": [],
@@ -308,7 +308,7 @@
      {
       "key": "search_engines",
       "title": "Öffentliches Profil in Suchmaschinen",
-      "help": "Gilt nur, solange dein Profil für alle sichtbar ist: Dann dürfen Suchmaschinen es und deine öffentlichen Tropfen anzeigen.",
+      "help": "Gilt nur, solange dein Profil für alle sichtbar ist: Dann dürfen Suchmaschinen es und deine öffentlichen Posts anzeigen.",
       "kind": "switch",
       "value": true,
       "choices": [],

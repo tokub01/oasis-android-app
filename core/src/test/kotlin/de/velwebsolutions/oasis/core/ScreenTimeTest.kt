@@ -21,7 +21,7 @@ import org.junit.runner.RunWith
 import org.robolectric.RobolectricTestRunner
 
 /**
- * „Deine Zeit in Oasis“ (docs/oasis-privacy.md, „Bildschirmzeit“): seconds while in front and used within the last
+ * „Deine Zeit in Mildcrowd“ (docs/mildcrowd-privacy.md, „Bildschirmzeit“): seconds while in front and used within the last
  * minute, per local day and account, 8 days kept, shown as whole minutes.
  */
 @RunWith(RobolectricTestRunner::class)

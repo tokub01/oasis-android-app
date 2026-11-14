@@ -58,7 +58,7 @@ enum class StatusTone { Spring, Sun }
 
 /**
  * The soft status pills of the status card ("Aktive Mitgliedschaft", "Gründungsmitglied mit Preisgarantie" …), as the
- * web's partial draws them (`bg-spring/15 text-spring-text`, `bg-sun/30 text-sun-ink`); the design's `Pill`
+ * web's partial draws them (`bg-spring/15 text-spring-text`, `bg-sun/30 text-ink`); the design's `Pill`
  * has no such light tones.
  */
 @Composable
@@ -67,7 +67,7 @@ fun StatusPill(text: String, icon: ImageVector, modifier: Modifier, tone: Status
         StatusTone.Spring -> OasisColors.SpringText
 
         // StatusTone.Sun
-        else -> OasisColors.SunInk
+        else -> OasisColors.Ink
     }
     val background = when (tone) {
         StatusTone.Spring -> OasisColors.Spring.copy(alpha = 0.15f)
@@ -208,7 +208,7 @@ fun Question(
             OasisTextButton(confirmLabel, {
                 onDismiss()
                 onConfirm()
-            }, Modifier.testTag(tag), color = OasisColors.SunText)
+            }, Modifier.testTag(tag), color = OasisColors.Danger)
         },
         dismissButton = { OasisTextButton("Abbrechen", onDismiss) }
     )

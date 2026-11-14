@@ -4,7 +4,7 @@ import de.velwebsolutions.oasis.chatcrypto.ChatCrypto.Companion.ATTACHMENT_AD_LA
 import de.velwebsolutions.oasis.chatcrypto.SodiumConstants.AEAD_XCHACHA20POLY1305_IETF_KEYBYTES
 import de.velwebsolutions.oasis.chatcrypto.SodiumConstants.AEAD_XCHACHA20POLY1305_IETF_NPUBBYTES
 
-// Encrypted chat attachments (docs/oasis-chat.md, "Anhänge"; app/Support/Chat/MessagePayload.php on the server): every
+// Encrypted chat attachments (docs/mildcrowd-chat.md, "Anhänge"; app/Support/Chat/MessagePayload.php on the server): every
 // file gets its own random key and nonce, the ciphertext goes to the server, key and nonce travel inside the encrypted
 // message ([MessagePayload]).
 

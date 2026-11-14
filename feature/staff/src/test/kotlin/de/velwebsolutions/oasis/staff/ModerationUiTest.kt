@@ -734,19 +734,25 @@ class ModerationUiTest {
         compose.onNodeWithText("Beweise löschen").assertDoesNotExist()
         compose.onNodeWithText("Quarantäne aufheben").performScrollTo().assertIsDisplayed()
 
-        // The question follows what the case is about: a profile's or oasis' images are served again at once.
-        val tropfen = detail.copy(subjectUrl = "https://get-oasis.com/tropfen/9")
-        val profile = detail.copy(subjectUrl = "https://get-oasis.com/profil/mira")
+        // The question follows what the case is about: a profile's or crowd's images are served again at once.
+        val tropfen = detail.copy(subjectUrl = "https://mildcrowd.com/tropfen/9")
+        val profile = detail.copy(subjectUrl = "https://mildcrowd.com/profil/mira")
         val chat = detail.copy(report = detail.report.copy(kind = "chat_report"))
         assertEquals(
-            "Quarantäne aufheben? Die Bilder werden dann wieder ausgeliefert, sobald der Tropfen freigegeben ist.",
+            "Quarantäne aufheben? Die Bilder werden dann wieder ausgeliefert, sobald der Post freigegeben ist.",
             tropfen.liftQuarantineQuestion
         )
         assertEquals("Quarantäne aufheben? Die Anhänge der Nachricht sind dann für das Team wieder zu sehen.", chat.liftQuarantineQuestion)
         assertEquals("Quarantäne aufheben? Profilbild und Banner werden dann wieder ausgeliefert.", profile.liftQuarantineQuestion)
         assertEquals(
-            "Quarantäne aufheben? Das Banner der Oase wird dann wieder ausgeliefert.",
-            detail.copy(subjectUrl = "https://get-oasis.com/oasen/stadtgarten").liftQuarantineQuestion
+            "Quarantäne aufheben? Das Banner der Crowd wird dann wieder ausgeliefert.",
+            detail.copy(subjectUrl = "https://mildcrowd.com/oasen/stadtgarten").liftQuarantineQuestion
+        )
+        // The same for the addresses since the rename (/posts/…, /crowds/…).
+        assertEquals(tropfen.liftQuarantineQuestion, detail.copy(subjectUrl = "https://mildcrowd.com/posts/9").liftQuarantineQuestion)
+        assertEquals(
+            "Quarantäne aufheben? Das Banner der Crowd wird dann wieder ausgeliefert.",
+            detail.copy(subjectUrl = "https://mildcrowd.com/crowds/stadtgarten").liftQuarantineQuestion
         )
         shown = profile
         compose.onNodeWithText("Quarantäne aufheben").performScrollTo().performClick()

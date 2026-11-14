@@ -145,7 +145,7 @@ internal fun ChatGate(content: @Composable () -> Unit) {
 }
 
 /**
- * „Deine Chats sind privat“ (docs/oasis-chat-client.md, „C5 Setup with one button“): one button, „Mit Fingerabdruck
+ * „Deine Chats sind privat“ (docs/mildcrowd-chat-client.md, „C5 Setup with one button“): one button, „Mit Fingerabdruck
  * einrichten“, where the device can; „Lieber mit Passphrase“ opens the passphrase form, which is the only way on devices
  * without biometrics. No backup passphrase is asked here: the chat list offers it afterwards. After „Chats neu
  * einrichten“ the same screen says what that means.
@@ -168,7 +168,7 @@ internal fun ChatSetupContent(
             lead = if (reset) {
                 "Ältere Nachrichten auf diesem Gerät kannst du danach nicht mehr lesen."
             } else {
-                "Nur ihr könnt eure Nachrichten lesen. Oasis speichert sie nur verschlüsselt und hat keinen Schlüssel dazu. " +
+                "Nur ihr könnt eure Nachrichten lesen. Mildcrowd speichert sie nur verschlüsselt und hat keinen Schlüssel dazu. " +
                     "Das Einrichten dauert ein paar Sekunden."
             }
         )
@@ -230,7 +230,7 @@ private fun PassphraseForm(
                 "Passphrase",
                 state.passphrase,
                 onPassphraseChange,
-                hint = "Mindestens $MIN_PASSPHRASE_LENGTH Zeichen. Gut merkbar sind mehrere Wörter, z. B. „Palme Regen Kompass Tee“.",
+                hint = "Mindestens $MIN_PASSPHRASE_LENGTH Zeichen. Gut merkbar sind mehrere Wörter, z. B. „Wolke Regen Kompass Tee“.",
                 isSecure = true,
                 // "Weiter" moves on to the repetition, like iOS' submit label.
                 keyboardOptions = OasisKeyboard.Password.copy(imeAction = ImeAction.Next),

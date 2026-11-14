@@ -15,7 +15,7 @@ class MembershipFiles(private val cacheDirectory: File) {
     /** The invoice HTML of the API, kept as a file for the invoice view, printing and "Teilen". */
     fun invoice(html: ByteArray, number: String): File = write(File(cacheDirectory, INVOICES), "Rechnung-$number.html", html)
 
-    /** The data export ZIP; it can be large (Tropfen with their images), so it is written off the main thread. */
+    /** The data export ZIP; it can be large (Posts with their images), so it is written off the main thread. */
     suspend fun export(zip: ByteArray): File = withContext(Dispatchers.IO) {
         write(File(cacheDirectory, EXPORT), "oasis-daten.zip", zip)
     }

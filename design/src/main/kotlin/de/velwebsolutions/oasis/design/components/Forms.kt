@@ -95,7 +95,7 @@ fun OasisTextField(
                     Modifier
                         .fillMaxWidth()
                         .background(OasisColors.Field, shape)
-                        .border(if (error == null) 1.dp else 2.dp, if (error == null) OasisColors.FieldLine else OasisColors.SunText, shape)
+                        .border(if (error == null) 1.dp else 2.dp, if (error == null) OasisColors.FieldLine else OasisColors.Danger, shape)
                         .padding(start = 14.dp, top = 12.dp, bottom = 12.dp, end = if (trailing == null) 14.dp else 2.dp),
                     verticalAlignment = Alignment.CenterVertically
                 ) {
@@ -121,9 +121,9 @@ fun OasisTextField(
 @Composable
 fun FieldError(message: String, modifier: Modifier = Modifier) {
     Row(modifier, verticalAlignment = Alignment.CenterVertically) {
-        Icon(Icons.Outlined.ErrorOutline, contentDescription = null, tint = OasisColors.SunText, modifier = Modifier.size(16.dp))
+        Icon(Icons.Outlined.ErrorOutline, contentDescription = null, tint = OasisColors.Danger, modifier = Modifier.size(16.dp))
         Spacer(Modifier.width(6.dp))
-        Text(message, style = OasisType.Caption, color = OasisColors.SunText)
+        Text(message, style = OasisType.Caption, color = OasisColors.Danger)
     }
 }
 
@@ -153,7 +153,7 @@ fun SettingToggle(
 }
 
 /**
- * The Oasis switch: off is a 2 dp ink frame with a dark knob on the field colour, on is filled night with a light knob
+ * The Mildcrowd switch: off is a 2 dp ink frame with a dark knob on the field colour, on is filled night with a light knob
  * (the Material default's light grey off state was easy to miss on paper). Same look as iOS' OasisSwitchStyle.
  */
 @Composable
@@ -175,7 +175,7 @@ fun OasisSwitch(checked: Boolean, onCheckedChange: ((Boolean) -> Unit)?, modifie
 }
 
 /**
- * The Oasis checkbox for consents and confirmations ("Ich akzeptiere …", "Ich habe den Inhalt gelesen"), like the web
+ * The Mildcrowd checkbox for consents and confirmations ("Ich akzeptiere …", "Ich habe den Inhalt gelesen"), like the web
  * form: a dark 2 dp frame, filled night with a light tick when checked (iOS' OasisCheckboxStyle).
  */
 @Composable

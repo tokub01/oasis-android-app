@@ -78,7 +78,7 @@ class AndroidPushTest {
 
     @Test
     fun showsNothingWithoutThePermission() {
-        PushNotifications.show(app, PushContent("Oasis", "Neu", null))
+        PushNotifications.show(app, PushContent("Mildcrowd", "Neu", null))
         assertTrue(posted().isEmpty())
     }
 
@@ -86,14 +86,14 @@ class AndroidPushTest {
     fun showsHintsAndChatMessagesInTheirChannelsAndOpensTheTarget() {
         allowNotifications()
         registerLauncher()
-        PushNotifications.show(app, PushContent("Jonas Weber", "Hat geantwortet.", "https://get-oasis.com/tropfen/12", "oasis-hinweise"), 1)
-        PushNotifications.show(app, PushContent("Oasis", "Du hast eine neue Chat-Nachricht.", null, "oasis-chat"), 2)
+        PushNotifications.show(app, PushContent("Jonas Weber", "Hat geantwortet.", "https://mildcrowd.com/tropfen/12", "oasis-hinweise"), 1)
+        PushNotifications.show(app, PushContent("Mildcrowd", "Du hast eine neue Chat-Nachricht.", null, "oasis-chat"), 2)
         val (hint, chat) = posted().sortedBy { it.channelId == "chat" }
         assertEquals("hints", hint.channelId)
         assertEquals(Notification.CATEGORY_SOCIAL, hint.category)
         assertEquals("oasis-hinweise", hint.group)
         val opened = shadowOf(hint.contentIntent).savedIntent
-        assertEquals("https://get-oasis.com/tropfen/12", opened.getStringExtra(PushNotifications.EXTRA_URL))
+        assertEquals("https://mildcrowd.com/tropfen/12", opened.getStringExtra(PushNotifications.EXTRA_URL))
         assertEquals("chat", chat.channelId)
         assertEquals(Notification.CATEGORY_MESSAGE, chat.category)
         assertFalse(shadowOf(chat.contentIntent).savedIntent.hasExtra(PushNotifications.EXTRA_URL))
@@ -102,8 +102,8 @@ class AndroidPushTest {
     @Test
     fun opensNothingWithoutALauncherActivity() {
         allowNotifications()
-        assertNull(PushNotifications.openIntent(app, "https://get-oasis.com/app/hinweise"))
-        PushNotifications.show(app, PushContent("Oasis", "Neu", null))
+        assertNull(PushNotifications.openIntent(app, "https://mildcrowd.com/app/hinweise"))
+        PushNotifications.show(app, PushContent("Mildcrowd", "Neu", null))
         assertNull(posted().single().contentIntent)
         assertNull(posted().single().group)
     }
@@ -111,7 +111,7 @@ class AndroidPushTest {
     @Test
     @Config(sdk = [32])
     fun needsNoPermissionBeforeAndroid13() {
-        PushNotifications.show(app, PushContent("Oasis", "Neu", null))
+        PushNotifications.show(app, PushContent("Mildcrowd", "Neu", null))
         assertEquals(1, posted().size)
         assertEquals(PushAuthorization.Authorized, AndroidPushSystem(app).authorization())
         assertTrue("without a system dialog the app asks itself", AndroidPushSystem(app).asksInApp)
@@ -180,7 +180,7 @@ class AndroidPushTest {
             if (title != null) {
                 putString("gcm.n.e", "1")
                 putString("gcm.n.title", title)
-                putString("gcm.n.body", "Öffne Oasis")
+                putString("gcm.n.body", "Öffne Mildcrowd")
             }
         }
     )
@@ -194,10 +194,10 @@ class AndroidPushTest {
         )
         val live = LiveCoordinator(repository(transport), FakeRealtime(), registrar(), scope)
         runBlocking { live.start(1) }
-        val common = FakeCommonApi(PushPreview("Jonas Weber", "Hat auf deinen Tropfen geantwortet."))
+        val common = FakeCommonApi(PushPreview("Jonas Weber", "Hat auf deinen Post geantwortet."))
         val messages = PushMessages(app, common, live, registrar(), scope)
         val reference = "Abc123Abc123Abc123Abc123Abc123Abc123Abc1"
-        messages.received(message("title" to "Oasis", "body" to "Es gibt Neues.", "preview" to reference))
+        messages.received(message("title" to "Mildcrowd", "body" to "Es gibt Neues.", "preview" to reference))
         assertEquals(listOf(reference), common.asked)
         val shown = posted().single()
         assertEquals("Jonas Weber", shown.extras.getString(Notification.EXTRA_TITLE))

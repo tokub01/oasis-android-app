@@ -42,7 +42,7 @@ import kotlinx.coroutines.flow.update
 data class ShareTargetState(val conversations: List<ChatConversation> = emptyList(), val loaded: Boolean = false, val error: String? = null)
 
 /**
- * Screen "Teilen mit …" (docs/oasis-chat.md, "Sharing into Oasis"): what another app shared and the member's chats; the
+ * Screen "Teilen mit …" (docs/mildcrowd-chat.md, "Sharing into Mildcrowd"): what another app shared and the member's chats; the
  * picked chat takes the share as drafts when it opens. Every chat of the first page is offered, message requests too
  * (iOS `ShareTargetModel`): nothing is sent before "Senden" there.
  */

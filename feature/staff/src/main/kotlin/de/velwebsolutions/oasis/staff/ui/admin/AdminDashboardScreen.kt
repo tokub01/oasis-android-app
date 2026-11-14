@@ -164,7 +164,7 @@ private fun RevenueCard(revenue: AdminDashboard.Revenue, onShow: (String) -> Uni
     }
 }
 
-/** "Die letzten 12 Wochen": new accounts and Tropfen per week as bars, read out per week by TalkBack. */
+/** "Die letzten 12 Wochen": new accounts and Posts per week as bars, read out per week by TalkBack. */
 @Composable
 private fun WeekChart(weeks: List<AdminDashboard.Week>) {
     val maximum = maxOf(1, weeks.maxOfOrNull { maxOf(it.registered, it.posts) } ?: 1)
@@ -175,12 +175,13 @@ private fun WeekChart(weeks: List<AdminDashboard.Week>) {
         Text("Die letzten 12 Wochen", style = OasisType.BodyBold, color = OasisColors.Ink)
         Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
             Legend("Neue Konten", OasisColors.Spring)
-            Legend("Tropfen", OasisColors.Sun)
+            Legend("Posts", OasisColors.Sun)
         }
         weeks.forEach { week ->
+            val posts = if (week.posts == 1) "1 Post" else "${week.posts} Posts"
             Row(
                 Modifier.clearAndSetSemantics {
-                    contentDescription = "Woche ab ${StaffDate.dayMonth(week.week)}: ${week.registered} neue Konten, ${week.posts} Tropfen"
+                    contentDescription = "Woche ab ${StaffDate.dayMonth(week.week)}: ${week.registered} neue Konten, $posts"
                 },
                 horizontalArrangement = Arrangement.spacedBy(8.dp),
                 verticalAlignment = Alignment.CenterVertically

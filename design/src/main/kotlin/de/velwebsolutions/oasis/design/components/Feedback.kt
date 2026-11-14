@@ -72,7 +72,8 @@ enum class PillTone {
 @Composable
 fun Pill(text: String, modifier: Modifier = Modifier, tone: PillTone = PillTone.Dune, icon: ImageVector? = null) {
     val foreground = when (tone) {
-        PillTone.Sun, PillTone.Spring -> OasisColors.SunInk
+        PillTone.Sun -> OasisColors.SunInk
+        PillTone.Spring -> OasisColors.SpringInk
         PillTone.Night -> OasisColors.OnNight
         else -> OasisColors.Night
     }
@@ -148,7 +149,7 @@ fun BoxScope.StatusToast(
                 .testTag(if (isError) "status.error" else "status.message")
                 .semantics { liveRegion = LiveRegionMode.Polite },
             shape = RoundedCornerShape(OasisRadius.CHIP.dp),
-            containerColor = if (isError) OasisColors.SunText else OasisColors.Night,
+            containerColor = if (isError) OasisColors.Danger else OasisColors.Night,
             contentColor = if (isError) OasisColors.Paper else OasisColors.OnNight,
             dismissAction = {
                 IconButton(onClick = { data.dismiss() }) {

@@ -119,7 +119,7 @@ class SharingTest {
         assertTrue("the shares of this process stay", waiting.files.single().file.exists())
     }
 
-    /** Opened with Oasis' own permissions, these would hand any app a copy of Oasis' private files. */
+    /** Opened with Mildcrowd's own permissions, these would hand any app a copy of Mildcrowd's private files. */
     @Test
     fun oasisOwnFilesAreNeverReadAsAShare() {
         val own = context.packageName

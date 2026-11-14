@@ -127,7 +127,7 @@ import org.robolectric.RobolectricTestRunner
 import org.robolectric.annotation.Config
 import org.robolectric.annotation.GraphicsMode
 
-/** „Mach dein Tal lebendig“ on the Quelle (docs/oasis-accounts.md, „Nach der Registrierung“): no forced tour any more. */
+/** „Mach deine Startseite lebendig“ on the Start (docs/mildcrowd-accounts.md, „Nach der Registrierung“): no forced tour any more. */
 @RunWith(RobolectricTestRunner::class)
 @GraphicsMode(GraphicsMode.Mode.NATIVE)
 @Config(qualifiers = "w411dp-h3000dp")
@@ -170,7 +170,7 @@ class OnboardingCardUiTest {
     }
 
     @Test
-    fun `the Quelle offers a new member the welcome tour on a card and scrolls up for a new Tropfen`() {
+    fun `the Start offers a new member the welcome tour on a card and scrolls up for a new Post`() {
         val network = StubbedNetwork(
             stub("GET", "network/source", pageJson(postJson(3), context = """{"show_all":false,"follows_anyone":true,"can_post":true}"""))
         )
@@ -180,8 +180,8 @@ class OnboardingCardUiTest {
         show(ScreenChrome()) { SourceScreen(model) }
         text("Hallo Mira Sol.")
         assertNull("no tour forced on the member", navigator.sheet)
-        text("Mach dein Tal lebendig")
-        text("Wähl ein paar Oasen und Menschen, dann füllt sich dein Tal.")
+        text("Mach deine Startseite lebendig")
+        text("Wähl ein paar Crowds und Menschen, dann füllt sich deine Startseite.")
         compose.onNodeWithTag("source.onboarding.start").performClick()
         assertEquals(AccountRoute.Welcome, navigator.sheet)
         compose.onNodeWithTag("source.onboarding.later").performClick()
@@ -189,9 +189,9 @@ class OnboardingCardUiTest {
         compose.onNodeWithTag("source.onboarding").assertDoesNotExist()
         val days = java.time.Duration.between(java.time.Instant.now(), card.until).toDays()
         assertEquals("„Später“ hides the card for 14 days", 13L, days)
-        NetworkSignals.didPublish(decodePost(postJson(9)), "Dein Tropfen ist da.")
-        text("Tropfen 9")
-        compose.onNodeWithContentDescription("Dein Tropfen: Was möchtest du teilen?").performSemanticsAction(SemanticsActions.OnClick)
+        NetworkSignals.didPublish(decodePost(postJson(9)), "Dein Post ist da.")
+        text("Post 9")
+        compose.onNodeWithContentDescription("Dein Post: Was möchtest du teilen?").performSemanticsAction(SemanticsActions.OnClick)
         compose.onNodeWithText("Gefolgt").performClick()
     }
 

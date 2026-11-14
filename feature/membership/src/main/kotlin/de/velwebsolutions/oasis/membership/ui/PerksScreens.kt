@@ -53,7 +53,7 @@ import de.velwebsolutions.oasis.membership.api.SupporterInput
 import kotlinx.coroutines.launch
 
 /** The tier a companion place gives (TierFeatures::COMPANION_TIER), where the server does not name it. */
-private const val COMPANION_TIER = "Oase"
+private const val COMPANION_TIER = "Mittendrin"
 
 /** What the perks page can ask its view model for. */
 data class PerksCallbacks(
@@ -126,7 +126,7 @@ private fun PerksSections(perks: MembershipPerks, callbacks: PerksCallbacks, hel
             SectionCard("Dein Platz bei ${held.sponsor}", Modifier.testTag("perks.heldSeat")) {
                 Text(
                     if (held.active) {
-                        "${held.sponsor} nimmt dich als Mäzen mit. Du hast Oasis mit allem aus der Stufe $companionTier, solange " +
+                        "${held.sponsor} nimmt dich als Mäzen mit. Du hast Mildcrowd mit allem aus der Stufe $companionTier, solange " +
                             "${held.sponsor} Mäzen bleibt."
                     } else {
                         "${held.sponsor} ist gerade kein Mäzen mehr, deshalb ruht dein Platz. Mit einer eigenen Mitgliedschaft geht es sofort weiter."
@@ -156,7 +156,7 @@ private fun PerksSections(perks: MembershipPerks, callbacks: PerksCallbacks, hel
                     "Unterstützer-Zeichen am Profil",
                     perks.supporterBadge,
                     { on -> scope.launch { callbacks.onSupporter(SupporterInput(supporterBadge = on)) } },
-                    detail = "Ein kleines Zeichen neben deinem Namen: trägt Oasis mit."
+                    detail = "Ein kleines Zeichen neben deinem Namen: trägt Mildcrowd mit."
                 )
                 SettingToggle(
                     "Auf der Dankesliste stehen",
@@ -181,8 +181,8 @@ private fun CompanionSeats(perks: MembershipPerks, callbacks: PerksCallbacks) {
     SectionCard(
         "Menschen mitnehmen",
         Modifier.testTag("perks.seats"),
-        detail = "Als Mäzen vergibst du ${perks.features.companionSeats} volle Plätze. Wer deinen Link annimmt, hat Oasis mit allem aus " +
-            "$COMPANION_TIER, solange du Mäzen bist, und zahlt nichts."
+        detail = "Als Mäzen vergibst du ${perks.features.companionSeats} volle Plätze. Wer deinen Link annimmt, hat Mildcrowd mit allem " +
+            "aus $COMPANION_TIER, solange du Mäzen bist, und zahlt nichts."
     ) {
         perks.seats.forEach { seat ->
             Column(
@@ -267,9 +267,9 @@ fun CompanionLinkContent(
                 Panel(tone = PanelTone.Night, spacing = 16) {
                     OasisLogo(wordmark = false)
                     if (sponsor != null) {
-                        NightTitle("$sponsor nimmt dich mit nach Oasis")
+                        NightTitle("$sponsor nimmt dich mit nach Mildcrowd")
                         Text(
-                            "$sponsor trägt Oasis als Mäzen und schenkt dir einen vollen Platz: alles aus $COMPANION_TIER, " +
+                            "$sponsor trägt Mildcrowd als Mäzen und schenkt dir einen vollen Platz: alles aus $COMPANION_TIER, " +
                                 "ohne dass du etwas zahlst, solange $sponsor Mäzen bleibt. Ihr folgt euch nicht automatisch, " +
                                 "und niemand sonst erfährt, woher dein Platz kommt.",
                             style = OasisType.Lead,

@@ -64,7 +64,7 @@ data class DraftMeasure(
     val plaintextCharacters: Int = characters
 ) {
     /**
-     * The most characters this draft can have (docs/oasis-chat-client.md, „Composer limit and draft“): what is still free
+     * The most characters this draft can have (docs/mildcrowd-chat-client.md, „Composer limit and draft“): what is still free
      * if the rest were plain letters, so files, a quote or an effect leave less room.
      */
     val max: Int

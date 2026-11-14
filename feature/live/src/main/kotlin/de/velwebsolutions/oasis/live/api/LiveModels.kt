@@ -58,7 +58,7 @@ data class ChatSwitch(val key: String, val title: String, val help: String = "",
 data class QuietModeChoice(val key: String, val label: String)
 
 /**
- * The Ruhemodus (docs/oasis-notifications.md): on or off, until when (null while on: until switched off) and – in the
+ * The Ruhemodus (docs/mildcrowd-notifications.md): on or off, until when (null while on: until switched off) and – in the
  * hint settings – the modes to choose from.
  */
 @Serializable

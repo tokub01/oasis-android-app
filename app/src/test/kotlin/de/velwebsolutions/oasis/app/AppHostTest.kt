@@ -28,7 +28,7 @@ import org.robolectric.annotation.Config
 @RunWith(RobolectricTestRunner::class)
 @Config(application = Application::class)
 class AppHostTest {
-    /** The real graph of MainActivityTest binds links to the debug server; these tests use get-oasis.com links. */
+    /** The real graph of MainActivityTest binds links to the debug server; these tests use mildcrowd.com links. */
     @org.junit.Before
     fun resetOwnHost() {
         de.velwebsolutions.oasis.design.navigation.DeepLink.ownHost = null
@@ -63,7 +63,7 @@ class AppHostTest {
         var cleared = 0
         backgroundScope.launch { AppHost.resetAfterSignOut(session.state, navigator) { cleared++ } }
         runCurrent()
-        navigator.handle("https://get-oasis.com/tropfen/4")
+        navigator.handle("https://mildcrowd.com/tropfen/4")
         session.restore()
         runCurrent()
         session.signIn("mira", "geheim")
@@ -75,7 +75,7 @@ class AppHostTest {
         navigator.open(NetworkRoute.Profile("jonas"))
         navigator.present(ChatRoute.NewConversationWith("jonas"))
         navigator.sheetDismissible = false
-        navigator.handle("https://get-oasis.com/anmelden/code")
+        navigator.handle("https://mildcrowd.com/anmelden/code")
         de.velwebsolutions.oasis.core.share.PendingShare.offer(de.velwebsolutions.oasis.core.share.Share(emptyList(), "von Mira"))
         session.signOut()
         runCurrent()
@@ -123,7 +123,7 @@ class AppHostTest {
         val look = de.velwebsolutions.oasis.chat.core.MemoryLook()
         look.set("1:bg:default", "oase")
         look.write("1:photo:default", byteArrayOf(1))
-        // And the counted time of „Deine Zeit in Oasis“.
+        // And the counted time of „Deine Zeit in Mildcrowd“.
         val time = de.velwebsolutions.oasis.core.screentime.ScreenTime(
             de.velwebsolutions.oasis.core.screentime.PreferencesScreenTimeStore(context),
             userId = { 1 }

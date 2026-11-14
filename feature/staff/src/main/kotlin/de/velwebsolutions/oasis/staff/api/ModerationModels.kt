@@ -26,7 +26,7 @@ data class OutcomeOption(val value: String, val label: String, val hint: String?
 
 /**
  * Whether "Konto gesperrt" may be chosen on a case (`SuspensionRule`: a warning or lock within `strike_months` first,
- * except in severe cases), why not, and the durations in days to choose from (`oasis.moderation.suspension_days`).
+ * except in severe cases), why not, and the durations in days to choose from (`mildcrowd.moderation.suspension_days`).
  */
 @Serializable
 data class SuspensionOption(val allowed: Boolean = true, val blockedReason: String? = null, val days: List<Int> = emptyList())
@@ -153,17 +153,18 @@ data class ModerationCaseDetail(
 
     /**
      * The question before lifting the quarantine, after what the case is about (escalation.blade.php, iOS
-     * `liftQuarantineQuestion`): a chat report's attachments, a Tropfen's images, an oasis' banner, or the photo and
+     * `liftQuarantineQuestion`): a chat report's attachments, a Post's images, a crowd' banner, or the photo and
      * banner of a profile – the last two are served again at once.
      */
     val liftQuarantineQuestion: String
         get() = when {
             report.kind == "chat_report" -> "Quarantäne aufheben? Die Anhänge der Nachricht sind dann für das Team wieder zu sehen."
 
-            "/tropfen/" in subjectUrl ->
-                "Quarantäne aufheben? Die Bilder werden dann wieder ausgeliefert, sobald der Tropfen freigegeben ist."
+            "/posts/" in subjectUrl || "/tropfen/" in subjectUrl ->
+                "Quarantäne aufheben? Die Bilder werden dann wieder ausgeliefert, sobald der Post freigegeben ist."
 
-            "/oasen/" in subjectUrl -> "Quarantäne aufheben? Das Banner der Oase wird dann wieder ausgeliefert."
+            "/crowds/" in subjectUrl || "/oasen/" in subjectUrl ->
+                "Quarantäne aufheben? Das Banner der Crowd wird dann wieder ausgeliefert."
 
             else -> "Quarantäne aufheben? Profilbild und Banner werden dann wieder ausgeliefert."
         }

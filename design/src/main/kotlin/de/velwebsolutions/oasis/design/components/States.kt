@@ -72,7 +72,7 @@ fun <T> LoadableView(
     }
 }
 
-/** Centered spinner with "Lädt …" or its own label ("Oasis startet …"). */
+/** Centered spinner with "Lädt …" or its own label ("Mildcrowd startet …"). */
 @Composable
 fun LoadingView(modifier: Modifier = Modifier, label: String = "Lädt …") {
     Column(
@@ -87,7 +87,7 @@ fun LoadingView(modifier: Modifier = Modifier, label: String = "Lädt …") {
 }
 
 /**
- * Placeholder shapes in the layout of the coming content (heading, then Tropfen cards or list rows), so the screen
+ * Placeholder shapes in the layout of the coming content (heading, then Post cards or list rows), so the screen
  * does not jump when the data arrives. One opacity animation for the whole block keeps it cheap.
  */
 @Composable
@@ -156,7 +156,7 @@ fun ErrorStateView(error: ApiError, onRetry: suspend () -> Unit, modifier: Modif
         verticalArrangement = Arrangement.spacedBy(16.dp, Alignment.CenterVertically),
         horizontalAlignment = Alignment.CenterHorizontally
     ) {
-        Icon(Icons.Outlined.WarningAmber, contentDescription = null, tint = OasisColors.SunText, modifier = Modifier.size(32.dp))
+        Icon(Icons.Outlined.WarningAmber, contentDescription = null, tint = OasisColors.Danger, modifier = Modifier.size(32.dp))
         Text(error.userMessage, style = OasisType.Body, color = OasisColors.Ink, textAlign = TextAlign.Center)
         AsyncOasisButton("Noch einmal versuchen", onRetry, kind = OasisButtonKind.Secondary, fullWidth = false)
     }
@@ -164,7 +164,7 @@ fun ErrorStateView(error: ApiError, onRetry: suspend () -> Unit, modifier: Modif
 
 /**
  * [LoadableView] for a feature the member's tier may not include: the server's 403 (`Das gibt es ab der Mitgliedschaft
- * Oase.`) shows [TierLockedView] with [title] instead of an error with retry.
+ * Mittendrin.`) shows [TierLockedView] with [title] instead of an error with retry.
  */
 @Composable
 fun <T> TierLoadableView(
@@ -184,7 +184,7 @@ fun <T> TierLoadableView(
 }
 
 /**
- * The tier named in the server's lock message (`TierFeatures::lockedMessage`: „Das gibt es ab der Mitgliedschaft Oase.“),
+ * The tier named in the server's lock message (`TierFeatures::lockedMessage`: „Das gibt es ab der Mitgliedschaft Mittendrin.“),
  * or null for another text.
  */
 fun lockedTier(message: String): String? = Regex("ab der Mitgliedschaft (.+?)\\.?$").find(message)?.groupValues?.get(1)
@@ -208,7 +208,7 @@ fun TierLockedView(title: String, message: String, modifier: Modifier = Modifier
     }
 }
 
-/** Friendly empty state ("Noch keine Tropfen …"). */
+/** Friendly empty state ("Noch keine Posts …"). */
 @Composable
 fun EmptyStateView(
     title: String,
@@ -236,7 +236,7 @@ enum class BannerKind { Error, Info, Success }
 @Composable
 fun Banner(text: String, modifier: Modifier = Modifier, kind: BannerKind = BannerKind.Error) {
     val (icon, foreground, background) = when (kind) {
-        BannerKind.Error -> Triple(Icons.Outlined.ErrorOutline, OasisColors.SunText, OasisColors.Sun.copy(alpha = 0.12f))
+        BannerKind.Error -> Triple(Icons.Outlined.ErrorOutline, OasisColors.Danger, OasisColors.Danger.copy(alpha = 0.12f))
         BannerKind.Info -> Triple(Icons.Outlined.Info, OasisColors.Ink, OasisColors.Dune)
         BannerKind.Success -> Triple(Icons.Outlined.CheckCircle, OasisColors.SpringText, OasisColors.Spring.copy(alpha = 0.14f))
     }

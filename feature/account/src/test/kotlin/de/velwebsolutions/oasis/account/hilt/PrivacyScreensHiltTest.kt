@@ -44,7 +44,7 @@ class PrivacyScreensHiltTest : HiltScreenTest() {
             """{"message":"Gespeichert.","data":{"key":"searchable","title":"Auffindbar","kind":"switch","value":false}}"""
         )
         stub("PUT", "privacy/settings/profile_audience", """{"message":"x","errors":{"value":["Nicht erlaubt."]}}""", status = 422)
-        stub("POST", "privacy/limit-past-posts", """{"message":"3 Tropfen sind jetzt nur für Mitglieder sichtbar."}""")
+        stub("POST", "privacy/limit-past-posts", """{"message":"3 Posts sind jetzt nur für Mitglieder sichtbar."}""")
         show { AccountScreen(AccountRoute.Privacy) }
         waitForTag("privacy.checkup")
         // „Wer dich sieht“ carries the founding mark as a plain switch (founding_badge, off by default).
@@ -52,13 +52,13 @@ class PrivacyScreensHiltTest : HiltScreenTest() {
         shot("privacy")
         compose.onNodeWithTag("privacy.profile_audience.members").tap()
         waitForText("Nicht erlaubt.")
-        compose.onNodeWithContentDescription("In der Oasis-Suche auffindbar").tap()
+        compose.onNodeWithContentDescription("In der Mildcrowd-Suche auffindbar").tap()
         waitForRequest("PUT", "privacy/settings/searchable")
-        compose.onNodeWithText("Tropfen begrenzen").tap()
+        compose.onNodeWithText("Posts begrenzen").tap()
         screenShot("privacy-limit")
         compose.onAllNodesText("Abbrechen").last().press()
-        compose.onNodeWithText("Tropfen begrenzen").tap()
-        compose.onAllNodesText("Tropfen begrenzen").last().press()
+        compose.onNodeWithText("Posts begrenzen").tap()
+        compose.onAllNodesText("Posts begrenzen").last().press()
         waitForRequest("POST", "privacy/limit-past-posts")
         listOf("privacy.checkup", "privacy.words", "privacy.safety", "privacy.devices", "privacy.time", "privacy.hints", "privacy.settings")
             .forEach { compose.onNodeWithTag(it).tap() }
@@ -112,7 +112,7 @@ class PrivacyScreensHiltTest : HiltScreenTest() {
         )
         stub("POST", "privacy/limit-past-posts", """{"message":"Server Error"}""", status = 500)
         show { AccountScreen(AccountRoute.Privacy) }
-        waitForText("Du hast keine Tropfen mit der früheren Einstellung „Öffentlich“.", substring = true)
+        waitForText("Du hast keine Posts mit der früheren Einstellung „Öffentlich“.", substring = true)
         compose.onNodeWithText("1 Wort verborgen.", substring = true).assertExists()
         compose.onNodeWithTag("privacy.login_alerts").assertExists()
         shot("privacy-limited")
@@ -142,10 +142,10 @@ class PrivacyScreensHiltTest : HiltScreenTest() {
         stub("GET", "privacy", """{"data":{"sections":[],"counts":{"public_posts":1,"hidden_words":4}}}""")
         stub("POST", "privacy/limit-past-posts", """{"message":"Server Error"}""", status = 500)
         show { AccountScreen(AccountRoute.Privacy) }
-        waitForText("Betrifft 1 Tropfen.", substring = true)
+        waitForText("Betrifft 1 Post.", substring = true)
         compose.onNodeWithText("4 Wörter verborgen.", substring = true).assertExists()
-        compose.onNodeWithText("Tropfen begrenzen").tap()
-        compose.onAllNodesText("Tropfen begrenzen").last().press()
+        compose.onNodeWithText("Posts begrenzen").tap()
+        compose.onAllNodesText("Posts begrenzen").last().press()
         waitForRequest("POST", "privacy/limit-past-posts")
     }
 

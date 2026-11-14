@@ -43,7 +43,7 @@ import org.robolectric.annotation.Config
 @RunWith(RobolectricTestRunner::class)
 @Config(application = HiltTestApplication::class)
 class AppWiringTest {
-    /** The real graph binds links to the debug server; these tests use get-oasis.com links. */
+    /** The real graph binds links to the debug server; these tests use mildcrowd.com links. */
     @org.junit.Before
     fun resetOwnHost() {
         de.velwebsolutions.oasis.design.navigation.DeepLink.ownHost = null
@@ -82,17 +82,17 @@ class AppWiringTest {
     @Test
     fun `links come from app links, our push extra or FCM's extra`() {
         assertEquals(
-            "https://get-oasis.com/app/nachrichten#c/5",
-            AppHost.url(Intent(Intent.ACTION_VIEW, Uri.parse("https://get-oasis.com/app/nachrichten#c/5")))
+            "https://mildcrowd.com/app/nachrichten#c/5",
+            AppHost.url(Intent(Intent.ACTION_VIEW, Uri.parse("https://mildcrowd.com/app/nachrichten#c/5")))
         )
         assertEquals(
-            "https://get-oasis.com/oasen/garten",
-            AppHost.url(Intent().putExtra(AppHost.EXTRA_URL, "https://get-oasis.com/oasen/garten"))
+            "https://mildcrowd.com/oasen/garten",
+            AppHost.url(Intent().putExtra(AppHost.EXTRA_URL, "https://mildcrowd.com/oasen/garten"))
         )
-        assertEquals("https://get-oasis.com/app/entdecken", AppHost.url(Intent().putExtra("url", "https://get-oasis.com/app/entdecken")))
+        assertEquals("https://mildcrowd.com/app/entdecken", AppHost.url(Intent().putExtra("url", "https://mildcrowd.com/app/entdecken")))
         assertEquals(null, AppHost.url(Intent()))
         assertEquals(null, AppHost.url(null))
-        compose.runOnIdle { navigator.openWeb("https://get-oasis.com/impressum") }
+        compose.runOnIdle { navigator.openWeb("https://mildcrowd.com/impressum") }
     }
 
     @Test
@@ -104,7 +104,7 @@ class AppWiringTest {
             LiveRoute.Inbox,
             MembershipRoute.Overview,
             StaffRoute.Moderation,
-            WebRoute("https://get-oasis.com/impressum")
+            WebRoute("https://mildcrowd.com/impressum")
         )
         compose.activity.setContent {
             OasisTheme {

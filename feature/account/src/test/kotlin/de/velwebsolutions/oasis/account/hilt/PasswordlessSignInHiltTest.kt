@@ -132,9 +132,9 @@ class PasswordlessSignInHiltTest : DeviceScreenTest() {
         waitForTag("logincode.code")
         waitForText("Schau auf dein Handy, der Code gilt 10 Minuten.")
         compose.waitUntil(5_000) { smsRequests.isNotEmpty() }
-        shareSms("Dein Oasis-Anmeldecode: 999 999.", allowed = false)
+        shareSms("Dein Mildcrowd-Anmeldecode: 999 999.", allowed = false)
         field("Sechsstelliger Code").assertTextContains("")
-        shareSms("Dein Oasis-Anmeldecode: 123 456. Gültig 10 Minuten.")
+        shareSms("Dein Mildcrowd-Anmeldecode: 123 456. Gültig 10 Minuten.")
         compose.onNodeWithTag("logincode.code", useUnmergedTree = true).assertExists()
         waitForText("123456")
         shot("logincode-sms")
@@ -157,7 +157,7 @@ class PasswordlessSignInHiltTest : DeviceScreenTest() {
         compose.waitUntil(5_000) { compose.onAllNodes(hasTestTag("status.error")).fetchSemanticsNodes().isEmpty() }
         passkeys.failure = PasskeyFailure.NoPasskey()
         compose.onNodeWithTag("signin.passkey").tap()
-        waitForText("Auf diesem Gerät ist kein Passkey für Oasis gespeichert.", substring = true)
+        waitForText("Auf diesem Gerät ist kein Passkey für Mildcrowd gespeichert.", substring = true)
         screenShot("signin-passkey-missing")
         compose.onNodeWithContentDescription("Schließen").press()
         compose.waitUntil(5_000) { compose.onAllNodes(hasTestTag("status.error")).fetchSemanticsNodes().isEmpty() }

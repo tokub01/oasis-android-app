@@ -50,9 +50,9 @@ fun inviteeStatus(status: String): String = when (status) {
     else -> "Eingeladen"
 }
 
-/** „Geht auf am … in der Oase Garten · Beitragen bis …“ of an invitation. */
+/** „Geht auf am … in der Crowd Garten · Beitragen bis …“ of an invitation. */
 fun invitationLine(invitation: CapsuleInvitation): String {
-    val place = invitation.oasis?.let { "in der Oase ${it.name}" } ?: "in der Quelle von ${invitation.from.displayName}"
+    val place = invitation.oasis?.let { "in der Crowd ${it.name}" } ?: "auf dem Profil von ${invitation.from.displayName}"
     val until = invitation.contributeUntil?.let { " · Beitragen bis ${capsuleMoment(it)}" }.orEmpty()
     return "Geht auf am ${capsuleMoment(invitation.opensAt)} $place$until"
 }
@@ -75,15 +75,15 @@ internal fun SharedSealSection(
     Column(verticalArrangement = Arrangement.spacedBy(8.dp), modifier = Modifier.testTag("capsule.invitees")) {
         Text("Wer schreibt mit? (höchstens 10)", style = OasisType.SmallBold, color = OasisColors.Night)
         Text(
-            "Deine Freund:innen" + (if (draft.oasisId != null) " und die Mitglieder der Oase" else "") +
+            "Deine Freund:innen" + (if (draft.oasisId != null) " und die Mitglieder der Crowd" else "") +
                 ". Jede Person schreibt ihren eigenen Text; beim Aufgehen erscheinen die Beiträge als Antworten unter deinem " +
-                "Tropfen. Bis dahin liest sie niemand, auch du nicht.",
+                "Posts. Bis dahin liest sie niemand, auch du nicht.",
             style = OasisType.Small,
             color = OasisColors.Ink2
         )
         if (candidates.isNullOrEmpty()) {
             Text(
-                "Noch niemand zum Einladen: Freund:innen und Mitglieder deiner Oasen erscheinen hier.",
+                "Noch niemand zum Einladen: Freund:innen und Mitglieder deiner Crowds erscheinen hier.",
                 style = OasisType.Small,
                 color = OasisColors.Muted
             )
@@ -96,7 +96,7 @@ internal fun SharedSealSection(
                 Modifier.testTag("capsule.invitee.${person.username}")
             )
         }
-        fields["invitees"]?.let { Text(it, style = OasisType.Small, color = OasisColors.SunText) }
+        fields["invitees"]?.let { Text(it, style = OasisType.Small, color = OasisColors.Danger) }
         DateTimeField(
             "Beitragen bis",
             draft.contributeUntil ?: draft.opensAt.minusSeconds(3_600),
@@ -162,7 +162,7 @@ private fun InvitationCard(invitation: CapsuleInvitation, text: String, error: S
             }, style = OasisType.BodyBold)
 
             invitation.status == "failed" -> {
-                Text("Nicht erschienen: ${invitation.failedReason.orEmpty()}", style = OasisType.BodyBold, color = OasisColors.SunText)
+                Text("Nicht erschienen: ${invitation.failedReason.orEmpty()}", style = OasisType.BodyBold, color = OasisColors.Danger)
                 Text(invitation.body.orEmpty(), style = OasisType.Body, color = OasisColors.Ink2, maxLines = 2)
                 AsyncOasisButton(
                     "Beitrag entfernen",
@@ -229,12 +229,12 @@ private fun InvitationCard(invitation: CapsuleInvitation, text: String, error: S
     }
 }
 
-/** Below Oase, but invited: the way to the membership in a card, with the invitations below it. */
+/** Below Mittendrin, but invited: the way to the membership in a card, with the invitations below it. */
 @Composable
 internal fun CapsuleLockedPanel(message: String) {
     val navigator = LocalNavigator.current
     Panel(tone = PanelTone.Paper, spacing = 16) {
-        Eyebrow("Ab Oase")
+        Eyebrow("Ab Mittendrin")
         Text("Zeitkapseln", style = OasisType.display(28), color = OasisColors.Night)
         Text(message, style = OasisType.Lead, color = OasisColors.Ink2)
         OasisButton("Mitgliedschaft ansehen", { navigator.open(MembershipRoute.Overview) }, fullWidth = false)

@@ -72,8 +72,8 @@ import de.velwebsolutions.oasis.network.ui.components.rememberImagePicker
 import de.velwebsolutions.oasis.network.ui.retry
 
 /**
- * Found an oasis (/app/oasen/neu) or edit it as host (/oasen/{slug}/bearbeiten): texts, house rules, audience, colour,
- * the optional banner (stored at once when editing, with "Oase eröffnen" when founding), closing and roles.
+ * Found a crowd (/app/crowds/neu) or edit it as host (/crowds/{slug}/bearbeiten): texts, house rules, audience, colour,
+ * the optional banner (stored at once when editing, with "Crowd eröffnen" when founding), closing and roles.
  */
 @Composable
 fun OasisFormScreen(
@@ -94,14 +94,14 @@ fun OasisFormScreen(
     LaunchedEffect(Unit) { viewModel.loadIfNeeded() }
     LaunchedEffect(state.outcome) {
         val outcome = state.outcome ?: return@LaunchedEffect
-        // Back to the oasis (edited), or the new oasis in place of the form.
+        // Back to the crowd (edited), or the new crowd in place of the form.
         navigator.back()
         if (outcome is OasisFormOutcome.Open) navigator.open(NetworkRoute.Oasis(outcome.slug))
         viewModel.consumeOutcome()
     }
 
     OasisScreen(
-        title = if (editing) "Oase bearbeiten" else "Oase eröffnen",
+        title = if (editing) "Crowd bearbeiten" else "Crowd eröffnen",
         message = status,
         onDismissMessage = viewModel::dismissStatus
     ) {
@@ -115,17 +115,17 @@ fun OasisFormScreen(
             else -> NetworkPage {
                 block("header") {
                     PageHeader(
-                        if (editing) "${state.edit?.oasis?.name.orEmpty()} bearbeiten" else "Oase eröffnen",
+                        if (editing) "${state.edit?.oasis?.name.orEmpty()} bearbeiten" else "Crowd eröffnen",
                         lead = if (editing) {
                             null
                         } else {
-                            "Du wirst Gastgeber:in: Du achtest auf die Hausregeln und kannst Tropfen entfernen, die dagegen verstoßen."
+                            "Du wirst Gastgeber:in: Du achtest auf die Hausregeln und kannst Posts entfernen, die dagegen verstoßen."
                         }
                     )
                 }
                 block("form") {
                     PaperBox(spacing = 18) {
-                        // Held by the automated check: the host reads the texts, others „Oase in Prüfung“ (docs/oasis-auto-moderation.md).
+                        // Held by the automated check: the host reads the texts, others „Crowd in Prüfung“ (docs/mildcrowd-auto-moderation.md).
                         if (state.edit?.oasis?.held == true) OasisHeldNote()
                         val failure = error
                         if (failure != null && OasisFormViewModel.FIELDS.none { failure.message(it) != null }) Banner(failure.userMessage)
@@ -152,13 +152,13 @@ fun OasisFormScreen(
                             state.input.houseRules,
                             { value -> viewModel.updateInput { it.copy(houseRules = value) } },
                             error = failure?.message("house_rules"),
-                            hint = "Gelten zusätzlich zu den Community-Regeln von Oasis.",
+                            hint = "Gelten zusätzlich zu den Community-Regeln von Mildcrowd.",
                             lines = 4..10,
                             modifier = Modifier.testTag("oasisForm.rules"),
                             maxLength = 3000
                         )
                         Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                            Text("Wer darf die Oase lesen?", style = OasisType.SmallBold, color = OasisColors.Ink)
+                            Text("Wer darf die Crowd lesen?", style = OasisType.SmallBold, color = OasisColors.Ink)
                             ChoiceList(options.visibilities, state.input.visibility, { value ->
                                 viewModel.updateInput { it.copy(visibility = value) }
                             })
@@ -176,7 +176,7 @@ fun OasisFormScreen(
                         }
                         BannerSection(state, editing, failure?.message("banner"), onPick = picker.pick, onRemove = viewModel::removeBanner)
                         AsyncOasisButton(
-                            if (editing) "Speichern" else "Oase eröffnen",
+                            if (editing) "Speichern" else "Crowd eröffnen",
                             viewModel::save,
                             fullWidth = false,
                             modifier = Modifier.testTag("oasisForm.save")
@@ -184,20 +184,20 @@ fun OasisFormScreen(
                     }
                 }
                 val edit = state.edit
-                // Only an edited oasis has an edit form (and with it its slug).
+                // Only an edited crowd has an edit form (and with it its slug).
                 if (edit != null) {
                     val slug = edit.oasis.slug
                     block("close") {
                         val navigator = LocalNavigator.current
-                        PaperBox(border = OasisColors.SunText) {
-                            SectionTitle("Oase schließen")
+                        PaperBox(border = OasisColors.Danger) {
+                            SectionTitle("Crowd schließen")
                             Text(
-                                "Die Oase verschwindet für alle. Die Tropfen bleiben bei den Menschen, die sie geschrieben haben.",
+                                "Die Crowd verschwindet für alle. Die Posts bleiben bei den Menschen, die sie geschrieben haben.",
                                 style = OasisType.Body,
                                 color = OasisColors.Ink2
                             )
                             OasisButton(
-                                "Oase schließen …",
+                                "Crowd schließen …",
                                 { navigator.open(NetworkRoute.CloseOasis(slug)) },
                                 kind = OasisButtonKind.Secondary,
                                 fullWidth = false,
@@ -246,7 +246,7 @@ fun OasisFormScreen(
                             listOf(
                                 "Kurz und konkret: drei bis fünf Punkte reichen.",
                                 "Sag, was erwünscht ist – nicht nur, was verboten ist.",
-                                "Die Community-Regeln von Oasis gelten immer zusätzlich."
+                                "Die Community-Regeln von Mildcrowd gelten immer zusätzlich."
                             )
                         )
                     }
@@ -254,7 +254,7 @@ fun OasisFormScreen(
                 block("side.host") {
                     SideCard("Als Gastgeber:in", tone = PanelTone.Night) {
                         Text(
-                            "Du kannst Tropfen aus der Oase entfernen, die gegen die Hausregeln verstoßen, und weitere Gastgeber:innen " +
+                            "Du kannst Posts aus der Crowd entfernen, die gegen die Hausregeln verstoßen, und weitere Gastgeber:innen " +
                                 "ernennen. Rechtswidriges meldet ihr dem Moderationsteam."
                         )
                     }
@@ -313,7 +313,7 @@ private fun BannerSection(state: OasisFormState, editing: Boolean, error: String
     }
 }
 
-/** The four colours with their German names (Sonne, Quelle, Nacht, Düne). */
+/** The four colours with their German names (Blau, Pfirsich, Nacht, Nebel). */
 @Composable
 fun ColorChoice(
     choices: List<Choice>,
@@ -345,14 +345,14 @@ fun ColorChoice(
     }
 }
 
-/** „Region (freiwillig, für die Karte der Oasen)“: a Bundesland and, with one, a city or area – never coordinates. */
+/** „Region (freiwillig, für die Karte der Crowds)“: a Bundesland and, with one, a city or area – never coordinates. */
 @Composable
 internal fun RegionFields(regions: List<Choice>, input: OasisInput, error: String?, onChange: ((OasisInput) -> OasisInput) -> Unit) {
     Column(verticalArrangement = Arrangement.spacedBy(8.dp), modifier = Modifier.testTag("oasisForm.regionFields")) {
         Text(
             buildAnnotatedString {
                 append("Region ")
-                withStyle(SpanStyle(color = OasisColors.Muted)) { append("(freiwillig, für die Karte der Oasen)") }
+                withStyle(SpanStyle(color = OasisColors.Muted)) { append("(freiwillig, für die Karte der Crowds)") }
             },
             style = OasisType.SmallBold,
             color = OasisColors.Ink

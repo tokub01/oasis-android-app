@@ -29,7 +29,7 @@ interface MembershipService {
 
     /**
      * Hands a Google Play purchase to the server, which checks it with Google, activates the membership and acknowledges
-     * the purchase itself. Idempotent; 422 names why Oasis cannot take it over, 503 means "try again later".
+     * the purchase itself. Idempotent; 422 names why Mildcrowd cannot take it over, 503 means "try again later".
      */
     @POST("membership/google-purchases")
     suspend fun googlePurchase(@Body receipt: PlayPurchaseReceipt): Confirmed<MembershipOverview>

@@ -227,7 +227,7 @@ class KeyringAndDevicesTest {
         run { mira.devices.register() }
         assertEquals(1, server.deviceUnlocks.count { it.first == 1 })
 
-        // Published while Oasis went to the background: known as the stored identity, unlocked on return.
+        // Published while Mildcrowd went to the background: known as the stored identity, unlocked on return.
         val jonas = support.context(2, secrets = secrets)
         server.onRequest = { if (it == "PUT identity") jonas.vault.lockForBackground() }
         assertNull(run { jonas.devices.setUpWithDevice() })

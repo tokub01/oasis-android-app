@@ -57,9 +57,9 @@
    "escalated_at": "2026-10-22T15:49:00.000000Z",
    "escalated_by_name": "Kirstin Engelmann MBA.",
    "checklist": [
-    "Den Inhalt nicht öffnen, nicht herunterladen und nicht weitergeben. Der Tropfen und seine Bilder sind bereits für alle gesperrt.",
+    "Den Inhalt nicht öffnen, nicht herunterladen und nicht weitergeben. Der Post und seine Bilder sind bereits für alle gesperrt.",
     "Beweise sind gesichert (Text, Metadaten, Prüfsummen, Bilder). Herunterladen dürfen sie nur Admins, ausschließlich für eine Übergabe an die Polizei.",
-    "Anzeige bei der Polizei oder der Zentralstelle der Staatsanwaltschaft erstatten. Oasis meldet nichts selbst.",
+    "Anzeige bei der Polizei oder der Zentralstelle der Staatsanwaltschaft erstatten. Mildcrowd meldet nichts selbst.",
     "Die Meldung unten mit Datum und Aktenzeichen vermerken. Die Beweise werden nach der Frist automatisch gelöscht; bei Bedarf verlängern.",
     "Den Fall entscheiden: Inhalt entfernen und das Konto sperren. Die Quarantäne bleibt, bis ein Admin sie aufhebt."
    ],
@@ -97,7 +97,7 @@
    {
     "value": "child_abuse",
     "label": "Missbrauchsdarstellung",
-    "description": "Der Inhalt zeigt oder beschreibt sexuellen Missbrauch von Kindern oder Jugendlichen. Der Tropfen wird sofort für alle gesperrt, auch für das Team."
+    "description": "Der Inhalt zeigt oder beschreibt sexuellen Missbrauch von Kindern oder Jugendlichen. Der Post wird sofort für alle gesperrt, auch für das Team."
    }
   ],
   "evidence_days": 90,

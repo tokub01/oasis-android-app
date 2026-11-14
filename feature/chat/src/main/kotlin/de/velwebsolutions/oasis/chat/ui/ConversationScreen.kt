@@ -509,7 +509,7 @@ private fun ConversationColumn(
 
     BoxWithConstraints(Modifier.fillMaxSize().imePadding().onSizeChanged { area = (it.height / density.density).dp }) {
         // The same inset for own and others' bubbles: 12 on phones, 16 from 640, a pane's own inset beside other panes
-        // (docs/oasis-chat-client.md, „Spacing“).
+        // (docs/mildcrowd-chat-client.md, „Spacing“).
         val paneInset = LocalPaneInset.current
         val inset = timelineInset(maxWidth, paneInset)
         LazyColumn(
@@ -542,7 +542,7 @@ private fun ConversationColumn(
                         OasisButton("Nachricht melden", { onReport(flagged.item) }, kind = OasisButtonKind.Secondary, fullWidth = false)
                         SmallAction("Ist in Ordnung", onDismissFlagged, underline = true)
                         Text(
-                            "Diese Prüfung läuft nur auf deinem Gerät. Oasis liest deine Chats nicht; gemeldet wird nur, was du meldest.",
+                            "Diese Prüfung läuft nur auf deinem Gerät. Mildcrowd liest deine Chats nicht; gemeldet wird nur, was du meldest.",
                             style = OasisType.Caption,
                             color = OasisColors.Muted
                         )
@@ -633,7 +633,7 @@ private fun ConversationColumn(
                     arrived = 0
                     scope.launch { listState.animateScrollToItem(0) }
                 },
-                // 12 above the composer, 4 in from the right edge (docs/oasis-chat-client.md, „Spacing“).
+                // 12 above the composer, 4 in from the right edge (docs/mildcrowd-chat-client.md, „Spacing“).
                 modifier = Modifier.align(Alignment.BottomEnd).padding(end = 4.dp, bottom = composerSpace)
             )
         }
@@ -777,7 +777,7 @@ private fun ConversationComposer(
             Text(
                 "Ohne Zugriff aufs Mikrofon geht keine Sprachnachricht. Du kannst ihn in den Einstellungen deines Geräts erlauben.",
                 style = OasisType.Small,
-                color = OasisColors.SunText,
+                color = OasisColors.Danger,
                 modifier = Modifier.testTag("chat.composer.microphoneDenied")
             )
         }
@@ -853,7 +853,7 @@ private fun ConversationComposer(
             Text(
                 state.counter,
                 style = OasisType.Caption,
-                color = if (state.atLimit) OasisColors.SunText else OasisColors.Muted,
+                color = if (state.atLimit) OasisColors.Danger else OasisColors.Muted,
                 modifier = Modifier.padding(horizontal = 12.dp).testTag("chat.composer.counter")
             )
         }
@@ -864,7 +864,7 @@ private fun ConversationComposer(
             title = { Text("Mikrofon für Sprachnachrichten", style = OasisType.heading(19), color = OasisColors.Night) },
             text = {
                 Text(
-                    "Oasis nutzt dein Mikrofon nur, solange du eine Sprachnachricht aufnimmst. Die Aufnahme wird auf deinem Gerät verschlüsselt, bevor sie verschickt wird – lesen und hören können sie nur die Menschen in diesem Chat.",
+                    "Mildcrowd nutzt dein Mikrofon nur, solange du eine Sprachnachricht aufnimmst. Die Aufnahme wird auf deinem Gerät verschlüsselt, bevor sie verschickt wird – lesen und hören können sie nur die Menschen in diesem Chat.",
                     style = OasisType.Body,
                     color = OasisColors.Ink
                 )
@@ -944,7 +944,7 @@ private val ADD_BUTTON = 44.dp
 private val FIELD_RADIUS = 22.dp
 
 /**
- * „+“ (label „Mehr“, docs/oasis-chat-client.md, „C7 Composer“): a sheet with everything besides writing, in this order:
+ * „+“ (label „Mehr“, docs/mildcrowd-chat-client.md, „C7 Composer“): a sheet with everything besides writing, in this order:
  * „Foto oder Video“, „Datei“, „Umfrage“, „Effekt“ and the switch „Einmal ansehen“ for the files of the next message.
  */
 @OptIn(ExperimentalMaterial3Api::class)
@@ -1156,7 +1156,7 @@ private fun RoundAction(
 }
 
 /**
- * One message (docs/oasis-chat-client.md, „Chat design and gestures“): own ones right on night, others left on paper
+ * One message (docs/mildcrowd-chat-client.md, „Chat design and gestures“): own ones right on night, others left on paper
  * with their avatar at the last bubble of a run; corners and tail by the place in the run ([run]), the time inside, the
  * reactions overlapping the bottom edge. Swiping it right answers it; holding it opens the bar with the reactions,
  * „Antworten“, „Anheften“, „Melden“ and the [info] line with send time and expiry.
@@ -1273,7 +1273,7 @@ private fun BubbleColumn(
                     .background(fill, shape)
                     .then(
                         when {
-                            // On „Nachtwasser“ the own (night) bubbles get an outline, so they stand out.
+                            // On „Nacht“ the own (night) bubbles get an outline, so they stand out.
                             mine && LocalChatLook.current.dark -> Modifier.border(
                                 1.dp,
                                 LookColors.NightLine,

@@ -48,8 +48,8 @@ class ApiClientExtrasTest {
 
             override fun onUnauthenticated() = Unit
         }
-        val client = ApiClient(ApiConfig("https://get-oasis.com", "OasisApp/1.0"), tokens)
-        assertEquals("https://get-oasis.com/api/v1/auth/me", client.url("auth/me").toString())
+        val client = ApiClient(ApiConfig("https://mildcrowd.com", "OasisApp/1.0"), tokens)
+        assertEquals("https://mildcrowd.com/api/v1/auth/me", client.url("auth/me").toString())
     }
 
     @Test

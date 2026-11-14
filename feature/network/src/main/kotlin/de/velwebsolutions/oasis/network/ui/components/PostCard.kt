@@ -96,16 +96,16 @@ import de.velwebsolutions.oasis.network.ui.PostAction
 import java.time.Instant
 
 /**
- * A Tropfen card – the app's `x-network.post-card`: reply context, author line, notices for the author (held, removed
- * from the oasis), text, images, the carried Tropfen, "leise Zahlen" only for the author, the bundled conversation of
- * the Quelle, the action row and the "⋯" menu (also on a long press). Buttons a viewer may not use are not shown.
+ * A Post card – the app's `x-network.post-card`: reply context, author line, notices for the author (held, removed
+ * from the crowd), text, images, the carried Post, "leise Zahlen" only for the author, the bundled conversation of
+ * the Start, the action row and the "⋯" menu (also on a long press). Buttons a viewer may not use are not shown.
  */
 @Composable
 fun PostCard(
     post: Post,
     onAction: (PostAction, Post) -> Unit,
     modifier: Modifier = Modifier,
-    /** On the Tropfen page itself the card does not link to itself and shows the full date. */
+    /** On the Post page itself the card does not link to itself and shows the full date. */
     isDetail: Boolean = false
 ) {
     val navigator = LocalNavigator.current
@@ -144,7 +144,7 @@ fun PostCard(
                             .onSizeChanged { cardHeight = with(density) { it.height.toDp() } }
                             .pointerInput(post.id) { detectTapGestures(onLongPress = openMenuAt) }
                             .semantics {
-                                onLongClick("Aktionen zum Tropfen") {
+                                onLongClick("Aktionen zum Post") {
                                     pressedAt = DpOffset.Zero
                                     contextMenu = true
                                     true
@@ -170,14 +170,14 @@ fun PostCard(
                 ) {
                     Icon(Icons.Outlined.Groups, contentDescription = null, tint = OasisColors.Night, modifier = Modifier.size(16.dp))
                     Text(
-                        if (viewer?.isAuthor == true) "Frage an meine Karawane" else "Frage an die Karawane",
+                        if (viewer?.isAuthor == true) "Frage an meine Follower" else "Frage an die Follower",
                         style = OasisType.Caption.copy(fontWeight = FontWeight.Bold),
                         color = OasisColors.Night
                     )
                 }
             }
             if (post.removedFromOasis) {
-                Banner("Die Gastgeber:innen haben diesen Tropfen aus der Oase entfernt. Nur du siehst ihn noch.", kind = BannerKind.Info)
+                Banner("Die Gastgeber:innen haben diesen Post aus der Crowd entfernt. Nur du siehst ihn noch.", kind = BannerKind.Info)
             }
             post.held?.let { HeldNotice(it) }
             if (!post.isPlainCarry) RichTextView(post.segments)
@@ -241,7 +241,7 @@ enum class CardConfirmation(val action: PostAction, val title: String, val butto
     Block(PostAction.Block, "Wirklich blockieren?", "Blockieren bestätigen", "Ihr verliert gegenseitige Follows."),
     RemoveFromOasis(
         PostAction.RemoveFromOasis,
-        "Wirklich aus der Oase entfernen?",
+        "Wirklich aus der Crowd entfernen?",
         "Entfernen bestätigen",
         "Danach sieht ihn nur noch die Person, die ihn geschrieben hat."
     )
@@ -260,8 +260,8 @@ fun fullDate(instant: Instant): String = GermanTime.format(instant, "d. MMMM yyy
 private fun plural(count: Int, one: String, many: String) = "$count ${if (count == 1) one else many}"
 
 /**
- * The head of a plain carry instead of the author line: „**Mira Sol** hat das weitergetragen“ (the name opens the
- * profile) and the repost's „⋯“ menu; the carried Tropfen follows as the card's content.
+ * The head of a plain carry instead of the author line: „**Mira Sol** hat das geteilt“ (the name opens the
+ * profile) and the repost's „⋯“ menu; the carried Post follows as the card's content.
  */
 @Composable
 private fun CarrierLine(post: Post, run: (PostAction) -> Unit, onConfirm: (CardConfirmation) -> Unit) {
@@ -271,7 +271,7 @@ private fun CarrierLine(post: Post, run: (PostAction) -> Unit, onConfirm: (CardC
         Text(
             buildAnnotatedString {
                 withStyle(SpanStyle(fontWeight = FontWeight.Bold, color = OasisColors.Ink)) { append(post.author.displayName) }
-                append(" hat das weitergetragen")
+                append(" hat das geteilt")
             },
             style = OasisType.Small,
             color = OasisColors.Muted,
@@ -302,7 +302,7 @@ private fun ReplyContext(post: Post) {
                 .padding(vertical = 12.dp)
         )
     } else if (post.replyUnavailable) {
-        Text("Antwort auf einen Tropfen, der nicht mehr verfügbar ist", style = OasisType.Small, color = OasisColors.Muted)
+        Text("Antwort auf einen Post, der nicht mehr verfügbar ist", style = OasisType.Small, color = OasisColors.Muted)
     }
 }
 
@@ -330,9 +330,9 @@ private fun Header(post: Post, isDetail: Boolean, run: (PostAction) -> Unit, onC
 internal class MetaPart(val text: String, val tag: String? = null, val description: String? = null, val onClick: (() -> Unit)? = null)
 
 /**
- * The second line of every card header, the same in all lists (docs/oasis-network.md): „@username · Oase Name · vor
- * 2 Std.“, then „bearbeitet“ and „nur Mitglieder“ where they apply. On the Tropfen page the full date instead of the
- * relative time. Screen readers hear „@name, in Oase, vor 2 Std., bearbeitet, nur für Mitglieder“.
+ * The second line of every card header, the same in all lists (docs/mildcrowd-network.md): „@username · Crowd Name · vor
+ * 2 Std.“, then „bearbeitet“ and „nur Mitglieder“ where they apply. On the Post page the full date instead of the
+ * relative time. Screen readers hear „@name, in Crowd, vor 2 Std., bearbeitet, nur für Mitglieder“.
  */
 internal fun metaParts(post: Post, isDetail: Boolean, open: (NetworkRoute) -> Unit): List<MetaPart> = listOfNotNull(
     MetaPart("@${post.author.username}"),
@@ -341,7 +341,7 @@ internal fun metaParts(post: Post, isDetail: Boolean, open: (NetworkRoute) -> Un
         MetaPart(fullDate(post.createdAt))
     } else {
         val relative = RelativeTime.format(post.createdAt)
-        MetaPart(relative, tag = "post.open", description = "Zum Tropfen, $relative") { open(NetworkRoute.Post(post.id)) }
+        MetaPart(relative, tag = "post.open", description = "Zum Post, $relative") { open(NetworkRoute.Post(post.id)) }
     },
     MetaPart("bearbeitet").takeIf { post.editedAt != null },
     MetaPart("nur Mitglieder", description = "nur für Mitglieder").takeIf { post.isMembersOnly }
@@ -385,7 +385,7 @@ private fun PostMenu(post: Post, viewer: Post.Viewer, run: (PostAction) -> Unit,
                 .size(44.dp)
                 .clip(CircleShape)
                 .clickable(role = Role.Button) { open = true }
-                .semantics { contentDescription = "Weitere Aktionen zum Tropfen von ${post.author.displayName}" }
+                .semantics { contentDescription = "Weitere Aktionen zum Post von ${post.author.displayName}" }
                 .testTag("post.menu"),
             contentAlignment = Alignment.Center
         ) {
@@ -409,7 +409,7 @@ private fun MenuItems(
     val navigator = LocalNavigator.current
     val collections = LocalCollectionActions.current
     val entries = buildList {
-        // Sammlungen of the Tropfen's oasis: add to one, or take it out where the viewer may.
+        // Sammlungen of the Post's crowd: add to one, or take it out where the viewer may.
         val oasis = post.oasis
         if (oasis != null && post.replyTo == null && viewer.canInteract) {
             add(MenuEntry("Zu Sammlung hinzufügen …") { navigator.present(NetworkRoute.CollectPost(post.id, oasis.slug)) })
@@ -421,7 +421,7 @@ private fun MenuItems(
         }
         if (viewer.canRemoveFromOasis) {
             add(
-                MenuEntry("Aus Oase entfernen …", destructive = true) {
+                MenuEntry("Aus Crowd entfernen …", destructive = true) {
                     onConfirm(CardConfirmation.RemoveFromOasis)
                 }
             )
@@ -448,7 +448,7 @@ private fun MenuItems(
     }
     entries.forEach { entry ->
         DropdownMenuItem(
-            text = { Text(entry.title, style = OasisType.Body, color = if (entry.destructive) OasisColors.SunText else OasisColors.Ink) },
+            text = { Text(entry.title, style = OasisType.Body, color = if (entry.destructive) OasisColors.Danger else OasisColors.Ink) },
             onClick = {
                 close()
                 entry.action()
@@ -487,7 +487,7 @@ private fun ContextMenuItems(
     if (viewer.canInteract &&
         viewer.canCarry
     ) {
-        item("Weitertragen", Icons.Outlined.Repeat) { navigator.open(NetworkRoute.CarryPost(post.id, quote = viewer.canQuote)) }
+        item("Teilen", Icons.Outlined.Repeat) { navigator.open(NetworkRoute.CarryPost(post.id, quote = viewer.canQuote)) }
     }
     if (viewer.canInteract) {
         item(
@@ -503,7 +503,7 @@ private fun ContextMenuItems(
     ) {
         run(if (viewer.bookmarked) PostAction.Unbookmark else PostAction.Bookmark)
     }
-    item("Teilen", Icons.Outlined.Share) { share(context, post.url) }
+    item("Link teilen", Icons.Outlined.Share) { share(context, post.url) }
     HorizontalDivider(color = OasisColors.PaperLine)
     MenuItems(post, viewer, run, close, onConfirm)
 }
@@ -523,7 +523,7 @@ private fun ActionRow(post: Post, viewer: Post.Viewer, run: (PostAction) -> Unit
                 )
             }
             if (viewer.canCarry) {
-                ActionTile("Weitertragen", Icons.Outlined.Repeat, OasisColors.Night, "post.action.Weitertragen") {
+                ActionTile("Teilen", Icons.Outlined.Repeat, OasisColors.Night, "post.action.Weitertragen") {
                     navigator.open(NetworkRoute.CarryPost(post.id, quote = viewer.canQuote))
                 }
             }
@@ -541,7 +541,7 @@ private fun ActionRow(post: Post, viewer: Post.Viewer, run: (PostAction) -> Unit
             if (viewer.bookmarked) OasisColors.SpringText else OasisColors.Night,
             "post.bookmark",
             isOn = viewer.bookmarked,
-            label = if (viewer.bookmarked) "Aus Merkliste entfernen" else "Tropfen merken"
+            label = if (viewer.bookmarked) "Aus Merkliste entfernen" else "Post merken"
         ) { run(if (viewer.bookmarked) PostAction.Unbookmark else PostAction.Bookmark) }
     }
 }
@@ -621,8 +621,8 @@ private fun Stats(post: Post) {
 }
 
 /**
- * "Zurückgehalten und dem Moderationsteam gemeldet" for the author of a held Tropfen. Holding never locks the account
- * (a lock is always a human decision), so the notice speaks only about the Tropfen.
+ * "Zurückgehalten und dem Moderationsteam gemeldet" for the author of a held Post. Holding never locks the account
+ * (a lock is always a human decision), so the notice speaks only about the Post.
  */
 @Composable
 private fun HeldNotice(held: Post.Held) {
@@ -637,7 +637,7 @@ private fun HeldNotice(held: Post.Held) {
     ) {
         Text("Zurückgehalten und dem Moderationsteam gemeldet", style = OasisType.SmallBold, color = OasisColors.Night)
         Text(
-            "Unsere automatische Prüfung hat in diesem Tropfen möglicherweise ${held.reason} erkannt. Bis ein Mensch aus dem " +
+            "Unsere automatische Prüfung hat in diesem Post möglicherweise ${held.reason} erkannt. Bis ein Mensch aus dem " +
                 "Moderationsteam ihn geprüft hat, siehst nur du ihn – in der Regel innerhalb von ${held.reviewHours} Stunden.",
             style = OasisType.Small,
             color = OasisColors.Ink
@@ -665,8 +665,8 @@ private fun PostImages(post: Post) {
 }
 
 /**
- * Images of a Tropfen in one or two columns (the cards, the Jahrbuch); covered ones load only after "Bild anzeigen". A
- * tap opens the image full screen. [key] keeps the uncovered images per Tropfen.
+ * Images of a Post in one or two columns (the cards, the Jahrbuch); covered ones load only after "Bild anzeigen". A
+ * tap opens the image full screen. [key] keeps the uncovered images per Post.
  */
 @Composable
 fun ImageGrid(images: List<Post.Image>, key: Int) {
@@ -727,16 +727,16 @@ private fun CoveredImage(image: Post.Image, modifier: Modifier, reveal: () -> Un
     }
 }
 
-/** The carried Tropfen, or its placeholder. */
+/** The carried Post, or its placeholder. */
 @Composable
 private fun CarriedView(carried: Post.Carried) {
     when (carried.state) {
         Post.Carried.State.Muted -> DashedNote {
-            Text("Tropfen einer stummgeschalteten Person.", style = OasisType.Small, color = OasisColors.Muted)
+            Text("Post einer stummgeschalteten Person.", style = OasisType.Small, color = OasisColors.Muted)
         }
 
         Post.Carried.State.Unavailable -> DashedNote {
-            Text("Dieser Tropfen ist nicht mehr verfügbar.", style = OasisType.Small, color = OasisColors.Muted)
+            Text("Dieser Post ist nicht mehr verfügbar.", style = OasisType.Small, color = OasisColors.Muted)
         }
 
         // Visible: the original, when the server sent it.
@@ -745,7 +745,7 @@ private fun CarriedView(carried: Post.Carried) {
 }
 
 /**
- * A carried Tropfen in its box: author and text – in a card shortened and linking to the original, on the carry page in
+ * A carried Post in its box: author and text – in a card shortened and linking to the original, on the carry page in
  * full.
  */
 @Composable
@@ -775,7 +775,7 @@ fun CarriedOriginal(author: Member, segments: List<TextSegment>, postId: Int? = 
     }
 }
 
-/** The short conversation under a Quelle card. */
+/** The short conversation under a Start card. */
 @Composable
 private fun ConversationView(post: Post, conversation: Post.Conversation) {
     val navigator = LocalNavigator.current
@@ -830,13 +830,13 @@ private fun ConversationView(post: Post, conversation: Post.Conversation) {
     }
 }
 
-/** The colour dot of an oasis next to its name (side card "In der Oase"). */
+/** The colour dot of a crowd next to its name (side card "In der Crowd"). */
 @Composable
 fun OasisDot(color: String, modifier: Modifier = Modifier) {
     Box(modifier.size(40.dp).background(AvatarTint.surface(color), CircleShape))
 }
 
-/** „In Sammlung: Rezepte, Tipps“ – each opens its collection in the oasis. */
+/** „In Sammlung: Rezepte, Tipps“ – each opens its collection in the crowd. */
 @OptIn(ExperimentalLayoutApi::class)
 @Composable
 internal fun PostCollections(slug: String, collections: List<Post.CollectionRef>) {

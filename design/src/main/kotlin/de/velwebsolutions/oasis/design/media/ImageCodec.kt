@@ -13,7 +13,7 @@ import kotlin.math.min
 import kotlin.math.roundToInt
 
 /**
- * Decoding, scaling and JPEG encoding of photos, shared by the uploads of Tropfen, profiles and oases (the network's
+ * Decoding, scaling and JPEG encoding of photos, shared by the uploads of Posts, profiles and crowds (the network's
  * `ImageConverter`) and the photos of the encrypted chat. Re-encoding applies the EXIF orientation, drops the camera
  * data and lays transparent images onto white (JPEG has no transparency: it would turn them black); previews stand
  * upright like the photo as well.

@@ -598,7 +598,7 @@ class AttachmentUiTest {
         assertTrue(calls.containsAll(listOf("launch OpenDocument", "file content://oasis.test/rechnung", "load 9")))
     }
 
-    /** A lifecycle the test moves, like leaving Oasis for another app and coming back. */
+    /** A lifecycle the test moves, like leaving Mildcrowd for another app and coming back. */
     private class TestLifecycle : androidx.lifecycle.LifecycleOwner {
         val registry = androidx.lifecycle.LifecycleRegistry(this).apply { currentState = androidx.lifecycle.Lifecycle.State.RESUMED }
         override val lifecycle: androidx.lifecycle.Lifecycle get() = registry

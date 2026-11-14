@@ -280,7 +280,7 @@ data class SafetyLists(
 /** The three lists of Blockiert & stumm and their endpoints. */
 enum class SafetyList(val path: String) { Blocks("blocks"), Mutes("mutes"), Restrictions("restrictions") }
 
-/** `review_hours` is config('oasis.moderation.review_hours') = 48; the fallback says the same. */
+/** `review_hours` is config('mildcrowd.moderation.review_hours') = 48; the fallback says the same. */
 @Serializable
 data class ReportForm(val url: String, val categories: List<PrivacyChoice>, val reviewHours: Int = 48)
 
@@ -316,7 +316,7 @@ data class WelcomeTour(
     val oases: List<StarterOasis> = emptyList(),
     /** The chosen colour of the initials; null: „Automatisch“. */
     val avatarColorChoice: String? = null,
-    /** Whether [oases] were picked by people (`oasis.starter_oases`), or are the largest oases in order. */
+    /** Whether [oases] were picked by people (`oasis.starter_oases`), or are the largest crowds in order. */
     val oasesHandPicked: Boolean = false
 )
 
@@ -330,7 +330,7 @@ data class GlossaryTerm(val term: String, val slug: String, val explanation: Str
 
 // Was ist neu (GET /api/v1/releases, public).
 
-/** Every version of Oasis, newest first; [current] is the newest, [about] tells how Oasis is built (with AI). */
+/** Every version of Mildcrowd, newest first; [current] is the newest, [about] tells how Mildcrowd is built (with AI). */
 @Serializable
 data class ReleaseList(val current: String, val about: String = "", val data: List<Release> = emptyList())
 

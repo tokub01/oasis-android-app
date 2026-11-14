@@ -20,7 +20,7 @@ import com.google.android.gms.auth.api.phone.SmsRetriever
 import com.google.android.gms.common.api.CommonStatusCodes
 import com.google.android.gms.common.api.Status
 
-/** The six digits of a code SMS („Dein Oasis-Anmeldecode: 123 456. …“), without the space; null if there are none. */
+/** The six digits of a code SMS („Dein Mildcrowd-Anmeldecode: 123 456. …“), without the space; null if there are none. */
 fun oneTimeCode(message: String): String? = SixDigits.find(message)?.groupValues?.let { it[1] + it[2] }
 
 private val SixDigits = Regex("""(?<!\d)(\d{3}) ?(\d{3})(?!\d)""")
@@ -66,7 +66,7 @@ internal fun sharedCode(result: ActivityResult): String? =
 val LocalSmsConsentStarter = staticCompositionLocalOf<SmsConsentStarter> { PlayServicesSmsConsent }
 
 /**
- * While [active], waits for the SMS with the code: the system asks the member whether Oasis may read that one SMS, and
+ * While [active], waits for the SMS with the code: the system asks the member whether Mildcrowd may read that one SMS, and
  * its code goes to [onCode]. Typing the code by hand always works as well.
  */
 @Composable

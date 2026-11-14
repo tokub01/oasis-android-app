@@ -19,7 +19,7 @@ import kotlin.math.hypot
 import kotlin.math.min
 
 /**
- * How the conversation is laid out (docs/oasis-chat-client.md, „Chat design and gestures“; the web's
+ * How the conversation is laid out (docs/mildcrowd-chat-client.md, „Chat design and gestures“; the web's
  * timeline-layout.js): runs of one sender, day separators, the „Neue Nachrichten“ divider, times and the list's last
  * activity. Pure functions, the same rules as the web and iOS.
  */
@@ -189,7 +189,7 @@ private const val PREVIEW_LENGTH = 80
 internal const val ENCRYPTED_PREVIEW = "Verschlüsselte Nachricht"
 
 /**
- * The thresholds of the swipes (docs/oasis-chat-client.md, „Gestures“), in dp: a swipe counts once it moved [SLOP] and
+ * The thresholds of the swipes (docs/mildcrowd-chat-client.md, „Gestures“), in dp: a swipe counts once it moved [SLOP] and
  * is horizontal-dominant; anything else stays a vertical scroll.
  */
 internal object ChatSwipe {
@@ -437,7 +437,7 @@ internal fun keyNotices(conversation: ChatConversation, directory: ChatKeyring.D
 }
 
 /**
- * The swipe hint of one chat on this device (docs/oasis-chat-client.md, „C8 Swipe hint once“): shown in the first three
+ * The swipe hint of one chat on this device (docs/mildcrowd-chat-client.md, „C8 Swipe hint once“): shown in the first three
  * chats with a message of someone else, gone for good after „Verstanden“ or the first swipe to answer.
  */
 internal class SwipeHintTracker(private val preferences: ChatPreferences, private val conversationId: String) {

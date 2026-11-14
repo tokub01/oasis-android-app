@@ -4,7 +4,7 @@ import de.velwebsolutions.oasis.core.network.OasisInstant
 import kotlinx.serialization.Serializable
 
 /**
- * A meetup of an oasis (docs/oasis-network.md, „Treffen“), for its members only: when and where, whether it was
+ * A meetup of a crowd (docs/mildcrowd-network.md, „Treffen“), for its members only: when and where, whether it was
  * cancelled or is over, the answers („Ich komme“, „Vielleicht“, „Nein“) with who gave them, and what the viewer may do.
  */
 @Serializable
@@ -41,7 +41,7 @@ data class Meetup(
     }
 }
 
-/** The meetups of an oasis: who may create one, the coming ones (soonest first) and the last five past ones. */
+/** The meetups of a crowd: who may create one, the coming ones (soonest first) and the last five past ones. */
 @Serializable
 data class OasisMeetups(
     val canCreate: Boolean = false,

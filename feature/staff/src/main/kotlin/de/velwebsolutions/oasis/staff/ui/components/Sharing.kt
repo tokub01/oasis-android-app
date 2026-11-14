@@ -38,7 +38,7 @@ object Sharing {
 
     /**
      * Opens [file] read-only in another app (ACTION_VIEW with its MIME type) – reported files are never shown inside
-     * Oasis. False when no app on the device opens this type.
+     * Mildcrowd. False when no app on the device opens this type.
      */
     fun openFile(context: Context, file: File, mimeType: String): Boolean {
         val uri = FileProvider.getUriForFile(context, "${context.packageName}.staff.files", file)

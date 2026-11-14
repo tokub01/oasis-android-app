@@ -82,7 +82,7 @@ data class MessageEnvelope(
     val nonce: String,
     val ciphertext: String,
     val signature: String,
-    /** ISO 8601 UTC, whole seconds (e.g. `2026-10-18T12:00:00Z`); always present for Oasis messages. */
+    /** ISO 8601 UTC, whole seconds (e.g. `2026-10-18T12:00:00Z`); always present for Mildcrowd messages. */
     @SerialName("expires_at") val expiresAt: String? = null
 ) {
     /** The JSON object as the browser sends it: every key in order, `expires_at` as `null` when absent. */

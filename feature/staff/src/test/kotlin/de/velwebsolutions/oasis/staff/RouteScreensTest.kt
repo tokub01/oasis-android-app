@@ -121,7 +121,7 @@ class RouteScreensTest {
         route = StaffRoute.AdminIdeas
         compose.onNodeWithText("Dunkler Modus für die App").assertExists()
         route = StaffRoute.AdminPayments
-        compose.onNodeWithText("Belege in Oasis", substring = true).assertExists()
+        compose.onNodeWithText("Belege in Mildcrowd", substring = true).assertExists()
         route = StaffRoute.AdminBreaches
         compose.onNodeWithText("Neue Datenpanne erfassen").assertExists()
         route = StaffRoute.AdminSystem

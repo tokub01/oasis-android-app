@@ -83,7 +83,7 @@ object GermanDate {
 
 /** A page of the website (`/agb`, `/hilfe` …) on the server the app talks to. */
 @Composable
-fun webUrl(path: String): String = LocalApiClient.current?.absoluteUrl("/$path")?.toString() ?: "https://get-oasis.com/$path"
+fun webUrl(path: String): String = LocalApiClient.current?.absoluteUrl("/$path")?.toString() ?: "https://mildcrowd.com/$path"
 
 /** The scrolling page of an account screen: 20 padding, at most 720 wide. */
 @Composable
@@ -245,7 +245,7 @@ fun ConfirmDialog(question: String, confirm: String, onConfirm: () -> Unit, onDi
             OasisTextButton(confirm, {
                 onDismiss()
                 onConfirm()
-            }, color = OasisColors.SunText)
+            }, color = OasisColors.Danger)
         },
         dismissButton = { OasisTextButton("Abbrechen", onDismiss) },
         containerColor = OasisColors.Paper
@@ -268,7 +268,7 @@ internal fun writeFile(resolver: ContentResolver, uri: Uri, bytes: ByteArray): B
 /**
  * „Daten herunterladen“ (the web's direct download of `oasis-daten.zip`): fetches the ZIP, then lets the member save it
  * where they like (the system's file picker). Used in Einstellungen and on the lock screen. The ZIP can be large
- * (Tropfen with their images), so it is written off the main thread.
+ * (Posts with their images), so it is written off the main thread.
  */
 @Composable
 fun DataExportButton(download: suspend () -> ByteArray, failed: (String) -> Unit) {

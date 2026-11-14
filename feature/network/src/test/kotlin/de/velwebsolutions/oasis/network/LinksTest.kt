@@ -12,7 +12,7 @@ import org.junit.Assert.assertEquals
 import org.junit.Assert.assertNull
 import org.junit.Test
 
-/** Links in a Tropfen: which segments link where, and which links open inside the app (iOS `NetworkLinkHandler`). */
+/** Links in a Post: which segments link where, and which links open inside the app (iOS `NetworkLinkHandler`). */
 class LinksTest {
     private val base = "http://localhost".toHttpUrl()
 
@@ -39,7 +39,7 @@ class LinksTest {
     }
 
     @Test
-    fun `Oasis pages open in the app, closing a sheet first, everything else in the browser`() {
+    fun `Mildcrowd pages open in the app, closing a sheet first, everything else in the browser`() {
         val web = mutableListOf<String>()
         val navigator = Navigator().apply { openWeb = { web += it } }
         openNetworkLink("https://example.org/a", navigator, base)
@@ -59,7 +59,7 @@ class LinksTest {
 /** Colours on night surfaces are solid (the app is always light; no see-through white on Night). */
 class SurfaceColorsTest {
     @Test
-    fun `the soft circle of a night oasis is the solid night line`() {
+    fun `the soft circle of a night crowd is the solid night line`() {
         assertEquals(
             de.velwebsolutions.oasis.design.theme.OasisColors.NightLine,
             de.velwebsolutions.oasis.network.ui.oases.softCircle("night")

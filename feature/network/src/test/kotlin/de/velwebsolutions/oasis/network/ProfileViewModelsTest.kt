@@ -144,7 +144,7 @@ class ProfileViewModelsTest(private val answersAtOnce: Boolean) {
     }
 
     @Test
-    fun `Tropfen whose load was cancelled with the profile load again with it`() = runTest {
+    fun `Posts whose load was cancelled with the profile load again with it`() = runTest {
         val asked = CompletableDeferred<Unit>()
         val gate = CompletableDeferred<Unit>()
         val network = profileNetwork(stub("GET", "network/profiles/jonas/posts", pageJson(postJson(5))))
@@ -156,7 +156,7 @@ class ProfileViewModelsTest(private val answersAtOnce: Boolean) {
             }
         }
         val model = models.keep(ProfileViewModel("jonas", slow))
-        // A rotation while the profile's Tropfen load cancels the screen's coroutine.
+        // A rotation while the profile's Posts load cancels the screen's coroutine.
         val screen = launch { model.loadIfNeeded() }
         asked.await()
         screen.cancelAndJoin()

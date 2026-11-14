@@ -15,12 +15,8 @@ import de.velwebsolutions.oasis.design.R
 private fun variable(resource: Int, weight: Int) =
     Font(resource, FontWeight(weight), variationSettings = FontVariation.Settings(FontVariation.weight(weight)))
 
-/** Fraunces for headings (bundled variable font, OFL). */
-val Fraunces = FontFamily(
-    variable(R.font.fraunces, 400),
-    variable(R.font.fraunces, 600),
-    variable(R.font.fraunces, 700)
-)
+/** Bricolage Grotesque Bold for headings and the word mark (one bundled static cut, optical size 30, OFL). */
+val BricolageGrotesque = FontFamily(Font(R.font.bricolage_grotesque_bold, FontWeight.Bold))
 
 /** Manrope for everything else (bundled variable font, OFL). */
 val Manrope = FontFamily(
@@ -38,8 +34,8 @@ val Manrope = FontFamily(
 object OasisType {
     /** Large display heading (screen titles in content, empty states). */
     fun display(size: Int = 30) = TextStyle(
-        fontFamily = Fraunces,
-        fontWeight = FontWeight.SemiBold,
+        fontFamily = BricolageGrotesque,
+        fontWeight = FontWeight.Bold,
         fontSize = size.sp,
         lineHeight = (
             size *
@@ -49,8 +45,8 @@ object OasisType {
 
     /** Section and card headings. */
     fun heading(size: Int = 21) = TextStyle(
-        fontFamily = Fraunces,
-        fontWeight = FontWeight.SemiBold,
+        fontFamily = BricolageGrotesque,
+        fontWeight = FontWeight.Bold,
         fontSize = size.sp,
         lineHeight = (
             size *

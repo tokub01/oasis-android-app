@@ -57,7 +57,7 @@ fun meetupWhen(instant: Instant): String = GermanTime.format(instant, "EEEE, d. 
 fun meetupCounts(counts: Meetup.Counts): String =
     "${counts.yes} ${if (counts.yes == 1) "kommt" else "kommen"} · ${counts.maybe} vielleicht · ${counts.no} nicht"
 
-/** What the oasis page can do with its meetups and Willkommenspaten. */
+/** What the crowd page can do with its meetups and Willkommenspaten. */
 class OasisMeetupActions(
     val onOpenForm: (Meetup?) -> Unit,
     val onEditForm: ((MeetupForm) -> MeetupForm) -> Unit,
@@ -73,7 +73,7 @@ class OasisMeetupActions(
     }
 }
 
-/** The meetup part of the oasis page: the list and its form, for members only. */
+/** The meetup part of the crowd page: the list and its form, for members only. */
 class OasisMeetupsUi(val meetups: OasisMeetups?, val form: MeetupForm?, val actions: OasisMeetupActions) {
     companion object {
         val None = OasisMeetupsUi(null, null, OasisMeetupActions.None)
@@ -145,7 +145,7 @@ internal fun MeetupCard(meetup: Meetup, actions: OasisMeetupActions) {
         Text(
             meetupWhen(meetup.startsAt) + state,
             style = OasisType.SmallBold,
-            color = if (meetup.cancelled) OasisColors.SunText else OasisColors.Ink2
+            color = if (meetup.cancelled) OasisColors.Danger else OasisColors.Ink2
         )
         Text(
             meetup.title,
@@ -270,7 +270,7 @@ internal fun MeetupFormView(form: MeetupForm, actions: OasisMeetupActions) {
         // A refusal without a field (no right any more, the server failed) stands under the form.
         form.error?.takeIf {
             it !is ApiError.Validation
-        }?.let { Text(it.userMessage, style = OasisType.Small, color = OasisColors.SunText) }
+        }?.let { Text(it.userMessage, style = OasisType.Small, color = OasisColors.Danger) }
         ButtonFlow {
             AsyncOasisButton(
                 if (creating) "Treffen anlegen" else "Änderung speichern",

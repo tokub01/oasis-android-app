@@ -104,7 +104,7 @@ class PostListModelTest(private val answersAtOnce: Boolean) {
     }
 
     @Test
-    fun `the Merkliste drops a Tropfen only once the server confirmed`() = runTest {
+    fun `the Merkliste drops a Post only once the server confirmed`() = runTest {
         val network = StubbedNetwork(
             stub("GET", "network/bookmarks", pageJson(postJson(2), postJson(1))),
             stub("DELETE", "network/posts/2/bookmark", """{"message":"Kaputt."}""", 500)
@@ -158,7 +158,7 @@ class PostListModelTest(private val answersAtOnce: Boolean) {
     }
 
     @Test
-    fun `puts a published Tropfen on top once`() = runTest {
+    fun `puts a published Post on top once`() = runTest {
         val network = StubbedNetwork(stub("GET", "network/discover", pageJson(postJson(2), postJson(1), context = """{"oases":[]}""")))
         val model = PostListModel<DiscoverContext>(network.repository) { _, cursor -> discover(cursor) }
         model.reload()
@@ -204,7 +204,7 @@ class PostListModelTest(private val answersAtOnce: Boolean) {
     }
 
     @Test
-    fun `older Tropfen load only when there are more and show a failure to retry`() = runTest {
+    fun `older Posts load only when there are more and show a failure to retry`() = runTest {
         val network = StubbedNetwork(stub("GET", "network/bookmarks", pageJson(postJson(3), next = "abc")))
         val model = bookmarks(network)
         model.loadMore()
@@ -284,7 +284,7 @@ class PostListModelTest(private val answersAtOnce: Boolean) {
     }
 
     @Test
-    fun `older Tropfen wait while the first page loads again`() = runTest {
+    fun `older Posts wait while the first page loads again`() = runTest {
         val gate = CompletableDeferred<Unit>()
         var calls = 0
         val network = StubbedNetwork(stub("GET", "network/bookmarks", pageJson(postJson(3), next = "abc")))
@@ -298,7 +298,7 @@ class PostListModelTest(private val answersAtOnce: Boolean) {
         model.reload()
         val reloading = launch { model.reload() }
         runCurrent()
-        // The last card of the dimmed list appears: its older Tropfen would belong to the list that goes.
+        // The last card of the dimmed list appears: its older Posts would belong to the list that goes.
         model.loadMore()
         assertEquals(2, calls)
         assertFalse(model.state.value.isLoadingMore)
@@ -311,7 +311,7 @@ class PostListModelTest(private val answersAtOnce: Boolean) {
     }
 
     @Test
-    fun `older Tropfen that come after a reload are dropped with their error`() = runTest {
+    fun `older Posts that come after a reload are dropped with their error`() = runTest {
         val gate = CompletableDeferred<Unit>()
         val network = StubbedNetwork(stub("GET", "network/bookmarks", pageJson(postJson(5), postJson(4), next = "alt")))
         val slow = object : NetworkRepository by network.repository {
@@ -340,7 +340,7 @@ class PostListModelTest(private val answersAtOnce: Boolean) {
     }
 
     @Test
-    fun `a page forgotten while older Tropfen load ignores them, and status and error can be dismissed`() = runTest {
+    fun `a page forgotten while older Posts load ignores them, and status and error can be dismissed`() = runTest {
         var gate = CompletableDeferred<Unit>().apply { complete(Unit) }
         val network = StubbedNetwork(
             stub("GET", "network/bookmarks", pageJson(postJson(3), next = "abc")),

@@ -3,7 +3,7 @@ package de.velwebsolutions.oasis.design.navigation
 import java.net.URI
 import java.net.URLDecoder
 
-/** What an incoming link (an App Link from a mail, a push tap, `oasis://`) asks the app to do. */
+/** What an incoming link (an App Link from a mail, a push tap, `mildcrowd://`) asks the app to do. */
 sealed interface IncomingLink {
     /** A screen of the app. */
     data class Screen(val route: AppRoute) : IncomingLink
@@ -22,37 +22,37 @@ sealed interface IncomingLink {
 }
 
 /**
- * Maps Oasis web URLs (the same links used in mails, push payloads and shared posts) to app routes, so a link to
- * get-oasis.com opens the matching screen. Unknown paths return null ([route]); [incoming] opens them in the browser,
- * or on the Quelle when they belong to the app.
+ * Maps Mildcrowd web URLs (the same links used in mails, push payloads and shared posts) to app routes, so a link to
+ * mildcrowd.com opens the matching screen. Unknown paths return null ([route]); [incoming] opens them in the browser,
+ * or on the Start when they belong to the app.
  */
 object DeepLink {
     /**
      * The host of this build's server (set once at start from its base URL). A web link to any other host never opens a
-     * screen or an account link of the app – a hint, push or post could otherwise dress up a foreign page as Oasis'.
+     * screen or an account link of the app – a hint, push or post could otherwise dress up a foreign page as Mildcrowd'.
      * Null (tests, previews) checks no host.
      */
     @Volatile
     var ownHost: String? = null
 
-    /** Whether [uri] is `oasis://` or a web link of [ownHost]. */
-    private fun isOwn(uri: URI): Boolean = uri.scheme == "oasis" || ownHost.let { it == null || uri.host.equals(it, ignoreCase = true) }
+    /** Whether [uri] is `mildcrowd://` or a web link of [ownHost]. */
+    private fun isOwn(uri: URI): Boolean = uri.scheme == "mildcrowd" || ownHost.let { it == null || uri.host.equals(it, ignoreCase = true) }
 
     /** Paths inside the app's App Links that stay in the browser (app/Support/Security/AppLinks.php, EXCLUDED). */
     private val BrowserOnly = listOf("/app/chat/api/", "/app/mitgliedschaft/rechnungen/", "/app/konto/export")
 
     /**
-     * What the app does with an incoming [url]: a screen, an account link, or the browser. An `oasis://` link or a page
-     * of the app area (`/app/…`) without a screen of its own opens the Quelle, like iOS: handed to the browser it would
+     * What the app does with an incoming [url]: a screen, an account link, or the browser. An `mildcrowd://` link or a page
+     * of the app area (`/app/…`) without a screen of its own opens the Start, like iOS: handed to the browser it would
      * come straight back and open the browser again, without end – the app is the only handler of its scheme, and its
      * verified App Links take every page of the app area.
      */
     fun incoming(url: String): IncomingLink {
         val uri = runCatching { URI(url) }.getOrNull()?.takeIf(::isOwn) ?: return IncomingLink.Browser(url)
         val path = uri.rawPath ?: ""
-        if (uri.scheme != "oasis" && BrowserOnly.any { path.startsWith(it) }) return IncomingLink.Browser(url)
-        val appScheme = uri.scheme == "oasis"
-        // `oasis://email/bestaetigen/…` (the website's "In der App öffnen") carries the first segment as host.
+        if (uri.scheme != "mildcrowd" && BrowserOnly.any { path.startsWith(it) }) return IncomingLink.Browser(url)
+        val appScheme = uri.scheme == "mildcrowd"
+        // `mildcrowd://email/bestaetigen/…` (the website's "In der App öffnen") carries the first segment as host.
         val parts =
             (if (appScheme) listOfNotNull(uri.host) else emptyList()) + path.split("/").filter { it.isNotEmpty() }.map { decode(it) }
         val query = query(uri)
@@ -63,7 +63,7 @@ object DeepLink {
                 if (expires == null || signature == null) null else IncomingLink.VerifyEmail(parts[2], parts[3], expires, signature)
             }
 
-            // A reset token never comes over `oasis://`: any app could claim the scheme, so the website keeps it.
+            // A reset token never comes over `mildcrowd://`: any app could claim the scheme, so the website keeps it.
             !appScheme && parts.size == 2 && parts[0] == "passwort-zuruecksetzen" -> IncomingLink.ResetPassword(
                 parts[1],
                 query["email"].orEmpty(),
@@ -85,8 +85,8 @@ object DeepLink {
 
     fun route(url: String): AppRoute? {
         val uri = runCatching { URI(url) }.getOrNull()?.takeIf(::isOwn) ?: return null
-        // App URLs (`oasis://mitgliedschaft?checkout=…` after a payment) carry the first path segment as host.
-        val appHost = if (uri.scheme == "oasis") listOfNotNull(uri.host) else emptyList()
+        // App URLs (`mildcrowd://mitgliedschaft?checkout=…` after a payment) carry the first path segment as host.
+        val appHost = if (uri.scheme == "mildcrowd") listOfNotNull(uri.host) else emptyList()
         val parts = appHost + (uri.rawPath ?: "").split("/").filter { it.isNotEmpty() }.map { decode(it) }
         val query = query(uri)
 
@@ -110,17 +110,18 @@ object DeepLink {
         }
 
         val third = parts.getOrNull(2)
+        // Posts and crowds answer to their addresses from before the rename too (/tropfen/…, /oasen/…, …/weitertragen).
         return when (parts[0]) {
-            "tropfen" -> {
+            "posts", "tropfen" -> {
                 val id = parts[1].toIntOrNull() ?: return null
                 when (third) {
                     "bearbeiten" -> NetworkRoute.EditPost(id)
-                    "weitertragen" -> NetworkRoute.CarryPost(id)
+                    "teilen", "weitertragen" -> NetworkRoute.CarryPost(id)
                     else -> NetworkRoute.Post(id)
                 }
             }
 
-            "oasen" -> when (third) {
+            "crowds", "oasen" -> when (third) {
                 "bearbeiten" -> NetworkRoute.EditOasis(parts[1])
 
                 "schliessen" -> NetworkRoute.CloseOasis(parts[1])
@@ -194,7 +195,7 @@ object DeepLink {
 
         "freunde" -> NetworkRoute.Friends
 
-        "oasen" -> when (rest.firstOrNull()) {
+        "crowds", "oasen" -> when (rest.firstOrNull()) {
             "neu" -> NetworkRoute.CreateOasis
             "karte" -> NetworkRoute.OasisMap(query["region"]?.takeIf { it.isNotEmpty() })
             else -> NetworkRoute.Oases

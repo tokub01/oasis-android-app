@@ -70,7 +70,7 @@ class MembershipScreensTest {
         show { OverviewContent(OverviewUiState(Loadable.Loaded(Fixtures.overview(Fixtures.noMembershipOverview))), onRefresh = {}) }
         compose.onNodeWithText("Noch keine Mitgliedschaft").assertIsDisplayed()
         compose.onNodeWithText(
-            "Oasis ist werbefrei und wird von den Mitgliedern getragen, deshalb gibt es keinen kostenlosen Zugang. Wähle deinen " +
+            "Mildcrowd ist werbefrei und wird von den Mitgliedern getragen, deshalb gibt es keinen kostenlosen Zugang. Wähle deinen " +
                 "Beitrag, dann geht es los. Bis dahin kannst du in den Einstellungen deine Daten herunterladen oder dein Konto löschen."
         ).assertIsDisplayed()
         compose.onNodeWithTag("membership.choose").performScrollTo().performClick()
@@ -192,7 +192,7 @@ class MembershipScreensTest {
         }
         compose.onNodeWithTag("membership.tierChange").performScrollTo().assertIsDisplayed()
         compose.onNodeWithText(
-            "Derzeit: Stufe „Oase“. Die neue Stufe gilt ab sofort, der neue Beitrag ab deiner nächsten Abbuchung am 18.11.2026. " +
+            "Derzeit: Stufe „Mittendrin“. Die neue Stufe gilt ab sofort, der neue Beitrag ab deiner nächsten Abbuchung am 18.11.2026. " +
                 "Wechselst du in eine kleinere Stufe, bleibt Bestehendes erhalten; Neues richtet sich nach der neuen Stufe (AGB § 5)."
         ).assertIsDisplayed()
         compose.onNodeWithText("Mäzen – ab 12\u00A0€ monatlich").assertIsDisplayed()
@@ -280,7 +280,7 @@ class MembershipScreensTest {
                 onRestore = {}
             )
         }
-        compose.onNodeWithText("Bleib in der Oase.").assertIsDisplayed()
+        compose.onNodeWithText("Bleib in der Mildcrowd.").assertIsDisplayed()
         compose.onNodeWithTag("checkout.price.oase").performScrollTo().assertIsDisplayed()
         compose.onNodeWithTag("checkout.subscribe.oase").performScrollTo().performClick()
         compose.waitForIdle()
@@ -309,7 +309,7 @@ class MembershipScreensTest {
         navigator.open(MembershipRoute.Overview)
         navigator.open(MembershipRoute.Cancel)
         var confirmed = 0
-        val details = CancellationDetails("Oase", "Mia Mitglied", "memsub@example.test", Instant.parse("2026-11-18T15:39:37Z"))
+        val details = CancellationDetails("Mittendrin", "Mia Mitglied", "memsub@example.test", Instant.parse("2026-11-18T15:39:37Z"))
         show { CancelContent(ContractUiState(Loadable.Loaded(details)), onRetry = {}, onConfirm = { confirmed++ }, onExport = {}) }
         compose.onNodeWithText("Ordentlich zum Ende der Abrechnungsperiode").performScrollTo().assertIsDisplayed()
         compose.onNodeWithText("Mia Mitglied").performScrollTo().assertIsDisplayed()

@@ -11,7 +11,7 @@ import kotlinx.coroutines.flow.asStateFlow
 
 /**
  * The Ruhemodus as the server last named it (`live/counts`, the hint settings and their changes): one state for the
- * calm banner on every screen and for Hinweise einstellen (docs/oasis-notifications.md, „Ruhemodus“).
+ * calm banner on every screen and for Hinweise einstellen (docs/mildcrowd-notifications.md, „Ruhemodus“).
  */
 @Singleton
 class QuietModeState @Inject constructor() {

@@ -64,7 +64,7 @@ internal interface NetworkService {
     @GET("network/statistics")
     suspend fun statistics(): DataEnvelope<MemberStatistics>
 
-    // Zeitkapseln and Jahrbuch (from Oase)
+    // Zeitkapseln and Jahrbuch (from Mittendrin)
 
     @GET("network/time-capsules")
     suspend fun timeCapsules(): DataEnvelope<TimeCapsules>
@@ -79,14 +79,14 @@ internal interface NetworkService {
     @DELETE("network/time-capsules/{id}")
     suspend fun deleteTimeCapsule(@Path("id") id: Int): MessageResponse
 
-    /** The Karte der Oasen: all 16 Bundesländer in tile order with the oases the viewer can see. */
+    /** The Karte der Crowds: all 16 Bundesländer in tile order with the crowds the viewer can see. */
     @GET("network/regions")
     suspend fun regions(): DataEnvelope<List<MapRegion>>
 
     @GET("network/regions/{code}/oases")
     suspend fun regionOases(@Path("code") code: String): DataEnvelope<List<OasisSummary>>
 
-    /** The last 12 Oasen-Wochenbriefe, newest first. */
+    /** The last 12 Crowd-Wochenbriefe, newest first. */
     @GET("network/weekly-letters")
     suspend fun weeklyLetters(): DataEnvelope<List<WeeklyLetterSummary>>
 
@@ -97,7 +97,7 @@ internal interface NetworkService {
     @GET("network/weekly-letters/{id}")
     suspend fun weeklyLetter(@Path("id") id: Int): DataEnvelope<WeeklyLetter>
 
-    /** „Ideen für Oasis“: 20 per page, `sort` popular|new, `status` one of [Idea.statuses]. */
+    /** „Ideen für Mildcrowd“: 20 per page, `sort` popular|new, `status` one of [Idea.statuses]. */
     @GET("ideas")
     suspend fun ideas(@Query("sort") sort: String, @Query("status") status: String?, @Query("page") page: Int): Page<Idea>
 
@@ -128,7 +128,7 @@ internal interface NetworkService {
     @GET("network/tags/{tag}")
     suspend fun tag(@Path("tag") tag: String, @Query("cursor") cursor: String?): FeedPage<TagContext>
 
-    // Tropfen
+    // Posts
 
     @GET("network/posts/{id}")
     suspend fun post(@Path("id") id: Int): DataEnvelope<PostDetail>
@@ -306,7 +306,7 @@ internal interface NetworkService {
     @DELETE("network/friends/{id}")
     suspend fun removeFriend(@Path("id") userId: Int): MessageResponse
 
-    // Oases
+    // Crowds
 
     @GET("network/oases")
     suspend fun oases(): DataEnvelope<OasisDirectory>

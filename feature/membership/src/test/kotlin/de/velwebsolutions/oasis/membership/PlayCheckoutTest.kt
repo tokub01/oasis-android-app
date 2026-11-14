@@ -43,7 +43,7 @@ class PlayCheckoutTest {
     private val events = MembershipEvents()
     private val welcome = Fixtures.confirmed(Fixtures.WELCOME)
     private val otherAccount =
-        "Dieser Kauf gehört zu einem anderen Oasis-Konto. Melde dich mit dem Konto an, mit dem du ihn abgeschlossen hast."
+        "Dieser Kauf gehört zu einem anderen Mildcrowd-Konto. Melde dich mit dem Konto an, mit dem du ihn abgeschlossen hast."
     private val unreachable = "Dein Kauf konnte gerade nicht übernommen werden. Bitte versuche es später noch einmal."
     private val refused = Stub("POST", "membership/google-purchases", status = 422, json = """{"message":"$otherAccount"}""")
 

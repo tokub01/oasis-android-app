@@ -87,7 +87,7 @@ import de.velwebsolutions.oasis.network.ui.compose.callbacks
 import de.velwebsolutions.oasis.network.ui.retry
 
 /**
- * The composer as a sheet: a new Tropfen in the Quelle or an oasis, or a (quick) reply. While something is written or
+ * The composer as a sheet: a new Post in the Start or a crowd, or a (quick) reply. While something is written or
  * picked, "Schließen" and the back gesture ask before discarding the draft; the sheet closes itself after publishing.
  */
 @Composable
@@ -133,7 +133,7 @@ fun ComposeScreen(
 private fun ComposePage(state: ComposeUiState, viewModel: ComposeViewModel, onClose: () -> Unit, onPublished: () -> Unit) {
     val navigator = LocalNavigator.current
     OasisScreen(
-        title = if (state.isReply) "Antworten" else "Tropfen schreiben",
+        title = if (state.isReply) "Antworten" else "Post schreiben",
         closesItself = true,
         navigationAction = {
             if (navigator.sheet != null) {
@@ -166,8 +166,8 @@ fun ComposeContent(state: ComposeUiState, callbacks: ComposerCallbacks, onPublis
 }
 
 /**
- * "Weitertragen" (/tropfen/{id}/weitertragen): the original above a composer for own words; links need "Ich habe den
- * Inhalt gelesen". Afterwards the Quelle shows the new Tropfen.
+ * "Teilen" (/posts/{id}/teilen): the original above a composer for own words; links need "Ich habe den
+ * Inhalt gelesen". Afterwards the Start shows the new Post.
  */
 @Composable
 fun CarryScreen(
@@ -185,7 +185,7 @@ fun CarryScreen(
         viewModel.load()
         composer.loadIfNeeded()
     }
-    OasisScreen(title = "Weitertragen") {
+    OasisScreen(title = "Teilen") {
         LoadableView(
             source,
             onRetry = viewModel.retry {
@@ -198,7 +198,7 @@ fun CarryScreen(
             NetworkPage {
                 block {
                     PageHeader(
-                        "Weitertragen",
+                        "Teilen",
                         lead = if (plain) PLAIN_CARRY_LEAD else QUOTE_CARRY_LEAD
                     )
                 }
@@ -221,14 +221,13 @@ fun CarryScreen(
 const val QUOTE_CARRY_LEAD = "Magst du ein paar eigene Worte dazuschreiben? Warum ist das wichtig?"
 
 /** The lead of the carry page when own words would be an answer the member may not give. */
-const val PLAIN_CARRY_LEAD = "Teile den Tropfen mit den Menschen, die dir folgen."
+const val PLAIN_CARRY_LEAD = "Teile den Post mit den Menschen, die dir folgen."
 
 /** Why the carry page has no text field. */
-fun plainCarryNote(author: String): String =
-    "$author lässt nicht alle antworten. Du kannst den Tropfen deshalb nur ohne eigene Worte weitertragen."
+fun plainCarryNote(author: String): String = "$author lässt nicht alle antworten. Du kannst den Post deshalb nur ohne eigene Worte teilen."
 
 /**
- * "Tropfen bearbeiten" (/tropfen/{id}/bearbeiten): the text within the edit window; images and audience stay. A changed
+ * "Post bearbeiten" (/posts/{id}/bearbeiten): the text within the edit window; images and audience stay. A changed
  * text is only left through "Änderung speichern" or "Abbrechen", which asks first; a rotation keeps it.
  */
 @Composable
@@ -262,8 +261,8 @@ private fun EditPostPage(viewModel: EditPostViewModel, form: Loadable<PostEditFo
             NetworkPage {
                 block {
                     PageHeader(
-                        "Tropfen bearbeiten",
-                        eyebrow = "Tropfen",
+                        "Post bearbeiten",
+                        eyebrow = "Post",
                         lead = "Du kannst den Text bis ${GermanTime.format(
                             loaded.until,
                             "HH:mm"
@@ -275,7 +274,7 @@ private fun EditPostPage(viewModel: EditPostViewModel, form: Loadable<PostEditFo
                         val failure = error
                         if (failure != null && failure.message("body") == null) Banner(failure.userMessage)
                         OasisTextField(
-                            "Dein Tropfen",
+                            "Dein Post",
                             text,
                             viewModel::updateText,
                             error = failure?.message("body"),
@@ -301,7 +300,7 @@ private fun EditPostPage(viewModel: EditPostViewModel, form: Loadable<PostEditFo
                 block {
                     SideCard("Offen für alle", tone = PanelTone.Dune) {
                         Text(
-                            "Wer deinen Tropfen lesen darf, sieht, dass er bearbeitet wurde, und kann frühere Fassungen aufklappen. So " +
+                            "Wer deinen Post lesen darf, sieht, dass er bearbeitet wurde, und kann frühere Fassungen aufklappen. So " +
                                 "bleibt nachvollziehbar, worauf andere geantwortet haben."
                         )
                     }
@@ -312,8 +311,8 @@ private fun EditPostPage(viewModel: EditPostViewModel, form: Loadable<PostEditFo
 }
 
 /**
- * One Tropfen with its replies (/tropfen/{id}): earlier versions ("Frühere Fassungen"), the reply form where the author
- * allows replies, the replies oldest first, and the side cards "Geschrieben von", "In der Oase", "Leise Zahlen". Opened
+ * One Post with its replies (/posts/{id}): earlier versions ("Frühere Fassungen"), the reply form where the author
+ * allows replies, the replies oldest first, and the side cards "Geschrieben von", "In der Crowd", "Leise Zahlen". Opened
  * with "Antworten" from a card, the reply field is focused (the web jumps to #antworten).
  */
 @Composable
@@ -343,14 +342,14 @@ fun PostDetailScreen(
     LaunchedEffect(leave) { if (leave) navigator.back() }
 
     OasisScreen(
-        title = "Tropfen",
+        title = "Post",
         message = status,
         error = error?.userMessage,
         onDismissMessage = viewModel::dismissStatus,
         onDismissError = viewModel::dismissError,
         actions = {
             detail.valueOrNull?.post?.let { post ->
-                IconButton(onClick = { share(context, post.url) }) { Icon(Icons.Outlined.Share, contentDescription = "Teilen") }
+                IconButton(onClick = { share(context, post.url) }) { Icon(Icons.Outlined.Share, contentDescription = "Link teilen") }
             }
         }
     ) {
@@ -377,7 +376,7 @@ fun PostDetailScreen(
     }
 }
 
-/** The Tropfen page's content. */
+/** The Post page's content. */
 @Composable
 fun PostDetailContent(
     detail: PostDetail,
@@ -422,7 +421,7 @@ fun PostDetailContent(
                 }
             }
         } else if (post.viewer?.canReply == true && oasis != null) {
-            // Replies in an oasis land in it, so only its members write them: say so instead of a missing form.
+            // Replies in a crowd land in it, so only its members write them: say so instead of a missing form.
             block("reply.membership") {
                 DashedNote(
                     Modifier
@@ -431,7 +430,7 @@ fun PostDetailContent(
                 ) {
                     Text(
                         buildAnnotatedString {
-                            append("Antworten kann hier, wer der Oase folgt. ")
+                            append("Antworten kann hier, wer der Crowd folgt. ")
                             withStyle(SpanStyle(fontWeight = FontWeight.Bold, textDecoration = TextDecoration.Underline)) {
                                 append("Zu „${oasis.name}“")
                             }
@@ -456,7 +455,7 @@ fun PostDetailContent(
         }
         if (oasis != null) {
             block("side.oasis") {
-                SideCard("In der Oase") {
+                SideCard("In der Crowd") {
                     Row(
                         Modifier.clickable(role = Role.Button) { navigator.open(NetworkRoute.Oasis(oasis.slug)) }.padding(vertical = 4.dp),
                         horizontalArrangement = Arrangement.spacedBy(12.dp),
@@ -471,7 +470,7 @@ fun PostDetailContent(
         }
         block("side.quiet") {
             SideCard("Leise Zahlen", tone = PanelTone.Dune) {
-                Text("Wie viele reagiert haben, sieht nur, wer den Tropfen geschrieben hat. So zählt, was gesagt wird – nicht, wie laut.")
+                Text("Wie viele reagiert haben, sieht nur, wer den Post geschrieben hat. So zählt, was gesagt wird – nicht, wie laut.")
             }
         }
     }

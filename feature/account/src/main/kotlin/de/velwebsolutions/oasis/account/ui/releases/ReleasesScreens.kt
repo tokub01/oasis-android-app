@@ -36,7 +36,7 @@ import de.velwebsolutions.oasis.design.theme.OasisColors
 import de.velwebsolutions.oasis.design.theme.OasisRadius
 import de.velwebsolutions.oasis.design.theme.OasisType
 
-/** Was ist neu (/neuigkeiten): every version of Oasis with its notes for this app, newest first, and how Oasis is built. */
+/** Was ist neu (/neuigkeiten): every version of Mildcrowd with its notes for this app, newest first, and how Mildcrowd is built. */
 @Composable
 internal fun ReleasesScreen(viewModel: ReleasesViewModel = hiltViewModel()) {
     val state by viewModel.state.collectAsStateWithLifecycle()
@@ -44,8 +44,8 @@ internal fun ReleasesScreen(viewModel: ReleasesViewModel = hiltViewModel()) {
         AccountPage(spacing = 16) {
             PageHeader(
                 "Was ist neu",
-                eyebrow = "Deine App: Oasis ${viewModel.version}",
-                lead = "Jede Version von Oasis, die neueste zuerst. Web, iPhone und Android tragen dieselbe Nummer."
+                eyebrow = "Deine App: Mildcrowd ${viewModel.version}",
+                lead = "Jede Version von Mildcrowd, die neueste zuerst. Web, iPhone und Android tragen dieselbe Nummer."
             )
             LoadableView(state, onRetry = viewModel.retry { viewModel.reload() }) { releases ->
                 Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
@@ -57,7 +57,7 @@ internal fun ReleasesScreen(viewModel: ReleasesViewModel = hiltViewModel()) {
     }
 }
 
-/** How Oasis is built, with AI: paragraphs separated by an empty line. */
+/** How Mildcrowd is built, with AI: paragraphs separated by an empty line. */
 @Composable
 private fun AboutCard(about: String) {
     Column(
@@ -68,7 +68,7 @@ private fun AboutCard(about: String) {
             .testTag("releases.about"),
         verticalArrangement = Arrangement.spacedBy(8.dp)
     ) {
-        SubHeading("Wie Oasis entsteht", size = 17)
+        SubHeading("Wie Mildcrowd entsteht", size = 17)
         about.split(Regex("\n\\s*\n")).filter { it.isNotBlank() }.forEach { paragraph ->
             Text(paragraph.trim(), style = OasisType.Body, color = OasisColors.Ink2)
         }
@@ -90,7 +90,7 @@ private fun ReleaseCard(release: Release, current: Boolean) {
             horizontalArrangement = Arrangement.spacedBy(8.dp),
             verticalAlignment = Alignment.CenterVertically
         ) {
-            Text("Oasis ${release.version}", style = OasisType.CardTitle, color = OasisColors.Night, modifier = Modifier.weight(1f))
+            Text("Mildcrowd ${release.version}", style = OasisType.CardTitle, color = OasisColors.Night, modifier = Modifier.weight(1f))
             if (current) Pill("Aktuell")
         }
         Text(release.day, style = OasisType.Small, color = OasisColors.Muted)
@@ -113,7 +113,7 @@ private fun ReleaseNotes(release: Release) {
     }
 }
 
-/** „Neu in Oasis 0.24.0“ once after an update, with „Verstanden“. */
+/** „Neu in Mildcrowd 0.24.0“ once after an update, with „Verstanden“. */
 @Composable
 internal fun UpdateNotesDialog(viewModel: UpdateNotesViewModel = hiltViewModel()) {
     LaunchedEffect(viewModel) { viewModel.check() }
@@ -121,7 +121,7 @@ internal fun UpdateNotesDialog(viewModel: UpdateNotesViewModel = hiltViewModel()
     notes?.let { release ->
         AlertDialog(
             onDismissRequest = viewModel::dismiss,
-            title = { Text("Neu in Oasis ${release.version}", style = OasisType.CardTitle, color = OasisColors.Night) },
+            title = { Text("Neu in Mildcrowd ${release.version}", style = OasisType.CardTitle, color = OasisColors.Night) },
             text = {
                 Column(Modifier.verticalScroll(rememberScrollState()).testTag("updatenotes")) {
                     ReleaseNotes(release)

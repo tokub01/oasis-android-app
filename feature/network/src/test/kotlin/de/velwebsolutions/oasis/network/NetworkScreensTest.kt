@@ -137,7 +137,7 @@ class NetworkScreensTest {
             NetworkPage { feedSection(PostListState<NoContext>(posts = listOf(own, statsOnly), state = Loadable.Loaded(Unit)), handlers) }
         }
 
-        compose.onNodeWithText("Frage an meine Karawane").assertIsDisplayed()
+        compose.onNodeWithText("Frage an meine Follower").assertIsDisplayed()
         compose.onNodeWithText("Zurückgehalten und dem Moderationsteam gemeldet").assertIsDisplayed()
         // Holding never locks the account (since 6 November 2026 only a human decision does).
         compose.onNodeWithText("dein Konto bleibt offen", substring = true).assertExists()
@@ -148,7 +148,7 @@ class NetworkScreensTest {
 
         compose.onAllNodesWithTag("post.menu").onFirst().performClick()
         compose.onNodeWithText("Bearbeiten").assertIsDisplayed()
-        compose.onNodeWithText("Aus Oase entfernen …").assertIsDisplayed()
+        compose.onNodeWithText("Aus Crowd entfernen …").assertIsDisplayed()
         compose.onNodeWithText("Löschen …").performClick()
         compose.onNodeWithText("Wirklich löschen?").assertIsDisplayed()
         capture("card-delete-dialog")
@@ -192,7 +192,7 @@ class NetworkScreensTest {
         capture("card-long-press")
         compose.onNodeWithText("Reagieren").performClick()
         compose.onNodeWithTag("post.card.4").performTouchInput { longClick(Offset(centerX, 4f)) }
-        compose.onNodeWithText("Weitertragen").performClick()
+        compose.onNodeWithText("Teilen").performClick()
         assertEquals(NetworkRoute.CarryPost(4), navigator.stack(MainTab.Source).last())
 
         compose.onNodeWithText("Schnell antworten").performClick()
@@ -206,11 +206,11 @@ class NetworkScreensTest {
             listOf(PostAction.Unmute to 4, PostAction.Unrestrict to 4, PostAction.React to 4, PostAction.Unbookmark to 4),
             actions
         )
-        scrollTo("Antwort auf einen Tropfen, der nicht mehr verfügbar ist")
+        scrollTo("Antwort auf einen Post, der nicht mehr verfügbar ist")
     }
 
     @Test
-    fun `images, covered images, locked images and carried Tropfen`() {
+    fun `images, covered images, locked images and carried Post`() {
         val images = base.copy(
             id = 6,
             images = listOf(
@@ -240,8 +240,8 @@ class NetworkScreensTest {
         compose.onNodeWithTag("imageViewer.close").performClick()
         scrollTo("Bilder gesperrt.")
         scrollTo("Das Original")
-        scrollTo("Tropfen einer stummgeschalteten Person.")
-        scrollTo("Dieser Tropfen ist nicht mehr verfügbar.")
+        scrollTo("Post einer stummgeschalteten Person.")
+        scrollTo("Dieser Post ist nicht mehr verfügbar.")
     }
 
     @Test
@@ -255,7 +255,7 @@ class NetworkScreensTest {
     }
 
     @Test
-    fun `the feed's states - loading, empty, failed and older Tropfen`() {
+    fun `the feed's states - loading, empty, failed and older Posts`() {
         show {
             NetworkPage {
                 feedSection(PostListState<NoContext>(state = Loadable.Loading), handlers, keyPrefix = "loading")
@@ -296,13 +296,13 @@ class NetworkScreensTest {
         capture("feed-states")
         scrollTo("Noch nichts da.")
         scrollTo("Noch einmal laden")
-        scrollTo("Ältere Tropfen …")
+        scrollTo("Ältere Posts …")
         scrollTo("Nicht erreichbar.")
         scrollTo("Das sind alle Treffer.")
     }
 
     @Test
-    fun `Entdecken lists the largest oases and explains itself`() {
+    fun `Entdecken lists the largest crowds and explains itself`() {
         val discover = page(DiscoverContext.serializer(), Fixtures.discover)
         val state = PostListState(posts = discover.data, context = discover.context, state = Loadable.Loaded(Unit))
         show { NetworkPage { discoverContent(state, handlers) } }
@@ -318,19 +318,19 @@ class NetworkScreensTest {
     fun `the search before typing explains itself`() {
         show { NetworkPage { searchContent("", PostListState(), handlers, onQuery = {}, onSubmit = {}) } }
         compose.onNodeWithText("Wonach suchst du?").assertIsDisplayed()
-        compose.onNodeWithText("So sucht Oasis").assertIsDisplayed()
+        compose.onNodeWithText("So sucht Mildcrowd").assertIsDisplayed()
         compose.onNodeWithText("Such nach Namen oder @Benutzernamen.").assertIsDisplayed()
         capture("search-empty")
     }
 
     @Test
-    fun `search results show people, oases and Tropfen`() {
+    fun `search results show people, crowds and Posts`() {
         val results = page(SearchContext.serializer(), Fixtures.search)
         val state = PostListState(posts = results.data, context = results.context, state = Loadable.Loaded(Unit), filter = "ga")
         show { NetworkPage { searchContent("ga", state, handlers, onQuery = {}, onSubmit = {}) } }
         compose.onNodeWithText("Ergebnisse für „ga“").assertIsDisplayed()
         capture("search-results")
-        scrollTo("Tropfen")
+        scrollTo("Posts")
     }
 
     @Test
@@ -356,11 +356,11 @@ class NetworkScreensTest {
     }
 
     @Test
-    fun `the oases overview with its sections`() {
+    fun `the crowds overview with its sections`() {
         val directory = data(OasisDirectory.serializer(), Fixtures.oases)
         show { NetworkPage { oasesContent(directory.copy(canCreate = true, mine = emptyList())) } }
         compose.onNodeWithText("Räume für das, was dich interessiert").assertIsDisplayed()
-        compose.onNodeWithText("Du folgst noch keiner Oase.").assertIsDisplayed()
+        compose.onNodeWithText("Du folgst noch keiner Crowd.").assertIsDisplayed()
         capture("oases")
         compose.onNodeWithTag("oases.create").performClick()
         assertEquals(NetworkRoute.CreateOasis, navigator.stack(MainTab.Source).last())
@@ -375,7 +375,7 @@ class NetworkScreensTest {
         """.trimMargin()
 
     @Test
-    fun `an oasis for its host with members, rules and host tools`() {
+    fun `a crowd for its host with members, rules and host tools`() {
         val detail = data(OasisDetail.serializer(), oasis)
         val members = OasisMembers(
             members = listOf(OasisMembers.Entry(3, "aylin", "Aylin Demir", "AD", canWrite = true)),
@@ -397,7 +397,7 @@ class NetworkScreensTest {
         compose.onNodeWithTag("oasis.rules").performClick()
         compose.onNodeWithText("Keine Werbung.").assertIsDisplayed()
         capture("oasis-host")
-        compose.onNodeWithContentDescription("Dein Tropfen in Stadtgarten").performClick()
+        compose.onNodeWithContentDescription("Dein Post in Stadtgarten").performClick()
         assertTrue(composed)
         scrollTo("Ein weiteres Mitglied zeigt sich")
         compose.onNodeWithContentDescription("Aylin Demir schreiben").performClick()
@@ -407,7 +407,7 @@ class NetworkScreensTest {
     }
 
     @Test
-    fun `an oasis for a visitor offers following and reporting`() {
+    fun `a crowd for a visitor offers following and reporting`() {
         val detail = data(OasisDetail.serializer(), oasis).let {
             it.copy(isMember = false, isHost = false, canFollow = true, canPost = false, houseRules = listOf("Nur eine Regel."))
         }
@@ -511,7 +511,7 @@ class NetworkScreensTest {
     }
 
     @Test
-    fun `the Tropfen page with versions, the reply form and the side cards`() {
+    fun `the Post page with versions, the reply form and the side cards`() {
         val detail = data(PostDetail.serializer(), Fixtures.post).let { loaded ->
             loaded.copy(
                 post = loaded.post.copy(
@@ -542,7 +542,7 @@ class NetworkScreensTest {
     }
 
     @Test
-    fun `a reply in an oasis needs its membership`() {
+    fun `a reply in a crowd needs its membership`() {
         val detail = data(PostDetail.serializer(), Fixtures.post).let { loaded ->
             loaded.copy(
                 post = loaded.post.copy(viewer = loaded.post.viewer?.copy(canWriteReply = false, canReply = true)),
@@ -577,7 +577,7 @@ class NetworkScreensTest {
         show { SwipeContent(SwipeDeck()) { _, _ -> } }
         compose.onNodeWithText("Gerade gibt es nichts Neues.").assertIsDisplayed()
         compose.onNodeWithText("Alles gelesen – nichts wartet auf dich.").assertIsDisplayed()
-        compose.onNodeWithText("Zur Quelle").performClick()
+        compose.onNodeWithText("Zur Startseite").performClick()
         assertEquals(MainTab.Source, navigator.selectedTab)
         capture("swipe-empty")
     }
@@ -608,7 +608,7 @@ class NetworkScreensTest {
             onRemoveImage = { calls += "remove:$it" }, onAlt = { _, _ -> }, checkTone = {}, publish = { null }
         )
         show { ComposeContent(state, callbacks, onPublished = {}) }
-        compose.onNodeWithText("Dein Tropfen in Stadtgarten").assertExists()
+        compose.onNodeWithText("Dein Post in Stadtgarten").assertExists()
         compose.onNodeWithTag("tone.hint").assertIsDisplayed()
         compose.onNodeWithTag("compose.toneConfirmed").performClick()
         compose.onNodeWithTag("compose.linkRead").performClick()
@@ -616,9 +616,9 @@ class NetworkScreensTest {
         capture("composer")
         scrollTo("Bild 1 entfernen")
         compose.onNodeWithText("Bild 1 entfernen").performClick()
-        scrollTo("Art des Tropfens")
+        scrollTo("Art des Posts")
         compose.onNodeWithTag("compose.kind").performClick()
-        compose.onNodeWithText("Frage an meine Karawane").performClick()
+        compose.onNodeWithText("Frage an meine Follower").performClick()
         compose.onNodeWithTag("compose.visibility").performClick()
         compose.onNodeWithText("Nur für Mitglieder").performClick()
         compose.onNodeWithTag("compose.submit").performClick()

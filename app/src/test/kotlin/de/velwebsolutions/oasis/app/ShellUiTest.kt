@@ -46,7 +46,7 @@ import org.robolectric.annotation.GraphicsMode
 @GraphicsMode(GraphicsMode.Mode.NATIVE)
 @Config(qualifiers = "w411dp-h891dp-xxhdpi")
 class ShellUiTest {
-    /** The real graph binds links to the debug server; these tests use get-oasis.com links. */
+    /** The real graph binds links to the debug server; these tests use mildcrowd.com links. */
     @org.junit.Before
     fun resetOwnHost() {
         de.velwebsolutions.oasis.design.navigation.DeepLink.ownHost = null
@@ -88,7 +88,7 @@ class ShellUiTest {
     }
 
     @Test
-    fun `a member without a confirmed mobile number confirms it before paying or using Oasis`() {
+    fun `a member without a confirmed mobile number confirms it before paying or using Mildcrowd`() {
         start(mira.copy(phoneVerified = false, hasPaidAccess = false))
         compose.onNodeWithText("Handy-Screen").assertIsDisplayed()
     }
@@ -100,7 +100,7 @@ class ShellUiTest {
     }
 
     @Test
-    fun `a new member lands in the tabs, the tour waits behind the Quelle's card`() {
+    fun `a new member lands in the tabs, the tour waits behind the Start's card`() {
         start(mira.copy(onboarded = false))
         compose.onNodeWithText("Inhalt ${NetworkRoute.Source}").assertIsDisplayed()
     }
@@ -143,7 +143,7 @@ class ShellUiTest {
         compose.onNodeWithContentDescription("Zurück").performClick()
         compose.onNodeWithText("Inhalt ${NetworkRoute.Source}").assertIsDisplayed()
         compose.onNodeWithTag("tab.oases").performClick()
-        compose.onNodeWithContentDescription("Oasis – zur Quelle").performClick()
+        compose.onNodeWithContentDescription("Mildcrowd – zur Startseite").performClick()
         assertEquals(MainTab.Source, navigator.selectedTab)
     }
 
@@ -157,7 +157,7 @@ class ShellUiTest {
             "Deine Zahlen" to NetworkRoute.Statistics, "Zeitkapseln" to NetworkRoute.TimeCapsules, "Jahrbuch" to NetworkRoute.Yearbook(),
             "Menschen einladen" to NetworkRoute.Invitations,
             "Privatsphäre" to AccountRoute.Privacy, "Blockiert & stumm" to AccountRoute.Safety,
-            "Ideen für Oasis" to NetworkRoute.Ideas(), "Wohin dein Beitrag geht" to MembershipRoute.Transparency,
+            "Ideen für Mildcrowd" to NetworkRoute.Ideas(), "Wohin dein Beitrag geht" to MembershipRoute.Transparency,
             "Begriffe erklärt" to AccountRoute.Glossary, "Was ist neu" to AccountRoute.Releases,
             "Moderation" to StaffRoute.Moderation, "Verwaltung" to StaffRoute.AdminDashboard
         )
@@ -188,8 +188,8 @@ class ShellUiTest {
         compose.onNodeWithContentDescription("Schließen").performClick()
         compose.waitForIdle()
         assertNull(navigator.sheet)
-        compose.runOnIdle { NetworkSignals.confirmation.value = "Dein Tropfen ist da." }
-        compose.onNodeWithText("Dein Tropfen ist da.").assertIsDisplayed()
+        compose.runOnIdle { NetworkSignals.confirmation.value = "Dein Post ist da." }
+        compose.onNodeWithText("Dein Post ist da.").assertIsDisplayed()
         compose.mainClock.advanceTimeBy(6_000)
         compose.waitForIdle()
         assertNull(NetworkSignals.confirmation.value)
@@ -246,7 +246,7 @@ class ShellUiTest {
     @Test
     fun `a companion link opens without a membership`() {
         start(mira.copy(hasPaidAccess = false))
-        val link = "https://get-oasis.com/app/mitgliedschaft/mitkommen/" + "a".repeat(40)
+        val link = "https://mildcrowd.com/app/mitgliedschaft/mitkommen/" + "a".repeat(40)
         compose.runOnIdle { navigator.handle(link) }
         compose.onNodeWithText("Inhalt ${MembershipRoute.CompanionLink("a".repeat(40))}").assertIsDisplayed()
     }

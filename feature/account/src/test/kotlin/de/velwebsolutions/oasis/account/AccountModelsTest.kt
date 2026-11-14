@@ -125,17 +125,17 @@ class AccountModelsTest {
             WelcomeTour(listOf(WelcomeStep("profil", "Über dich"))),
             WelcomeTour(
                 listOf(
-                    WelcomeStep("oasen", "Oasen")
+                    WelcomeStep("oasen", "Crowds")
                 ),
-                true, "Bio", "Ort", "spring", listOf(PrivacyChoice("sun", "Sonne")), "everyone", "public",
+                true, "Bio", "Ort", "spring", listOf(PrivacyChoice("sun", "Blau")), "everyone", "public",
                 listOf(PrivacyChoice("everyone", "Alle")), listOf(PrivacyChoice("public", "Öffentlich")),
                 listOf(StarterOasis(1, "g", "Garten"), StarterOasis(2, "l", "Lesen", "d", "sun", 3, "http://b", true))
             )
         )
         roundTrip(OasisJoined.serializer(), OasisJoined(true))
-        val term = GlossaryTerm("Tropfen", "tropfen", "Ein Beitrag")
+        val term = GlossaryTerm("Posts", "posts", "Ein Beitrag")
         roundTrip(GlossaryTerm.serializer(), term)
-        assertEquals("tropfen", term.slug)
+        assertEquals("posts", term.slug)
     }
 
     @Test

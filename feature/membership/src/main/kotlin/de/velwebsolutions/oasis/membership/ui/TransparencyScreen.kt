@@ -58,7 +58,7 @@ data class TransparencyUiState(
     val error: String? = null
 )
 
-/** „Wohin dein Beitrag geht“ (/transparenz, docs/oasis-admin.md): the figures and the reports; an earlier one replaces the shown. */
+/** „Wohin dein Beitrag geht“ (/transparenz, docs/mildcrowd-admin.md): the figures and the reports; an earlier one replaces the shown. */
 @HiltViewModel
 class TransparencyViewModel @Inject constructor(private val repository: MembershipRepository) : ViewModel() {
     private val mutableState = MutableStateFlow(TransparencyUiState())
@@ -112,13 +112,13 @@ fun TransparencyContent(state: TransparencyUiState, onRefresh: suspend () -> Uni
                 PageHeader(
                     "Wohin dein Beitrag geht",
                     eyebrow = "Transparenz",
-                    lead = "Oasis lebt von den Beiträgen seiner Mitglieder, nicht von Werbung. Hier steht, was wir einnehmen und wofür " +
-                        "wir es ausgeben – nur mit echten Zahlen. Oasis wird betrieben von ${page.operator}."
+                    lead = "Mildcrowd lebt von den Beiträgen seiner Mitglieder, nicht von Werbung. Hier steht, was wir einnehmen und " +
+                        "wofür wir es ausgeben – nur mit echten Zahlen. Mildcrowd wird betrieben von ${page.operator}."
                 )
                 Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
-                    Heading("Oasis heute")
+                    Heading("Mildcrowd heute")
                     Figure(page.figures.activeMembers, "Mitglieder mit aktiver Mitgliedschaft")
-                    Figure(page.figures.oases, "Oasen")
+                    Figure(page.figures.oases, "Crowds")
                     Figure(page.figures.ideasDone, "umgesetzte Ideen")
                     Text(
                         "Diese Zahlen zählt der Server selbst und aktualisiert sie laufend.",

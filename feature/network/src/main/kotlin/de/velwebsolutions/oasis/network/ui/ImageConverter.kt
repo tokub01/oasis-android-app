@@ -11,7 +11,7 @@ import kotlinx.coroutines.withContext
 
 /**
  * Turns a picked photo (often HEIC) into a JPEG the server accepts (JPEG, PNG, WebP or GIF), scaled down to at most
- * `maxEdge` pixels – the server re-encodes as WebP anyway (longest edge for Tropfen: the composer's `image_edge`, 2048
+ * `maxEdge` pixels – the server re-encodes as WebP anyway (longest edge for Posts: the composer's `image_edge`, 2048
  * or 4096 by tier), so a smaller upload loses nothing. GIFs, PNGs, WebPs and JPEGs that are already small enough are
  * sent as they are. Re-encoding ([ImageCodec], shared with the chat) applies the EXIF orientation and drops the camera
  * data; the server strips it from passed-through files.

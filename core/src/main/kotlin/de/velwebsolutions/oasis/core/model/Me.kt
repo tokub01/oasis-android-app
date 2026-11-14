@@ -26,7 +26,7 @@ data class Me(
     val membershipTier: String? = null,
     val isFoundingMember: Boolean = false
 ) {
-    /** Whether the member may use Oasis; without a membership the app only offers "Mitglied werden". */
+    /** Whether the member may use Mildcrowd; without a membership the app only offers "Mitglied werden". */
     val mayUseOasis: Boolean
         get() = hasPaidAccess ?: true
 }

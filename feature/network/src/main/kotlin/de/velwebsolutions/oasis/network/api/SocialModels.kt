@@ -19,9 +19,9 @@ data class Profile(
     /** The short status line under the name (max. 80 characters); null when empty, held or hidden from the viewer. */
     val status: String? = null,
     val bioHeld: Boolean = false,
-    /** The Karawane size, null when its audience excludes the viewer. */
+    /** The Follower size, null when its audience excludes the viewer. */
     val followers: Int? = null,
-    /** Null when the oases audience excludes the viewer. */
+    /** Null when the crowds audience excludes the viewer. */
     val oases: List<OasisSummary>? = null,
     val isMe: Boolean = false,
     /** The own profile audience label, only on the own profile. */
@@ -39,7 +39,7 @@ data class Profile(
     val chatHint: String? = null,
     val hasMuted: Boolean = false,
     val hasRestricted: Boolean = false,
-    /** A Mäzen who switched on the supporter mark ("Trägt Oasis mit"); servers before the tiers leave it out. */
+    /** A Mäzen who switched on the supporter mark ("Trägt Mildcrowd mit"); servers before the tiers leave it out. */
     val supporter: Boolean = false,
     /** A founding member who switched on the founding mark („Gründungsmitglied“, privacy setting `founding_badge`). */
     val foundingBadge: Boolean = false

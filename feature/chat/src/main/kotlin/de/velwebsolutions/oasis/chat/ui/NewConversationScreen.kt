@@ -168,7 +168,7 @@ internal fun NewConversationContent(
     }
 }
 
-/** A segmented choice (SwiftUI's segmented Picker) in the Oasis colours. */
+/** A segmented choice (SwiftUI's segmented Picker) in the Mildcrowd colours. */
 @Composable
 internal fun <T> Segmented(
     options: List<Pair<T, String>>,

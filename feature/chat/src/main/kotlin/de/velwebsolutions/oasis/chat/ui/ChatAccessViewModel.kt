@@ -187,7 +187,7 @@ class ChatAccessViewModel @Inject constructor(context: ChatContext) : ChatViewMo
                 refreshIdentityFlags()
                 mutableState.update { it.copy(phase = ChatPhase.Open) }
             } else {
-                // Locked meanwhile, or published while Oasis was in the background: then they wait to be unlocked.
+                // Locked meanwhile, or published while Mildcrowd was in the background: then they wait to be unlocked.
                 routeLocked()
             }
         } catch (error: Exception) {
@@ -206,7 +206,7 @@ class ChatAccessViewModel @Inject constructor(context: ChatContext) : ChatViewMo
                 refreshIdentityFlags()
                 mutableState.update { it.copy(deviceSetupStatus = null, phase = ChatPhase.Open) }
             } else {
-                // Locked meanwhile, or published while Oasis was in the background: then they wait to be unlocked.
+                // Locked meanwhile, or published while Mildcrowd was in the background: then they wait to be unlocked.
                 mutableState.update { it.copy(deviceSetupStatus = null) }
                 routeLocked()
             }
@@ -354,7 +354,7 @@ class ChatAccessViewModel @Inject constructor(context: ChatContext) : ChatViewMo
     }
 
     /**
-     * One round of picking up the approval; true when finished (opened, or failed). While Oasis is in the background
+     * One round of picking up the approval; true when finished (opened, or failed). While Mildcrowd is in the background
      * (the member approves in the browser on this phone) the approval waits on the server: picked up there, the vault
      * would refuse to open and the one-time approval would be gone.
      */

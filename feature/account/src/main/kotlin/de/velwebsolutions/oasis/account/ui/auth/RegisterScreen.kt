@@ -116,7 +116,7 @@ internal class RegisterActions(
 
 /**
  * Registration, the first of the four steps (account, e-mail address, mobile number, contribution) of /testen, in three
- * small pages (docs/oasis-accounts.md, „Registrierung: Schritt 1 in drei kleinen Seiten“).
+ * small pages (docs/mildcrowd-accounts.md, „Registrierung: Schritt 1 in drei kleinen Seiten“).
  */
 @Composable
 internal fun RegisterScreen(onSignIn: () -> Unit, onLegal: (String) -> Unit) {
@@ -285,9 +285,9 @@ private fun UsernameLine(check: UsernameCheck?, onTake: (String) -> Unit) {
                 verticalArrangement = Arrangement.Center
             ) {
                 if (suggestion == null) {
-                    Text("@${check.username} ist schon vergeben.", style = OasisType.Caption, color = OasisColors.SunText)
+                    Text("@${check.username} ist schon vergeben.", style = OasisType.Caption, color = OasisColors.Danger)
                 } else {
-                    Text("@${check.username} ist schon vergeben – wie wäre es mit ", style = OasisType.Caption, color = OasisColors.SunText)
+                    Text("@${check.username} ist schon vergeben – wie wäre es mit ", style = OasisType.Caption, color = OasisColors.Danger)
                     Text(
                         "@$suggestion",
                         style = OasisType.Caption.copy(fontWeight = FontWeight.Bold, textDecoration = TextDecoration.Underline),
@@ -295,7 +295,7 @@ private fun UsernameLine(check: UsernameCheck?, onTake: (String) -> Unit) {
                         modifier = Modifier.clickable(role = Role.Button, onClickLabel = "@$suggestion nehmen") { onTake(suggestion) }
                             .testTag("register.username.suggestion")
                     )
-                    Text("?", style = OasisType.Caption, color = OasisColors.SunText)
+                    Text("?", style = OasisType.Caption, color = OasisColors.Danger)
                 }
             }
         }
@@ -392,7 +392,7 @@ private fun FinishPage(ui: RegisterUiState, actions: RegisterActions, onLegal: (
     Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
         Icon(Icons.Outlined.FavoriteBorder, contentDescription = null, tint = OasisColors.Ink2, modifier = Modifier.size(18.dp))
         Text(
-            "Oasis gibt es nur mit Mitgliedschaft – ohne Werbung, ohne Verkauf deiner Daten. Den Beitrag wählst du, nachdem " +
+            "Mildcrowd gibt es nur mit Mitgliedschaft – ohne Werbung, ohne Verkauf deiner Daten. Den Beitrag wählst du, nachdem " +
                 "du deine Adresse und deine Handynummer bestätigt hast.",
             style = OasisType.Small,
             color = OasisColors.Ink2
@@ -439,7 +439,7 @@ private fun BirthDateField(ui: RegisterUiState, message: String?, onPick: () -> 
                 .fillMaxWidth()
                 .heightIn(min = 48.dp)
                 .background(OasisColors.Field, shape)
-                .border(if (message == null) 1.dp else 2.dp, if (message == null) OasisColors.FieldLine else OasisColors.SunText, shape)
+                .border(if (message == null) 1.dp else 2.dp, if (message == null) OasisColors.FieldLine else OasisColors.Danger, shape)
                 .clickable(role = Role.Button, onClick = onPick)
                 .semantics {
                     contentDescription = "Geburtsdatum"
@@ -467,7 +467,7 @@ private fun BirthDateField(ui: RegisterUiState, message: String?, onPick: () -> 
             FieldError(message)
         } else {
             Text(
-                "Oasis ist ab 18.",
+                "Mildcrowd ist ab 18.",
                 style = OasisType.Caption,
                 color = OasisColors.Muted
             )
@@ -475,7 +475,7 @@ private fun BirthDateField(ui: RegisterUiState, message: String?, onPick: () -> 
     }
 }
 
-/** Days up to [latest] (UTC midnight in milliseconds): a birth date at least 18 years back (Oasis is 18+). */
+/** Days up to [latest] (UTC midnight in milliseconds): a birth date at least 18 years back (Mildcrowd is 18+). */
 @OptIn(ExperimentalMaterial3Api::class)
 internal class PastDates(private val latest: Long) : SelectableDates {
     override fun isSelectableDate(utcTimeMillis: Long) = utcTimeMillis <= latest
@@ -550,7 +550,7 @@ private fun NightCard() {
         HorizontalDivider(color = OasisColors.NightLine)
         Text("DANACH", style = OasisType.Eyebrow, color = OasisColors.OnNightMuted)
         Text(
-            "Oasen und Menschen finden – wann es dir passt\nDeine Gruppe einladen",
+            "Crowds und Menschen finden – wann es dir passt\nDeine Gruppe einladen",
             style = OasisType.Body,
             color = OasisColors.OnNight2
         )

@@ -69,10 +69,10 @@ class AccountRepositoryTest {
         assertTrue(api.safety().blocked.isEmpty())
         val tour = api.welcome()
         assertEquals(listOf("profil", "sichtbarkeit", "oasen", "menschen"), tour.steps.map { it.key })
-        assertEquals("Sonne", tour.colors.first().label)
+        assertEquals("Blau", tour.colors.first().label)
         assertTrue(tour.oases.isNotEmpty())
         assertTrue(tour.oasesHandPicked)
-        assertEquals("Tropfen", api.glossary().first().term)
+        assertEquals("Posts", api.glossary().first().term)
         val report = api.reportForm("http://localhost/profil/jonas")
         assertEquals(9, report.categories.size)
         assertEquals("dienste", report.categories[3].value)
@@ -85,7 +85,7 @@ class AccountRepositoryTest {
             .stub(
                 "GET",
                 "suspension",
-                """{"data":{"type":"suspension","label":"Sperre durch das Moderationsteam","started_at":"2026-10-22T10:00:00.000000Z","ends_at":"2026-10-29T10:00:00.000000Z","ends_at_label":"29.10.2026, 11:00 Uhr","accusation":"Beleidigung in deinem Tropfen","excerpt":"Du bist ein Vollidiot","statement":null,"statement_at":null,"strikes":1,"strike_limit":3,"strike_months":12,"statement_max":3000}}"""
+                """{"data":{"type":"suspension","label":"Sperre durch das Moderationsteam","started_at":"2026-10-22T10:00:00.000000Z","ends_at":"2026-10-29T10:00:00.000000Z","ends_at_label":"29.10.2026, 11:00 Uhr","accusation":"Beleidigung in deinem Post","excerpt":"Du bist ein Vollidiot","statement":null,"statement_at":null,"strikes":1,"strike_limit":3,"strike_months":12,"statement_max":3000}}"""
             )
             .stub(
                 "GET",

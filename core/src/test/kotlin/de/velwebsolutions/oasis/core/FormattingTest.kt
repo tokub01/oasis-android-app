@@ -56,7 +56,7 @@ class FormattingTest {
     @Test
     fun `german messages for errors`() {
         assertEquals("Das darfst du leider nicht.", ApiError.Forbidden("This action is unauthorized.").userMessage)
-        assertEquals("Keine Verbindung zu Oasis. Bitte prüfe dein Internet.", ApiError.Transport("offline").userMessage)
+        assertEquals("Keine Verbindung zu Mildcrowd. Bitte prüfe dein Internet.", ApiError.Transport("offline").userMessage)
     }
 
     @Test

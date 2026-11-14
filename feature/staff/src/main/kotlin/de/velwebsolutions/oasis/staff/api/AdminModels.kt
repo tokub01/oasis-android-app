@@ -52,7 +52,7 @@ data class AdminDashboard(
     @Serializable
     data class Members(val tiles: List<StatTile> = emptyList(), val byTier: List<TierCount> = emptyList())
 
-    /** New accounts and Tropfen of one week. */
+    /** New accounts and Posts of one week. */
     @Serializable
     data class Week(val week: OasisInstant, val registered: Int, val posts: Int)
 
@@ -61,7 +61,7 @@ data class AdminDashboard(
     data class Network(val tiles: List<StatTile> = emptyList(), val weeks: List<Week> = emptyList())
 }
 
-/** A member's idea as admins see it (the member API `GET ideas`, docs/oasis-admin.md „Ideen für Oasis“). */
+/** A member's idea as admins see it (the member API `GET ideas`, docs/mildcrowd-admin.md „Ideen für Mildcrowd“). */
 @Serializable
 data class AdminIdea(
     val id: Int,

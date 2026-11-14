@@ -48,7 +48,7 @@ import org.robolectric.RobolectricTestRunner
 import org.robolectric.annotation.Config
 import org.robolectric.annotation.GraphicsMode
 
-/** The Karte der Oasen, the region on the oasis page and in its form, at 360 dp (light and dark). */
+/** The Karte der Crowds, the region on the crowd page and in its form, at 360 dp (light and dark). */
 @RunWith(RobolectricTestRunner::class)
 @GraphicsMode(GraphicsMode.Mode.NATIVE)
 @Config(qualifiers = "w360dp-h740dp")
@@ -102,20 +102,20 @@ class OasisMapUiTest {
         show { OasisMapScreen(null, model) }
         waitFor("Wähle ein Bundesland")
         capture("oasis-map")
-        compose.onNode(hasContentDescription("Bayern: 3 Oasen")).tap()
-        waitFor("Oasen in Bayern")
+        compose.onNode(hasContentDescription("Bayern: 3 Crowds")).tap()
+        waitFor("Crowds in Bayern")
         waitFor(" · München")
         capture("oasis-map-bayern")
         compose.onNodeWithTag("network.page").performScrollToNode(hasTestTag("map.oasis.isar"))
         compose.onNodeWithTag("map.oasis.isar").tap()
         assertTrue(opened(NetworkRoute.Oasis("isar")))
-        compose.onNode(hasContentDescription("Bremen: 0 Oasen")).tap()
-        waitFor("In Bremen hat noch keine Oase ihr Zuhause angegeben.")
-        compose.onNode(hasContentDescription("Sachsen: 2 Oasen")).tap()
+        compose.onNode(hasContentDescription("Bremen: 0 Crowds")).tap()
+        waitFor("In Bremen hat noch keine Crowd ihr Zuhause angegeben.")
+        compose.onNode(hasContentDescription("Sachsen: 2 Crowds")).tap()
         waitFor("Server Error")
         Appearance.show(AppearanceChoice.Dark)
-        compose.onNode(hasContentDescription("Bayern: 3 Oasen")).tap()
-        waitFor("Oasen in Bayern")
+        compose.onNode(hasContentDescription("Bayern: 3 Crowds")).tap()
+        waitFor("Crowds in Bayern")
         capture("oasis-map-dark")
     }
 

@@ -7,7 +7,7 @@ import kotlinx.serialization.json.JsonElement
 import kotlinx.serialization.json.JsonNull
 import kotlinx.serialization.json.JsonPrimitive
 
-/** The form choices for founding and editing an oasis. */
+/** The form choices for founding and editing a crowd. */
 @Serializable
 data class OasisOptions(
     val visibilities: List<Choice> = emptyList(),
@@ -16,7 +16,7 @@ data class OasisOptions(
     val regions: List<Choice> = emptyList()
 )
 
-/** "Oasen": own oases and all others. */
+/** "Crowds": own crowds and all others. */
 @Serializable
 data class OasisDirectory(
     val mine: List<OasisSummary> = emptyList(),
@@ -25,7 +25,7 @@ data class OasisDirectory(
     val options: OasisOptions = OasisOptions()
 )
 
-/** An oasis page without its Tropfen. */
+/** A crowd page without its Posts. */
 @Serializable
 data class OasisDetail(
     val oasis: OasisSummary,
@@ -42,7 +42,7 @@ data class OasisDetail(
     val welcome: OasisWelcome? = null
 )
 
-/** The member list of an oasis, for its members. */
+/** The member list of a crowd, for its members. */
 @Serializable
 data class OasisMembers(
     val members: List<Entry> = emptyList(),
@@ -64,7 +64,7 @@ data class OasisMembers(
     }
 }
 
-/** The edit form of an oasis for hosts. */
+/** The edit form of a crowd for hosts. */
 @Serializable
 data class OasisEditForm(
     val oasis: OasisSummary,
@@ -93,7 +93,7 @@ data class OasisEditForm(
 /** The end of [OasisEditForm.hiddenMembersNote]. */
 private const val ROLE_ONLY_VISIBLE = "Eine Rolle kannst du nur Mitgliedern geben, die du hier siehst."
 
-/** The input of the oasis form. */
+/** The input of the crowd form. */
 @Serializable
 data class OasisInput(
     val name: String = "",
@@ -116,7 +116,7 @@ data class OasisInput(
             "color" to color
         ) + region?.let { listOf("region" to it, "city" to city) }.orEmpty()
 
-    /** What saving an edited oasis sends: `region` also as null, since leaving it out would keep the old one. */
+    /** What saving an edited crowd sends: `region` also as null, since leaving it out would keep the old one. */
     internal val update: OasisUpdate
         get() = OasisUpdate(
             name,
@@ -143,21 +143,21 @@ internal data class OasisUpdate(
     val city: String
 )
 
-/** One tile of the Karte der Oasen (`GET network/regions`): the Bundesland, its visible oases and its grid cell. */
+/** One tile of the Karte der Crowds (`GET network/regions`): the Bundesland, its visible crowds and its grid cell. */
 @Serializable
 data class MapRegion(val code: String, val name: String, val oasesCount: Int = 0, val tile: Tile) {
     @Serializable
     data class Tile(val x: Int, val y: Int)
 
-    /** „Bayern: 3 Oasen“. */
-    val accessibleName: String get() = "$name: ${if (oasesCount == 1) "1 Oase" else "$oasesCount Oasen"}"
+    /** „Bayern: 3 Crowds“. */
+    val accessibleName: String get() = "$name: ${if (oasesCount == 1) "1 Crowd" else "$oasesCount Crowds"}"
 }
 
-/** The confirmation page before closing an oasis. */
+/** The confirmation page before closing a crowd. */
 @Serializable
 data class OasisClosing(val name: String, val membersCount: Int = 0, val postsCount: Int = 0)
 
-/** Host statistics of an oasis. */
+/** Host statistics of a crowd. */
 @Serializable
 data class OasisStatistics(val name: String, val totals: Totals, val weekly: List<Week> = emptyList()) {
     @Serializable
@@ -174,7 +174,7 @@ data class OasisStatistics(val name: String, val totals: Totals, val weekly: Lis
     data class Week(val week: OasisInstant, val joined: Int = 0, val posts: Int = 0)
 }
 
-/** The slug of a founded or saved oasis. */
+/** The slug of a founded or saved crowd. */
 @Serializable
 data class OasisSlug(val slug: String)
 

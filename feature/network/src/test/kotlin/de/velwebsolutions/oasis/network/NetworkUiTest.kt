@@ -67,7 +67,7 @@ import org.junit.Test
 import org.junit.runner.RunWith
 import org.robolectric.RobolectricTestRunner
 
-/** The core flows on screen (iOS `NetworkUITests`): the Quelle, writing a Tropfen and a profile. */
+/** The core flows on screen (iOS `NetworkUITests`): the Start, writing a Post and a profile. */
 @RunWith(RobolectricTestRunner::class)
 class NetworkUiTest {
     @get:Rule
@@ -94,7 +94,7 @@ class NetworkUiTest {
     private val noFeed = FeedHandlers(perform = { _, _ -> }, loadMore = {}, reload = {})
 
     @Test
-    fun `the Quelle shows the feed, its end and switches to Ganz Oasis`() {
+    fun `the Start shows the feed, its end and switches to Ganz Mildcrowd`() {
         val page = OasisJson.snake.decodeFromString(FeedPage.serializer(SourceContext.serializer()), Fixtures.source)
         val state = PostListState(posts = page.data, context = page.context, state = Loadable.Loaded(Unit))
         var view: String? = null
@@ -107,7 +107,7 @@ class NetworkUiTest {
         assertEquals(NetworkRoute.Compose(), navigator.sheet)
         navigator.dismissSheet()
 
-        compose.onNodeWithText("Ganz Oasis").performClick()
+        compose.onNodeWithText("Ganz Mildcrowd").performClick()
         assertEquals("alle", view)
 
         val react = hasTestTag("post.react") and hasAnyAncestor(hasTestTag("post.card.12"))
@@ -121,11 +121,11 @@ class NetworkUiTest {
     }
 
     @Test
-    fun `writes a Tropfen and closes the composer`() {
+    fun `writes a Post and closes the composer`() {
         val network = StubbedNetwork(
             stub("GET", "network/composer", Fixtures.composer),
             stub("POST", "network/tone", """{"data":{"hint":null,"nudge":false}}"""),
-            stub("POST", "network/posts", """{"message":"Dein Tropfen ist da.","suspended":false,"data":${postJson(77)}}""", 201)
+            stub("POST", "network/posts", """{"message":"Dein Post ist da.","suspended":false,"data":${postJson(77)}}""", 201)
         )
         val model = models.keep(network.composer("ui-test"))
         runBlocking { model.load() }
@@ -135,26 +135,26 @@ class NetworkUiTest {
             ComposeContent(state, model.callbacks(), onPublished = { published = true })
         }
 
-        compose.onNode(hasSetTextAction() and hasAnyAncestor(hasTestTag("compose.body"))).performTextInput("UI-Test Tropfen")
-        compose.onNodeWithText("15/500").assertIsDisplayed()
+        compose.onNode(hasSetTextAction() and hasAnyAncestor(hasTestTag("compose.body"))).performTextInput("UI-Test Post")
+        compose.onNodeWithText("12/500").assertIsDisplayed()
         compose.onNodeWithTag("network.page").performScrollToNode(hasTestTag("compose.submit"))
-        compose.onNodeWithText("Tropfen lesen nur angemeldete Mitglieder, nie Gäste oder Suchmaschinen.").assertIsDisplayed()
+        compose.onNodeWithText("Posts lesen nur angemeldete Mitglieder, nie Gäste oder Suchmaschinen.").assertIsDisplayed()
         compose.onNodeWithTag("compose.submit").performClick()
         // The upload runs in the view model's scope: its answer comes back through the main looper.
         compose.settle { published }
 
-        assertTrue(network.last("network/posts").body!!.contains("UI-Test Tropfen"))
-        assertEquals("Dein Tropfen ist da.", NetworkSignals.confirmation.value)
+        assertTrue(network.last("network/posts").body!!.contains("UI-Test Post"))
+        assertEquals("Dein Post ist da.", NetworkSignals.confirmation.value)
         assertEquals("", model.state.value.body)
     }
 
     @Test
-    fun `a Tropfen still on its way after a rotation closes the form shown next, once`() {
+    fun `a Post still on its way after a rotation closes the form shown next, once`() {
         val gate = CompletableDeferred<Unit>()
         val network = StubbedNetwork(
             stub("GET", "network/composer", Fixtures.composer),
             stub("POST", "network/tone", """{"data":{"hint":null,"nudge":false}}"""),
-            stub("POST", "network/posts", """{"message":"Dein Tropfen ist da.","suspended":false,"data":${postJson(78)}}""", 201)
+            stub("POST", "network/posts", """{"message":"Dein Post ist da.","suspended":false,"data":${postJson(78)}}""", 201)
         )
         val slow = object : NetworkRepository by network.repository {
             override suspend fun publish(draft: PostDraft): PublishResult {
@@ -175,7 +175,7 @@ class NetworkUiTest {
         compose.onNodeWithTag("network.page").performScrollToNode(hasTestTag("compose.submit"))
         compose.onNodeWithTag("compose.submit").performClick()
         compose.settle { model.state.value.isPublishing }
-        // The rotation: the form goes away with its coroutine, a new one shows while the Tropfen is still sent.
+        // The rotation: the form goes away with its coroutine, a new one shows while the Post is still sent.
         shown = false
         compose.waitForIdle()
         shown = true
@@ -199,7 +199,7 @@ class NetworkUiTest {
         compose.onNodeWithText("Erntet gerade Tomaten").assertIsDisplayed()
         compose.onNodeWithText("Jonas Weber nimmt gerade nur Nachrichten von bestimmten Personen an.").performScrollTo().assertIsDisplayed()
         compose.onNodeWithText("Schreiben").assertDoesNotExist()
-        compose.onNodeWithText("Karawane: 3").performScrollTo().assertIsDisplayed()
+        compose.onNodeWithText("Follower: 3").performScrollTo().assertIsDisplayed()
         compose.onNodeWithTag("profile.unfollow").performScrollTo().performClick()
         assertEquals(listOf(ProfileConfirmation.Unfollow), asked)
     }
@@ -238,14 +238,14 @@ class NetworkUiTest {
     }
 
     @Test
-    fun `the floating button of an oasis says where the Tropfen goes`() {
+    fun `the floating button of a crowd says where the Post goes`() {
         var opened = false
         show {
             Box(Modifier.fillMaxSize()) {
-                ComposeFab(rememberLazyListState(), onClick = { opened = true }, description = "Tropfen in Garten schreiben")
+                ComposeFab(rememberLazyListState(), onClick = { opened = true }, description = "Post in Garten schreiben")
             }
         }
-        compose.onNodeWithContentDescription("Tropfen in Garten schreiben").performClick()
+        compose.onNodeWithContentDescription("Post in Garten schreiben").performClick()
         assertTrue(opened)
     }
 }

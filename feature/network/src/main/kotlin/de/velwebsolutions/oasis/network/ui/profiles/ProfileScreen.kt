@@ -111,8 +111,8 @@ class ProfileCallbacks(val perform: suspend (ProfileAction) -> Unit, val confirm
 
 /**
  * A member profile (/profil/{handle}) – also the "Profil" tab for the own one: header with the banner or colour band,
- * avatar, the buttons (follow, friendship, write, mute, restrict, block, report), bio, location and Karawane where their
- * audiences allow, the member's Tropfen and the side cards.
+ * avatar, the buttons (follow, friendship, write, mute, restrict, block, report), bio, location and Follower where their
+ * audiences allow, the member's Posts and the side cards.
  */
 @Composable
 fun ProfileScreen(
@@ -131,7 +131,7 @@ fun ProfileScreen(
 
     LaunchedEffect(Unit) { viewModel.loadIfNeeded() }
     LaunchedEffect(leave) {
-        // Like the web, blocking leads back to the Quelle: the profile no longer exists for the viewer.
+        // Like the web, blocking leads back to the Start: the profile no longer exists for the viewer.
         if (leave) {
             if (navigator.sheet != null) navigator.dismissSheet()
             navigator.popToRoot()
@@ -178,12 +178,12 @@ fun ProfileScreen(
 /** The profile page's content. */
 fun LazyListScope.profileContent(profile: Profile, posts: PostListState<NoContext>, handlers: FeedHandlers, callbacks: ProfileCallbacks) {
     block("header") { Header(profile, callbacks) }
-    block("posts.title") { SectionTitle("Tropfen") }
-    feedSection(posts, handlers, empty = "Noch keine Tropfen.")
+    block("posts.title") { SectionTitle("Posts") }
+    feedSection(posts, handlers, empty = "Noch keine Posts.")
     profile.oases?.let { oases ->
         block("side.oases") {
-            SideCard("Oasen") {
-                if (oases.isEmpty()) Text("Noch in keiner Oase.")
+            SideCard("Crowds") {
+                if (oases.isEmpty()) Text("Noch in keiner Crowd.")
                 oases.forEach { OasisRow(it, detail = if (it.role == "host") "Gastgeber:in" else "Mitglied") }
             }
         }
@@ -192,7 +192,7 @@ fun LazyListScope.profileContent(profile: Profile, posts: PostListState<NoContex
         block("side.own") {
             val navigator = LocalNavigator.current
             SideCard("Nur für dich", tone = PanelTone.Night) {
-                Text("Wie deine Tropfen ankommen, siehst nur du.")
+                Text("Wie deine Posts ankommen, siehst nur du.")
                 ButtonFlow {
                     OnNightButton("Deine Zahlen", { navigator.open(NetworkRoute.Statistics) })
                     OnNightButton("Gemerkt", { navigator.open(NetworkRoute.Bookmarks) })
@@ -210,7 +210,7 @@ fun LazyListScope.profileContent(profile: Profile, posts: PostListState<NoContex
     } else {
         block("side.noads") {
             SideCard("Ein Netzwerk ohne Werbung", tone = PanelTone.Dune) {
-                Text("Auf Oasis siehst du Tropfen der Reihe nach, ohne Empfehlungen, die dich festhalten sollen.")
+                Text("Auf Mildcrowd siehst du Posts der Reihe nach, ohne Empfehlungen, die dich festhalten sollen.")
             }
         }
     }
@@ -249,7 +249,7 @@ private fun Header(profile: Profile, callbacks: ProfileCallbacks) {
                     )
                     if (profile.supporter) {
                         Pill(
-                            "Trägt Oasis mit",
+                            "Trägt Mildcrowd mit",
                             Modifier.padding(top = 4.dp).testTag("profile.supporter"),
                             PillTone.Spring,
                             Icons.Outlined.Favorite
@@ -269,7 +269,7 @@ private fun Header(profile: Profile, callbacks: ProfileCallbacks) {
                 if (profile.bioHeld) HeldBadge()
                 Row(horizontalArrangement = Arrangement.spacedBy(20.dp)) {
                     profile.location?.let { IconLabel(Icons.Outlined.Place, it) }
-                    profile.followers?.let { IconLabel(Icons.Outlined.People, "Karawane: $it", Modifier.testTag("profile.followers")) }
+                    profile.followers?.let { IconLabel(Icons.Outlined.People, "Follower: $it", Modifier.testTag("profile.followers")) }
                 }
                 Buttons(profile, callbacks)
             }
@@ -389,7 +389,7 @@ private fun MoreMenu(profile: Profile, callbacks: ProfileCallbacks) {
             @Composable
             fun item(title: String, destructive: Boolean = false, action: () -> Unit) {
                 DropdownMenuItem(
-                    text = { Text(title, style = OasisType.Body, color = if (destructive) OasisColors.SunText else OasisColors.Ink) },
+                    text = { Text(title, style = OasisType.Body, color = if (destructive) OasisColors.Danger else OasisColors.Ink) },
                     onClick = {
                         open = false
                         action()

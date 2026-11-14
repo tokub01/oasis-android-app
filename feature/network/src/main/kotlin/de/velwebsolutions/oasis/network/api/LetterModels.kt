@@ -3,20 +3,20 @@ package de.velwebsolutions.oasis.network.api
 import de.velwebsolutions.oasis.core.network.OasisInstant
 import kotlinx.serialization.Serializable
 
-/** One Oasen-Wochenbrief in „Frühere Wochenbriefe“ (docs/oasis-notifications.md, „Oasen-Wochenbrief“). */
+/** One Crowd-Wochenbrief in „Frühere Wochenbriefe“ (docs/mildcrowd-notifications.md, „Crowd-Wochenbrief“). */
 @Serializable
 data class WeeklyLetterSummary(
     val id: Int,
     /** `YYYY-MM-DD`, the Monday of the week (German time). */
     val weekStart: String,
     val weekEnd: String,
-    /** „2 Oasen · 4 Tropfen · 1 Treffen“. */
+    /** „2 Crowds · 4 Posts · 1 Treffen“. */
     val summary: String = ""
 )
 
 /**
- * The Oasen-Wochenbrief: per oasis the most-reacted Tropfen, the new members, the meetups of the next days and the new
- * collections. The Tropfen are loaded again when it is opened, so one deleted since then is no longer there.
+ * The Crowd-Wochenbrief: per crowd the most-reacted Posts, the new members, the meetups of the next days and the new
+ * collections. The Posts are loaded again when it is opened, so one deleted since then is no longer there.
  */
 @Serializable
 data class WeeklyLetter(
@@ -26,7 +26,7 @@ data class WeeklyLetter(
     val summary: String = "",
     val oases: List<Entry> = emptyList()
 ) {
-    /** One oasis of the letter. */
+    /** One crowd of the letter. */
     @Serializable
     data class Entry(
         val oasis: NamedOasis,
@@ -49,7 +49,7 @@ data class WeeklyLetter(
 @Serializable
 data class LatestWeeklyLetter(val data: WeeklyLetter? = null)
 
-/** An idea in „Ideen für Oasis“ (docs/oasis-admin.md): votes are counted, never shown by name. */
+/** An idea in „Ideen für Mildcrowd“ (docs/mildcrowd-admin.md): votes are counted, never shown by name. */
 @Serializable
 data class Idea(
     val id: Int,

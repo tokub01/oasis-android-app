@@ -88,7 +88,7 @@ fun PlayCheckoutContent(
     ) {
         MembershipPage {
             PageHeader(
-                "Bleib in der Oase.",
+                "Bleib in der Mildcrowd.",
                 eyebrow = "Mitgliedschaft",
                 lead = "Werbefrei und ohne Algorithmus, getragen von den Mitgliedern."
             )
@@ -151,7 +151,7 @@ fun PlayCheckoutContent(
                     color = OasisColors.Muted
                 )
                 // Art. 246a § 1 Abs. 2 EGBGB before the purchase, like checkout.blade.php: the right of withdrawal, and that
-                // for a Google Play purchase it is exercised with Google, not with Oasis (AGB § 6 and § 10).
+                // for a Google Play purchase it is exercised with Google, not with Mildcrowd (AGB § 6 and § 10).
                 Text(
                     "Du kannst den Kauf 14 Tage lang widerrufen. Widerruf und Erstattung laufen bei einem Kauf über Google Play " +
                         "ausschließlich über Google.",

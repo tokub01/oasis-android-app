@@ -105,7 +105,7 @@ fun AdminPaymentsScreen(viewModel: AdminPaymentsViewModel = hiltViewModel()) {
                     if (page.filters.mollieId) AsyncOasisButton("Direkt bei Mollie suchen", viewModel::searchMollie, fullWidth = false)
                 }
                 state.mollie?.let { MolliePanel(it, viewModel::closeMollie) }
-                StaffHeading("Belege in Oasis (${state.total})")
+                StaffHeading("Belege in Mildcrowd (${state.total})")
                 if (state.records.isEmpty()) {
                     Text(
                         "Keine Belege gefunden." +
@@ -136,7 +136,7 @@ private fun MolliePanel(lookup: MollieLookup, onClose: () -> Unit) {
         val payment = data?.payment
         val customer = data?.customer
         when {
-            lookup.error != null -> Text(lookup.error, style = OasisType.BodyBold, color = OasisColors.SunText)
+            lookup.error != null -> Text(lookup.error, style = OasisType.BodyBold, color = OasisColors.Danger)
 
             data?.kind == "payment" && payment != null -> {
                 PaymentFacts(payment)
@@ -257,7 +257,7 @@ private fun RecordCard(record: PaymentRecord, state: AdminPaymentsUiState, viewM
                 buildAnnotatedString {
                     append("${record.customerName ?: "–"} · ${record.customerEmail ?: "–"}")
                     if (record.accountDeleted) {
-                        withStyle(SpanStyle(fontWeight = FontWeight.Bold, color = OasisColors.SunText)) {
+                        withStyle(SpanStyle(fontWeight = FontWeight.Bold, color = OasisColors.Danger)) {
                             append(" · Konto gelöscht – Beleg gesperrt")
                         }
                     }

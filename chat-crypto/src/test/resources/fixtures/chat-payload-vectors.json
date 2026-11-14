@@ -1,5 +1,5 @@
 {
-  "comment": "Plaintexts of chat messages with the optional send effect, reply and reaction (docs/oasis-chat-client.md, \"Backgrounds and effects\", \"Reactions and replies\", \"Pinned message and polls\"). Every client must build exactly the `plaintext` of `build`, `reactions.build`, `replies.build`, `pins.build` and `polls.build` (field order included) and read the `parse` cases as given; anything not well-formed is ignored and the message still shows. Checked by tests/js/chat/attachments.test.mjs.",
+  "comment": "Plaintexts of chat messages with the optional send effect, reply and reaction (docs/mildcrowd-chat-client.md, \"Backgrounds and effects\", \"Reactions and replies\", \"Pinned message and polls\"). Every client must build exactly the `plaintext` of `build`, `reactions.build`, `replies.build`, `pins.build` and `polls.build` (field order included) and read the `parse` cases as given; anything not well-formed is ignored and the message still shows. Checked by tests/js/chat/attachments.test.mjs.",
   "effects": [
     "konfetti",
     "herzen",

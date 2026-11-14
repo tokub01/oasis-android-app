@@ -4,7 +4,7 @@ import de.velwebsolutions.oasis.network.api.Post
 import de.velwebsolutions.oasis.network.data.NetworkRepository
 import java.util.concurrent.ConcurrentHashMap
 
-/** The buttons and menu items of a Tropfen card (the web's `InteractsWithPosts`). */
+/** The buttons and menu items of a Post card (the web's `InteractsWithPosts`). */
 enum class PostAction {
     React,
     Unreact,
@@ -47,7 +47,7 @@ suspend fun NetworkRepository.perform(action: PostAction, post: Post): String = 
 
 /**
  * The effect of a successful action on a loaded list, as the web shows it after querying the list again: reactions and
- * bookmarks toggle, deleted and removed Tropfen disappear, and muting or blocking hides the person's Tropfen.
+ * bookmarks toggle, deleted and removed Posts disappear, and muting or blocking hides the person's Posts.
  */
 fun List<Post>.applying(action: PostAction, post: Post): List<Post> = when (action) {
     PostAction.React, PostAction.Unreact -> map { item ->

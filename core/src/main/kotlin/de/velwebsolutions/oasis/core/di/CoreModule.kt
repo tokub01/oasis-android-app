@@ -33,7 +33,7 @@ import okhttp3.OkHttpClient
 data class DeviceName(val value: String)
 
 /**
- * The installed version of the app: [name] is the shared product version („Oasis 0.23.0“, the same on web, iOS and
+ * The installed version of the app: [name] is the shared product version („Mildcrowd 0.23.0“, the same on web, iOS and
  * Android); [freshInstall] is true when the app was installed and never updated since.
  */
 data class AppVersion(val name: String, val freshInstall: Boolean)
@@ -62,12 +62,12 @@ object CoreModule {
     fun session(tokenStore: TokenStore, deviceName: DeviceName, @AppScope scope: CoroutineScope, auth: Lazy<AuthApi>): Session =
         Session(tokenStore, deviceName.value, scope) { auth.get() }
 
-    /** „Später“ of the Quelle's card „Mach dein Tal lebendig“, on this device. */
+    /** „Später“ of the Start's card „Mach deine Startseite lebendig“, on this device. */
     @Provides
     @Singleton
     fun onboardingCard(@ApplicationContext context: Context): OnboardingCardStore = PreferencesOnboardingCardStore(context)
 
-    /** „Deine Zeit in Oasis“ of the signed-in account, on this device only. */
+    /** „Deine Zeit in Mildcrowd“ of the signed-in account, on this device only. */
     @Provides
     @Singleton
     fun screenTime(@ApplicationContext context: Context, session: Session): ScreenTime =

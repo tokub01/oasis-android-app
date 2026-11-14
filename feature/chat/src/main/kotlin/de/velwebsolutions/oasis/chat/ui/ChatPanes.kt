@@ -25,7 +25,7 @@ import de.velwebsolutions.oasis.design.navigation.Navigator
 import de.velwebsolutions.oasis.design.theme.OasisColors
 import de.velwebsolutions.oasis.design.theme.OasisType
 
-/** From this width the list and the conversation stand side by side (docs/oasis-chat-client.md, „Spacing“). */
+/** From this width the list and the conversation stand side by side (docs/mildcrowd-chat-client.md, „Spacing“). */
 internal val WIDE_CHAT = 840.dp
 
 /** The list pane's width beside the conversation. */

@@ -71,7 +71,7 @@ import de.velwebsolutions.oasis.network.ui.oases.ColorChoice
 import de.velwebsolutions.oasis.network.ui.retry
 import kotlinx.coroutines.delay
 
-/** Under „Farbe deiner Initialen“ (docs/oasis-accounts.md). */
+/** Under „Farbe deiner Initialen“ (docs/mildcrowd-accounts.md). */
 const val AVATAR_COLOR_HINT =
     "Deine Initialen siehst du überall, wo kein Profilbild gezeigt wird. „Automatisch“ wählt eine Farbe für dich."
 

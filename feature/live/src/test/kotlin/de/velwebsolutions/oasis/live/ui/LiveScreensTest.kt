@@ -117,7 +117,7 @@ class LiveScreensTest {
         transport.add("GET", "hints", json = LiveJson.LAST_PAGE)
         compose.onNodeWithText("Heute").assertIsDisplayed()
         shot("inbox")
-        compose.onNodeWithText("Neue Person in deiner Karawane · Emil Novak").performClick()
+        compose.onNodeWithText("Neu bei deinen Followern · Emil Novak").performClick()
         assertEquals(1, opened().size)
         compose.onNodeWithTag("hints.list").performScrollToNode(hasText("Beitrag eingegangen"))
         compose.onNodeWithText("Beitrag eingegangen").assertIsDisplayed()
@@ -368,7 +368,7 @@ class LiveScreensTest {
             HintSettingsContent(ui, actions)
         }
         compose.onNodeWithText(
-            "Push-Hinweise sind auf Oasis noch nicht eingerichtet.",
+            "Push-Hinweise sind auf Mildcrowd noch nicht eingerichtet.",
             substring = true
         ).performScrollTo().assertIsDisplayed()
         shot("settings-no-push")
@@ -404,7 +404,7 @@ class LiveScreensTest {
         val model = HintsInboxViewModel(repository(transport), coordinator(transport, scope))
         show { HintsInboxScreen(model) }
         compose.waitUntil(5_000) { model.ui.value.state is Loadable.Loaded }
-        compose.onNodeWithText("Neue Person in deiner Karawane · Emil Novak").performClick()
+        compose.onNodeWithText("Neu bei deinen Followern · Emil Novak").performClick()
         assertEquals(listOf("https://example.com/x"), web)
     }
 

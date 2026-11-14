@@ -64,7 +64,7 @@ class EdgeCasesTest(private val answersAtOnce: Boolean) {
     private val jpeg = ImageUpload(byteArrayOf(0xFF.toByte(), 0xD8.toByte(), 0xFF.toByte()), "bild.jpg", "image/jpeg")
 
     @Test
-    fun `the list takes one page of older Tropfen at a time and drops or keeps cards by its kind`() = runTest {
+    fun `the list takes one page of older Posts at a time and drops or keeps cards by its kind`() = runTest {
         val network = StubbedNetwork(
             stub("GET", "network/bookmarks", pageJson(postJson(3), postJson(2), next = "abc")),
             stub("POST", "network/posts/3/reaction", ok),
@@ -122,7 +122,7 @@ class EdgeCasesTest(private val answersAtOnce: Boolean) {
         val model = models.keep(network.composer("grenzen", 12, common = slowTone))
         model.load()
         assertEquals("friends", model.state.value.visibility)
-        // A server before the tiers sends no image_edge: Tropfen photos stay at 2048.
+        // A server before the tiers sends no image_edge: Post photos stay at 2048.
         assertEquals(2048, model.state.value.imageEdge)
 
         model.updateBody("Erste Fassung")
@@ -144,7 +144,7 @@ class EdgeCasesTest(private val answersAtOnce: Boolean) {
     }
 
     @Test
-    fun `a reply is always a plain Tropfen, a second tap while publishing sends nothing, and a tone question stays`() = runTest {
+    fun `a reply is always a plain Post, a second tap while publishing sends nothing, and a tone question stays`() = runTest {
         val question = "Nochmal lesen? Deine Antwort klingt verletzend."
         val network = StubbedNetwork(
             stub("GET", "network/composer", Fixtures.composer),
@@ -177,7 +177,7 @@ class EdgeCasesTest(private val answersAtOnce: Boolean) {
     }
 
     @Test
-    fun `the Quelle reloads for an edit and before its first page, the search guards its term`() = runTest {
+    fun `the Start reloads for an edit and before its first page, the search guards its term`() = runTest {
         val network = StubbedNetwork(
             stub("GET", "network/source", pageJson(postJson(3), context = """{"show_all":false,"follows_anyone":true,"can_post":true}""")),
             stub("GET", "network/search", """{"message":"Kaputt."}""", 500)
@@ -185,7 +185,7 @@ class EdgeCasesTest(private val answersAtOnce: Boolean) {
         val source = models.keep(
             SourceViewModel(network.repository, network.session, de.velwebsolutions.oasis.testing.MemoryOnboardingCardStore())
         )
-        NetworkSignals.didPublish(decodePost(postJson(8)), "Dein Tropfen ist da.")
+        NetworkSignals.didPublish(decodePost(postJson(8)), "Dein Post ist da.")
         assertEquals(listOf(8), source.list.posts.map { it.id })
         NetworkSignals.didPublish(null, "Gespeichert.")
         eventually { network.transport.requests.size == 1 && source.list.state.value.context != null }
@@ -202,7 +202,7 @@ class EdgeCasesTest(private val answersAtOnce: Boolean) {
     }
 
     @Test
-    fun `the Tropfen page before it loaded, a restriction of its author and a muted reply by the same person`() = runTest {
+    fun `the Post page before it loaded, a restriction of its author and a muted reply by the same person`() = runTest {
         val detail = """{"data":{"post":${postJson(12, author = 4)},"replies":[${postJson(23, author = 4, replyTo = 12)},
             |${postJson(24, author = 6, replyTo = 12)}]}}
         """.trimMargin()
@@ -245,7 +245,7 @@ class EdgeCasesTest(private val answersAtOnce: Boolean) {
     }
 
     @Test
-    fun `tone answers with and without the question, a read link and an oasis founded with its banner`() = runTest {
+    fun `tone answers with and without the question, a read link and a crowd founded with its banner`() = runTest {
         val network = StubbedNetwork(
             stub("GET", "network/profile", Fixtures.ownProfile),
             stub("POST", "network/tone", """{"data":{"hint":null,"nudge":false}}"""),

@@ -31,7 +31,7 @@ class StaffFormatsTest {
         assertEquals(OasisColors.Sun.copy(alpha = 0.35f), DeadlineLook.background("overdue"))
         assertEquals(OasisColors.Sun.copy(alpha = 0.2f), DeadlineLook.background("soon"))
         assertEquals(OasisColors.Dune, DeadlineLook.background(null))
-        assertEquals(OasisColors.SunText, DeadlineLook.foreground("overdue"))
+        assertEquals(OasisColors.Danger, DeadlineLook.foreground("overdue"))
         assertEquals(OasisColors.Night, DeadlineLook.foreground("ok"))
     }
 
@@ -78,7 +78,7 @@ class StaffFormatsTest {
     }
 
     @Test
-    fun `staff links open Oasis pages in the app and others in the browser`() {
+    fun `staff links open Mildcrowd pages in the app and others in the browser`() {
         assertEquals(
             de.velwebsolutions.oasis.design.navigation.MembershipRoute.Overview,
             de.velwebsolutions.oasis.staff.ui.components.linkRoute("http://localhost/app/mitgliedschaft")

@@ -35,7 +35,7 @@ import org.junit.runner.RunWith
 import org.robolectric.RobolectricTestRunner
 
 /**
- * The composer's field (docs/oasis-chat-client.md, „Composer limit and draft“): it keeps exactly what is typed without
+ * The composer's field (docs/mildcrowd-chat-client.md, „Composer limit and draft“): it keeps exactly what is typed without
  * waiting for the view model, takes at most the limit, and shows only the view model's own changes of the draft.
  */
 @RunWith(RobolectricTestRunner::class)

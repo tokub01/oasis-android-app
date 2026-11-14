@@ -211,7 +211,7 @@ class ScreensViewModelsTest {
         list.dismissActionError()
         list.refreshLinkRequests()
         list.approve(list.state.value.linkRequests.single().request)
-        assertEquals("„Android (Oasis-App)“ ist freigegeben.", list.state.value.status)
+        assertEquals("„Android (Mildcrowd-App)“ ist freigegeben.", list.state.value.status)
         list.dismissStatus()
 
         val second = support.context(1).devices.requestLink()
@@ -559,7 +559,7 @@ class ScreensViewModelsTest {
         assertFalse(settings.state.value.hasPassphrase)
         assertTrue(settings.state.value.removalNeedsConfirmation)
         settings.remove(row)
-        assertEquals("„Android (Oasis-App)“ entfernt.", settings.state.value.status)
+        assertEquals("„Android (Mildcrowd-App)“ entfernt.", settings.state.value.status)
 
         mira.vault.lock()
         settings.setPassphrase("Palme Regen Kompass Kaffee")

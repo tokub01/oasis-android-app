@@ -42,7 +42,7 @@ import org.robolectric.RobolectricTestRunner
 import org.robolectric.annotation.Config
 import org.robolectric.annotation.GraphicsMode
 
-/** „Dein Oasen-Wochenbrief“ and „Ideen für Oasis“ at 360 dp. */
+/** „Dein Crowd-Wochenbrief“ and „Ideen für Mildcrowd“ at 360 dp. */
 @RunWith(RobolectricTestRunner::class)
 @GraphicsMode(GraphicsMode.Mode.NATIVE)
 @Config(qualifiers = "w360dp-h740dp")
@@ -160,7 +160,7 @@ class LettersAndIdeasUiTest {
         )
         val model = models.keep(IdeasViewModel(3, network.repository))
         show { IdeasScreen(3, model) }
-        waitFor("Ideen für Oasis")
+        waitFor("Ideen für Mildcrowd")
         waitFor("Idee 7")
         capture("ideas")
         compose.onNodeWithTag("ideas.suggest").tap()
@@ -207,6 +207,6 @@ class LettersAndIdeasUiTest {
     }
 }
 
-/** The garden of [letterJson] and an oasis with nothing but one Tropfen. */
+/** The garden of [letterJson] and a crowd with nothing but one Post. */
 fun twoOases(): String = letterJson(0).substringAfter("\"oases\":").removeSuffix("}").removeSuffix("]") +
     """,{"oasis":{"slug":"wald","name":"Waldgruppe"},"posts":[${postJson(6)}],"new_members":0,"meetups":[],"collections":[]}]"""

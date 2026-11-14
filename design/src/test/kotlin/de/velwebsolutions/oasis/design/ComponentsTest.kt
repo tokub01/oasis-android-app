@@ -146,11 +146,11 @@ class ComponentsTest {
             SideCard("Nacht", tone = PanelTone.Night) { Text("Text") }
             SectionCard("Abschnitt", detail = "Erklärung", count = 3) { Text("Inhalt") }
             SectionCard("Nacht", tone = PanelTone.Night, detail = "Erklärung") { Text("Inhalt") }
-            DashedNote("Noch keine Tropfen.")
+            DashedNote("Noch keine Posts.")
             DashedNote("Du bist durch.", highlighted = true)
             Bullets(listOf("Eins", "Zwei"))
             OasisCard { Text("Karte") }
-            Eyebrow("Quelle")
+            Eyebrow("Start")
             Eyebrow("Nacht", onNight = true)
             CountBadge(0)
             CountBadge(5)
@@ -164,7 +164,7 @@ class ComponentsTest {
         }
         compose.onNodeWithText("99+").assertExists()
         compose.onNodeWithContentDescription("5 neu").assertExists()
-        compose.onNodeWithText("QUELLE").assertExists()
+        compose.onNodeWithText("START").assertExists()
         compose.onRoot().captureRoboImage("build/outputs/roborazzi/design-surfaces.png")
     }
 
@@ -199,7 +199,7 @@ class ComponentsTest {
             }
             LoadableView<String>(Loadable.Idle, onRetry = {}) { Text(it) }
             SkeletonView()
-            LoadingView(label = "Oasis startet …")
+            LoadingView(label = "Mildcrowd startet …")
             listOf("sun", "spring", "night", "dune").forEach { AvatarView("MS", it) }
             AvatarView("MS", "sun", photoUrl = "/bild.png", size = 64.dp)
             AuthorizedImage("https://example.org/bild.png", contentDescription = "Bild")
@@ -221,6 +221,8 @@ class ComponentsTest {
         assertEquals(OasisColors.Night, AvatarTint.foreground("dune"))
         assertEquals(OasisColors.OnNight, AvatarTint.foreground("night"))
         assertEquals(OasisColors.SunInk, AvatarTint.foreground("sun"))
+        assertEquals(OasisColors.SpringInk, AvatarTint.foreground("spring"))
+        assertEquals(OasisColors.Night, AvatarTint.foreground("unbekannt"))
         OasisMotion.spec<Float>()
     }
 
@@ -233,7 +235,7 @@ class ComponentsTest {
                     Column {
                         // The locked view fills the screen, so it comes first and the others still exist below it.
                         TierLoadableView<String>(
-                            Loadable.Failed(ApiError.Forbidden("Das gibt es ab der Mitgliedschaft Oase.")),
+                            Loadable.Failed(ApiError.Forbidden("Das gibt es ab der Mitgliedschaft Mittendrin.")),
                             "Dein Jahrbuch",
                             onRetry = {}
                         ) { Text(it) }
@@ -246,7 +248,7 @@ class ComponentsTest {
         compose.onNodeWithText("Zahlen").assertExists()
         compose.onNodeWithText("Noch einmal versuchen").assertExists()
         compose.onNodeWithText("Dein Jahrbuch").assertExists()
-        compose.onNodeWithText("Das gibt es ab der Mitgliedschaft Oase.").assertExists()
+        compose.onNodeWithText("Das gibt es ab der Mitgliedschaft Mittendrin.").assertExists()
         compose.onNodeWithText("Mitgliedschaft ansehen").performClick()
         assertEquals(listOf(MembershipRoute.Overview), navigator.stack(navigator.selectedTab).toList())
     }
@@ -265,19 +267,19 @@ class ComponentsTest {
 
     @Test
     fun `a locked feature names its tier and what it offers, like the web`() {
-        assertEquals("Oase", lockedTier("Das gibt es ab der Mitgliedschaft Oase."))
+        assertEquals("Mittendrin", lockedTier("Das gibt es ab der Mitgliedschaft Mittendrin."))
         assertEquals("Mäzen", lockedTier("Das gibt es ab der Mitgliedschaft Mäzen"))
         assertNull(lockedTier("Das darfst du leider nicht."))
         compose.setContent {
             OasisTheme {
                 CompositionLocalProvider(LocalNavigator provides Navigator()) {
-                    TierLockedView("Zeitkapseln", "Das gibt es ab der Mitgliedschaft Oase.", feature = "Schreib heute einen Tropfen.")
+                    TierLockedView("Zeitkapseln", "Das gibt es ab der Mitgliedschaft Mittendrin.", feature = "Schreib heute einen Post.")
                 }
             }
         }
-        compose.onNodeWithText("AB OASE", ignoreCase = true).assertExists()
-        compose.onNodeWithText("Schreib heute einen Tropfen.").assertExists()
-        compose.onNodeWithText("Das gibt es ab der Mitgliedschaft Oase.").assertDoesNotExist()
+        compose.onNodeWithText("AB MITTENDRIN", ignoreCase = true).assertExists()
+        compose.onNodeWithText("Schreib heute einen Post.").assertExists()
+        compose.onNodeWithText("Das gibt es ab der Mitgliedschaft Mittendrin.").assertDoesNotExist()
     }
 
     @Test
@@ -342,7 +344,7 @@ class ComponentsTest {
 
     /** Without a browser named, Android would hand a page of the app's own App Links straight back to the app. */
     @Test
-    fun `web pages open in a browser with Custom Tabs, and oasis links never leave the app`() {
+    fun `web pages open in a browser with Custom Tabs, and crowd links never leave the app`() {
         val app = RuntimeEnvironment.getApplication()
         val browser = ComponentName("org.beispiel.browser", "org.beispiel.browser.Browser")
         val tabs = ComponentName("org.beispiel.browser", "org.beispiel.browser.Tabs")
@@ -360,16 +362,16 @@ class ComponentsTest {
             addServiceIfNotPresent(tabs)
             addIntentFilterForService(tabs, IntentFilter("android.support.customtabs.action.CustomTabsService"))
         }
-        openWebPage(app, "https://get-oasis.com/app/mitgliedschaft/rechnungen/9")
+        openWebPage(app, "https://mildcrowd.com/app/mitgliedschaft/rechnungen/9")
         assertEquals("org.beispiel.browser", shadowOf(app).nextStartedActivity.`package`)
-        openWebPage(app, "oasis://unbekannt")
+        openWebPage(app, "mildcrowd://unbekannt")
         assertNull("the app is the only handler of its scheme", shadowOf(app).nextStartedActivity)
     }
 
     @Test
     fun `web pages open in a custom tab, other links in their app`() {
         val app = RuntimeEnvironment.getApplication()
-        openWebPage(app, "https://get-oasis.com/impressum")
+        openWebPage(app, "https://mildcrowd.com/impressum")
         openWebPage(app, "tel:116111")
         val started = generateSequence { shadowOf(app).nextStartedActivity }.map { it.dataString }.toList()
         assertEquals(true, "tel:116111" in started)
@@ -387,7 +389,7 @@ class ComponentsTest {
             }
         }
         compose.onRoot().captureRoboImage("build/outputs/roborazzi/design-logo.png")
-        compose.onNodeWithContentDescription("Oasis").assertIsDisplayed()
+        compose.onNodeWithContentDescription("Mildcrowd").assertIsDisplayed()
     }
 
     @Test(expected = IllegalStateException::class)

@@ -57,7 +57,7 @@ import org.robolectric.RobolectricTestRunner
 import org.robolectric.annotation.Config
 
 /**
- * Zeitkapseln, the Jahrbuch, the statistics below Oase and the supporter mark on screen, with their real view models.
+ * Zeitkapseln, the Jahrbuch, the statistics below Mittendrin and the supporter mark on screen, with their real view models.
  *
  * The v2 compose rule runs the screens' effects on a StandardTestDispatcher, so an answer from OkHttp's thread resumes
  * on the main thread as in the app. The v1 rule's UnconfinedTestDispatcher resumed it on OkHttp's thread; after an
@@ -116,13 +116,13 @@ class TierScreensTest {
         val model = models.keep(TimeCapsulesViewModel(network.repository))
         show { TimeCapsulesScreen(model) }
         text("Warten noch")
-        text("in deiner Quelle", substring = true)
+        text("auf deinem Profil", substring = true)
         text("in Stadtgarten", substring = true)
         text("Nicht aufgegangen: Deine Mitgliedschaft lief nicht.")
         text("Bis zu 50 Zeitkapseln können gleichzeitig warten.")
         // Datenschutzerklärung Abschnitt 15: the check runs while sealing (ManageTimeCapsules) and again when opening.
         text(
-            "Beim Versiegeln und beim Aufgehen prüfen wir sie wie jeden Tropfen. " +
+            "Beim Versiegeln und beim Aufgehen prüfen wir sie wie jeden Post. " +
                 "Läuft deine Mitgliedschaft beim Aufgehen nicht, bleibt sie zu."
         )
 
@@ -132,7 +132,7 @@ class TierScreensTest {
         compose.onNodeWithTag("datetime.next").performClick()
         compose.onNodeWithTag("datetime.done").performClick()
         compose.onNodeWithTag("capsule.place").performClick()
-        text("in der Oase Stadtgarten").performClick()
+        text("in der Crowd Stadtgarten").performClick()
         compose.settle { model.draft.value.oasisId == 2 }
         compose.onNodeWithTag("capsule.seal").performClick()
         text("Deine Zeitkapsel ist versiegelt.")
@@ -158,7 +158,7 @@ class TierScreensTest {
                 "GET",
                 "network/time-capsules",
                 """{"data":{"available":true,"max_length":500,"past":[
-                {"id":3,"body":"Ein Jahr Oasis","opens_at":"2026-10-01T08:00:00.000000Z","opened_at":"2026-10-01T08:00:00.000000Z","post_id":44},
+                {"id":3,"body":"Ein Jahr Mildcrowd","opens_at":"2026-10-01T08:00:00.000000Z","opened_at":"2026-10-01T08:00:00.000000Z","post_id":44},
                 {"id":4,"body":"Ohne Mitgliedschaft","opens_at":"2026-09-01T08:00:00.000000Z","failed_reason":"Deine Mitgliedschaft lief nicht."},
                 {"id":8,"body":"Gleich da.","opens_at":"2026-10-02T08:00:00.000000Z","opened_at":"2026-10-02T08:00:01.000000Z"}]}}"""
             ),
@@ -181,12 +181,12 @@ class TierScreensTest {
     }
 
     @Test
-    fun `Zeitkapseln below Oase, without capsules and with a field error`() {
+    fun `Zeitkapseln below Mittendrin, without capsules and with a field error`() {
         val locked = StubbedNetwork(stub("GET", "network/time-capsules", TierFixtures.lockedCapsules))
         val lockedModel = models.keep(TimeCapsulesViewModel(locked.repository))
         show { TimeCapsulesScreen(lockedModel) }
-        text("AB OASE")
-        text("Schreib heute einen Tropfen, der erst an einem Tag deiner Wahl erscheint", substring = true)
+        text("AB MITTENDRIN")
+        text("Schreib heute einen Post, der erst an einem Tag deiner Wahl erscheint", substring = true)
         text("Mitgliedschaft ansehen").performClick()
         assertEquals(MembershipRoute.Overview, navigator.stack(MainTab.Profile).last())
 
@@ -265,7 +265,7 @@ class TierScreensTest {
         )
         val model = models.keep(YearbookViewModel(null, network.repository))
         show { YearbookScreen(null, model) }
-        text("2 Tropfen · 1 Foto · in 1 Oase")
+        text("2 Posts · 1 Foto · in 1 Crowd")
         text("Oktober")
         text("Rad & Werkstatt", substring = true)
         text("1 Reaktion · 2 Antworten")
@@ -274,11 +274,11 @@ class TierScreensTest {
         assertEquals(listOf("http://localhost/app/jahrbuch/2026"), web)
 
         compose.onNodeWithTag("yearbook.year.2025").performClick()
-        text("In 2025 hast du noch keine Tropfen geteilt. Was du schreibst, landet hier.")
+        text("In 2025 hast du noch keine Posts geteilt. Was du schreibst, landet hier.")
     }
 
     @Test
-    fun `below Oase the Jahrbuch and the numbers show the server's message`() {
+    fun `below Mittendrin the Jahrbuch and the numbers show the server's message`() {
         val network = StubbedNetwork(
             stub("GET", "network/yearbook/2024", TierFixtures.LOCKED, 403),
             stub("GET", "network/statistics", TierFixtures.LOCKED, 403),
@@ -289,21 +289,21 @@ class TierScreensTest {
         val host = models.keep(OasisStatisticsViewModel("stadtgarten", network.repository))
         show { YearbookScreen(2024, book) }
         text("Dein Jahrbuch")
-        text("AB OASE")
-        text("Deine Tropfen und Fotos eines Jahres", substring = true)
+        text("AB MITTENDRIN")
+        text("Deine Posts und Fotos eines Jahres", substring = true)
 
         switchTo { StatisticsScreen(numbers) }
         text("Mitgliedschaft ansehen")
         text("Deine Zahlen")
 
         switchTo { OasisStatisticsScreen("stadtgarten", host) }
-        text("Statistik deiner Oase")
+        text("Statistik deiner Crowd")
         text("Mitgliedschaft ansehen").performClick()
         assertTrue(MembershipRoute.Overview in navigator.stack(MainTab.Profile))
     }
 
     @Test
-    fun `a supporter's profile says that they carry Oasis`() {
+    fun `a supporter's profile says that they carry Mildcrowd`() {
         val supporter = Fixtures.profile.replace(""""founding_badge": false}}""", """"founding_badge": false, "supporter": true}}""")
         val network = StubbedNetwork(
             stub("GET", "network/profiles/jonas", supporter),
@@ -311,7 +311,7 @@ class TierScreensTest {
         )
         val model = models.keep(ProfileViewModel("jonas", network.repository))
         show { ProfileScreen("jonas", model) }
-        text("Trägt Oasis mit")
+        text("Trägt Mildcrowd mit")
         compose.onNodeWithTag("profile.founding").assertDoesNotExist()
     }
 
@@ -324,7 +324,7 @@ class TierScreensTest {
         )
         val model = models.keep(ProfileViewModel("jonas", network.repository))
         show { ProfileScreen("jonas", model) }
-        text("Trägt Oasis mit")
+        text("Trägt Mildcrowd mit")
         text("Gründungsmitglied")
         compose.onNodeWithTag("profile.founding").assertExists()
     }

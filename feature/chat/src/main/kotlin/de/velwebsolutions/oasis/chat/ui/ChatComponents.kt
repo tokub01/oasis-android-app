@@ -91,7 +91,7 @@ internal fun ConfirmDialog(title: String, confirm: String, onConfirm: () -> Unit
                     onDismiss()
                     onConfirm()
                 },
-                color = OasisColors.SunText
+                color = OasisColors.Danger
             )
         },
         dismissButton = { OasisTextButton("Abbrechen", onDismiss) },

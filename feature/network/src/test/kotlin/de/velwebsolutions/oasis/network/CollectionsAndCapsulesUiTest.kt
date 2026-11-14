@@ -58,7 +58,7 @@ import org.robolectric.RobolectricTestRunner
 import org.robolectric.annotation.Config
 import org.robolectric.annotation.GraphicsMode
 
-/** „In Sammlung“ on a card, the Sammlungen of an oasis, the sheet and the gemeinsamen Zeitkapseln at 360 dp. */
+/** „In Sammlung“ on a card, the Sammlungen of a crowd, the sheet and the gemeinsamen Zeitkapseln at 360 dp. */
 @RunWith(RobolectricTestRunner::class)
 @GraphicsMode(GraphicsMode.Mode.NATIVE)
 @Config(qualifiers = "w360dp-h740dp")
@@ -168,11 +168,11 @@ class CollectionsAndCapsulesUiTest {
         compose.onNodeWithTag("network.page").performScrollToNode(hasTestTag("oasis.collections"))
         compose.onNodeWithTag("collection.6").tap()
         compose.waitUntil(5_000) { model.shownCollectionId.value == 6 }
-        waitFor("Noch kein Tropfen in dieser Sammlung.")
+        waitFor("Noch kein Post in dieser Sammlung.")
         compose.onNodeWithTag("collection.4").tap()
         compose.waitUntil(5_000) { model.shownCollection.value?.posts?.isNotEmpty() == true && model.shownCollectionId.value == 4 }
         compose.onNodeWithTag("collection.delete").tap()
-        compose.onNodeWithText("Ihre Tropfen bleiben in der Oase.").assertExists()
+        compose.onNodeWithText("Ihre Posts bleiben in der Crowd.").assertExists()
         compose.onNodeWithTag("dialog.cancel").performClick()
         compose.onNodeWithTag("collection.delete").tap()
         compose.onNodeWithTag("dialog.confirm").performClick()
@@ -271,7 +271,7 @@ class CollectionsAndCapsulesUiTest {
         )
         val model = models.keep(TimeCapsulesViewModel(network.repository))
         show { TimeCapsulesScreen(model) }
-        waitFor("Zeitkapseln gibt es ab Oase.")
+        waitFor("Zeitkapseln gibt es ab Mittendrin.")
         waitFor("lädt dich zu einer gemeinsamen Zeitkapsel ein")
         capture("capsule-locked-invitations")
 

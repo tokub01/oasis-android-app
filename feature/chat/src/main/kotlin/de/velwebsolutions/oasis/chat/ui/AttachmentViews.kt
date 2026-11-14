@@ -157,7 +157,7 @@ internal fun DraftAttachments(state: ConversationState, actions: AttachmentActio
             Text(
                 VIEW_ONCE_SENDER_NOTE,
                 style = OasisType.Caption,
-                color = OasisColors.SunText,
+                color = OasisColors.Danger,
                 modifier = Modifier.testTag("chat.composer.viewOnceNote")
             )
         }
@@ -361,7 +361,7 @@ private fun Consent(
         color = OasisColors.Ink,
         modifier = Modifier.testTag("chat.attachment.consent")
     )
-    if (kind == AttachmentKind.File) Text(FILE_TRUST_NOTE, style = OasisType.Small, color = OasisColors.SunText)
+    if (kind == AttachmentKind.File) Text(FILE_TRUST_NOTE, style = OasisType.Small, color = OasisColors.Danger)
     if (viewOnce) Text("Einmal ansehen: $VIEW_ONCE_RECIPIENT_NOTE", style = OasisType.Small, color = OasisColors.Ink2)
     FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
         AsyncOasisButton("Annehmen", {
@@ -655,7 +655,7 @@ internal fun FullMedia(view: AttachmentView, kind: AttachmentKind) {
 /**
  * The open view-once file: a photo, video or voice message full screen with FLAG_SECURE (no screenshots or recordings
  * on Android), no saving or sharing, and "Melden" while it is still open; closing deletes it. Any other file opens once
- * in another app ([ViewOnceDocument]), which Oasis cannot stop from keeping a copy.
+ * in another app ([ViewOnceDocument]), which Mildcrowd cannot stop from keeping a copy.
  */
 @Composable
 internal fun ViewOnceViewer(viewer: ViewOnceViewer, actions: AttachmentActions, onReport: (ChatMessageItem) -> Unit) {
@@ -695,7 +695,7 @@ private fun kindIcon(kind: AttachmentKind): ImageVector = when (kind) {
 }
 
 /**
- * A decrypted file: name, size and type, "Öffnen" and "Teilen" in other apps – never shown inside Oasis. The chat stays
+ * A decrypted file: name, size and type, "Öffnen" and "Teilen" in other apps – never shown inside Mildcrowd. The chat stays
  * unlocked while the other app reads it, so its copy is still there.
  */
 @Composable
@@ -725,7 +725,7 @@ private fun DocumentCard(document: AttachmentView.Document, label: String, color
 }
 
 /**
- * A view-once file: opened once in another app (no "Teilen"); when the member comes back to Oasis it counts as viewed
+ * A view-once file: opened once in another app (no "Teilen"); when the member comes back to Mildcrowd it counts as viewed
  * and its copy is deleted.
  */
 @Composable
@@ -740,7 +740,7 @@ private fun ViewOnceDocument(viewer: ViewOnceViewer, document: AttachmentView.Do
             actions.onCancelViewOnce()
         }
     }
-    // Oasis goes to the background while the other app shows the file; coming back closes it (once).
+    // Mildcrowd goes to the background while the other app shows the file; coming back closes it (once).
     var left by remember(viewer) { mutableStateOf(false) }
     LifecycleEventEffect(Lifecycle.Event.ON_PAUSE) { left = opened }
     LifecycleEventEffect(Lifecycle.Event.ON_RESUME) {

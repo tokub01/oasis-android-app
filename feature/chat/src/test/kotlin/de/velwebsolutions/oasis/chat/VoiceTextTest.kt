@@ -96,7 +96,7 @@ class VoiceTextTest {
         transcriber.answer = { throw TranscriptionProblem.Denied }
         reader.transcribe(voice)
         assertEquals(
-            Transcript.Failed("Erlaube die Spracherkennung in den Einstellungen, dann kann Oasis Sprachnachrichten in Text umwandeln."),
+            Transcript.Failed("Erlaube die Spracherkennung in den Einstellungen, dann kann Mildcrowd Sprachnachrichten in Text umwandeln."),
             reader.state.value.transcripts[id]
         )
         transcriber.answer = { throw IOException("kaputt") }

@@ -55,7 +55,7 @@ interface ChatPreferences {
     /** Hides the backup row until [until]. */
     suspend fun snoozeBackupRow(userId: String, until: Instant)
 
-    /** How far the swipe hint got on this device (docs/oasis-chat-client.md, „C8 Swipe hint once“). */
+    /** How far the swipe hint got on this device (docs/mildcrowd-chat-client.md, „C8 Swipe hint once“). */
     suspend fun swipeHint(): SwipeHintProgress
 
     /** Keeps the swipe hint's progress. */

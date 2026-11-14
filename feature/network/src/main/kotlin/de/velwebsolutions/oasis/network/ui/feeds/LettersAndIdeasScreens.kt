@@ -71,7 +71,7 @@ import de.velwebsolutions.oasis.network.ui.components.UnderlinedLink
 import de.velwebsolutions.oasis.network.ui.components.block
 import de.velwebsolutions.oasis.network.ui.retry
 
-/** „Dein Oasen-Wochenbrief“ (/app/wochenbrief/{id?}). */
+/** „Dein Crowd-Wochenbrief“ (/app/wochenbrief/{id?}). */
 @Composable
 fun WeeklyLetterScreen(
     id: Int?,
@@ -117,7 +117,7 @@ internal fun WeeklyLetterContent(
     NetworkPage(onRefresh = onRefresh) {
         block("header") {
             PageHeader(
-                "Dein Oasen-Wochenbrief",
+                "Dein Crowd-Wochenbrief",
                 eyebrow = "Einmal in der Woche",
                 lead = letter?.let {
                     letterWeek(it.weekStart, it.weekEnd)
@@ -125,7 +125,7 @@ internal fun WeeklyLetterContent(
             )
         }
         if (letter == null) {
-            block("none") { DashedNote("Noch kein Wochenbrief. Er kommt sonntags am Abend, wenn in deinen Oasen etwas los war.") }
+            block("none") { DashedNote("Noch kein Wochenbrief. Er kommt sonntags am Abend, wenn in deinen Crowds etwas los war.") }
         } else if (letter.oases.isEmpty()) {
             block("gone") { Text("Was in diesem Wochenbrief stand, ist nicht mehr da.", style = OasisType.Body, color = OasisColors.Ink2) }
         }
@@ -156,7 +156,7 @@ internal fun WeeklyLetterContent(
     }
 }
 
-/** One oasis of the letter: its name, new members, Tropfen, meetups and new collections. */
+/** One crowd of the letter: its name, new members, Posts, meetups and new collections. */
 @Composable
 private fun LetterOasis(entry: WeeklyLetter.Entry, onAction: (PostAction, Post) -> Unit) {
     val navigator = LocalNavigator.current
@@ -192,7 +192,7 @@ private fun LetterOasis(entry: WeeklyLetter.Entry, onAction: (PostAction, Post) 
     }
 }
 
-/** „Ideen für Oasis“ (/app/ideen/{id?}). */
+/** „Ideen für Mildcrowd“ (/app/ideen/{id?}). */
 @Composable
 fun IdeasScreen(
     id: Int?,
@@ -228,7 +228,7 @@ private fun IdeasPage(ideas: List<Idea>, nextPage: Int?, viewModel: IdeasViewMod
     NetworkPage(onRefresh = viewModel::load) {
         block("header") {
             PageHeader(
-                "Ideen für Oasis",
+                "Ideen für Mildcrowd",
                 eyebrow = "Gemeinsam weiterbauen",
                 lead = "Was fehlt dir? Schlag es vor oder gib einer Idee deine Stimme. Wir schauen uns die beliebtesten an und " +
                     "schreiben dazu, wie es steht."
@@ -258,7 +258,7 @@ private fun IdeasPage(ideas: List<Idea>, nextPage: Int?, viewModel: IdeasViewMod
                         maxLength = 1000
                     )
                     open.error?.takeIf { it.fieldMessages.isEmpty() }?.let {
-                        Text(it.userMessage, style = OasisType.Small, color = OasisColors.SunText)
+                        Text(it.userMessage, style = OasisType.Small, color = OasisColors.Danger)
                     }
                     ButtonFlow {
                         AsyncOasisButton("Idee einreichen", viewModel::suggest, Modifier.testTag("ideas.submit"), fullWidth = false)
@@ -310,7 +310,7 @@ private fun IdeasPage(ideas: List<Idea>, nextPage: Int?, viewModel: IdeasViewMod
                 Bullets(
                     listOf(
                         "Eine Stimme pro Idee, jederzeit zurücknehmbar. Wer gestimmt hat, sieht niemand.",
-                        "Wir prüfen Ideen wie Tropfen. Unpassendes kannst du melden.",
+                        "Wir prüfen Ideen wie Posts. Unpassendes kannst du melden.",
                         "Ändert sich der Stand deiner Idee, bekommst du einen Hinweis."
                     )
                 )
@@ -331,7 +331,7 @@ private fun IdeasPage(ideas: List<Idea>, nextPage: Int?, viewModel: IdeasViewMod
 internal class IdeaActions(val vote: (Idea) -> Unit, val delete: (Idea) -> Unit)
 
 /**
- * One idea: the vote with its count, status, author and day, title, description, the answer of Oasis, the linked vote,
+ * One idea: the vote with its count, status, author and day, title, description, the answer of Mildcrowd, the linked vote,
  * and „Löschen“ for the own open idea or „Melden“.
  */
 @Composable
@@ -354,7 +354,7 @@ internal fun IdeaCard(idea: Idea, actions: IdeaActions) {
                     Text(
                         "Ausgeblendet nach einer Meldung. Nur du siehst diese Idee.",
                         style = OasisType.SmallBold,
-                        color = OasisColors.SunText
+                        color = OasisColors.Danger
                     )
                 }
             }
@@ -368,7 +368,7 @@ internal fun IdeaCard(idea: Idea, actions: IdeaActions) {
                     .padding(horizontal = 16.dp, vertical = 12.dp),
                 verticalArrangement = Arrangement.spacedBy(2.dp)
             ) {
-                Text("Antwort von Oasis", style = OasisType.SmallBold, color = OasisColors.Night)
+                Text("Antwort von Mildcrowd", style = OasisType.SmallBold, color = OasisColors.Night)
                 Text(reply, style = OasisType.Body, color = OasisColors.Ink)
             }
         }

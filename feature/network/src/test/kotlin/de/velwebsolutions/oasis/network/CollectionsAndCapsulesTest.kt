@@ -36,7 +36,7 @@ import org.junit.runner.RunWith
 import org.robolectric.ParameterizedRobolectricTestRunner
 
 /**
- * Sammlungen of an oasis and gemeinsame Zeitkapseln (docs/oasis-network.md): what the view models send and how the
+ * Sammlungen of a crowd and gemeinsame Zeitkapseln (docs/mildcrowd-network.md): what the view models send and how the
  * answers change what is shown.
  */
 @RunWith(ParameterizedRobolectricTestRunner::class)
@@ -184,7 +184,7 @@ class CollectionsAndCapsulesTest(private val answersAtOnce: Boolean) {
             stub(
                 "POST",
                 "network/collections/6/posts",
-                """{"message":"x","errors":{"post_id":["Der Tropfen ist schon in dieser Sammlung."]}}""",
+                """{"message":"x","errors":{"post_id":["Der Post ist schon in dieser Sammlung."]}}""",
                 422
             )
         )
@@ -296,11 +296,11 @@ class CollectionsAndCapsulesTest(private val answersAtOnce: Boolean) {
         }
         val invitation = decodeInvitation(invitationJson(1, "invited"))
         assertEquals(
-            "Geht auf am 24. Dezember 2026 um 18:00 Uhr in der Quelle von Mira Sol · Beitragen bis 24. Dezember 2026 um 17:00 Uhr",
+            "Geht auf am 24. Dezember 2026 um 18:00 Uhr auf dem Profil von Mira Sol · Beitragen bis 24. Dezember 2026 um 17:00 Uhr",
             invitationLine(invitation)
         )
         assertEquals(
-            "Geht auf am 24. Dezember 2026 um 18:00 Uhr in der Oase Stadtgarten",
+            "Geht auf am 24. Dezember 2026 um 18:00 Uhr in der Crowd Stadtgarten",
             invitationLine(
                 invitation.copy(oasis = de.velwebsolutions.oasis.network.api.NamedOasis("garten", "Stadtgarten"), contributeUntil = null)
             )
@@ -395,7 +395,7 @@ fun collectionsJson() = """
 fun memberJson(id: Int, username: String) =
     """{"id":$id,"username":"$username","display_name":"${username.replaceFirstChar(Char::uppercase)}","initials":"X"}"""
 
-/** A Tropfen of the oasis „garten“ in the collections [collections] (4 is „Rezepte“). */
+/** A Post of the crowd „garten“ in the collections [collections] (4 is „Rezepte“). */
 fun collectedPostJson(id: Int, vararg collections: Int): String {
     val refs = collections.joinToString(",") { """{"id":$it,"name":"${if (it == 4) "Rezepte" else "Tipps"}","can_remove":true}""" }
     return postJson(id)
@@ -406,7 +406,7 @@ fun collectedPostJson(id: Int, vararg collections: Int): String {
 fun collectionPageJson(current: Int, last: Int, vararg posts: String) =
     """{"data":[${posts.joinToString(",")}],"meta":{"current_page":$current,"last_page":$last}}"""
 
-/** The cards of [collectionPageJson] as a list page (for list models built without the oasis page). */
+/** The cards of [collectionPageJson] as a list page (for list models built without the crowd page). */
 suspend fun de.velwebsolutions.oasis.network.data.NetworkRepository.collectionPagePosts(id: Int) =
     de.velwebsolutions.oasis.network.api.FeedPage<NoContext>(collectionPosts(id, 1).data)
 
@@ -427,7 +427,7 @@ fun decodeInvitation(json: String) = de.velwebsolutions.oasis.core.network.Oasis
 )
 
 fun capsulesJson(available: Boolean = true) = """
-    {"data":{"available":$available,"locked_message":"Zeitkapseln gibt es ab Oase.","max_length":500,"max_waiting":50,"max_years":10,
+    {"data":{"available":$available,"locked_message":"Zeitkapseln gibt es ab Mittendrin.","max_length":500,"max_waiting":50,"max_years":10,
     "oases":[{"id":2,"slug":"garten","name":"Stadtgarten"}],
     "waiting":[{"id":8,"body":"Für uns alle","opens_at":"2026-12-24T17:00:00Z","oasis":null,
     "shared":{"contribute_until":"2026-12-24T16:00:00Z","invitees":[{"member":${memberJson(2, "jonas")},"status":"contributed"},

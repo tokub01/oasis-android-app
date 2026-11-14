@@ -88,7 +88,7 @@ class MemberScreensHiltTest : HiltScreenTest() {
         stub("PUT", "suspension/statement", """{"message":"x","errors":{"statement":["Höchstens 3000 Zeichen."]}}""", status = 422)
         show { AccountScreen(AccountRoute.Suspended) }
         waitForText("Dein Konto ist dauerhaft gesperrt")
-        compose.onNodeWithText("Du kannst Oasis nicht mehr nutzen.", substring = true).assertExists()
+        compose.onNodeWithText("Du kannst Mildcrowd nicht mehr nutzen.", substring = true).assertExists()
         compose.onNodeWithText("bis zum", substring = true).assertDoesNotExist()
         shot("suspended-ban")
         compose.onNodeWithTag("suspended.send").tap()
@@ -119,7 +119,7 @@ class MemberScreensHiltTest : HiltScreenTest() {
         show { AccountScreen(AccountRoute.Suspended) }
         waitForText("Dein Konto ist nicht gesperrt.")
         shot("suspended-lifted")
-        compose.onNodeWithText("Weiter zu Oasis").tap()
+        compose.onNodeWithText("Weiter zu Mildcrowd").tap()
         compose.waitUntil(5_000) { session.me?.isSuspended == false }
     }
 
@@ -132,7 +132,7 @@ class MemberScreensHiltTest : HiltScreenTest() {
             suspension(
                 "suspension",
                 complaint = """{"decision_id":7,"deadline":"2026-11-22T10:00:00.000000Z","allowed":true,"submitted_at":null,""" +
-                    """"email":"dsa@get-oasis.com"}"""
+                    """"email":"dsa@mildcrowd.com"}"""
             )
         )
         stub("POST", "complaints/7", """{"message":"x","errors":{"reason":["Bitte begründe die Beschwerde."]}}""", status = 422)
@@ -146,7 +146,7 @@ class MemberScreensHiltTest : HiltScreenTest() {
         compose.onNodeWithText("AGB § 15").tap()
         compose.onNodeWithTag("suspended.complaintMail").tap()
         assertTrue(web.first().endsWith("/agb#beschwerde"))
-        assertEquals("mailto:dsa@get-oasis.com", web.last())
+        assertEquals("mailto:dsa@mildcrowd.com", web.last())
         type("Warum hältst du die Entscheidung für falsch?", "Das war Ironie.")
         compose.onNodeWithTag("suspended.complain").tap()
         waitForText("Bitte begründe die Beschwerde.")
@@ -164,7 +164,7 @@ class MemberScreensHiltTest : HiltScreenTest() {
     fun aComplaintAlreadyInOrNoLongerPossibleOnTheLockScreen() {
         signIn(MIRA.copy(isSuspended = true))
         val received = """{"decision_id":7,"deadline":"2026-11-22T10:00:00.000000Z","allowed":false,""" +
-            """"submitted_at":"2026-10-23T09:00:00.000000Z","email":"dsa@get-oasis.com"}"""
+            """"submitted_at":"2026-10-23T09:00:00.000000Z","email":"dsa@mildcrowd.com"}"""
         stub("GET", "suspension", suspension("suspension", complaint = received))
         show { AccountScreen(AccountRoute.Suspended) }
         waitForTag("suspended.complaintThanks")
@@ -175,20 +175,20 @@ class MemberScreensHiltTest : HiltScreenTest() {
     fun aComplaintPastItsDeadlineGoesByEmail() {
         signIn(MIRA.copy(isSuspended = true))
         val closed = """{"decision_id":7,"deadline":"2026-10-01T10:00:00.000000Z","allowed":false,"submitted_at":null,""" +
-            """"email":"dsa@get-oasis.com"}"""
+            """"email":"dsa@mildcrowd.com"}"""
         stub("GET", "suspension", suspension("ban", endsAt = null, complaint = closed))
         show { AccountScreen(AccountRoute.Suspended) }
         waitForTag("suspended.complaintClosed")
         compose.onNodeWithText(
-            "Hier geht das gerade nicht. Schreib deine Beschwerde per E-Mail an dsa@get-oasis.com, oder nutze den Link in der E-Mail " +
+            "Hier geht das gerade nicht. Schreib deine Beschwerde per E-Mail an dsa@mildcrowd.com, oder nutze den Link in der E-Mail " +
                 "zur Entscheidung."
         ).assertExists()
-        compose.onNodeWithText("E-Mail an dsa@get-oasis.com").assertExists()
+        compose.onNodeWithText("E-Mail an dsa@mildcrowd.com").assertExists()
     }
 
     private val decision =
-        """{"data":{"id":7,"outcome":"Tropfen entfernt","ground":"Beleidigung","rule_reference":"§ 3 Umgangston",""" +
-            """"explanation":"Der Tropfen beleidigt eine Person.","deadline":"2026-11-22T10:00:00.000000Z"}}"""
+        """{"data":{"id":7,"outcome":"Post entfernt","ground":"Beleidigung","rule_reference":"§ 3 Umgangston",""" +
+            """"explanation":"Der Post beleidigt eine Person.","deadline":"2026-11-22T10:00:00.000000Z"}}"""
 
     @Test
     fun aComplaintIsSentAndThanked() {
@@ -197,11 +197,11 @@ class MemberScreensHiltTest : HiltScreenTest() {
         stub("POST", "complaints/7", "{}")
         navigator.stack(navigator.selectedTab).add(AccountRoute.Complaint(7))
         show { AccountScreen(AccountRoute.Complaint(7)) }
-        waitForText("Tropfen entfernt · Beleidigung")
-        // AGB § 15 and § 20: the way to court, and no out-of-court dispute body for Oasis (Art. 21 DSA does not apply).
+        waitForText("Post entfernt · Beleidigung")
+        // AGB § 15 and § 20: the way to court, and no out-of-court dispute body for Mildcrowd (Art. 21 DSA does not apply).
         waitForText(
             "Du kannst bis zum 22.11.2026 Beschwerde einlegen. Die Beschwerde ist kostenlos. Unabhängig davon steht dir der " +
-                "Rechtsweg offen. Eine außergerichtliche Streitbeilegungsstelle gibt es für Oasis nicht (AGB § 15 und § 20)."
+                "Rechtsweg offen. Eine außergerichtliche Streitbeilegungsstelle gibt es für Mildcrowd nicht (AGB § 15 und § 20)."
         )
         shot("complaint")
         type("Warum hältst du die Entscheidung für falsch?", "Das war Ironie.")
@@ -250,13 +250,13 @@ class MemberScreensHiltTest : HiltScreenTest() {
         signIn()
         stub("GET", "glossary", Fixtures.glossary)
         show { AccountScreen(AccountRoute.Glossary) }
-        waitForText("Tropfen")
+        waitForText("Posts")
         shot("glossary")
     }
 
     @Test
     fun webPagesOpenOutsideTheApp() {
-        navigator.open(WebRoute("https://get-oasis.com/agb"))
-        assertEquals(listOf("https://get-oasis.com/agb"), web)
+        navigator.open(WebRoute("https://mildcrowd.com/agb"))
+        assertEquals(listOf("https://mildcrowd.com/agb"), web)
     }
 }

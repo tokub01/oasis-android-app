@@ -28,7 +28,7 @@ import org.junit.Test
 import org.junit.runner.RunWith
 import org.junit.runners.Parameterized
 
-/** The oasis screens' view models: overview, one oasis, the form with banner and roles, closing and statistics. */
+/** The crowd screens' view models: overview, one crowd, the form with banner and roles, closing and statistics. */
 @RunWith(Parameterized::class)
 class OasisViewModelsTest(private val answersAtOnce: Boolean) {
     companion object {
@@ -74,13 +74,13 @@ class OasisViewModelsTest(private val answersAtOnce: Boolean) {
         |"display_name": "Mira Sol", "role": "host", "role_label": "Gastgeber:in"}, {"id": 3, "username": "aylin",
         |"display_name": "Aylin Demir", "role": "member", "role_label": "Mitglied"}], "options": {"visibilities":
         |[{"value": "public", "label": "Alle"}, {"value": "members", "label": "Nur Mitglieder"}], "colors": [{"value": "spring",
-        |"label": "Quelle"}]}}}
+        |"label": "Pfirsich"}]}}}
         """.trimMargin()
 
     private val banner = ImageUpload(byteArrayOf(1, 2, 3), "banner.jpg", "image/jpeg")
 
     @Test
-    fun `the overview loads once and again when an oasis changed`() = runTest {
+    fun `the overview loads once and again when a crowd changed`() = runTest {
         val network = StubbedNetwork(stub("GET", "network/oases", Fixtures.oases))
         val model = models.keep(OasesViewModel(network.repository))
         model.loadIfNeeded()
@@ -114,7 +114,7 @@ class OasisViewModelsTest(private val answersAtOnce: Boolean) {
         val network = StubbedNetwork(
             stub("GET", "network/oases/stadtgarten", detail(member = false)),
             stub("GET", "network/oases/stadtgarten/posts", pageJson(postJson(4))),
-            stub("POST", "network/oases/stadtgarten/follow", """{"message":"Du folgst jetzt der Oase Stadtgarten."}"""),
+            stub("POST", "network/oases/stadtgarten/follow", """{"message":"Du folgst jetzt der Crowd Stadtgarten."}"""),
             stub("GET", "network/oases/stadtgarten/collections", """{"data":{"can_create":false,"collections":[]}}""")
         )
         val model = models.keep(OasisViewModel("stadtgarten", network.repository))
@@ -124,7 +124,7 @@ class OasisViewModelsTest(private val answersAtOnce: Boolean) {
         assertEquals("the page, its Tropfen and its Sammlungen, once", 3, network.transport.requests.size)
 
         model.setFollowing(true)
-        assertEquals("Du folgst jetzt der Oase Stadtgarten.", model.status.value)
+        assertEquals("Du folgst jetzt der Crowd Stadtgarten.", model.status.value)
         model.dismissStatus()
         assertNull(model.status.value)
     }
@@ -152,7 +152,7 @@ class OasisViewModelsTest(private val answersAtOnce: Boolean) {
     }
 
     @Test
-    fun `a published Tropfen reloads the oasis' Tropfen`() = runTest {
+    fun `a published Post reloads the crowd's Posts`() = runTest {
         val network = StubbedNetwork(
             stub("GET", "network/oases/stadtgarten", detail(member = false)),
             stub("GET", "network/oases/stadtgarten/posts", pageJson(postJson(4)))
@@ -257,7 +257,7 @@ class OasisViewModelsTest(private val answersAtOnce: Boolean) {
     }
 
     @Test
-    fun `Tropfen and the member list whose load was cancelled with the oasis page load again with it`() = runTest {
+    fun `Posts and the member list whose load was cancelled with the crowd page load again with it`() = runTest {
         val asked = CompletableDeferred<Unit>()
         val gate = CompletableDeferred<Unit>()
         val network = StubbedNetwork(
@@ -273,7 +273,7 @@ class OasisViewModelsTest(private val answersAtOnce: Boolean) {
             }
         }
         val model = models.keep(OasisViewModel("stadtgarten", slow))
-        // A rotation while the oasis' Tropfen load cancels the screen's coroutine, before the member list was asked for.
+        // A rotation while the crowd's Posts load cancels the screen's coroutine, before the member list was asked for.
         val screen = launch { model.loadIfNeeded() }
         asked.await()
         screen.cancelAndJoin()
@@ -305,18 +305,18 @@ class OasisViewModelsTest(private val answersAtOnce: Boolean) {
     }
 
     @Test
-    fun `a banner picked while founding waits for Oase eröffnen`() = runTest {
+    fun `a banner picked while founding waits for Crowd eröffnen`() = runTest {
         val network = StubbedNetwork(stub("GET", "network/oases", Fixtures.oases))
         val model = models.keep(OasisFormViewModel(null, network.repository))
         assertFalse(model.editing)
         model.load()
         model.pickBanner(banner)
         assertEquals(banner, model.state.value.banner)
-        assertEquals("Das Banner wird mit der Oase gespeichert.", model.status.value)
+        assertEquals("Das Banner wird mit der Crowd gespeichert.", model.status.value)
 
         model.removeBanner()
         assertNull(model.state.value.banner)
-        assertEquals("Das Banner ist entfernt. Jetzt zeigen wir wieder die Farbe der Oase.", model.status.value)
+        assertEquals("Das Banner ist entfernt. Jetzt zeigen wir wieder die Farbe der Crowd.", model.status.value)
         assertEquals(1, network.transport.requests.size)
 
         model.setRole(3, "host")
@@ -372,12 +372,12 @@ class OasisViewModelsTest(private val answersAtOnce: Boolean) {
         assertEquals("Bitte bestätige.", model.error.value?.message("confirm"))
         assertFalse(model.closed.value)
 
-        network.add("DELETE", "network/oases/stadtgarten", json = """{"message":"Die Oase ist geschlossen."}""")
+        network.add("DELETE", "network/oases/stadtgarten", json = """{"message":"Die Crowd ist geschlossen."}""")
         model.setConfirmed(true)
         val before = NetworkSignals.oases.value
         model.close()
         assertTrue(model.closed.value)
-        assertEquals("Die Oase ist geschlossen.", NetworkSignals.confirmation.value)
+        assertEquals("Die Crowd ist geschlossen.", NetworkSignals.confirmation.value)
         assertTrue(NetworkSignals.oases.value > before)
         assertTrue(network.last("network/oases/stadtgarten").body!!.contains("\"confirm\":true"))
     }

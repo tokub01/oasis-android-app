@@ -61,7 +61,7 @@ internal fun OneTimeCodeField(
                     Modifier
                         .fillMaxWidth()
                         .background(OasisColors.Field, shape)
-                        .border(if (error == null) 1.dp else 2.dp, if (error == null) OasisColors.FieldLine else OasisColors.SunText, shape)
+                        .border(if (error == null) 1.dp else 2.dp, if (error == null) OasisColors.FieldLine else OasisColors.Danger, shape)
                         .padding(horizontal = 14.dp, vertical = 12.dp)
                 ) { inner() }
             }

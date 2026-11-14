@@ -39,7 +39,7 @@ import org.junit.Assert.assertTrue
 import org.junit.Rule
 import org.junit.Test
 
-/** Two app clients against the in-memory server: the full protocol of docs/oasis-chat.md through the view models. */
+/** Two app clients against the in-memory server: the full protocol of docs/mildcrowd-chat.md through the view models. */
 @OptIn(ExperimentalCoroutinesApi::class)
 class ChatFlowTest {
     @get:Rule val mainRule = MainDispatcherRule()

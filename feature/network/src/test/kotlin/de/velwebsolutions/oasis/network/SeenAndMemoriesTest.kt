@@ -38,8 +38,8 @@ import org.robolectric.annotation.Config
 import org.robolectric.annotation.GraphicsMode
 
 /**
- * „Alles Neue gesehen“ and „Heute vor einem Jahr“ on the Quelle (docs/oasis-network.md): only what is new until
- * „Ältere Tropfen“, and the member's own memories with „Ausblenden“.
+ * „Alles Neue gesehen“ and „Heute vor einem Jahr“ on the Start (docs/mildcrowd-network.md): only what is new until
+ * „Ältere Posts“, and the member's own memories with „Ausblenden“.
  */
 @RunWith(RobolectricTestRunner::class)
 @GraphicsMode(GraphicsMode.Mode.NATIVE)
@@ -65,7 +65,7 @@ class SeenAndMemoriesTest {
 
     @Test
     fun onlyWhatIsNewUntilAeltereTropfen() {
-        // The first visit, everything still new, or after „Ältere Tropfen“: the list as it is.
+        // The first visit, everything still new, or after „Ältere Posts“: the list as it is.
         assertFalse(SeenCut.of(state(9, 8, seen = null), showOlder = false).seen)
         assertFalse(SeenCut.of(state(9, 8, seen = "7", next = "c"), showOlder = false).seen)
         assertFalse(SeenCut.of(state(9, 5, seen = "7"), showOlder = true).seen)
@@ -156,7 +156,7 @@ class SeenAndMemoriesTest {
             }
         }
         compose.onNodeWithTag("network.page").performScrollToNode(hasTestTag("source.seen"))
-        compose.onNodeWithText("Noch keine Tropfen.", substring = true).assertDoesNotExist()
+        compose.onNodeWithText("Noch keine Posts.", substring = true).assertDoesNotExist()
     }
 
     private fun capture(name: String) {

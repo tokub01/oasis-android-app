@@ -129,7 +129,7 @@ internal fun PrivacyCenterScreen(viewModel: PrivacyViewModel = hiltViewModel()) 
     val scope = rememberCoroutineScope()
     LifecycleEventEffect(Lifecycle.Event.ON_RESUME) { scope.launch { viewModel.appeared() } }
     var refreshing by remember { mutableStateOf(false) }
-    // The number of public Tropfen while „Tropfen begrenzen“ asks for confirmation.
+    // The number of public Posts while „Posts begrenzen“ asks for confirmation.
     var limitCount by remember { mutableStateOf<Int?>(null) }
     OasisScreen(
         title = "Privatsphäre",
@@ -155,8 +155,8 @@ internal fun PrivacyCenterScreen(viewModel: PrivacyViewModel = hiltViewModel()) 
         }
         limitCount?.let { count ->
             ConfirmDialog(
-                "Alle $count früher öffentlichen Tropfen auf „Alle Mitglieder“ umstellen? Das lässt sich nicht auf einmal rückgängig machen.",
-                "Tropfen begrenzen",
+                "Alle $count früher öffentlichen Posts auf „Alle Mitglieder“ umstellen? Das lässt sich nicht auf einmal rückgängig machen.",
+                "Posts begrenzen",
                 onConfirm = { scope.launch { viewModel.limitPastPosts() } },
                 onDismiss = { limitCount = null }
             )
@@ -211,18 +211,18 @@ private fun MoreControls(counts: PrivacyCounts, onLimit: (Int) -> Unit, open: (A
     Column(verticalArrangement = Arrangement.spacedBy(14.dp)) {
         Text("Noch mehr Kontrolle", style = OasisType.heading(21), color = OasisColors.Night, modifier = Modifier.semantics { heading() })
         val affected = when (counts.publicPosts) {
-            0 -> "Du hast keine Tropfen mit der früheren Einstellung „Öffentlich“."
-            1 -> "Betrifft 1 Tropfen."
-            else -> "Betrifft ${counts.publicPosts} Tropfen."
+            0 -> "Du hast keine Posts mit der früheren Einstellung „Öffentlich“."
+            1 -> "Betrifft 1 Post."
+            else -> "Betrifft ${counts.publicPosts} Posts."
         }
         SectionCard(
-            "Frühere Tropfen begrenzen",
+            "Frühere Posts begrenzen",
             detail =
-                "Stellt Tropfen, die du früher als „Öffentlich“ geteilt hast, auf einmal auf „Alle Mitglieder“ um. " +
-                    "Gäste und Suchmaschinen sehen bei Oasis ohnehin nichts mehr. $affected"
+                "Stellt Posts, die du früher als „Öffentlich“ geteilt hast, auf einmal auf „Alle Mitglieder“ um. " +
+                    "Gäste und Suchmaschinen sehen bei Mildcrowd ohnehin nichts mehr. $affected"
         ) {
             if (counts.publicPosts > 0) {
-                OasisButton("Tropfen begrenzen", { onLimit(counts.publicPosts) }, kind = OasisButtonKind.Secondary, fullWidth = false)
+                OasisButton("Posts begrenzen", { onLimit(counts.publicPosts) }, kind = OasisButtonKind.Secondary, fullWidth = false)
             }
         }
         val words = when (counts.hiddenWords) {
@@ -232,19 +232,19 @@ private fun MoreControls(counts: PrivacyCounts, onLimit: (Int) -> Unit, open: (A
         }
         LinkCard(
             "Verborgene Wörter",
-            "Tropfen, Antworten und Hinweise mit bestimmten Wörtern ausblenden. $words",
+            "Posts, Antworten und Hinweise mit bestimmten Wörtern ausblenden. $words",
             "privacy.words"
         ) { open(AccountRoute.HiddenWords) }
         LinkCard(
             "Blockiert, stumm, eingeschränkt",
-            "${counts.blocked} blockiert · ${counts.muted} stumm · ${counts.restricted} eingeschränkt. Einschränken startest du im Menü „⋯“ eines Tropfens oder auf einem Profil.",
+            "${counts.blocked} blockiert · ${counts.muted} stumm · ${counts.restricted} eingeschränkt. Einschränken startest du im Menü „⋯“ eines Posts oder auf einem Profil.",
             "privacy.safety"
         ) { open(AccountRoute.Safety) }
         LinkCard("Geräte und Anmeldungen", "Sehen, wo du angemeldet bist, und fremde Geräte abmelden.", "privacy.devices") {
             open(AccountRoute.Devices)
         }
         LinkCard(
-            "Deine Zeit in Oasis",
+            "Deine Zeit in Mildcrowd",
             "Wie viele Minuten du an den letzten sieben Tagen hier warst – nur, wenn du es einschaltest, und nur auf diesem Gerät.",
             "privacy.time"
         ) { open(AccountRoute.ScreenTime) }
@@ -404,7 +404,7 @@ internal fun HiddenWordsScreen(viewModel: HiddenWordsViewModel = hiltViewModel()
                 "Verborgene Wörter",
                 eyebrow = "Privatsphäre",
                 lead =
-                    "Tropfen, Antworten und Hinweise mit diesen Wörtern bekommst du nicht mehr zu sehen. Groß- und Kleinschreibung spielt keine Rolle."
+                    "Posts, Antworten und Hinweise mit diesen Wörtern bekommst du nicht mehr zu sehen. Groß- und Kleinschreibung spielt keine Rolle."
             )
             LoadableView(ui.state, onRetry = viewModel.retry(viewModel::load)) { words ->
                 SectionCard("Deine Wörter (${words.words.size} von ${words.max})") {
@@ -448,9 +448,9 @@ internal fun HiddenWordsScreen(viewModel: HiddenWordsViewModel = hiltViewModel()
             SideCard("Was passiert genau?", tone = PanelTone.Dune) {
                 Bullets(
                     listOf(
-                        "In deiner Quelle, in Oasen, Suche und Antworten fehlen Tropfen mit diesen Wörtern – deine eigenen bleiben.",
-                        "Antworten mit diesen Wörtern unter deinen Tropfen sieht nur noch, wer sie geschrieben hat.",
-                        "Du bekommst keine Hinweise zu Tropfen mit diesen Wörtern.",
+                        "Auf deiner Startseite, in Crowds, Suche und Antworten fehlen Posts mit diesen Wörtern – deine eigenen bleiben.",
+                        "Antworten mit diesen Wörtern unter deinen Posts sieht nur noch, wer sie geschrieben hat.",
+                        "Du bekommst keine Hinweise zu Posts mit diesen Wörtern.",
                         "Niemand erfährt, welche Wörter du verbirgst."
                     )
                 )

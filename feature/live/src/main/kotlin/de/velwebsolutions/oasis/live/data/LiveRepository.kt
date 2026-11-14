@@ -59,7 +59,7 @@ interface LiveRepository {
     suspend fun appConfig(): LiveAppConfig
 }
 
-/** [LiveRepository] over the Oasis API. */
+/** [LiveRepository] over the Mildcrowd API. */
 class DefaultLiveRepository @Inject constructor(client: ApiClient) : LiveRepository {
     private val service = client.create<LiveService>()
 

@@ -64,7 +64,7 @@ class MembershipRepositoryTest {
         val (repository, _) = Fixtures.repository(Stub("GET", "membership", json = Fixtures.subscriptionOverview))
         val overview = repository.overview()
         assertEquals(MembershipOverview.State.Subscription, overview.state)
-        assertEquals("Oase", overview.subscription?.tierName)
+        assertEquals("Mittendrin", overview.subscription?.tierName)
         assertEquals(false, overview.subscription?.onGracePeriod)
         assertTrue(overview.canCancel && overview.canWithdraw && overview.isFoundingMember)
     }
@@ -113,7 +113,7 @@ class MembershipRepositoryTest {
             Stub("GET", "membership/withdrawal", json = Fixtures.WITHDRAWAL),
             Stub("POST", "membership/withdrawal", json = Fixtures.confirmed("Widerrufen."))
         )
-        assertEquals("Oase", repository.withdrawal().tierName)
+        assertEquals("Mittendrin", repository.withdrawal().tierName)
         assertEquals("Widerrufen.", repository.withdraw().message)
         assertEquals("membership/withdrawal", transport.requests.last().path)
     }
@@ -313,17 +313,17 @@ class TierChangeRepositoryTest {
     fun `the tiers carry the web's labels and the lead names the current tier and the next charge`() {
         assertEquals(listOf("solidar", "oase", "maezen"), MembershipTier.all.map { it.key })
         assertEquals(
-            listOf("Solidar – 3\u00A0€ monatlich", "Oase – 5\u00A0€ monatlich", "Mäzen – ab 12\u00A0€ monatlich"),
+            listOf("Solidar – 3\u00A0€ monatlich", "Mittendrin – 5\u00A0€ monatlich", "Mäzen – ab 12\u00A0€ monatlich"),
             MembershipTier.all.map { it.label }
         )
         assertEquals(12, MembershipTier.minimumMaezen)
         assertEquals(
-            "Derzeit: Stufe „Oase“. Die neue Stufe gilt ab sofort, der neue Beitrag ab deiner nächsten Abbuchung am 18.11.2026. " +
+            "Derzeit: Stufe „Mittendrin“. Die neue Stufe gilt ab sofort, der neue Beitrag ab deiner nächsten Abbuchung am 18.11.2026. " +
                 "Wechselst du in eine kleinere Stufe, bleibt Bestehendes erhalten; Neues richtet sich nach der neuen Stufe (AGB § 5).",
             tierChangeLead(subscription)
         )
         assertEquals(
-            "Derzeit: Stufe „Oase“. Die neue Stufe gilt ab sofort, der neue Beitrag ab deiner nächsten Abbuchung. " +
+            "Derzeit: Stufe „Mittendrin“. Die neue Stufe gilt ab sofort, der neue Beitrag ab deiner nächsten Abbuchung. " +
                 "Wechselst du in eine kleinere Stufe, bleibt Bestehendes erhalten; Neues richtet sich nach der neuen Stufe (AGB § 5).",
             tierChangeLead(subscription.copy(subscription = subscription.subscription?.copy(paidUntil = null)))
         )

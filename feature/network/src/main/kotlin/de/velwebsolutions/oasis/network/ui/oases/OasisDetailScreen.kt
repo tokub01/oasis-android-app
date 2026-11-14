@@ -84,7 +84,7 @@ import de.velwebsolutions.oasis.network.ui.retry
 import kotlinx.coroutines.delay
 
 /**
- * One oasis (/oasen/{slug}): banner, description, following, house rules, the composer for members, the Tropfen, hosts,
+ * One crowd (/crowds/{slug}): banner, description, following, house rules, the composer for members, the Posts, hosts,
  * the member list for members and the host tools.
  */
 @Composable
@@ -128,7 +128,7 @@ fun OasisDetailScreen(
     }
 
     OasisScreen(
-        title = loaded?.oasis?.name ?: "Oase",
+        title = loaded?.oasis?.name ?: "Crowd",
         message = status ?: posts.status,
         error = (error ?: posts.actionError)?.userMessage,
         onDismissMessage = {
@@ -158,20 +158,20 @@ fun OasisDetailScreen(
                     compose(oasis)
                 }
             }
-            // iOS: the pen in the toolbar; on Android the oasis' main action is the floating button.
+            // iOS: the pen in the toolbar; on Android the crowd's main action is the floating button.
             if (loaded?.canPost == true) {
                 ComposeFab(
                     listState,
                     onClick = { compose(loaded) },
                     Modifier.testTag("oasis.compose"),
-                    description = "Tropfen in ${loaded.oasis.name} schreiben"
+                    description = "Post in ${loaded.oasis.name} schreiben"
                 )
             }
         }
     }
     if (confirmUnfollow) {
         ConfirmDialog(
-            title = "Der Oase „${loaded?.oasis?.name.orEmpty()}“ nicht mehr folgen?",
+            title = "Der Crowd „${loaded?.oasis?.name.orEmpty()}“ nicht mehr folgen?",
             confirmLabel = "Nicht mehr folgen",
             onConfirm = { viewModel.launch { viewModel.setFollowing(false) } },
             onDismiss = { confirmUnfollow = false }
@@ -236,7 +236,7 @@ internal fun OasisViewModel.collectionActions() = OasisCollectionActions(
 /** The row of „Treffen“ on the page: after the header, the pate, the house rules and the composer entry. */
 internal fun meetupsIndex(detail: OasisDetail): Int = 2 + (if (detail.welcome?.pate != null) 1 else 0) + (if (detail.canPost) 1 else 0)
 
-/** The oasis page's content. */
+/** The crowd page's content. */
 fun LazyListScope.oasisContent(
     detail: OasisDetail,
     posts: PostListState<NoContext>,
@@ -254,20 +254,20 @@ fun LazyListScope.oasisContent(
     detail.welcome?.pate?.let { pate -> block("pate") { PateCard(pate) } }
     block("rules") {
         var showRules by rememberSaveable { mutableStateOf(false) }
-        Disclosure("Hausregeln dieser Oase", showRules, {
+        Disclosure("Hausregeln dieser Crowd", showRules, {
             showRules = !showRules
         }, Modifier.testTag("oasis.rules"), border = OasisColors.DuneLine) {
             HouseRules(detail.houseRules)
         }
     }
-    if (detail.canPost) block("compose") { ComposeEntry("Dein Tropfen in ${detail.oasis.name}", onClick = onCompose) }
+    if (detail.canPost) block("compose") { ComposeEntry("Dein Post in ${detail.oasis.name}", onClick = onCompose) }
     // Only members get meetups and Willkommenspaten from the server.
     extras.meetups?.let { meetups ->
         block("meetups") { MeetupsSection(meetups, extras.form, detail.isHost, extras.actions) }
     }
     collectionsSection(collections, detail.isHost)
-    block("posts.title") { SectionTitle("Tropfen") }
-    feedSection(posts, handlers, empty = "In dieser Oase gibt es noch keine Tropfen.")
+    block("posts.title") { SectionTitle("Posts") }
+    feedSection(posts, handlers, empty = "In dieser Crowd gibt es noch keine Posts.")
     block("side.hosts") { SideCard("Gastgeber:innen") { detail.hosts.forEach { MemberRow(it) } } }
     if (detail.isMember && members != null) block("side.members") { MemberListCard(members, memberQuery, onMemberQuery) }
     detail.welcome?.let { welcome -> block("side.welcome") { VolunteerCard(welcome, extras.actions.onVolunteer) } }
@@ -275,7 +275,7 @@ fun LazyListScope.oasisContent(
         block("side.host") {
             val navigator = LocalNavigator.current
             SideCard("Du bist Gastgeber:in", tone = PanelTone.Night) {
-                Text("Bearbeite Texte und Rollen, oder sieh nach, wie es der Oase geht.")
+                Text("Bearbeite Texte und Rollen, oder sieh nach, wie es der Crowd geht.")
                 ButtonFlow {
                     OnNightButton("Bearbeiten", {
                         navigator.open(NetworkRoute.EditOasis(detail.oasis.slug))
@@ -299,7 +299,7 @@ private fun Header(detail: OasisDetail, onFollow: suspend () -> Unit, onUnfollow
         OasisBanner(detail.oasis, height = if (detail.oasis.bannerUrl == null) 128.dp else 120.dp)
         Column(Modifier.padding(24.dp), verticalArrangement = Arrangement.spacedBy(14.dp)) {
             Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
-                Eyebrow("Oase")
+                Eyebrow("Crowd")
                 Text(
                     detail.oasis.name,
                     style = OasisType.display(28),
@@ -364,11 +364,11 @@ fun HouseRules(rules: List<String>) {
         } else {
             rules.firstOrNull()?.let { Text(it, style = OasisType.Body, color = OasisColors.Ink2) }
         }
-        Text("Zusätzlich gelten die Community-Regeln von Oasis.", style = OasisType.Caption, color = OasisColors.Muted)
+        Text("Zusätzlich gelten die Community-Regeln von Mildcrowd.", style = OasisType.Caption, color = OasisColors.Muted)
     }
 }
 
-/** The member list for members of the oasis, with "Schreiben" where the person accepts messages. */
+/** The member list for members of the crowd, with "Schreiben" where the person accepts messages. */
 @Composable
 private fun MemberListCard(members: OasisMembers, query: String, onQuery: (String) -> Unit) {
     val navigator = LocalNavigator.current
@@ -445,9 +445,9 @@ private fun MemberListCard(members: OasisMembers, query: String, onQuery: (Strin
 }
 
 /**
- * „Zurückgehalten und dem Moderationsteam gemeldet“ for the founder, the hosts and staff of an oasis whose texts the
- * automated check holds (oasis-show.blade.php; docs/oasis-auto-moderation.md): they still read name, description and
- * house rules, everyone else sees „Oase in Prüfung“ until a person decided. Like the note on a held Tropfen.
+ * „Zurückgehalten und dem Moderationsteam gemeldet“ for the founder, the hosts and staff of a crowd whose texts the
+ * automated check holds (oasis-show.blade.php; docs/mildcrowd-auto-moderation.md): they still read name, description and
+ * house rules, everyone else sees „Crowd in Prüfung“ until a person decided. Like the note on a held Post.
  */
 @Composable
 fun OasisHeldNote() {

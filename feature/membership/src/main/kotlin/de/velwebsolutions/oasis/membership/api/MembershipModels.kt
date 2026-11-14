@@ -58,7 +58,7 @@ data class MembershipOverview(
 
     /** A Mäzen's place: who gives it and the tier it brings (TierFeatures::COMPANION_TIER). */
     @Serializable
-    data class CompanionSeat(val sponsor: String, val tier: String? = null, val tierName: String = "Oase")
+    data class CompanionSeat(val sponsor: String, val tier: String? = null, val tierName: String = "Mittendrin")
 
     /**
      * An announced change of the AGB (`oasis:terms-announce`, `TermsAnnouncement::currentFor`): the day it takes
@@ -135,7 +135,7 @@ data class MembershipOverview(
         @SerialName("gift")
         Gift,
 
-        /** No membership: Oasis is closed until one is chosen (there is no free trial). */
+        /** No membership: Mildcrowd is closed until one is chosen (there is no free trial). */
         @SerialName("expired")
         Expired
     }
@@ -253,7 +253,7 @@ data class CompanionLinkInfo(val sponsor: String? = null)
 data class SupporterInput(val supporterBadge: Boolean? = null, val thankYouList: Boolean? = null)
 
 /**
- * A tier the tier change offers (`config('oasis.tiers')`, as the portal's select lists them: „Mäzen – ab 12 €
+ * A tier the tier change offers (`config('mildcrowd.tiers')`, as the portal's select lists them: „Mäzen – ab 12 €
  * monatlich“). The server validates the key and the Mäzen minimum again (TierChangeController).
  */
 data class MembershipTier(
@@ -263,7 +263,7 @@ data class MembershipTier(
     val monthly: Int,
     val isMinimum: Boolean
 ) {
-    /** „Oase – 5 € monatlich“, „Mäzen – ab 12 € monatlich“ (portal.blade.php). */
+    /** „Mittendrin – 5 € monatlich“, „Mäzen – ab 12 € monatlich“ (portal.blade.php). */
     val label: String get() = "$name – ${if (isMinimum) "ab " else ""}$monthly\u00A0€ monatlich"
 
     companion object {
@@ -273,7 +273,7 @@ data class MembershipTier(
         /** The three tiers in the web's order. */
         val all = listOf(
             MembershipTier("solidar", "Solidar", 3, isMinimum = false),
-            MembershipTier("oase", "Oase", 5, isMinimum = false),
+            MembershipTier("oase", "Mittendrin", 5, isMinimum = false),
             MembershipTier(MAEZEN, "Mäzen", 12, isMinimum = true)
         )
 

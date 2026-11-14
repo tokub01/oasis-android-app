@@ -534,7 +534,7 @@ class ConversationViewModelTest {
         writer.open()
         val reads = CopyOnWriteArrayList<String>()
         server.onRequest = { if (it == "POST conversations/$id/read") reads += it }
-        // Another app is in front (a picker of Oasis keeps the chat open meanwhile).
+        // Another app is in front (a picker of Mildcrowd keeps the chat open meanwhile).
         reader.setVisible(false)
         writer.setDraft("Bist du da?")
         writer.send()

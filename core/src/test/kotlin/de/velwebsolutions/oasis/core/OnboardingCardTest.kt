@@ -11,7 +11,7 @@ import org.junit.runner.RunWith
 import org.robolectric.RobolectricTestRunner
 import org.robolectric.RuntimeEnvironment
 
-/** „Später“ on the card „Mach dein Tal lebendig“ is kept on this device. */
+/** „Später“ on the card „Mach deine Startseite lebendig“ is kept on this device. */
 @RunWith(RobolectricTestRunner::class)
 class OnboardingCardTest {
     @Test

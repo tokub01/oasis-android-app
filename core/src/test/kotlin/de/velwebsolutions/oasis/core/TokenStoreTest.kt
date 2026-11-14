@@ -42,19 +42,19 @@ class TokenStoreTest {
 
     @Test
     fun `a token bound to its server is never read for another one`() {
-        KeystoreTokenStore(context, origin = "https://staging.get-oasis.com") { key }.write("staging-token")
-        assertEquals("staging-token", KeystoreTokenStore(context, origin = "https://staging.get-oasis.com") { key }.read())
-        assertNull("the release build of the same package", KeystoreTokenStore(context, origin = "https://get-oasis.com") { key }.read())
+        KeystoreTokenStore(context, origin = "https://staging.mildcrowd.com") { key }.write("staging-token")
+        assertEquals("staging-token", KeystoreTokenStore(context, origin = "https://staging.mildcrowd.com") { key }.read())
+        assertNull("the release build of the same package", KeystoreTokenStore(context, origin = "https://mildcrowd.com") { key }.read())
     }
 
     @Test
     fun `a token from before the binding is taken once and bound to this build's server`() {
         KeystoreTokenStore(context) { key }.write("old-token")
-        assertEquals("no sign-out on update", "old-token", KeystoreTokenStore(context, origin = "https://get-oasis.com") { key }.read())
-        assertEquals("old-token", KeystoreTokenStore(context, origin = "https://get-oasis.com") { key }.read())
+        assertEquals("no sign-out on update", "old-token", KeystoreTokenStore(context, origin = "https://mildcrowd.com") { key }.read())
+        assertEquals("old-token", KeystoreTokenStore(context, origin = "https://mildcrowd.com") { key }.read())
         assertNull(
             "bound now: another server never gets it",
-            KeystoreTokenStore(context, origin = "https://staging.get-oasis.com") {
+            KeystoreTokenStore(context, origin = "https://staging.mildcrowd.com") {
                 key
             }.read()
         )

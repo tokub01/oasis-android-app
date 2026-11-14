@@ -38,7 +38,7 @@ import de.velwebsolutions.oasis.design.theme.OasisType
 import kotlinx.coroutines.launch
 
 /**
- * Button looks of the web app: [Primary] (Nachtwasser), [Accent] (Abendsonne), [Secondary] (outlined),
+ * Button looks of the web app: [Primary] (Tinte), [Accent] (the accent blue), [Secondary] (outlined),
  * [Destructive] (coral text) – pill-shaped, 48 dp high.
  */
 enum class OasisButtonKind { Primary, Accent, Secondary, Destructive }
@@ -47,7 +47,7 @@ private fun OasisButtonKind.foreground() = when (this) {
     OasisButtonKind.Primary -> OasisColors.OnNight
     OasisButtonKind.Accent -> OasisColors.SunInk
     OasisButtonKind.Secondary -> OasisColors.Night
-    OasisButtonKind.Destructive -> OasisColors.SunText
+    OasisButtonKind.Destructive -> OasisColors.Danger
 }
 
 private fun OasisButtonKind.background() = when (this) {
@@ -58,7 +58,7 @@ private fun OasisButtonKind.background() = when (this) {
 
 private fun OasisButtonKind.border(): BorderStroke? = when (this) {
     OasisButtonKind.Secondary -> BorderStroke(1.5.dp, OasisColors.Night)
-    OasisButtonKind.Destructive -> BorderStroke(1.5.dp, OasisColors.SunText)
+    OasisButtonKind.Destructive -> BorderStroke(1.5.dp, OasisColors.Danger)
     else -> null
 }
 
@@ -68,7 +68,7 @@ private fun OasisButtonKind.border(): BorderStroke? = when (this) {
  */
 private val PillShape = RoundedCornerShape(24.dp)
 
-/** The Oasis pill button. While [loading] it shows a spinner and ignores taps (AsyncButton on iOS). */
+/** The Mildcrowd pill button. While [loading] it shows a spinner and ignores taps (AsyncButton on iOS). */
 @Composable
 fun OasisButton(
     text: String,

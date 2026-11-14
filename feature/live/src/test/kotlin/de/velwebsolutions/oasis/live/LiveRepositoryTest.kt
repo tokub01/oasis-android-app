@@ -17,7 +17,7 @@ class LiveRepositoryTest {
         val transport = StubTransport(StubTransport.Stub("GET", "hints", json = LiveJson.HINTS))
         val page = repository(transport).hints(1)
         assertEquals(listOf("Heute", "Diese Woche", "Früher"), page.data.map { it.group })
-        assertEquals("Neue Person in deiner Karawane · Emil Novak", page.data.first().label)
+        assertEquals("Neu bei deinen Followern · Emil Novak", page.data.first().label)
         assertEquals("http://localhost/profil/emil", page.data.first().url)
         assertNull(page.data.last().url)
         assertEquals("2", page.nextCursor)

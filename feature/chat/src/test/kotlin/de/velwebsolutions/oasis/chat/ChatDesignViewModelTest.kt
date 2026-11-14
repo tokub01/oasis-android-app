@@ -16,7 +16,7 @@ import org.junit.Rule
 import org.junit.Test
 
 /**
- * The view-model side of the chat design (docs/oasis-chat-client.md, „Chat design and gestures“): the header's status,
+ * The view-model side of the chat design (docs/mildcrowd-chat-client.md, „Chat design and gestures“): the header's status,
  * the „Neue Nachrichten“ divider from `last_read_at`, the list's previews kept in memory, last activity and row actions.
  */
 @OptIn(ExperimentalCoroutinesApi::class)

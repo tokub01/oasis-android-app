@@ -220,7 +220,7 @@ class PickersTest {
     }
 
     @Test
-    fun `founding an oasis keeps a picked banner and shows it`() {
+    fun `founding a crowd keeps a picked banner and shows it`() {
         val network = StubbedNetwork(stub("GET", "network/oases", Fixtures.oases))
         val model = models.keep(OasisFormViewModel(null, network.repository))
         show { OasisFormScreen(null, model) }

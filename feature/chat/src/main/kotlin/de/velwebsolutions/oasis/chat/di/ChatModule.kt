@@ -67,7 +67,7 @@ object ChatModule {
 
     /**
      * Locks on sign-out (also a revoked token) and when the app goes to the background, like iOS and the web; hears when
-     * Oasis is in front again (keys only open then, and a screen Oasis opened itself is done).
+     * Mildcrowd is in front again (keys only open then, and a screen Mildcrowd opened itself is done).
      */
     @Provides
     @Singleton

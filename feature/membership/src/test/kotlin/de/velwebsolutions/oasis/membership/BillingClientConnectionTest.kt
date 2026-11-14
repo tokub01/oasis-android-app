@@ -62,7 +62,7 @@ class BillingClientConnectionTest {
     /** Play's product JSON (as `queryProductDetails` delivers it) with the given offers. */
     private fun details(offers: String?): ProductDetails {
         val json = """
-            {"productId":"${Catalogue.OASE_MONTHLY}","type":"${if (offers == null) "inapp" else "subs"}","title":"Oase (Oasis)","name":"Oase",
+            {"productId":"${Catalogue.OASE_MONTHLY}","type":"${if (offers == null) "inapp" else "subs"}","title":"Mittendrin (Mildcrowd)","name":"Mittendrin",
              "description":"Werbefrei","localizedIn":["de-DE"],"skuDetailsToken":"token"${offers?.let {
             ",\"subscriptionOfferDetails\":[$it]"
         } ?: ""}}
@@ -86,7 +86,7 @@ class BillingClientConnectionTest {
                     offer("intro", "intro-token", "0,00 €" to "P1W") + "," + offer(null, "base-token", "1,00 €" to "P1M", "5,00 €" to "P1M")
                 )
             )
-        assertEquals(PlayProduct(Catalogue.OASE_MONTHLY, "Oase", "Werbefrei", "5,00 €", BillingPeriod.Month, "base-token"), product)
+        assertEquals(PlayProduct(Catalogue.OASE_MONTHLY, "Mittendrin", "Werbefrei", "5,00 €", BillingPeriod.Month, "base-token"), product)
     }
 
     @Test

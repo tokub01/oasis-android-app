@@ -9,7 +9,7 @@ import kotlinx.coroutines.launch
 
 /**
  * The checks of one chat before a message leaves: sensitive data ([de.velwebsolutions.oasis.chat.core.ChatSafety]),
- * shouting or repetition (docs/oasis-chat-client.md, „Schreien, Wiederholungen, Fluten“; [ChatSpam]) need a second press
+ * shouting or repetition (docs/mildcrowd-chat-client.md, „Schreien, Wiederholungen, Fluten“; [ChatSpam]) need a second press
  * with the same text, flooding pauses sending. A pause counts down once a second in [scope] and tells [show] the
  * seconds left, then null when it is over.
  */
@@ -104,7 +104,7 @@ internal class SendGuard(private val scope: CoroutineScope, private val now: () 
         const val SERVER_PAUSE_SECONDS = 30
 
         const val SENSITIVE_ADVICE =
-            "Oasis fragt dich nie im Chat danach – sei vorsichtig, besonders bei Menschen, die du noch nicht kennst. Zum Senden tippe noch einmal auf „Senden“."
+            "Mildcrowd fragt dich nie im Chat danach – sei vorsichtig, besonders bei Menschen, die du noch nicht kennst. Zum Senden tippe noch einmal auf „Senden“."
     }
 }
 

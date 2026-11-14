@@ -96,7 +96,7 @@ private fun FileAttachment(mime: String, file: File?, failed: Boolean, onLoad: s
     Text(
         REPORTED_FILE_WARNING,
         style = OasisType.Small,
-        color = OasisColors.SunText,
+        color = OasisColors.Danger,
         modifier = Modifier.testTag("case.attachment.fileWarning")
     )
     if (file == null) {
@@ -116,7 +116,7 @@ private fun FileAttachment(mime: String, file: File?, failed: Boolean, onLoad: s
             fullWidth = false
         )
     }
-    if (noApp) Text("Auf diesem Gerät ist keine App, die diese Datei öffnen kann.", style = OasisType.Small, color = OasisColors.SunText)
+    if (noApp) Text("Auf diesem Gerät ist keine App, die diese Datei öffnen kann.", style = OasisType.Small, color = OasisColors.Danger)
 }
 
 /** A voice message or video: "Laden" until the file is there, then the player; a failed load can be tried again. */
@@ -156,7 +156,7 @@ private fun ReportedVoiceMessage(file: File) {
         }
         Text("Sprachnachricht", style = OasisType.Small, color = OasisColors.Ink)
     }
-    if (player.failed) Text("Die Sprachnachricht lässt sich nicht abspielen.", style = OasisType.Small, color = OasisColors.SunText)
+    if (player.failed) Text("Die Sprachnachricht lässt sich nicht abspielen.", style = OasisType.Small, color = OasisColors.Danger)
 }
 
 @Composable
@@ -170,5 +170,5 @@ private fun ReportedVideo(file: File) {
             .clip(RoundedCornerShape(OasisRadius.CHIP.dp))
             .testTag("case.attachment.player")
     )
-    if (unplayable) Text("Das Video lässt sich nicht abspielen.", style = OasisType.Small, color = OasisColors.SunText)
+    if (unplayable) Text("Das Video lässt sich nicht abspielen.", style = OasisType.Small, color = OasisColors.Danger)
 }

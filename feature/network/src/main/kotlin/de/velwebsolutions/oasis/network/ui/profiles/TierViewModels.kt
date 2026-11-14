@@ -16,6 +16,7 @@ import de.velwebsolutions.oasis.network.data.NetworkRepository
 import de.velwebsolutions.oasis.network.ui.NetworkViewModel
 import de.velwebsolutions.oasis.network.ui.apiError
 import de.velwebsolutions.oasis.network.ui.attempt
+import de.velwebsolutions.oasis.network.ui.components.postsLabel
 import java.time.Instant
 import java.time.ZoneId
 import java.time.format.DateTimeFormatter
@@ -26,7 +27,7 @@ import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.update
 
-/** A Zeitkapsel being written: text, the moment it opens and where it appears (null: the own Quelle). */
+/** A Zeitkapsel being written: text, the moment it opens and where it appears (null: the own Start). */
 data class CapsuleDraft(
     val body: String = "",
     val opensAt: Instant = CapsuleDraft.suggestedOpening(Instant.now()),
@@ -65,7 +66,7 @@ data class CapsuleDraft(
     }
 }
 
-/** Zeitkapseln (/app/zeitkapseln): seal a Tropfen for a later day, open a waiting one early or delete it. */
+/** Zeitkapseln (/app/zeitkapseln): seal a Post for a later day, open a waiting one early or delete it. */
 @HiltViewModel
 class TimeCapsulesViewModel @Inject constructor(private val repository: NetworkRepository) : NetworkViewModel() {
     private val mutableCapsules = MutableStateFlow<Loadable<TimeCapsules>>(Loadable.Idle)
@@ -90,7 +91,7 @@ class TimeCapsulesViewModel @Inject constructor(private val repository: NetworkR
 
     fun updateOpensAt(opensAt: Instant) = mutableDraft.update { it.copy(opensAt = opensAt) }
 
-    /** Where it appears; the invitable people change with it (members of that oasis). */
+    /** Where it appears; the invitable people change with it (members of that crowd). */
     suspend fun updateOasis(oasisId: Int?) {
         mutableDraft.update { it.copy(oasisId = oasisId) }
         if (draft.value.shared) loadCandidates()
@@ -98,7 +99,7 @@ class TimeCapsulesViewModel @Inject constructor(private val repository: NetworkR
 
     private val mutableCandidates = MutableStateFlow<List<Member>?>(null)
 
-    /** Who may be invited: friends, plus the members of the chosen oasis (null while not loaded). */
+    /** Who may be invited: friends, plus the members of the chosen crowd (null while not loaded). */
     val candidates: StateFlow<List<Member>?> = mutableCandidates.asStateFlow()
 
     /** „Gemeinsam versiegeln“ on or off; on, the invitable people load. */
@@ -192,7 +193,7 @@ class TimeCapsulesViewModel @Inject constructor(private val repository: NetworkR
     }
 }
 
-/** Dein Jahrbuch (/app/jahrbuch/{year?}): the own Tropfen of a year; the year chips switch the book in place. */
+/** Dein Jahrbuch (/app/jahrbuch/{year?}): the own Posts of a year; the year chips switch the book in place. */
 @HiltViewModel(assistedFactory = YearbookViewModel.Factory::class)
 class YearbookViewModel @AssistedInject constructor(@Assisted year: Int?, private val repository: NetworkRepository) : NetworkViewModel() {
     @AssistedFactory
@@ -231,13 +232,13 @@ class YearbookViewModel @AssistedInject constructor(@Assisted year: Int?, privat
     }
 }
 
-/** "2 Tropfen · 3 Fotos · in 1 Oase" – the cover line of a Jahrbuch; the oases only when there are any. */
+/** "2 Posts · 3 Fotos · in 1 Crowd" – the cover line of a Jahrbuch; the crowds only when there are any. */
 fun yearbookTotals(totals: Yearbook.Totals): String {
     val images = if (totals.images == 1) "1 Foto" else "${totals.images} Fotos"
     val oases = when (totals.oases) {
         0 -> ""
-        1 -> " · in 1 Oase"
-        else -> " · in ${totals.oases} Oasen"
+        1 -> " · in 1 Crowd"
+        else -> " · in ${totals.oases} Crowds"
     }
-    return "${totals.posts} Tropfen · $images$oases"
+    return "${postsLabel(totals.posts)} · $images$oases"
 }

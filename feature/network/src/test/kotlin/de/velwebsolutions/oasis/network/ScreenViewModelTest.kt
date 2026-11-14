@@ -24,7 +24,7 @@ import org.junit.Test
 import org.junit.runner.RunWith
 import org.junit.runners.Parameterized
 
-/** The screens' view models: the Tropfen page, profiles, oases, search, Durchblättern and the Quelle. */
+/** The screens' view models: the Post page, profiles, crowds, search, Durchblättern and the Start. */
 @RunWith(Parameterized::class)
 class ScreenViewModelTest(private val answersAtOnce: Boolean) {
     companion object {
@@ -56,10 +56,10 @@ class ScreenViewModelTest(private val answersAtOnce: Boolean) {
     }
 
     @Test
-    fun `leaves the Tropfen page after deleting it and hands the confirmation to the tab bar`() = runTest {
+    fun `leaves the Post page after deleting it and hands the confirmation to the tab bar`() = runTest {
         val network = StubbedNetwork(
             stub("GET", "network/posts/12", Fixtures.post),
-            stub("DELETE", "network/posts/12", """{"message":"Dein Tropfen ist gelöscht."}""")
+            stub("DELETE", "network/posts/12", """{"message":"Dein Post ist gelöscht."}""")
         )
         val model = models.keep(PostDetailViewModel(12, network.repository))
         model.load()
@@ -67,11 +67,11 @@ class ScreenViewModelTest(private val answersAtOnce: Boolean) {
         model.perform(PostAction.Delete, post)
         assertTrue(model.leave.value)
         assertNull(model.status.value)
-        assertEquals("Dein Tropfen ist gelöscht.", NetworkSignals.confirmation.value)
+        assertEquals("Dein Post ist gelöscht.", NetworkSignals.confirmation.value)
     }
 
     @Test
-    fun `reacting to a reply on the Tropfen page changes only that reply`() = runTest {
+    fun `reacting to a reply on the Post page changes only that reply`() = runTest {
         val network = StubbedNetwork(
             stub("GET", "network/posts/12", Fixtures.post),
             stub("POST", "network/posts/23/reaction", """{"message":"Reaktion gesendet."}""")
@@ -88,7 +88,7 @@ class ScreenViewModelTest(private val answersAtOnce: Boolean) {
     }
 
     @Test
-    fun `a profile shows the neutral chat hint and its Tropfen`() = runTest {
+    fun `a profile shows the neutral chat hint and its Posts`() = runTest {
         val network = StubbedNetwork(
             stub("GET", "network/profiles/jonas", Fixtures.profile),
             stub("GET", "network/profiles/jonas/posts", pageJson(postJson(10)))
@@ -121,7 +121,7 @@ class ScreenViewModelTest(private val answersAtOnce: Boolean) {
     }
 
     @Test
-    fun `an oasis loads its Tropfen and, for members, its member list`() = runTest {
+    fun `a crowd loads its Posts and, for members, its member list`() = runTest {
         val detail = """
             {"data": {"oasis": {"id": 2, "slug": "stadtgarten", "name": "Stadtgarten", "description": "Gärtnern.", "color": "spring",
             "visibility": "public", "banner_url": null, "members_count": 4, "role": "member"}, "url": "http://localhost/oasen/stadtgarten",
@@ -135,7 +135,7 @@ class ScreenViewModelTest(private val answersAtOnce: Boolean) {
             stub("GET", "network/oases/stadtgarten", detail),
             stub("GET", "network/oases/stadtgarten/posts", pageJson(postJson(4))),
             stub("GET", "network/oases/stadtgarten/members", members),
-            stub("DELETE", "network/oases/stadtgarten/follow", """{"message":"Du folgst der Oase Stadtgarten nicht mehr."}""")
+            stub("DELETE", "network/oases/stadtgarten/follow", """{"message":"Du folgst der Crowd Stadtgarten nicht mehr."}""")
         )
         val model = models.keep(OasisViewModel("stadtgarten", network.repository))
         model.load()
@@ -146,12 +146,12 @@ class ScreenViewModelTest(private val answersAtOnce: Boolean) {
 
         val before = NetworkSignals.oases.value
         model.setFollowing(false)
-        assertEquals("Du folgst der Oase Stadtgarten nicht mehr.", model.status.value)
+        assertEquals("Du folgst der Crowd Stadtgarten nicht mehr.", model.status.value)
         assertTrue(NetworkSignals.oases.value > before)
     }
 
     @Test
-    fun `founding an oasis opens it`() = runTest {
+    fun `founding a crowd opens it`() = runTest {
         val network = StubbedNetwork(
             stub("GET", "network/oases", Fixtures.oases),
             stub("POST", "network/oases", """{"data":{"slug":"ui-oase"}}""", 201)
@@ -159,7 +159,7 @@ class ScreenViewModelTest(private val answersAtOnce: Boolean) {
         val model = models.keep(OasisFormViewModel(null, network.repository))
         model.load()
         assertEquals(2, model.state.value.options?.visibilities?.size)
-        model.updateInput { it.copy(name = "UI Oase", description = "Ein Test.", houseRules = "Freundlich bleiben.") }
+        model.updateInput { it.copy(name = "UI Crowd", description = "Ein Test.", houseRules = "Freundlich bleiben.") }
         model.save()
         assertEquals(OasisFormOutcome.Open("ui-oase"), model.state.value.outcome)
         assertTrue(network.last("network/oases").body!!.contains(Regex("name=\"house_rules\"[\\s\\S]*?\r\n\r\nFreundlich bleiben.")))
@@ -197,7 +197,7 @@ class ScreenViewModelTest(private val answersAtOnce: Boolean) {
     }
 
     @Test
-    fun `the Quelle puts an own new Tropfen on top but reloads for a reply`() = runTest {
+    fun `the Start puts an own new Post on top but reloads for a reply`() = runTest {
         val network = StubbedNetwork(
             stub("GET", "network/source", pageJson(postJson(3), context = """{"show_all":false,"follows_anyone":true,"can_post":true}"""))
         )
@@ -206,7 +206,7 @@ class ScreenViewModelTest(private val answersAtOnce: Boolean) {
         )
         model.list.reload()
 
-        NetworkSignals.didPublish(decodePost(postJson(8)), "Dein Tropfen ist da.")
+        NetworkSignals.didPublish(decodePost(postJson(8)), "Dein Post ist da.")
         assertEquals(listOf(8, 3), model.list.posts.map { it.id })
         assertEquals(1, model.scrollToTop.value)
         val loads = network.transport.requests.size
@@ -216,7 +216,7 @@ class ScreenViewModelTest(private val answersAtOnce: Boolean) {
     }
 
     @Test
-    fun `Ganz Oasis loads again after an own Tropfen, as the server decides what it lists`() = runTest {
+    fun `Ganz Mildcrowd loads again after an own Post, as the server decides what it lists`() = runTest {
         val network = StubbedNetwork(
             stub("GET", "network/source", pageJson(postJson(3), context = """{"show_all":true,"follows_anyone":true,"can_post":true}"""))
         )
@@ -225,7 +225,7 @@ class ScreenViewModelTest(private val answersAtOnce: Boolean) {
         )
         model.list.reload()
         val loads = network.transport.requests.size
-        NetworkSignals.didPublish(decodePost(postJson(8)), "Dein Tropfen ist da.")
+        NetworkSignals.didPublish(decodePost(postJson(8)), "Dein Post ist da.")
         eventually { network.transport.requests.size == loads + 1 }
         assertEquals(0, model.scrollToTop.value)
     }

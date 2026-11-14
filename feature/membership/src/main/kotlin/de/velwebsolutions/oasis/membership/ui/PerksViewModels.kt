@@ -134,7 +134,7 @@ data class CompanionLinkUiState(
 )
 
 /**
- * /app/mitgliedschaft/mitkommen/{token}: "<Mäzen> nimmt dich mit nach Oasis" with "Platz annehmen". Opens without a
+ * /app/mitgliedschaft/mitkommen/{token}: "<Mäzen> nimmt dich mit nach Mildcrowd" with "Platz annehmen". Opens without a
  * membership, because accepting is what gives one.
  */
 @HiltViewModel(assistedFactory = CompanionLinkViewModel.Factory::class)
@@ -165,7 +165,7 @@ class CompanionLinkViewModel @AssistedInject constructor(
     }
 
     /**
-     * "Platz annehmen": [onAccepted] leaves the page (to the Quelle) before the member is asked again, so the tabs that
+     * "Platz annehmen": [onAccepted] leaves the page (to the Start) before the member is asked again, so the tabs that
      * open with the new access do not show this link once more; the overview gets the welcome.
      */
     suspend fun accept(onAccepted: () -> Unit) {

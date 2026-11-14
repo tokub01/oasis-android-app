@@ -132,7 +132,7 @@ object QuoteTexts {
 }
 
 /**
- * An informational line in the timeline (docs/oasis-chat-client.md, „C9 Quiet notices“) at the moment it happened
+ * An informational line in the timeline (docs/mildcrowd-chat-client.md, „C9 Quiet notices“) at the moment it happened
  * ([at]); null, or before the loaded messages: at the end of what is loaded.
  */
 data class QuietNotice(val text: String, val at: Instant?)
@@ -900,7 +900,7 @@ class ConversationViewModel @AssistedInject constructor(
         share.text?.let(::replaceDraft)
         val rest = if (left.size == 1) "Den übrigen" else "Die übrigen ${left.size}"
         val waiting = left.takeIf { it.isNotEmpty() }?.let {
-            "Du kannst höchstens ${ChatAttachments.MAX_PER_MESSAGE} Anhänge an eine Nachricht hängen. $rest bietet dir Oasis wieder " +
+            "Du kannst höchstens ${ChatAttachments.MAX_PER_MESSAGE} Anhänge an eine Nachricht hängen. $rest bietet dir Mildcrowd wieder " +
                 "unter „Teilen mit …“ an, wenn du die App das nächste Mal öffnest."
         }
         render { it.copy(composerError = waiting ?: problems.firstOrNull()) }
@@ -1223,7 +1223,7 @@ class ConversationViewModel @AssistedInject constructor(
         }
     }
 
-    // region Swipe hint (docs/oasis-chat-client.md, „C8 Swipe hint once“)
+    // region Swipe hint (docs/mildcrowd-chat-client.md, „C8 Swipe hint once“)
 
     /** A chat with a message of someone else: the hint, and the newest such message nudges once. */
     private suspend fun offerSwipeHint() {
@@ -1287,7 +1287,7 @@ class ConversationViewModel @AssistedInject constructor(
             val early = incoming.count { it.senderId == item.senderId } <= 3
             val advice = when (finding.kind) {
                 ChatSafety.Kind.Phishing ->
-                    "$name fragt nach Passwort, Bank- oder Kartendaten oder deiner Adresse. Gib so etwas nie im Chat heraus – Oasis fragt dich nie danach."
+                    "$name fragt nach Passwort, Bank- oder Kartendaten oder deiner Adresse. Gib so etwas nie im Chat heraus – Mildcrowd fragt dich nie danach."
 
                 ChatSafety.Kind.Solicitation ->
                     "Die Nachricht von $name wirkt wie ein sexuelles Angebot oder eine sexuelle Anfrage. Das verstößt gegen unsere Regeln."

@@ -22,7 +22,7 @@ import org.junit.Test
 import org.junit.runner.RunWith
 import org.robolectric.ParameterizedRobolectricTestRunner
 
-/** The Karte der Oasen and an oasis's region (docs/oasis-network.md, „Karte der Oasen“). */
+/** The Karte der Crowds and a crowd's region (docs/mildcrowd-network.md, „Karte der Crowds“). */
 @RunWith(ParameterizedRobolectricTestRunner::class)
 class OasisMapTest(private val answersAtOnce: Boolean) {
     companion object {
@@ -72,9 +72,9 @@ class OasisMapTest(private val answersAtOnce: Boolean) {
         val regions = decodeRegions()
         assertEquals("Bayern", regionName(regions, "BY"))
         assertEquals("XX", regionName(regions, "XX"))
-        assertEquals("Bayern: 3 Oasen", regions.first { it.code == "BY" }.accessibleName)
-        assertEquals("Bremen: 0 Oasen", regions.first { it.code == "HB" }.accessibleName)
-        assertEquals("Berlin: 1 Oase", regions.first { it.code == "BE" }.accessibleName)
+        assertEquals("Bayern: 3 Crowds", regions.first { it.code == "BY" }.accessibleName)
+        assertEquals("Bremen: 0 Crowds", regions.first { it.code == "HB" }.accessibleName)
+        assertEquals("Berlin: 1 Crowd", regions.first { it.code == "BE" }.accessibleName)
         val broken = StubbedNetwork(stub("GET", "network/regions", """{"message":"x"}""", 500))
         val failing = models.keep(OasisMapViewModel("BY", broken.repository))
         runBlocking { failing.load() }
@@ -143,6 +143,6 @@ fun regionOasisJson(slug: String, city: String?) = """
 
 fun editFormJson() = """
     {"data":{"oasis":${regionOasisJson("isar", "München")},"house_rules":"Freundlich bleiben.","members":[],
-    "options":{"visibilities":[{"value":"public","label":"Alle"}],"colors":[{"value":"spring","label":"Quelle"}],
+    "options":{"visibilities":[{"value":"public","label":"Alle"}],"colors":[{"value":"spring","label":"Pfirsich"}],
     "regions":[{"value":"BY","label":"Bayern"},{"value":"HB","label":"Bremen"}]}}}
 """.trimIndent()

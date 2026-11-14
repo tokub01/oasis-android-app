@@ -40,7 +40,7 @@ import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.update
 
-/** "Oasen" (/app/oasen): the member's oases and all others. */
+/** "Crowds" (/app/crowds): the member's crowds and all others. */
 @HiltViewModel
 class OasesViewModel @Inject constructor(private val repository: NetworkRepository) : NetworkViewModel() {
     private val mutableDirectory = MutableStateFlow<Loadable<OasisDirectory>>(Loadable.Idle)
@@ -60,7 +60,7 @@ class OasesViewModel @Inject constructor(private val repository: NetworkReposito
 }
 
 /**
- * An oasis page (/oasen/{slug}): the oasis, its Tropfen, joining and leaving and – for members – the member list with a
+ * A crowd page (/crowds/{slug}): the crowd, its Posts, joining and leaving and – for members – the member list with a
  * name filter.
  */
 @HiltViewModel(assistedFactory = OasisViewModel.Factory::class)
@@ -84,11 +84,11 @@ class OasisViewModel @AssistedInject constructor(@Assisted val slug: String, pri
     val meetups: StateFlow<OasisMeetups?> = mutableMeetups.asStateFlow()
     private val mutableCollections = MutableStateFlow<OasisCollections?>(null)
 
-    /** „Sammlungen“ for everyone who sees the oasis (null while not loaded, or when they cannot load). */
+    /** „Sammlungen“ for everyone who sees the crowd (null while not loaded, or when they cannot load). */
     val collections: StateFlow<OasisCollections?> = mutableCollections.asStateFlow()
     private val mutableShownCollection = MutableStateFlow<PostListModel<NoContext>?>(null)
 
-    /** The Tropfen of the chosen collection, newest added first (null: none chosen). */
+    /** The Posts of the chosen collection, newest added first (null: none chosen). */
     val shownCollection: StateFlow<PostListModel<NoContext>?> = mutableShownCollection.asStateFlow()
     private val mutableShownCollectionId = MutableStateFlow<Int?>(null)
 
@@ -132,7 +132,7 @@ class OasisViewModel @AssistedInject constructor(@Assisted val slug: String, pri
 
     /**
      * Loads the page once. What a load cancelled with the screen (a rotation) did not get to loads again with it: the
-     * Tropfen, and for members the member list.
+     * Posts, and for members the member list.
      */
     suspend fun loadIfNeeded() {
         val loaded = detail.value.valueOrNull
@@ -151,7 +151,7 @@ class OasisViewModel @AssistedInject constructor(@Assisted val slug: String, pri
         mutableCollections.value = attempt { repository.collections(slug) }.getOrNull()
     }
 
-    /** Shows the Tropfen of collection [id] (the chosen one again: none). */
+    /** Shows the Posts of collection [id] (the chosen one again: none). */
     suspend fun chooseCollection(id: Int?) {
         val chosen = id?.takeIf { it != shownCollectionId.value }
         mutableShownCollectionId.value = chosen
@@ -189,7 +189,7 @@ class OasisViewModel @AssistedInject constructor(@Assisted val slug: String, pri
         loadCollections()
     }
 
-    /** „Sammlung löschen“ (after confirming): its Tropfen stay in the oasis. */
+    /** „Sammlung löschen“ (after confirming): its Posts stay in the crowd. */
     suspend fun deleteCollection(collection: OasisCollection) {
         if (!confirm { repository.deleteCollection(collection.id) }) return
         if (shownCollectionId.value == collection.id) chooseCollection(null)
@@ -205,7 +205,7 @@ class OasisViewModel @AssistedInject constructor(@Assisted val slug: String, pri
         mutableCollections.update { it?.copy(membersCreateCollections = stored.membersCreateCollections) }
     }
 
-    /** The meetups of the oasis; a list that cannot load is simply not shown. */
+    /** The meetups of the crowd; a list that cannot load is simply not shown. */
     suspend fun loadMeetups() {
         mutableMeetups.value = attempt { repository.meetups(slug) }.getOrNull()
     }
@@ -287,30 +287,30 @@ class OasisViewModel @AssistedInject constructor(@Assisted val slug: String, pri
     }
 }
 
-/** What the oasis form shows. */
+/** What the crowd form shows. */
 data class OasisFormState(
     val input: OasisInput = OasisInput(),
     val options: OasisOptions? = null,
     val edit: OasisEditForm? = null,
     val loadError: ApiError? = null,
-    /** The banner picked while founding; sent with "Oase eröffnen". */
+    /** The banner picked while founding; sent with "Crowd eröffnen". */
     val banner: ImageUpload? = null,
     /** Where the form goes after saving. */
     val outcome: OasisFormOutcome? = null
 )
 
-/** Where the oasis form goes after saving. */
+/** Where the crowd form goes after saving. */
 sealed interface OasisFormOutcome {
-    /** Back to the oasis (edited), or back after giving up the own host role (the confirmation goes to the tab). */
+    /** Back to the crowd (edited), or back after giving up the own host role (the confirmation goes to the tab). */
     data object Close : OasisFormOutcome
 
-    /** The new oasis opens in place of the form. */
+    /** The new crowd opens in place of the form. */
     data class Open(val slug: String) : OasisFormOutcome
 }
 
 /**
- * Found an oasis (/app/oasen/neu) or edit it as host (/oasen/{slug}/bearbeiten): texts, house rules, audience, colour,
- * the optional banner (stored at once when editing, with "Oase eröffnen" when founding), closing and roles.
+ * Found a crowd (/app/crowds/neu) or edit it as host (/crowds/{slug}/bearbeiten): texts, house rules, audience, colour,
+ * the optional banner (stored at once when editing, with "Crowd eröffnen" when founding), closing and roles.
  */
 @HiltViewModel(assistedFactory = OasisFormViewModel.Factory::class)
 class OasisFormViewModel @AssistedInject constructor(@Assisted val slug: String?, private val repository: NetworkRepository) :
@@ -326,7 +326,7 @@ class OasisFormViewModel @AssistedInject constructor(@Assisted val slug: String?
 
     fun updateInput(change: (OasisInput) -> OasisInput) = mutableState.update { it.copy(input = change(it.input)) }
 
-    /** The form: an edited oasis with its saved texts, banner and roles, or the choices for founding one. */
+    /** The form: an edited crowd with its saved texts, banner and roles, or the choices for founding one. */
     suspend fun load() {
         val result = attempt {
             if (slug != null) {
@@ -371,7 +371,7 @@ class OasisFormViewModel @AssistedInject constructor(@Assisted val slug: String?
         }
     }
 
-    /** A picked banner (null when it could not be read): stored at once when editing, kept for "Oase eröffnen" when founding. */
+    /** A picked banner (null when it could not be read): stored at once when editing, kept for "Crowd eröffnen" when founding. */
     suspend fun pickBanner(upload: ImageUpload?) {
         upload ?: return
         mutableError.value = null
@@ -382,14 +382,14 @@ class OasisFormViewModel @AssistedInject constructor(@Assisted val slug: String?
             }
         } else {
             mutableState.update { it.copy(banner = upload) }
-            mutableStatus.value = "Das Banner wird mit der Oase gespeichert."
+            mutableStatus.value = "Das Banner wird mit der Crowd gespeichert."
         }
     }
 
     suspend fun removeBanner() {
         mutableState.update { it.copy(banner = null) }
         if (slug == null) {
-            mutableStatus.value = "Das Banner ist entfernt. Jetzt zeigen wir wieder die Farbe der Oase."
+            mutableStatus.value = "Das Banner ist entfernt. Jetzt zeigen wir wieder die Farbe der Crowd."
             return
         }
         if (confirm { repository.removeBanner(slug) }) {
@@ -431,7 +431,7 @@ class OasisFormViewModel @AssistedInject constructor(@Assisted val slug: String?
     }
 }
 
-/** "„…“ schließen?" (/oasen/{slug}/schliessen): host-only confirmation with an explicit checkbox. */
+/** "„…“ schließen?" (/crowds/{slug}/schliessen): host-only confirmation with an explicit checkbox. */
 @HiltViewModel(assistedFactory = CloseOasisViewModel.Factory::class)
 class CloseOasisViewModel @AssistedInject constructor(@Assisted val slug: String, private val repository: NetworkRepository) :
     NetworkViewModel() {
@@ -446,7 +446,7 @@ class CloseOasisViewModel @AssistedInject constructor(@Assisted val slug: String
     val confirmed: StateFlow<Boolean> = mutableConfirmed.asStateFlow()
     private val mutableClosed = MutableStateFlow(false)
 
-    /** Set after closing: the app goes to the oasis overview, which shows the confirmation. */
+    /** Set after closing: the app goes to the crowd overview, which shows the confirmation. */
     val closed: StateFlow<Boolean> = mutableClosed.asStateFlow()
 
     fun setConfirmed(value: Boolean) {
@@ -468,7 +468,7 @@ class CloseOasisViewModel @AssistedInject constructor(@Assisted val slug: String
     }
 }
 
-/** Host statistics (/oasen/{slug}/statistik): sums only, never lists of people. */
+/** Host statistics (/crowds/{slug}/statistik): sums only, never lists of people. */
 @HiltViewModel(assistedFactory = OasisStatisticsViewModel.Factory::class)
 class OasisStatisticsViewModel @AssistedInject constructor(@Assisted val slug: String, private val repository: NetworkRepository) :
     NetworkViewModel() {
@@ -526,7 +526,7 @@ data class MeetupForm(
 /** The form of a collection: name (1–60) and description (≤ 300); [editing] names the one being renamed. */
 data class CollectionForm(val editing: Int? = null, val name: String = "", val description: String = "", val error: ApiError? = null)
 
-/** A page of a collection's Tropfen as a list page: the next page number as the cursor while there is one. */
+/** A page of a collection's Posts as a list page: the next page number as the cursor while there is one. */
 internal suspend fun NetworkRepository.collectionPage(id: Int, cursor: String?): FeedPage<NoContext> {
     val page = collectionPosts(id, cursor?.toIntOrNull() ?: 1)
     return FeedPage(page.data, page.meta)

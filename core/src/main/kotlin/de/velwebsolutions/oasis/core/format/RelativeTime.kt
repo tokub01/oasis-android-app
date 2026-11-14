@@ -4,7 +4,7 @@ import java.time.Duration
 import java.time.Instant
 
 /**
- * "vor 5 Min." / "vor 3 Tagen" / "12. Okt." – the relative time of the meta line in every feed (docs/oasis-network.md):
+ * "vor 5 Min." / "vor 3 Tagen" / "12. Okt." – the relative time of the meta line in every feed (docs/mildcrowd-network.md):
  * under a minute „gerade eben“, then minutes, hours, days up to a week, then the date (with the year when it is not this
  * year's).
  */

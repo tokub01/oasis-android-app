@@ -20,7 +20,7 @@ import org.junit.Rule
 import org.junit.Test
 
 /**
- * Step 1 of the registration in three small pages (docs/oasis-accounts.md, „Registrierung: Schritt 1 in drei kleinen
+ * Step 1 of the registration in three small pages (docs/mildcrowd-accounts.md, „Registrierung: Schritt 1 in drei kleinen
  * Seiten“): the username suggestion and its live check, the checks of each page before „Weiter“, and „Zurück“.
  */
 class RegistrationPagesTest {
@@ -148,7 +148,7 @@ class RegistrationPagesTest {
         model.today = { LocalDate.of(2026, 11, 3) }
         model.setBirthDate(LocalDate.of(2008, 11, 4))
         model.submit()
-        assertEquals("Du musst mindestens 18 Jahre alt sein, um Oasis zu nutzen.", model.ui.value.fieldError("birth_date"))
+        assertEquals("Du musst mindestens 18 Jahre alt sein, um Mildcrowd zu nutzen.", model.ui.value.fieldError("birth_date"))
         assertEquals(RegisterViewModel.TERMS_REQUIRED, model.ui.value.fieldError("terms"))
         assertTrue(transport.requests.none { it.request.method == "POST" })
         model.setBirthDate(LocalDate.of(2008, 11, 3))

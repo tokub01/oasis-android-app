@@ -44,7 +44,7 @@ import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 
 /**
- * „Deine Zeit in Oasis“: the signed-in account's last 7 days as counted on this device, and the switch that lets the
+ * „Deine Zeit in Mildcrowd“: the signed-in account's last 7 days as counted on this device, and the switch that lets the
  * device count at all (off by default, kept only on the device).
  */
 @HiltViewModel
@@ -69,7 +69,7 @@ class ScreenTimeViewModel @Inject constructor(private val screenTime: ScreenTime
     }
 }
 
-/** „Deine Zeit in Oasis“ (/app/privatsphaere/zeit, docs/oasis-privacy.md „Bildschirmzeit“). */
+/** „Deine Zeit in Mildcrowd“ (/app/privatsphaere/zeit, docs/mildcrowd-privacy.md „Bildschirmzeit“). */
 @Composable
 internal fun ScreenTimeScreen(viewModel: ScreenTimeViewModel = hiltViewModel()) {
     val week by viewModel.week.collectAsStateWithLifecycle()
@@ -83,10 +83,10 @@ internal fun ScreenTimeScreen(viewModel: ScreenTimeViewModel = hiltViewModel()) 
 internal fun ScreenTimeContent(week: ScreenTimeWeek?, enabled: Boolean, onEnabled: (Boolean) -> Unit) {
     AccountPage {
         PageHeader(
-            "Deine Zeit in Oasis",
+            "Deine Zeit in Mildcrowd",
             eyebrow = "Nur für dich",
-            lead = "Wie viele Minuten du an den letzten sieben Tagen in Oasis warst – gezählt nur, wenn du das hier einschaltest, " +
-                "und nur, solange Oasis vorne ist und du etwas tust."
+            lead = "Wie viele Minuten du an den letzten sieben Tagen in Mildcrowd warst – gezählt nur, wenn du das hier einschaltest, " +
+                "und nur, solange Mildcrowd vorne ist und du etwas tust."
         )
         Column(
             Modifier.fillMaxWidth().background(OasisColors.Paper, RoundedCornerShape(OasisRadius.M.dp)).padding(20.dp)
@@ -110,7 +110,7 @@ internal fun ScreenTimeContent(week: ScreenTimeWeek?, enabled: Boolean, onEnable
             )
         }
         Text(
-            "Gezählt wird nur auf diesem Gerät, in dieser App, und nur, solange der Schalter an ist. Oasis bekommt davon nichts. " +
+            "Gezählt wird nur auf diesem Gerät, in dieser App, und nur, solange der Schalter an ist. Mildcrowd bekommt davon nichts. " +
                 "Im Browser und auf anderen Geräten zählt jedes Gerät für sich.",
             style = OasisType.Body,
             color = OasisColors.Ink,

@@ -60,7 +60,7 @@ import org.robolectric.RobolectricTestRunner
 import org.robolectric.annotation.Config
 import org.robolectric.annotation.GraphicsMode
 
-/** The chat's design and gestures at 360 dp, light and dark and with every chat look (docs/oasis-chat-client.md). */
+/** The chat's design and gestures at 360 dp, light and dark and with every chat look (docs/mildcrowd-chat-client.md). */
 @RunWith(RobolectricTestRunner::class)
 @GraphicsMode(GraphicsMode.Mode.NATIVE)
 @Config(qualifiers = "w360dp-h740dp")

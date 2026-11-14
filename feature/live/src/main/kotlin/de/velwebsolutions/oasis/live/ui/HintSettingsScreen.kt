@@ -101,7 +101,7 @@ internal class HintSettingsActions(
 /**
  * Hinweise einstellen (/app/hinweise/einstellungen): which hints arrive, the daily e-mail, quiet hours, a pause, push
  * hints on this device and the member's other devices, and how new chat messages are announced. Every change is saved
- * at once, like in the privacy centre. "Oasis als App" (install the web app) has no place in the native app.
+ * at once, like in the privacy centre. "Mildcrowd als App" (install the web app) has no place in the native app.
  */
 @Composable
 internal fun HintSettingsScreen(viewModel: HintSettingsViewModel = hiltViewModel()) {
@@ -210,7 +210,7 @@ private fun Switches(settings: HintSettings, ui: HintSettingsUiState, actions: H
                 onCheckedChange = { on -> actions.toggle { it.copy(digest = on) } },
                 modifier = Modifier.testTag("digest"),
                 detail =
-                    "Ab 18 Uhr, außerhalb deiner Ruhezeit. Nur wenn es neue ungelesene Hinweise gibt. Die E-Mail enthält eine Summe und einen Link, keine Tropfen-Texte.",
+                    "Ab 18 Uhr, außerhalb deiner Ruhezeit. Nur wenn es neue ungelesene Hinweise gibt. Die E-Mail enthält eine Summe und einen Link, keine Post-Texte.",
                 enabled = enabled
             )
             settings.weeklyLetterEmail?.let { weekly ->
@@ -220,8 +220,8 @@ private fun Switches(settings: HintSettings, ui: HintSettingsUiState, actions: H
                     onCheckedChange = { on -> actions.toggle { it.copy(weeklyLetterEmail = on) } },
                     modifier = Modifier.testTag("weeklyLetterEmail"),
                     detail =
-                        "Sonntags ab 18 Uhr, außerhalb deiner Ruhezeit: was in deinen Oasen los war, mit Zahlen, Treffen und neuen " +
-                            "Sammlungen – ohne Tropfen-Texte. In der App kommt der Wochenbrief immer, solange „Dein Oasen-Wochenbrief“ " +
+                        "Sonntags ab 18 Uhr, außerhalb deiner Ruhezeit: was in deinen Crowds los war, mit Zahlen, Treffen und neuen " +
+                            "Sammlungen – ohne Post-Texte. In der App kommt der Wochenbrief immer, solange „Dein Crowd-Wochenbrief“ " +
                             "oben an ist.",
                     enabled = enabled
                 )
@@ -290,7 +290,7 @@ private fun TimeField(
                 .fillMaxWidth()
                 .heightIn(min = 48.dp)
                 .background(OasisColors.Field, shape)
-                .border(if (error == null) 1.dp else 2.dp, if (error == null) OasisColors.FieldLine else OasisColors.SunText, shape)
+                .border(if (error == null) 1.dp else 2.dp, if (error == null) OasisColors.FieldLine else OasisColors.Danger, shape)
                 .clickable(enabled = enabled, role = Role.Button) { picking = true }
                 .padding(horizontal = 14.dp)
                 .semantics { contentDescription = "$label $value" }
@@ -429,7 +429,7 @@ private fun PushSection(settings: HintSettings, ui: HintSettingsUiState, actions
         when {
             ui.pushAvailable -> {
                 Note(
-                    "Ein kurzer Hinweis, wenn es Neues gibt, zum Beispiel „Jonas Weber · Hat auf deinen Tropfen geantwortet.“ – nie mit dem Text eines Tropfens oder einer Nachricht, höchstens alle fünf Minuten und nie in deiner Ruhezeit oder Pause. Ob Namen auch auf dem Sperrbildschirm stehen, stellst du in den Benachrichtigungen deines Android-Geräts ein („Sensible Inhalte“). Welche Hinweise kommen, stellst du oben unter „In deiner Hinweis-Liste“ ein."
+                    "Ein kurzer Hinweis, wenn es Neues gibt, zum Beispiel „Jonas Weber · Hat auf deinen Post geantwortet.“ – nie mit dem Text eines Posts oder einer Nachricht, höchstens alle fünf Minuten und nie in deiner Ruhezeit oder Pause. Ob Namen auch auf dem Sperrbildschirm stehen, stellst du in den Benachrichtigungen deines Android-Geräts ein („Sensible Inhalte“). Welche Hinweise kommen, stellst du oben unter „In deiner Hinweis-Liste“ ein."
                 )
                 ThisDevice(ui, actions)
             }
@@ -440,7 +440,7 @@ private fun PushSection(settings: HintSettings, ui: HintSettingsUiState, actions
             )
 
             else -> Note(
-                "Push-Hinweise sind auf Oasis noch nicht eingerichtet. Deine Hinweise findest du jederzeit in der App.",
+                "Push-Hinweise sind auf Mildcrowd noch nicht eingerichtet. Deine Hinweise findest du jederzeit in der App.",
                 Modifier.testTag("push.unavailable")
             )
         }

@@ -291,7 +291,7 @@ class LookActions(
 }
 
 /**
- * „Hintergrund“ (docs/oasis-chat-client.md, "Backgrounds and effects"): seven swatches with their names, „Foto wählen“ /
+ * „Hintergrund“ (docs/mildcrowd-chat-client.md, "Backgrounds and effects"): seven swatches with their names, „Foto wählen“ /
  * „Foto entfernen“, „Für alle Chats verwenden“ and „Effekte abspielen“ – only on this device, only for oneself.
  */
 @OptIn(ExperimentalLayoutApi::class)
@@ -441,7 +441,7 @@ private fun MemberRowView(row: MemberRow, onRemove: () -> Unit) {
                 )
             }
         }
-        row.warning?.let { Text(it, style = OasisType.SmallBold, color = OasisColors.SunText) }
+        row.warning?.let { Text(it, style = OasisType.SmallBold, color = OasisColors.Danger) }
         row.safetyNumber?.let { number ->
             SelectionContainer {
                 Text(

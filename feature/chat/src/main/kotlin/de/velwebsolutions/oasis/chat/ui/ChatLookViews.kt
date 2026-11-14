@@ -55,22 +55,22 @@ data class LookStyle(val chosen: Boolean = false, val dark: Boolean = false) {
 /** The look of the message area for the bubbles and texts in it. */
 val LocalChatLook = staticCompositionLocalOf { LookStyle() }
 
-/** The colours of the backgrounds (docs/oasis-chat-client.md, "Backgrounds and effects"), top → bottom. */
+/** The colours of the backgrounds (docs/mildcrowd-chat-client.md, "Backgrounds and effects"), top → bottom. */
 internal object LookColors {
-    val Sand = Color(0xFFF4EDE1)
-    val Dune = Color(0xFFEADFCC)
-    val Paper = Color(0xFFFBF8F2)
-    val PaperSpring = Color(0xFFD2E6DF)
-    val SandSun = Color(0xFFF0D0BE)
-    val Night2 = Color(0xFF12353A)
-    val NightLine = Color(0xFF2C4B4F)
-    val DuneLine = Color(0xFFD6C8B0)
+    val Sand = Color(0xFFF4F5FA)
+    val Dune = Color(0xFFE6E8F5)
+    val Paper = Color(0xFFFFFFFF)
+    val PaperSpring = Color(0xFFDDDFF9)
+    val SandSun = Color(0xFFFFE5DA)
+    val Night2 = Color(0xFF1F2340)
+    val NightLine = Color(0xFF353A5C)
+    val DuneLine = Color(0xFFC9CDE6)
 
     /** Sand at 40 % over an own photo. */
-    val Scrim = Color(0x66F4EDE1)
+    val Scrim = Color(0x66F4F5FA)
 }
 
-/** The gradient of a background, or null for the plain ones (Standard, Sandkörner, the photo). */
+/** The gradient of a background, or null for the plain ones (Standard, Punkte, the photo). */
 internal fun gradientOf(background: ChatBackground): List<Color>? = when (background) {
     ChatBackground.Duene -> listOf(LookColors.Sand, LookColors.Dune)
     ChatBackground.Oase -> listOf(LookColors.Paper, LookColors.PaperSpring)
@@ -94,7 +94,7 @@ fun Modifier.chatBackground(background: ChatBackground, photo: ImageBitmap?): Mo
     }
 }
 
-/** Sandkörner: sand with dots of dune-line, 3 px across, on a 22 px grid. */
+/** Punkte: sand with dots of dune-line, 3 px across, on a 22 px grid. */
 private fun DrawScope.drawDots() {
     drawRect(LookColors.Sand)
     val step = 22.dp.toPx()
@@ -145,11 +145,11 @@ const val EFFECT_MS = 2_600
 fun motionAllowed(context: Context): Boolean =
     Settings.Global.getFloat(context.contentResolver, Settings.Global.ANIMATOR_DURATION_SCALE, 1f) != 0f
 
-private val SUN = Color(0xFFE06A43)
-private val SPRING = Color(0xFF2E9E95)
-private val DUNE = Color(0xFFEADFCC)
-private val NIGHT = Color(0xFF0E2B2F)
-private val SUN_ON_NIGHT = Color(0xFFF2906B)
+private val SUN = Color(0xFF5560E0)
+private val SPRING = Color(0xFFFFA982)
+private val DUNE = Color(0xFFC9CDE6)
+private val NIGHT = Color(0xFF171A2E)
+private val SUN_ON_NIGHT = Color(0xFFA9B0FF)
 
 /** The shapes of the effects. */
 enum class Shape { Confetti, Heart, Balloon, Spark }

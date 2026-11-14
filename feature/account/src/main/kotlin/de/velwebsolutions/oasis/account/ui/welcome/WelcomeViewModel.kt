@@ -67,7 +67,7 @@ class WelcomeViewModel @Inject constructor(private val repository: AccountReposi
     /**
      * Who may see the profile as stored when the tour last loaded or saved it; a different one later was saved elsewhere.
      * Only this one counts: the step's save stores just the profile audience (the server ignores the default audience of
-     * new Tropfen there), so only it could turn back a choice made in the check.
+     * new Posts there), so only it could turn back a choice made in the check.
      */
     private var storedAudience: String? = null
 
@@ -145,7 +145,7 @@ class WelcomeViewModel @Inject constructor(private val repository: AccountReposi
             }
     }
 
-    /** „Weiter“: saves the current step (oases save on tap; „Wer dich sieht“ only when picked in it) and moves on. */
+    /** „Weiter“: saves the current step (crowds save on tap; „Wer dich sieht“ only when picked in it) and moves on. */
     suspend fun next() {
         mutableUi.update { it.copy(fieldErrors = emptyMap(), error = null) }
         val current = ui.value
@@ -206,7 +206,7 @@ class WelcomeViewModel @Inject constructor(private val repository: AccountReposi
     }
 
     /**
-     * „Los geht's“ or „Später – direkt zur Quelle“: ends the tour and reloads `me`, so the Quelle's card „Mach dein Tal
+     * „Los geht's“ or „Später – direkt zur Startseite“: ends the tour and reloads `me`, so the Start's card „Mach dein Tal
      * lebendig“ goes. Returns whether the tour ended (the screen then goes back to where it was opened from: the card or
      * the settings); a refusal stays on the screen.
      */

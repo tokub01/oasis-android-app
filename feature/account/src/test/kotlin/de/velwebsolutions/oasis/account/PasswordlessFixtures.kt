@@ -9,7 +9,7 @@ object PasswordlessFixtures {
             """"last_used_at":"2026-10-25T18:30:00+00:00"},{"id":1,"name":"Laptop","authenticator":null,"created_at":null,"last_used_at":null}]}"""
 
     const val CREATION =
-        """{"challenge":"reg-1","options":{"rp":{"id":"localhost","name":"Oasis"},""" +
+        """{"challenge":"reg-1","options":{"rp":{"id":"localhost","name":"Mildcrowd"},""" +
             """"user":{"id":"dQ","name":"mira","displayName":"Mira"},""" +
             """"challenge":"Y2g","pubKeyCredParams":[{"type":"public-key","alg":-7}],"excludeCredentials":[]}}"""
 

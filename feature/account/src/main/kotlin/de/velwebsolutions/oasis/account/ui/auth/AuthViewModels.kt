@@ -241,7 +241,7 @@ class ForgotPasswordViewModel @Inject constructor(private val auth: AuthApi) : V
     }
 }
 
-/** The three small pages of step 1 „Konto anlegen“ (docs/oasis-accounts.md, „Registrierung: Schritt 1 …“). */
+/** The three small pages of step 1 „Konto anlegen“ (docs/mildcrowd-accounts.md, „Registrierung: Schritt 1 …“). */
 enum class RegisterPage(val title: String, val fields: Set<String>) {
     /** 1a: display name and username. */
     Name("Wie sollen andere dich nennen?", setOf("display_name", "username")),
@@ -481,8 +481,8 @@ class RegisterViewModel @Inject constructor(private val session: Session, privat
         /** Laravel's message for the empty field, so both forms say the same. */
         const val BIRTH_DATE_REQUIRED = "Das Geburtsdatum ist erforderlich."
 
-        /** The server's message below 18 (Oasis is 18+). */
-        const val TOO_YOUNG = "Du musst mindestens 18 Jahre alt sein, um Oasis zu nutzen."
+        /** The server's message below 18 (Mildcrowd is 18+). */
+        const val TOO_YOUNG = "Du musst mindestens 18 Jahre alt sein, um Mildcrowd zu nutzen."
 
         /** Without the consent; names the documents like the checkbox (the server's CreateNewUser says the same). */
         const val TERMS_REQUIRED = "Bitte akzeptiere die Community-Regeln und die AGB."

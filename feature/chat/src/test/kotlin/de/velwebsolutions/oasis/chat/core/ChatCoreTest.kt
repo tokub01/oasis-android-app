@@ -227,7 +227,7 @@ class ChatCoreTest {
         vault.lockForBackground()
         assertFalse(vault.unlocked)
 
-        // A picker of Oasis in front: the vault waits for the return …
+        // A picker of Mildcrowd in front: the vault waits for the return …
         vault.cameToForeground()
         vault.unlock(crypto.createIdentity(), vault.generation)
         assertTrue(vault.openExternalScreen { true })
@@ -248,7 +248,7 @@ class ChatCoreTest {
         assertFalse(vault.unlocked)
         assertEquals("Chats gesperrt.", vault.announcement.value)
 
-        // Touching Oasis again (a picker shown above it and closed) ends the wait.
+        // Touching Mildcrowd again (a picker shown above it and closed) ends the wait.
         vault.cameToForeground()
         vault.unlock(crypto.createIdentity(), vault.generation)
         vault.openExternalScreen { true }

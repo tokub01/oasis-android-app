@@ -80,7 +80,7 @@ import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 
 /**
- * Einstieg (/app/willkommen): about you, who sees you, oases, people. Every step can be skipped, the whole tour too
+ * Einstieg (/app/willkommen): about you, who sees you, crowds, people. Every step can be skipped, the whole tour too
  * („Später“); finishing or skipping ends it for good, so the app stops opening it. A new step fades in at the top. Back
  * from the Privatsphäre-Check, „Wer dich sieht“ shows what was saved there.
  */
@@ -96,7 +96,7 @@ internal fun WelcomeScreen(viewModel: WelcomeViewModel = hiltViewModel()) {
         viewModel.textChanged()
     }
     val finish: suspend () -> Unit = {
-        // Back to where it was opened from: the Quelle's card or the settings.
+        // Back to where it was opened from: the Start's card or the settings.
         if (viewModel.finish()) navigator.back()
     }
     // System back goes one step back first, like the „Zurück“ button.
@@ -131,7 +131,7 @@ internal fun WelcomeContent(ui: WelcomeUiState, viewModel: WelcomeViewModel, fin
                     }
                     Buttons(ui, tour, viewModel, finish)
                     Text(
-                        "Jeder Schritt ist freiwillig. Alles findest du später auch in deinem Profil, den Privatsphäre-Einstellungen und unter Oasen.",
+                        "Jeder Schritt ist freiwillig. Alles findest du später auch in deinem Profil, den Privatsphäre-Einstellungen und unter Crowds.",
                         style = OasisType.Small,
                         color = OasisColors.Muted
                     )
@@ -149,7 +149,7 @@ private fun Header(ui: WelcomeUiState, tour: WelcomeTour, finish: suspend () -> 
     Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
         FlowRow(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween, verticalArrangement = Arrangement.Center) {
             Eyebrow("Willkommen · Schritt ${ui.step} von ${tour.steps.size}", Modifier.align(Alignment.CenterVertically))
-            OasisTextButton("Später – direkt zur Quelle", { once.run(finish) }, Modifier.testTag("welcome.later"))
+            OasisTextButton("Später – direkt zur Startseite", { once.run(finish) }, Modifier.testTag("welcome.later"))
         }
         Text(
             tour.steps.getOrNull(ui.step - 1)?.title.orEmpty(),
@@ -268,7 +268,7 @@ private fun ColumnScope.ProfileStep(ui: WelcomeUiState, tour: WelcomeTour, viewM
 @Composable
 private fun ColumnScope.VisibilityStep(ui: WelcomeUiState, tour: WelcomeTour, viewModel: WelcomeViewModel, open: (AppRoute) -> Unit) {
     Text(
-        "Oasis startet zurückhaltend: Nur Mitglieder sehen dich. Du kannst das jetzt ändern oder später in Ruhe im Privatsphäre-Check.",
+        "Mildcrowd startet zurückhaltend: Nur Mitglieder sehen dich. Du kannst das jetzt ändern oder später in Ruhe im Privatsphäre-Check.",
         style = OasisType.Body,
         color = OasisColors.Ink2
     )
@@ -277,7 +277,7 @@ private fun ColumnScope.VisibilityStep(ui: WelcomeUiState, tour: WelcomeTour, vi
         viewModel.edit { it.copy(profileAudience = value, visibilityChanged = true) }
     }
     ui.fieldErrors["profile_audience"]?.let { FieldError(it) }
-    Text("Wer liest deine Tropfen normalerweise?", style = OasisType.BodyBold, color = OasisColors.Night)
+    Text("Wer liest deine Posts normalerweise?", style = OasisType.BodyBold, color = OasisColors.Night)
     FlowChoices(tour.visibilities, ui.defaultPostVisibility, tag = "welcome.visibility") { value ->
         viewModel.edit { it.copy(defaultPostVisibility = value, visibilityChanged = true) }
     }
@@ -287,20 +287,20 @@ private fun ColumnScope.VisibilityStep(ui: WelcomeUiState, tour: WelcomeTour, vi
 
 @Composable
 private fun ColumnScope.OasesStep(tour: WelcomeTour, viewModel: WelcomeViewModel, open: (AppRoute) -> Unit) {
-    // How the list came about (Art. 27 DSA): picked by people, or simply the largest oases.
+    // How the list came about (Art. 27 DSA): picked by people, or simply the largest crowds.
     val origin =
         if (tour.oasesHandPicked) {
             "Diese hier haben Menschen ausgesucht, nicht ein Algorithmus."
         } else {
-            "Hier stehen die Oasen mit den meisten Mitgliedern – der Reihe nach, ohne Empfehlung nach deinen Interessen."
+            "Hier stehen die Crowds mit den meisten Mitgliedern – der Reihe nach, ohne Empfehlung nach deinen Interessen."
         }
     Text(
-        "Oasen sind Gruppen zu einem Thema. Tritt ein paar bei, dann füllt sich deine Quelle. $origin",
+        "Crowds sind Gruppen zu einem Thema. Tritt ein paar bei, dann füllt sich deine Startseite. $origin",
         style = OasisType.Body,
         color = OasisColors.Ink2
     )
     if (tour.oases.isEmpty()) {
-        Text("Noch gibt es keine Oasen. Du kannst selbst eine gründen.", style = OasisType.Body, color = OasisColors.Ink2)
+        Text("Noch gibt es keine Crowds. Du kannst selbst eine gründen.", style = OasisType.Body, color = OasisColors.Ink2)
     }
     tour.oases.forEach { oasis ->
         Column(
@@ -338,14 +338,14 @@ private fun ColumnScope.OasesStep(tour: WelcomeTour, viewModel: WelcomeViewModel
             )
         }
     }
-    LinkText("Alle Oasen ansehen", { open(NetworkRoute.Oases) })
+    LinkText("Alle Crowds ansehen", { open(NetworkRoute.Oases) })
 }
 
 @Composable
 private fun ColumnScope.PeopleStep(open: (AppRoute) -> Unit) {
     var search by remember { mutableStateOf("") }
     Text(
-        "Deine Quelle zeigt, was Menschen teilen, denen du folgst – der Reihe nach und mit Ende. Such nach Menschen, die du kennst, oder lade sie ein.",
+        "Deine Startseite zeigt, was Menschen teilen, denen du folgst – der Reihe nach und mit Ende. Such nach Menschen, die du kennst, oder lade sie ein.",
         style = OasisType.Body,
         color = OasisColors.Ink2
     )

@@ -81,8 +81,8 @@ import de.velwebsolutions.oasis.network.ui.retry
 import java.time.Instant
 
 /**
- * "Quelle" (/app): own Tropfen and those of friends, followed people and oases, newest first, with bundled replies – or
- * "Ganz Oasis". No ranking and an honest end; the side blocks (Deine Woche, Deine Oasen, a running vote, inviting) follow
+ * "Start" (/app): own Posts and those of friends, followed people and crowds, newest first, with bundled replies – or
+ * "Ganz Mildcrowd". No ranking and an honest end; the side blocks (Deine Woche, Deine Crowds, a running vote, inviting) follow
  * the feed like on a phone-sized web page. Switching the view keeps the page and swaps the cards in place.
  */
 @Composable
@@ -106,7 +106,7 @@ fun SourceScreen(viewModel: SourceViewModel = hiltViewModel<SourceViewModel>()) 
     LaunchedEffect(scrollToTop) { if (scrollToTop > 0) listState.animateScrollToItem(0) }
 
     OasisScreen(
-        title = "Quelle",
+        title = "Start",
         message = state.status,
         error = state.actionError?.userMessage,
         onDismissMessage = viewModel.list::dismissStatus,
@@ -127,7 +127,7 @@ fun SourceScreen(viewModel: SourceViewModel = hiltViewModel<SourceViewModel>()) 
                             viewModel::dismissMemories,
                             viewModel::showOlderPosts,
                             meetups,
-                            // „Mach dein Tal lebendig“ until the tour is done, unless „Später“ hides it.
+                            // „Mach deine Startseite lebendig“ until the tour is done, unless „Später“ hides it.
                             onSnoozeOnboarding = viewModel::snoozeOnboardingCard.takeIf { me?.onboarded == false && !cardSnoozed }
                         )
                     )
@@ -140,14 +140,14 @@ fun SourceScreen(viewModel: SourceViewModel = hiltViewModel<SourceViewModel>()) 
     }
 }
 
-/** „Heute vor einem Jahr“ and „Alles Neue gesehen“ on the Quelle. */
+/** „Heute vor einem Jahr“ and „Alles Neue gesehen“ on the Start. */
 class SourceExtras(
     val memories: List<MemoryYear>,
     val onDismissMemories: suspend () -> Unit,
     val onShowOlder: () -> Unit,
     /** „Nächste Treffen“. */
     val meetups: List<Meetup> = emptyList(),
-    /** „Später“ of the card „Mach dein Tal lebendig“; null while the card does not show. */
+    /** „Später“ of the card „Mach deine Startseite lebendig“; null while the card does not show. */
     val onSnoozeOnboarding: (() -> Unit)? = null
 ) {
     companion object {
@@ -155,7 +155,7 @@ class SourceExtras(
     }
 }
 
-/** The Quelle's page: greeting, view switch, composer entry, next steps, memories, the feed and the side blocks. */
+/** The Start's page: greeting, view switch, composer entry, next steps, memories, the feed and the side blocks. */
 @OptIn(ExperimentalMaterial3Api::class)
 fun LazyListScope.sourceContent(
     cut: SeenCut,
@@ -165,13 +165,13 @@ fun LazyListScope.sourceContent(
     extras: SourceExtras = SourceExtras.None
 ) {
     val state = cut.state
-    // Older Tropfen wait for „Ältere Tropfen“ after „Du hast alles Neue gesehen.“
+    // Older Posts wait for „Ältere Posts“ after „Du hast alles Neue gesehen.“
     val handlers = if (cut.seen) FeedHandlers(feedHandlers.perform, {}, feedHandlers.reload) else feedHandlers
     val context = state.context
     val showAll = context?.showAll ?: false
     block("header") {
         Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-            Eyebrow("Quelle")
+            Eyebrow("Start")
             Text(
                 "Hallo $displayName.",
                 style = OasisType.display(28),
@@ -182,9 +182,9 @@ fun LazyListScope.sourceContent(
             )
             Text(
                 if (showAll) {
-                    "Hier siehst du der Reihe nach, was alle auf Oasis teilen – ohne Algorithmus."
+                    "Hier siehst du der Reihe nach, was alle auf Mildcrowd teilen – ohne Algorithmus."
                 } else {
-                    "Hier siehst du der Reihe nach, was deine Freund:innen und die Menschen und Oasen teilen, denen du folgst."
+                    "Hier siehst du der Reihe nach, was deine Freund:innen und die Menschen und Crowds teilen, denen du folgst."
                 },
                 style = OasisType.Body,
                 color = OasisColors.Ink2
@@ -194,11 +194,11 @@ fun LazyListScope.sourceContent(
     block("view") {
         val navigator = LocalNavigator.current
         // The switch shows the chosen view at once; until the member chooses, what the server chose (members who follow
-        // nobody start with Ganz Oasis).
+        // nobody start with Ganz Mildcrowd).
         val selection = state.filter ?: if (showAll) "alle" else "gefolgt"
         Row(horizontalArrangement = Arrangement.spacedBy(12.dp), verticalAlignment = Alignment.CenterVertically) {
             SingleChoiceSegmentedButtonRow(Modifier.weight(1f).testTag("source.view")) {
-                listOf("gefolgt" to "Gefolgt", "alle" to "Ganz Oasis").forEachIndexed { index, (value, label) ->
+                listOf("gefolgt" to "Gefolgt", "alle" to "Ganz Mildcrowd").forEachIndexed { index, (value, label) ->
                     SegmentedButton(
                         selected = selection == value,
                         onClick = { if (selection != value) onSelectView(value) },
@@ -235,7 +235,7 @@ fun LazyListScope.sourceContent(
             ComposeEntry(
                 "Was möchtest du teilen?",
                 Modifier.testTag("source.composeEntry"),
-                accessibilityLabel = "Dein Tropfen: Was möchtest du teilen?"
+                accessibilityLabel = "Dein Post: Was möchtest du teilen?"
             ) {
                 navigator.present(NetworkRoute.Compose())
             }
@@ -247,7 +247,7 @@ fun LazyListScope.sourceContent(
             Panel {
                 SectionTitle("Nächste Schritte")
                 StepLink("Entdecken, wer schon da ist", NetworkRoute.Discover)
-                StepLink("Einer Oase folgen", NetworkRoute.Oases)
+                StepLink("Einer Crowd folgen", NetworkRoute.Oases)
                 StepLink("Profil vervollständigen", NetworkRoute.EditProfile)
                 StepLink("Menschen einladen", NetworkRoute.Invitations)
             }
@@ -261,9 +261,9 @@ fun LazyListScope.sourceContent(
         empty = if (cut.seen) {
             null
         } else if (showAll) {
-            "Noch hat niemand etwas geteilt. Schreib den ersten Tropfen!"
+            "Noch hat niemand etwas geteilt. Schreib den ersten Post!"
         } else {
-            "Noch keine Tropfen. Folge Menschen oder Oasen, dann erscheinen ihre Tropfen hier – oder schau unter „Ganz Oasis“, was alle teilen."
+            "Noch keine Posts. Folge Menschen oder Crowds, dann erscheinen ihre Posts hier – oder schau unter „Ganz Mildcrowd“, was alle teilen."
         }
     )
     if (cut.seen) {
@@ -271,7 +271,7 @@ fun LazyListScope.sourceContent(
             Panel(tone = PanelTone.Dune, spacing = 10, modifier = Modifier.testTag("source.seen")) {
                 Text("Du hast alles Neue gesehen.", style = OasisType.BodyBold, color = OasisColors.Night)
                 OasisButton(
-                    "Ältere Tropfen",
+                    "Ältere Posts",
                     extras.onShowOlder,
                     kind = OasisButtonKind.Secondary,
                     fullWidth = false,
@@ -284,15 +284,15 @@ fun LazyListScope.sourceContent(
 }
 
 /**
- * „Mach dein Tal lebendig“ (docs/oasis-accounts.md, „Nach der Registrierung“): the welcome tour is no hurdle after
+ * „Mach deine Startseite lebendig“ (docs/mildcrowd-accounts.md, „Nach der Registrierung“): the welcome tour is no hurdle after
  * registering any more, this card offers it until it is done; „Später“ hides the card for 14 days on this device.
  */
 private fun LazyListScope.onboardingCard(onSnooze: () -> Unit) {
     block("source.onboarding") {
         val navigator = LocalNavigator.current
         Panel(tone = PanelTone.Dune, spacing = 10, modifier = Modifier.testTag("source.onboarding")) {
-            SectionTitle("Mach dein Tal lebendig")
-            Text("Wähl ein paar Oasen und Menschen, dann füllt sich dein Tal.", style = OasisType.Body, color = OasisColors.Ink2)
+            SectionTitle("Mach deine Startseite lebendig")
+            Text("Wähl ein paar Crowds und Menschen, dann füllt sich deine Startseite.", style = OasisType.Body, color = OasisColors.Ink2)
             Row(horizontalArrangement = Arrangement.spacedBy(10.dp), verticalAlignment = Alignment.CenterVertically) {
                 OasisButton(
                     "Los geht’s",
@@ -313,7 +313,7 @@ private fun LazyListScope.onboardingCard(onSnooze: () -> Unit) {
     }
 }
 
-/** „Erinnerungen“ („Nur für dich“): the member's own Tropfen of this day in earlier years, with „Ausblenden“. */
+/** „Erinnerungen“ („Nur für dich“): the member's own Posts of this day in earlier years, with „Ausblenden“. */
 private fun LazyListScope.memoriesBlock(extras: SourceExtras, handlers: FeedHandlers) {
     block("source.memories") {
         Panel(tone = PanelTone.Dune, spacing = 12, modifier = Modifier.testTag("source.memories")) {
@@ -348,7 +348,7 @@ private fun LazyListScope.sideBlocks(context: SourceContext?, meetups: List<Meet
                 Row(verticalAlignment = Alignment.Top) {
                     WeekNumber(week.reactions, "Reaktionen", Modifier.weight(1f))
                     WeekNumber(week.followers, "neu dabei", Modifier.weight(1f))
-                    WeekNumber(week.karawane, "Karawane", Modifier.weight(1f))
+                    WeekNumber(week.karawane, "Follower", Modifier.weight(1f))
                 }
                 UnderlinedLink("Alle deine Zahlen", { navigator.open(NetworkRoute.Statistics) }, color = OasisColors.OnNight2)
             }
@@ -356,10 +356,10 @@ private fun LazyListScope.sideBlocks(context: SourceContext?, meetups: List<Meet
     }
     context?.oases?.let { oases ->
         block("side.oases") {
-            SideCard("Deine Oasen") {
-                if (oases.isEmpty()) Text("Du folgst noch keiner Oase.")
+            SideCard("Deine Crowds") {
+                if (oases.isEmpty()) Text("Du folgst noch keiner Crowd.")
                 oases.forEach { OasisRow(it) }
-                TextLink("Alle Oasen", NetworkRoute.Oases)
+                TextLink("Alle Crowds", NetworkRoute.Oases)
             }
         }
     }
@@ -417,7 +417,7 @@ private fun StepLink(title: String, route: AppRoute) {
 /** "3. November". */
 fun dayMonth(instant: Instant): String = GermanTime.format(instant, "d. MMMM")
 
-/** The entry to the composer at the top of the Quelle and an oasis: a field-like button that opens the composer sheet. */
+/** The entry to the composer at the top of the Start and a crowd: a field-like button that opens the composer sheet. */
 @Composable
 fun ComposeEntry(prompt: String, modifier: Modifier = Modifier, accessibilityLabel: String? = null, onClick: () -> Unit) {
     val shape = RoundedCornerShape(OasisRadius.M.dp)

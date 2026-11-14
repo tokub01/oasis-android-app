@@ -11,7 +11,7 @@
    },
    {
     "key": "oasen",
-    "title": "Oasen finden"
+    "title": "Crowds finden"
    },
    {
     "key": "menschen",
@@ -25,11 +25,11 @@
   "colors": [
    {
     "value": "sun",
-    "label": "Sonne"
+    "label": "Blau"
    },
    {
     "value": "spring",
-    "label": "Quelle"
+    "label": "Pfirsich"
    },
    {
     "value": "night",
@@ -37,7 +37,7 @@
    },
    {
     "value": "dune",
-    "label": "Düne"
+    "label": "Nebel"
    }
   ],
   "profile_audience": "everyone",

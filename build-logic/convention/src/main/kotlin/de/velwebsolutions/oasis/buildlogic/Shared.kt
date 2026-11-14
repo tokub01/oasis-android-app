@@ -19,7 +19,7 @@ internal fun VersionCatalog.version(name: String): Int = findVersion(name).get()
 
 internal fun VersionCatalog.library(name: String) = findLibrary(name).get()
 
-/** SDK levels, Java 17 bytecode and the compiler flags every Android module of Oasis shares. */
+/** SDK levels, Java 17 bytecode and the compiler flags every Android module of Mildcrowd shares. */
 internal fun Project.configureAndroid(extension: CommonExtension) {
     extension.apply {
         compileSdk = libs.version("compileSdk")

@@ -24,9 +24,9 @@ import kotlinx.coroutines.launch
  * in. Used from the main thread only (like iOS' `@MainActor`); the crypto runs elsewhere and hands results back.
  *
  * Locking: "Sperren", the app going to the background (the web locks on `pagehide`), 30 minutes without interaction, and
- * sign-out. Keys only open while Oasis is in front: an unlock that finishes in the background is refused. A screen of
- * another app that Oasis opens itself ([openExternalScreen]: the file or photo picker, a file in another app) keeps the
- * vault open until Oasis is back, at most [externalHold] – the web's file dialog is no `pagehide`, and iOS shows its
+ * sign-out. Keys only open while Mildcrowd is in front: an unlock that finishes in the background is refused. A screen of
+ * another app that Mildcrowd opens itself ([openExternalScreen]: the file or photo picker, a file in another app) keeps the
+ * vault open until Mildcrowd is back, at most [externalHold] – the web's file dialog is no `pagehide`, and iOS shows its
  * pickers inside the app.
  */
 class ChatVault(
@@ -34,7 +34,7 @@ class ChatVault(
     /** Time without interaction after which the vault locks (the web's `IDLE_LOCK_MS`). */
     var idleLock: Duration = 30.minutes,
     val clock: ServerClock = ServerClock(),
-    /** How long a screen Oasis opened itself keeps the vault open while Oasis is in the background. */
+    /** How long a screen Mildcrowd opened itself keeps the vault open while Mildcrowd is in the background. */
     var externalHold: Duration = 5.minutes
 ) {
     /** The stored identity as far as it is known: [isKnown] false until `GET /identity` answered. */
@@ -78,7 +78,7 @@ class ChatVault(
 
     var safety: SafetyLists = SafetyLists.Empty
 
-    /** Whether Oasis is in front ([cameToForeground], [lockForBackground]); keys only open then. */
+    /** Whether Mildcrowd is in front ([cameToForeground], [lockForBackground]); keys only open then. */
     var inForeground: Boolean = true
         private set
 
@@ -95,16 +95,16 @@ class ChatVault(
     private val owners = mutableMapOf<String, String>()
 
     /**
-     * The list's line 2 per chat: the last message this device decrypted in this session (docs/oasis-chat-client.md,
+     * The list's line 2 per chat: the last message this device decrypted in this session (docs/mildcrowd-chat-client.md,
      * „Conversation list“). Only in memory, forgotten on every lock; nothing of it goes to the server.
      */
     val previews = mutableMapOf<String, String>()
     private var idleTimer: Job? = null
 
-    /** Oasis opened a screen of another app ([openExternalScreen]): the next trip to the background waits for its return. */
+    /** Mildcrowd opened a screen of another app ([openExternalScreen]): the next trip to the background waits for its return. */
     private var externalScreen = false
 
-    /** Locks after [externalHold] while that screen keeps Oasis in the background. */
+    /** Locks after [externalHold] while that screen keeps Mildcrowd in the background. */
     private var holdTimer: Job? = null
 
     /** Bind the vault to the signed-in member; another member wipes everything first. */
@@ -120,7 +120,7 @@ class ChatVault(
     }
 
     /**
-     * Adopt an unlocked identity, unless a lock happened since [captured] was taken or Oasis is in the background (then
+     * Adopt an unlocked identity, unless a lock happened since [captured] was taken or Mildcrowd is in the background (then
      * it is wiped: the vault locks in the background, also for an unlock that only finished there).
      */
     fun unlock(newIdentity: ChatIdentity, captured: Int): Boolean {
@@ -155,8 +155,8 @@ class ChatVault(
     }
 
     /**
-     * The app went to the background: the vault locks – unless the member is in a screen Oasis opened itself
-     * ([openExternalScreen]); then it locks only when Oasis is not back within [externalHold].
+     * The app went to the background: the vault locks – unless the member is in a screen Mildcrowd opened itself
+     * ([openExternalScreen]); then it locks only when Mildcrowd is not back within [externalHold].
      */
     fun lockForBackground() {
         inForeground = false
@@ -175,7 +175,7 @@ class ChatVault(
     }
 
     /**
-     * Oasis is in front again – back from the background, or the chat's screen resumed after a picker that only covered
+     * Mildcrowd is in front again – back from the background, or the chat's screen resumed after a picker that only covered
      * it: a screen it opened is done, and the next trip to the background locks as usual.
      */
     fun cameToForeground() {
@@ -187,7 +187,7 @@ class ChatVault(
 
     /**
      * Opens a screen of another app for the member – the system's file or photo picker, a file in another app – with
-     * [start], which says whether it opened. Until Oasis is in front again (or the member touches Oasis) the trip to the
+     * [start], which says whether it opened. Until Mildcrowd is in front again (or the member touches Mildcrowd) the trip to the
      * background it causes does not lock at once, only after [externalHold]; a screen that did not open changes nothing.
      */
     fun openExternalScreen(start: () -> Boolean): Boolean {
@@ -203,8 +203,8 @@ class ChatVault(
 
     /**
      * Call on interaction (taps on a chat screen, typing): restarts the idle timer, which locks the vault after
-     * [idleLock] without interaction – like the web's timer reset on `pointerdown` / `keydown`. The member is in Oasis
-     * then, so a screen Oasis opened earlier (a picker shown above it and closed again) no longer keeps the vault open.
+     * [idleLock] without interaction – like the web's timer reset on `pointerdown` / `keydown`. The member is in Mildcrowd
+     * then, so a screen Mildcrowd opened earlier (a picker shown above it and closed again) no longer keeps the vault open.
      */
     fun touch() {
         externalScreen = false
@@ -226,7 +226,7 @@ class ChatVault(
         .maxOfOrNull { it.substringAfterLast(':').toInt() } ?: 0
 
     /**
-     * Pin the first owner seen for a conversation and say whether [ownerId] is that one (session.js `pinOwner`). Oasis
+     * Pin the first owner seen for a conversation and say whether [ownerId] is that one (session.js `pinOwner`). Mildcrowd
      * has no change of owner, so another one is a server naming someone else. Like the web tab's pins (and the verified
      * public keys), the pins outlive a lock and go when another member signs in ([prepare]).
      */

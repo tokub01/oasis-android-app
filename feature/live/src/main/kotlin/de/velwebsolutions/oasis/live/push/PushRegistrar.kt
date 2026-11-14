@@ -11,7 +11,7 @@ import kotlinx.coroutines.flow.asStateFlow
 class PushFailure(override val message: String) : Exception(message)
 
 /**
- * Push hints on this device (PushRegistrar on iOS, docs/oasis-pwa.md "Native App" in the Laravel project).
+ * Push hints on this device (PushRegistrar on iOS, docs/mildcrowd-pwa.md "Native App" in the Laravel project).
  *
  * After sign-in it asks the server whether app pushes are set up (`app-config`); if so, Firebase is configured in this
  * build and the member has not switched them off on this device, it registers the FCM token with `POST push/devices`,
@@ -159,9 +159,9 @@ class PushRegistrar(private val system: PushSystem, private val store: PushStore
     }
 
     companion object {
-        /** Shown while Android does not allow notifications for Oasis. */
+        /** Shown while Android does not allow notifications for Mildcrowd. */
         const val DENIED_TEXT =
-            "Du hast Mitteilungen für Oasis in den Android-Einstellungen ausgeschaltet. Erlaube sie dort, um Push-Hinweise zu bekommen."
+            "Du hast Mitteilungen für Mildcrowd in den Android-Einstellungen ausgeschaltet. Erlaube sie dort, um Push-Hinweise zu bekommen."
         const val FAILED_TEXT = "Das hat nicht geklappt. Bitte versuche es später noch einmal."
     }
 }

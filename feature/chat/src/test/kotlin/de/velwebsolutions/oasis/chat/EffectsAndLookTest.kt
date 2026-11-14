@@ -31,7 +31,7 @@ import org.junit.runner.RunWith
 import org.robolectric.RobolectricTestRunner
 
 /**
- * Send effects and personal backgrounds in the view models (docs/oasis-chat-client.md, "Backgrounds and effects"): the
+ * Send effects and personal backgrounds in the view models (docs/mildcrowd-chat-client.md, "Backgrounds and effects"): the
  * effect only inside the encrypted payload, once for the sender and once live for the recipient, never for view once.
  */
 @OptIn(ExperimentalCoroutinesApi::class)

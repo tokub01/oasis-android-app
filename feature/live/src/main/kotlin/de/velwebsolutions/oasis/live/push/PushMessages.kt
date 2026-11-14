@@ -15,7 +15,7 @@ import kotlinx.coroutines.withTimeoutOrNull
 
 /**
  * What a push does (PushNotificationDelegate on iOS): it carries only a generic line and a random `preview` reference;
- * the named text ("Jonas Weber · Hat auf deinen Tropfen geantwortet.") comes from the Oasis server with the member's
+ * the named text ("Jonas Weber · Hat auf deinen Posts geantwortet.") comes from the Mildcrowd server with the member's
  * token, so no name passes through Google. While the app runs, the counters are refreshed as well.
  */
 class PushMessages @Inject constructor(

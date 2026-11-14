@@ -71,8 +71,8 @@ import de.velwebsolutions.oasis.design.theme.OasisType
 import java.time.Instant
 import kotlinx.coroutines.launch
 
-/** Quelle at 30 % on paper, as a solid colour (the app does not draw see-through surfaces). */
-private val ThisDeviceTint = Color(0xFFBDDDD6)
+/** Pfirsich (spring) at 30 % on paper, as a solid colour (the app does not draw see-through surfaces). */
+private val ThisDeviceTint = Color(0xFFFFE5DA)
 
 /** Pull to refresh around a page that reloads its view model. */
 @OptIn(ExperimentalMaterial3Api::class)
@@ -185,7 +185,7 @@ private fun SignedIn(overview: DeviceOverview, viewModel: DevicesViewModel, onSi
         }
         overview.apps.forEach { app ->
             ListRow(leading = {
-                RowText(app.name, "Oasis-App · zuletzt aktiv ${GermanDate.long(app.lastUsedAt ?: app.signedInAt ?: Instant.now())}")
+                RowText(app.name, "Mildcrowd-App · zuletzt aktiv ${GermanDate.long(app.lastUsedAt ?: app.signedInAt ?: Instant.now())}")
             }, trailing = {
                 AsyncOasisButton(
                     "Abmelden",
@@ -309,7 +309,7 @@ internal fun SafetyScreen(viewModel: SafetyViewModel = hiltViewModel()) {
                     Column(verticalArrangement = Arrangement.spacedBy(20.dp)) {
                         SafetyListCard(
                             "Blockierte Personen",
-                            "Ihr seht gegenseitig keine Tropfen, Antworten oder Profile mehr und könnt nicht interagieren.",
+                            "Ihr seht gegenseitig keine Posts, Antworten oder Profile mehr und könnt nicht interagieren.",
                             lists.blocked,
                             "Du hast aktuell niemanden blockiert.",
                             "Blockade aufheben",
@@ -319,7 +319,7 @@ internal fun SafetyScreen(viewModel: SafetyViewModel = hiltViewModel()) {
                         )
                         SafetyListCard(
                             "Stummgeschaltete Personen",
-                            "Tropfen dieser Personen erscheinen nicht mehr in deiner Quelle, Entdecken oder Antworten. Ihr Profil bleibt für dich aufrufbar.",
+                            "Posts dieser Personen erscheinen nicht mehr auf deiner Startseite, in Entdecken oder in Antworten. Ihr Profil bleibt für dich aufrufbar.",
                             lists.muted,
                             "Du hast aktuell niemanden stummgeschaltet.",
                             "Nicht mehr stummschalten",
@@ -329,7 +329,7 @@ internal fun SafetyScreen(viewModel: SafetyViewModel = hiltViewModel()) {
                         )
                         SafetyListCard(
                             "Eingeschränkte Personen",
-                            "Ihre Antworten unter deinen Tropfen sieht nur sie selbst, und du bekommst keine Hinweise von ihr. Sie kann dir weiter folgen und deine Tropfen lesen.",
+                            "Ihre Antworten unter deinen Posts sieht nur sie selbst, und du bekommst keine Hinweise von ihr. Sie kann dir weiter folgen und deine Posts lesen.",
                             lists.restricted,
                             "Du hast aktuell niemanden eingeschränkt.",
                             "Nicht mehr einschränken",
@@ -343,7 +343,7 @@ internal fun SafetyScreen(viewModel: SafetyViewModel = hiltViewModel()) {
                     Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
                         Explained(
                             "Blockieren:",
-                            " Wenn du jemanden blockierst, existiert ihr füreinander nicht mehr. Tropfen und Profile sind wie nicht existent (404). Bestehende Follows werden beidseitig gelöscht."
+                            " Wenn du jemanden blockierst, existiert ihr füreinander nicht mehr. Posts und Profile sind wie nicht existent (404). Bestehende Follows werden beidseitig gelöscht."
                         )
                         Explained(
                             "Stummschalten:",
@@ -351,11 +351,11 @@ internal fun SafetyScreen(viewModel: SafetyViewModel = hiltViewModel()) {
                         )
                         Explained(
                             "Einschränken:",
-                            " Leiser als Blockieren. Die Person kann weiter lesen und antworten, aber ihre Antworten unter deinen Tropfen sieht nur sie selbst. Sie merkt nichts."
+                            " Leiser als Blockieren. Die Person kann weiter lesen und antworten, aber ihre Antworten unter deinen Posts sieht nur sie selbst. Sie merkt nichts."
                         )
                     }
                 }
-                SectionCard("Deine Merkliste", detail = "Tropfen kannst du dir privat für später merken.") {
+                SectionCard("Deine Merkliste", detail = "Posts kannst du dir privat für später merken.") {
                     OasisButton("Zur Merkliste", {
                         navigator.open(NetworkRoute.Bookmarks)
                     }, kind = OasisButtonKind.Secondary, fullWidth = false)
@@ -468,7 +468,7 @@ internal fun ReportContent(
                         "Möchtest du noch etwas dazu sagen? (freiwillig)",
                         ui.comment,
                         onComment,
-                        prompt = "Zum Beispiel: Das geht schon länger so, auch in anderen Tropfen.",
+                        prompt = "Zum Beispiel: Das geht schon länger so, auch in anderen Posts.",
                         error = ui.fieldErrors["comment"],
                         lines = 3..10
                     )
@@ -517,6 +517,6 @@ private fun Thanks(form: ReportForm, onDone: () -> Unit) {
             color = OasisColors.Ink2
         )
         SupportContacts()
-        OasisButton("Zurück zur Quelle", onDone, fullWidth = false)
+        OasisButton("Zurück zur Startseite", onDone, fullWidth = false)
     }
 }
