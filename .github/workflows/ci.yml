@@ -52,8 +52,14 @@ jobs:
         run: ./gradlew detekt
       - name: Android lint (warnings are errors)
         run: ./gradlew lintDebug --continue
+      # Some tests wait on real threads and fail now and then on a busy runner (five different tests in five runs on
+      # 2026-11-14). The failed test tasks are repeated once: a real defect fails both times, and the warning keeps a
+      # repeat visible in the run's summary instead of hiding it.
       - name: Unit, Robolectric UI and screenshot tests
-        run: ./gradlew testDebugUnitTest :chat-crypto:test --continue
+        run: |
+          ./gradlew testDebugUnitTest :chat-crypto:test --continue && exit 0
+          echo "::warning::Unit tests failed once and were repeated – the failures of the first attempt are in this step's log."
+          ./gradlew testDebugUnitTest :chat-crypto:test --continue
       - name: Coverage report and thresholds
         run: ./gradlew koverHtmlReportOasis koverXmlReportOasis koverVerifyOasis koverVerifyOasisLogic
       - name: Build debug and staging APKs
