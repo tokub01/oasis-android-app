@@ -10,7 +10,7 @@ plugins {
     alias(libs.plugins.play.publisher)
 }
 
-// Push through Firebase Cloud Messaging (project oasis-86acd) when app/google-services.json is there – locally copied,
+// Push through Firebase Cloud Messaging (project mildcrowd) when app/google-services.json is there – locally copied,
 // in CI written from the GOOGLE_SERVICES_JSON_B64 secret, never committed. Without it the app builds without push.
 // The file names only de.velwebsolutions.mildcrowd, so the ".staging" variant goes without Firebase. A file that still
 // names another package (the one from before the rename) is skipped as well: the plugin would fail the build on it.
@@ -29,10 +29,10 @@ val secrets = Properties().apply {
 
 fun secret(name: String): String = System.getenv(name) ?: secrets.getProperty(name, "")
 
-// The upload key for Google Play: ~/.android-keys/oasis-upload.jks with its passwords in
-// ~/.android-keys/oasis-upload.properties (both outside the repository), or the ANDROID_UPLOAD_* variables in CI.
+// The upload key for Google Play: ~/.android-keys/mildcrowd-upload.jks with its passwords in
+// ~/.android-keys/mildcrowd-upload.properties (both outside the repository), or the ANDROID_UPLOAD_* variables in CI.
 val uploadKey = Properties().apply {
-    val file = File(System.getProperty("user.home"), ".android-keys/oasis-upload.properties")
+    val file = File(System.getProperty("user.home"), ".android-keys/mildcrowd-upload.properties")
     if (file.exists()) file.inputStream().use(::load)
 }
 
@@ -64,10 +64,10 @@ android {
 
     signingConfigs {
         create("upload") {
-            val store = upload("KEYSTORE_PATH").ifEmpty { "${System.getProperty("user.home")}/.android-keys/oasis-upload.jks" }
+            val store = upload("KEYSTORE_PATH").ifEmpty { "${System.getProperty("user.home")}/.android-keys/mildcrowd-upload.jks" }
             storeFile = file(store)
             storePassword = upload("KEYSTORE_PASSWORD")
-            keyAlias = upload("KEY_ALIAS").ifEmpty { "oasis-upload" }
+            keyAlias = upload("KEY_ALIAS").ifEmpty { "mildcrowd-upload" }
             keyPassword = upload("KEY_PASSWORD")
         }
     }

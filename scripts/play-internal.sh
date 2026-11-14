@@ -1,10 +1,10 @@
 #!/bin/zsh
 # Builds the "play" variant (talks to staging.mildcrowd.com) and publishes it to Google Play's internal test track –
-# the counterpart of oasis-ios/scripts/testflight.sh. Runs on this Mac by hand; CI does the same in
+# the counterpart of scripts/testflight.sh in the iOS repository. Runs on this Mac by hand; CI does the same in
 # .github/workflows/play-internal.yml.
 #
 # Needs, all outside the repository:
-#   - the upload key under ~/.android-keys/ (oasis-upload.jks and oasis-upload.properties, see docs/play-console.md),
+#   - the upload key under ~/.android-keys/ (mildcrowd-upload.jks and mildcrowd-upload.properties, see docs/play-console.md),
 #   - the JSON key of the service account invited in the Play Console with "Apps in Test-Tracks veröffentlichen":
 #     ~/.android-keys/play-service-account.json, or PLAY_SERVICE_ACCOUNT_JSON pointing at another file,
 #   - OASIS_GATE_KEY in secrets.properties or the environment (the staging gate; the script stops without it).

@@ -22,7 +22,7 @@ mit R8 verkleinert und mit dem Upload-Schlüssel signiert. Google signiert sie f
 6. **Store-Eintrag:** Texte, Icon, Feature-Grafik und Screenshots liegen in `app/src/main/play/listings/de-DE/`.
    Hochladen von Hand oder mit `./gradlew :app:publishPlayListing` (nach Schritt 7).
 7. **Service-Konto für die automatischen Uploads:**
-   - In der Google Cloud Console (Projekt `oasis-86acd` oder ein eigenes) die „Google Play Android Developer API“
+   - In der Google Cloud Console (Projekt `mildcrowd`, dasselbe wie für Firebase) die „Google Play Android Developer API“
      aktivieren, ein Service-Konto anlegen und einen JSON-Schlüssel erzeugen.
    - In der Play Console → Nutzer und Berechtigungen → Nutzer einladen: die E-Mail des Service-Kontos, für die App
      Mildcrowd mit „Releases für Testtracks verwalten“ (und „Store-Eintrag verwalten“, wenn die Texte mit hochgehen sollen).
@@ -30,19 +30,22 @@ mit R8 verkleinert und mit dem Upload-Schlüssel signiert. Google signiert sie f
 
    | Secret | Inhalt |
    |---|---|
-   | `ANDROID_UPLOAD_KEYSTORE_B64` | `base64 -i ~/.android-keys/oasis-upload.jks` |
-   | `ANDROID_UPLOAD_KEYSTORE_PASSWORD` | Wert `keystore_password` aus `~/.android-keys/oasis-upload.properties` |
-   | `ANDROID_UPLOAD_KEY_ALIAS` | `oasis-upload` |
+   | `ANDROID_UPLOAD_KEYSTORE_B64` | `base64 -i ~/.android-keys/mildcrowd-upload.jks` |
+   | `ANDROID_UPLOAD_KEYSTORE_PASSWORD` | Wert `keystore_password` aus `~/.android-keys/mildcrowd-upload.properties` |
+   | `ANDROID_UPLOAD_KEY_ALIAS` | `mildcrowd-upload` |
    | `ANDROID_UPLOAD_KEY_PASSWORD` | Wert `key_password` aus derselben Datei |
    | `PLAY_SERVICE_ACCOUNT_JSON` | Inhalt der JSON-Datei des Service-Kontos |
    | `STAGING_GATE_KEY` | das Staging-Gate-Passwort (wie bei TestFlight) |
-   | `GOOGLE_SERVICES_JSON_B64` | optional, für Push: `base64 -i app/google-services.json` (Firebase-Projekt `oasis-86acd`) |
+   | `GOOGLE_SERVICES_JSON_B64` | optional, für Push: `base64 -i app/google-services.json` (Firebase-Projekt `mildcrowd`) |
 
-   Zum Kopieren ohne Anzeigen: z. B. `base64 -i ~/.android-keys/oasis-upload.jks | pbcopy`, dann im Browser einfügen.
+   Zum Kopieren ohne Anzeigen: z. B. `base64 -i ~/.android-keys/mildcrowd-upload.jks | pbcopy`, dann im Browser einfügen.
    Danach lädt jeder Push auf `develop` den Build in den internen Test (`.github/workflows/play-internal.yml`).
    Fehlen Secrets, überspringt der Workflow mit einem Hinweis.
 
-Der Upload-Schlüssel und sein Passwort liegen nur auf diesem Mac unter `~/.android-keys/` (Rechte 600). **Sichere beide
+Der Upload-Schlüssel `mildcrowd-upload.jks` (Alias `mildcrowd-upload`) und die Datei `mildcrowd-upload.properties` mit
+`keystore_password` und `key_password` liegen nur auf diesem Mac unter `~/.android-keys/` (Rechte 600). Neu erzeugen:
+`keytool -genkeypair -keystore ~/.android-keys/mildcrowd-upload.jks -storetype PKCS12 -alias mildcrowd-upload -keyalg RSA
+-keysize 4096 -validity 10000`. Google merkt sich den Schlüssel beim ersten Upload der App. **Sichere beide
 zusätzlich in deinem Passwortmanager** – geht der Upload-Schlüssel verloren, kann man ihn bei Google zurücksetzen lassen,
 das dauert aber einige Tage.
 

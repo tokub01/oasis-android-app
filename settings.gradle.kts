@@ -15,7 +15,7 @@ dependencyResolutionManagement {
     }
 }
 
-rootProject.name = "Oasis"
+rootProject.name = "Mildcrowd"
 
 // The same split as OasisKit on iOS: core (API, session, models), chat crypto, design (theme, components, routes),
 // realtime (Reverb), one feature module per area, and the app that maps routes to screens.

@@ -2,13 +2,13 @@
 # with the upload key and publishes it to Google Play's internal test track – the counterpart of TestFlight on iOS.
 #
 # Repository secrets (GitHub → Settings → Secrets and variables → Actions):
-#   ANDROID_UPLOAD_KEYSTORE_B64       the upload keystore, base64 (`base64 -i ~/.android-keys/oasis-upload.jks`)
-#   ANDROID_UPLOAD_KEYSTORE_PASSWORD  its password (~/.android-keys/oasis-upload.properties, keystore_password)
-#   ANDROID_UPLOAD_KEY_ALIAS          the key alias (oasis-upload)
+#   ANDROID_UPLOAD_KEYSTORE_B64       the upload keystore, base64 (`base64 -i ~/.android-keys/mildcrowd-upload.jks`)
+#   ANDROID_UPLOAD_KEYSTORE_PASSWORD  its password (~/.android-keys/mildcrowd-upload.properties, keystore_password)
+#   ANDROID_UPLOAD_KEY_ALIAS          the key alias (mildcrowd-upload)
 #   ANDROID_UPLOAD_KEY_PASSWORD       the key password (key_password)
 #   PLAY_SERVICE_ACCOUNT_JSON         the JSON key of the Google Cloud service account invited in the Play Console
 #   STAGING_GATE_KEY                  the staging gate password (OASIS_STAGING_PASSWORD on the server)
-#   GOOGLE_SERVICES_JSON_B64          optional: app/google-services.json of Firebase project oasis-86acd, base64 (push)
+#   GOOGLE_SERVICES_JSON_B64          optional: app/google-services.json of Firebase project mildcrowd, base64 (push)
 name: Play internal test
 
 on:
