@@ -100,7 +100,7 @@ class PasswordlessSignInHiltTest : DeviceScreenTest() {
         compose.onNodeWithContentDescription("Sechsstelliger Code", substring = true).performImeAction()
         waitForText("Zu viele Versuche. Bitte warte einen Moment.")
         compose.onNodeWithTag("logincode.resend").tap()
-        compose.waitUntil(5_000) { transport.requests.count { it.path == "auth/login-code" } == 4 }
+        compose.waitUntil(15_000) { transport.requests.count { it.path == "auth/login-code" } == 4 }
         type("Sechsstelliger Code", "654321")
         stub("POST", "auth/login-code/verify", """{"two_factor":true,"challenge":"chal-code"}""")
         compose.onNodeWithTag("logincode.signin").tap()
@@ -131,7 +131,7 @@ class PasswordlessSignInHiltTest : DeviceScreenTest() {
         compose.onNodeWithTag("logincode.send").tap()
         waitForTag("logincode.code")
         waitForText("Schau auf dein Handy, der Code gilt 10 Minuten.")
-        compose.waitUntil(5_000) { smsRequests.isNotEmpty() }
+        compose.waitUntil(15_000) { smsRequests.isNotEmpty() }
         shareSms("Dein Mildcrowd-Anmeldecode: 999 999.", allowed = false)
         field("Sechsstelliger Code").assertTextContains("")
         shareSms("Dein Mildcrowd-Anmeldecode: 123 456. Gültig 10 Minuten.")
@@ -140,7 +140,7 @@ class PasswordlessSignInHiltTest : DeviceScreenTest() {
         shot("logincode-sms")
         stub("POST", "auth/login-code/verify", """{"token":"sms-token","data":${Fixtures.ME}}""")
         compose.onNodeWithTag("logincode.signin").tap()
-        compose.waitUntil(5_000) { session.state.value is SessionState.SignedIn }
+        compose.waitUntil(15_000) { session.state.value is SessionState.SignedIn }
         assertEquals("""{"login":"mira","code":"123456","device_name":"Test"}""", transport.lastBody("auth/login-code/verify").toString())
     }
 
@@ -154,17 +154,17 @@ class PasswordlessSignInHiltTest : DeviceScreenTest() {
         compose.onNodeWithTag("signin.passkey").tap()
         waitForText("Die Anmeldung mit Passkey wurde abgebrochen.")
         compose.onNodeWithContentDescription("Schließen").press()
-        compose.waitUntil(5_000) { compose.onAllNodes(hasTestTag("status.error")).fetchSemanticsNodes().isEmpty() }
+        compose.waitUntil(15_000) { compose.onAllNodes(hasTestTag("status.error")).fetchSemanticsNodes().isEmpty() }
         passkeys.failure = PasskeyFailure.NoPasskey()
         compose.onNodeWithTag("signin.passkey").tap()
         waitForText("Auf diesem Gerät ist kein Passkey für Mildcrowd gespeichert.", substring = true)
         screenShot("signin-passkey-missing")
         compose.onNodeWithContentDescription("Schließen").press()
-        compose.waitUntil(5_000) { compose.onAllNodes(hasTestTag("status.error")).fetchSemanticsNodes().isEmpty() }
+        compose.waitUntil(15_000) { compose.onAllNodes(hasTestTag("status.error")).fetchSemanticsNodes().isEmpty() }
         passkeys.failure = null
         stub("POST", "auth/passkey", """{"token":"pk","data":${Fixtures.ME}}""")
         compose.onNodeWithTag("signin.passkey").tap()
-        compose.waitUntil(5_000) { session.state.value is SessionState.SignedIn }
+        compose.waitUntil(15_000) { session.state.value is SessionState.SignedIn }
     }
 
     @Test

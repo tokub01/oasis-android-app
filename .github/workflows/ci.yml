@@ -28,6 +28,14 @@ jobs:
           distribution: temurin
           java-version: '21'
       - uses: gradle/actions/setup-gradle@v5
+      # gradle.properties gives the Gradle daemon 2 GB, sized for a 16 GB Mac that also runs Docker and simulators. On the
+      # hosted runner (4 cores, 16 GB) that was too little for four parallel dex merges of the instrumented tests
+      # (OutOfMemoryError in D8). The file in the Gradle user home takes precedence over the project's.
+      - name: A larger Gradle heap on the hosted runner
+        run: |
+          echo "Runner: $(nproc) cores, $(free -m | awk '/^Mem:/{print $2}') MB memory"
+          mkdir -p ~/.gradle
+          echo 'org.gradle.jvmargs=-Xmx4g -XX:MaxMetaspaceSize=768m -Dfile.encoding=UTF-8' >> ~/.gradle/gradle.properties
       # Firebase for push (FCM): written from the secret when it is set; without it the app builds without push.
       - name: Firebase configuration
         env:
@@ -44,8 +52,14 @@ jobs:
         run: ./gradlew detekt
       - name: Android lint (warnings are errors)
         run: ./gradlew lintDebug --continue
+      # Some tests wait on real threads and fail now and then on a busy runner (five different tests in five runs on
+      # 2026-11-14). The failed test tasks are repeated once: a real defect fails both times, and the warning keeps a
+      # repeat visible in the run's summary instead of hiding it.
       - name: Unit, Robolectric UI and screenshot tests
-        run: ./gradlew testDebugUnitTest :chat-crypto:test --continue
+        run: |
+          ./gradlew testDebugUnitTest :chat-crypto:test --continue && exit 0
+          echo "::warning::Unit tests failed once and were repeated – the failures of the first attempt are in this step's log."
+          ./gradlew testDebugUnitTest :chat-crypto:test --continue
       - name: Coverage report and thresholds
         run: ./gradlew koverHtmlReportOasis koverXmlReportOasis koverVerifyOasis koverVerifyOasisLogic
       - name: Build debug and staging APKs
@@ -77,6 +91,14 @@ jobs:
           distribution: temurin
           java-version: '21'
       - uses: gradle/actions/setup-gradle@v5
+      # gradle.properties gives the Gradle daemon 2 GB, sized for a 16 GB Mac that also runs Docker and simulators. On the
+      # hosted runner (4 cores, 16 GB) that was too little for four parallel dex merges of the instrumented tests
+      # (OutOfMemoryError in D8). The file in the Gradle user home takes precedence over the project's.
+      - name: A larger Gradle heap on the hosted runner
+        run: |
+          echo "Runner: $(nproc) cores, $(free -m | awk '/^Mem:/{print $2}') MB memory"
+          mkdir -p ~/.gradle
+          echo 'org.gradle.jvmargs=-Xmx4g -XX:MaxMetaspaceSize=768m -Dfile.encoding=UTF-8' >> ~/.gradle/gradle.properties
       - name: Enable KVM
         run: |
           echo 'KERNEL=="kvm", GROUP="kvm", MODE="0666", OPTIONS+="static_node=kvm"' | sudo tee /etc/udev/rules.d/99-kvm4all.rules

@@ -52,7 +52,7 @@ class ConfirmPhoneHiltTest : DeviceScreenTest() {
         stub("POST", "account/phone/confirm", PasswordlessFixtures.phone(number = "+49 176 ••• 78"))
         stub("GET", "auth/me", """{"data":${Fixtures.ME}}""")
         compose.onNodeWithTag("confirmphone.confirm").tap()
-        compose.waitUntil(5_000) { session.me?.phoneVerified == true }
+        compose.waitUntil(15_000) { session.me?.phoneVerified == true }
     }
 
     @Test
@@ -66,7 +66,7 @@ class ConfirmPhoneHiltTest : DeviceScreenTest() {
         compose.onNodeWithText("Handynummer").assertDoesNotExist()
         shot("confirm-phone-no-sms")
         compose.onNodeWithTag("confirmphone.signout").tap()
-        compose.waitUntil(5_000) { session.state.value == SessionState.SignedOut }
+        compose.waitUntil(15_000) { session.state.value == SessionState.SignedOut }
         assertEquals(SessionState.SignedOut, session.state.value)
     }
 }

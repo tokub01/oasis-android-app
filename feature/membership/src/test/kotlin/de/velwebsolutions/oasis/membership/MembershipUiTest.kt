@@ -239,7 +239,7 @@ class MembershipUiTest {
         compose.onNodeWithTag("membership.contractText.website").performScrollTo().performClick()
         assertEquals("http://localhost/app/mitgliedschaft", web.last())
         compose.onNodeWithTag("membership.tier.change").performScrollTo().performClick()
-        compose.waitUntil(5_000) { compose.onAllNodesWithTag("membership.tier.confirm").fetchSemanticsNodes().isNotEmpty() }
+        compose.waitUntil(15_000) { compose.onAllNodesWithTag("membership.tier.confirm").fetchSemanticsNodes().isNotEmpty() }
         shotDialog("overview-tier-change-question")
     }
 

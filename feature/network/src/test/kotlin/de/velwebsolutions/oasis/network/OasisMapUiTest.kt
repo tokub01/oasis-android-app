@@ -86,7 +86,7 @@ class OasisMapUiTest {
     }
 
     private fun waitFor(text: String) =
-        compose.waitUntil(5_000) { compose.onAllNodes(hasText(text, substring = true)).fetchSemanticsNodes().isNotEmpty() }
+        compose.waitUntil(15_000) { compose.onAllNodes(hasText(text, substring = true)).fetchSemanticsNodes().isNotEmpty() }
 
     private fun opened(route: AppRoute) = MainTab.entries.any { route in navigator.stack(it) }
 
@@ -141,16 +141,16 @@ class OasisMapUiTest {
 
         val form = models.keep(OasisFormViewModel("isar", network.repository))
         switchTo { OasisFormScreen("isar", form) }
-        compose.waitUntil(5_000) { form.state.value.options != null }
+        compose.waitUntil(15_000) { form.state.value.options != null }
         compose.onNodeWithTag("network.page").performScrollToNode(hasTestTag("oasisForm.regionFields"))
         capture("oasis-form-region")
         compose.onNode(hasSetTextAction() and hasAnyAncestor(hasTestTag("oasisForm.city"))).performTextInput("Nord ")
         compose.onNodeWithTag("oasisForm.region").performClick()
         compose.onNodeWithText("Bremen").performClick()
-        compose.waitUntil(5_000) { form.state.value.input.region == "HB" }
+        compose.waitUntil(15_000) { form.state.value.input.region == "HB" }
         compose.onNodeWithTag("oasisForm.region").performClick()
         compose.onNodeWithText("Keine Region").performClick()
-        compose.waitUntil(5_000) { form.state.value.input.region == null }
+        compose.waitUntil(15_000) { form.state.value.input.region == null }
         compose.onNodeWithTag("oasisForm.city").assertDoesNotExist()
         compose.onNodeWithTag("network.page").performScrollToNode(hasTestTag("oasisForm.save"))
         compose.onNodeWithTag("oasisForm.save").tap()
@@ -158,14 +158,14 @@ class OasisMapUiTest {
 
         val overview = models.keep(OasesViewModel(network.repository))
         switchTo { OasesScreen(overview) }
-        compose.waitUntil(5_000) { compose.onAllNodes(hasTestTag("oases.map")).fetchSemanticsNodes().isNotEmpty() }
+        compose.waitUntil(15_000) { compose.onAllNodes(hasTestTag("oases.map")).fetchSemanticsNodes().isNotEmpty() }
         compose.onNodeWithTag("oases.map").tap()
         assertTrue(opened(NetworkRoute.OasisMap()))
 
         val reader = StubbedNetwork(stub("GET", "network/oases", Fixtures.oases.replace("\"can_create\": true", "\"can_create\": false")))
         val readOnly = models.keep(OasesViewModel(reader.repository))
         switchTo { OasesScreen(readOnly) }
-        compose.waitUntil(5_000) { readOnly.directory.value.valueOrNull?.canCreate == false }
+        compose.waitUntil(15_000) { readOnly.directory.value.valueOrNull?.canCreate == false }
         compose.onNodeWithTag("oases.create").assertDoesNotExist()
         compose.onNodeWithTag("oases.map").assertExists()
     }

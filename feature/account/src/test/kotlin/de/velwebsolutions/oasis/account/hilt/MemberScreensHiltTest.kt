@@ -120,7 +120,7 @@ class MemberScreensHiltTest : HiltScreenTest() {
         waitForText("Dein Konto ist nicht gesperrt.")
         shot("suspended-lifted")
         compose.onNodeWithText("Weiter zu Mildcrowd").tap()
-        compose.waitUntil(5_000) { session.me?.isSuspended == false }
+        compose.waitUntil(15_000) { session.me?.isSuspended == false }
     }
 
     @Test

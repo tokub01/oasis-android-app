@@ -77,7 +77,7 @@ class MembershipScreensTest {
         assertEquals(MembershipRoute.Checkout, navigator.stack(MainTab.Profile).last())
     }
 
-    private fun waitFor(text: String) = compose.waitUntil(5_000) {
+    private fun waitFor(text: String) = compose.waitUntil(15_000) {
         compose.onAllNodes(hasText(text, substring = true)).fetchSemanticsNodes().isNotEmpty()
     }
 

@@ -231,7 +231,7 @@ class SettingsScreensHiltTest : HiltScreenTest() {
         compose.onNodeWithTag("settings.twoFactorEnable").tap()
         waitForTag("confirm.password")
         compose.onAllNodesText("Abbrechen").last().press()
-        compose.waitUntil(5_000) { compose.onAllNodesText("Kurz bestätigen").isEmpty() }
+        compose.waitUntil(15_000) { compose.onAllNodesText("Kurz bestätigen").isEmpty() }
     }
 
     @Test
@@ -249,7 +249,7 @@ class SettingsScreensHiltTest : HiltScreenTest() {
         val picker = shadowOf(activity).nextStartedActivityForResult
         val target = Uri.fromFile(java.io.File(activity.cacheDir, "oasis-daten.zip"))
         shadowOf(activity).receiveResult(picker.intent, Activity.RESULT_OK, Intent().setData(target))
-        compose.waitUntil(5_000) { java.io.File(activity.cacheDir, "oasis-daten.zip").exists() }
+        compose.waitUntil(15_000) { java.io.File(activity.cacheDir, "oasis-daten.zip").exists() }
         compose.onAllNodesText("Verträge hier kündigen").first().tap()
         assertTrue(web.last().endsWith("/vertraege-kuendigen"))
         compose.onNodeWithTag("settings.deletePrivacy").tap()

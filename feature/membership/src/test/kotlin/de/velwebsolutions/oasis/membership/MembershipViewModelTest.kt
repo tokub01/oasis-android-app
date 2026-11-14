@@ -62,7 +62,7 @@ class MembershipViewModelTest {
 
         assertEquals(version + 1, events.version.value)
         // The reload goes out on OkHttp's thread; wait for it in real time.
-        withContext(Dispatchers.Default) { withTimeout(5_000) { while (transport.requests.size <= loads) delay(10) } }
+        withContext(Dispatchers.Default) { withTimeout(15_000) { while (transport.requests.size <= loads) delay(10) } }
     }
 
     @Test
@@ -275,7 +275,7 @@ class MembershipViewModelTest {
         )
         val viewModel = WithdrawViewModel(repository, files, MembershipEvents(), Fixtures.session())
         // The page's own load runs on OkHttp's thread; once it is in, the export is the last request.
-        withContext(Dispatchers.Default) { withTimeout(5_000) { while (viewModel.state.value.details !is Loadable.Loaded) delay(10) } }
+        withContext(Dispatchers.Default) { withTimeout(15_000) { while (viewModel.state.value.details !is Loadable.Loaded) delay(10) } }
         viewModel.prepareExport()
         val file = viewModel.state.value.exportFile
         assertEquals("oasis-daten.zip", file?.name)

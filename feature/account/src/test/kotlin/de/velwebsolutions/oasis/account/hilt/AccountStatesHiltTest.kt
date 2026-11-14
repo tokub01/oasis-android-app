@@ -41,7 +41,7 @@ class AccountStatesHiltTest : HiltScreenTest() {
         waitForTag(readyTag)
         stub("GET", path, serverError, status = 500)
         pull()
-        compose.waitUntil(5_000) { transport.requests.count { it.path == path } >= 2 }
+        compose.waitUntil(15_000) { transport.requests.count { it.path == path } >= 2 }
     }
 
     @Test
@@ -71,7 +71,7 @@ class AccountStatesHiltTest : HiltScreenTest() {
         waitForText("Du hast aktuell niemanden blockiert.")
         stub("GET", "safety", serverError, status = 500)
         pull()
-        compose.waitUntil(5_000) { transport.requests.count { it.path == "safety" } >= 2 }
+        compose.waitUntil(15_000) { transport.requests.count { it.path == "safety" } >= 2 }
     }
 
     @Test

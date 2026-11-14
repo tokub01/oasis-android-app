@@ -65,7 +65,7 @@ class AccessViewModelTest {
         val scheduler = mainRule.dispatcher.scheduler
         val before = server.started.get()
         withContext(Dispatchers.Default) {
-            withTimeout(5_000) {
+            withTimeout(15_000) {
                 while (!(done() && server.inFlight.get() == 0)) {
                     withContext(Dispatchers.Main) {
                         if (server.started.get() == before) {

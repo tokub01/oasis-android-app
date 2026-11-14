@@ -207,7 +207,7 @@ class PrivacyScreensHiltTest : HiltScreenTest() {
         waitForRequest("DELETE", "privacy/words")
         stub("DELETE", "privacy/words", """{"message":"Wird wieder gezeigt.","data":{"words":["spoiler"],"max":50}}""")
         compose.onNodeWithContentDescription("„krimi“ nicht mehr verbergen").tap()
-        compose.waitUntil(5_000) { compose.onAllNodesText("krimi").isEmpty() }
+        compose.waitUntil(15_000) { compose.onAllNodesText("krimi").isEmpty() }
         assertTrue(transport.requests.count { it.path == "privacy/words" && it.request.method == "DELETE" } == 2)
     }
 }

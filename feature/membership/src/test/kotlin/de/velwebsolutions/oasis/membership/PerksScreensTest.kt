@@ -47,7 +47,7 @@ class PerksScreensTest {
         compose.setContent { OasisTheme { CompositionLocalProvider(LocalNavigator provides navigator) { content() } } }
     }
 
-    private fun waitFor(text: String) = compose.waitUntil(5_000) {
+    private fun waitFor(text: String) = compose.waitUntil(15_000) {
         compose.onAllNodes(hasText(text, substring = true)).fetchSemanticsNodes().isNotEmpty()
     }
 
@@ -65,10 +65,10 @@ class PerksScreensTest {
 
         compose.onNodeWithContentDescription("Unterstützer-Zeichen am Profil").performScrollTo().performClick()
         compose.onNodeWithContentDescription("Auf der Dankesliste stehen").performClick()
-        compose.waitUntil(5_000) { repository.calls.size == 2 }
+        compose.waitUntil(15_000) { repository.calls.size == 2 }
 
         compose.onNodeWithTag("perks.createSeat").performScrollTo().performClick()
-        compose.waitUntil(5_000) { "createSeat" in repository.calls }
+        compose.waitUntil(15_000) { "createSeat" in repository.calls }
 
         compose.onAllNodes(hasText("Platz freigeben"))[0].performClick()
         waitFor("Jonas Weber verliert dann den Zugang")
@@ -76,7 +76,7 @@ class PerksScreensTest {
         compose.onAllNodes(hasText("Platz freigeben"))[1].performClick()
         waitFor("Der Link gilt dann nicht mehr.")
         compose.onNodeWithTag("perks.confirm").performClick()
-        compose.waitUntil(5_000) { "releaseSeat 2" in repository.calls }
+        compose.waitUntil(15_000) { "releaseSeat 2" in repository.calls }
 
         // Sharing opens the system sheet, the last step.
         compose.onNodeWithText("Link teilen").performClick()
@@ -95,7 +95,7 @@ class PerksScreensTest {
         compose.onNodeWithText("Platz zurückgeben").performClick()
         waitFor("Den Platz wirklich zurückgeben?")
         compose.onNodeWithTag("perks.confirm").performClick()
-        compose.waitUntil(5_000) { "leaveSeat" in repository.calls }
+        compose.waitUntil(15_000) { "leaveSeat" in repository.calls }
         compose.onNodeWithText("Stufen vergleichen").performClick()
     }
 
@@ -121,7 +121,7 @@ class PerksScreensTest {
         show { CompanionLinkScreen(token, model) }
         waitFor("Mia Mäzen nimmt dich mit nach Mildcrowd")
         compose.onNodeWithTag("companion.accept").performClick()
-        compose.waitUntil(5_000) { navigator.selectedTab == MainTab.Source }
+        compose.waitUntil(15_000) { navigator.selectedTab == MainTab.Source }
 
         repository.companionSponsor = Result.success(null)
         compose.runOnIdle { kotlinx.coroutines.runBlocking { model.load() } }

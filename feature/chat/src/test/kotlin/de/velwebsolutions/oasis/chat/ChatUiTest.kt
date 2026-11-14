@@ -243,7 +243,7 @@ class ChatUiTest {
         tapTag("chat.link.reject")
         tap("Ältere laden")
         compose.onNodeWithTag("chat.list").performTouchInput { swipeDown() }
-        compose.waitUntil(5_000) { "refresh" in calls }
+        compose.waitUntil(15_000) { "refresh" in calls }
         assertTrue(calls.containsAll(listOf("approve 8", "reject 8", "more", "refresh")))
     }
 
@@ -328,12 +328,12 @@ class ChatUiTest {
             )
         }
         capture("conversation-quiet-hint")
-        compose.waitUntil(5_000) { nudged == 1 }
+        compose.waitUntil(15_000) { nudged == 1 }
         compose.onNodeWithText("Tipp: Nachricht nach rechts wischen zum Antworten").assertExists()
         compose.onNodeWithTag("chat.notice").performClick()
         assertEquals(1, details)
         compose.onNodeWithTag("chat.swipeHint.dismiss").performClick()
-        compose.waitUntil(5_000) { "understood" in calls }
+        compose.waitUntil(15_000) { "understood" in calls }
         conversation = conversation.copy(swipeHint = false, nudge = null)
         compose.onNodeWithTag("chat.swipeHint").assertDoesNotExist()
         compose.onNodeWithTag("chat.message.a").performTouchInput { swipeRight(startX = centerX - 40f, endX = centerX + 160f) }
@@ -351,7 +351,7 @@ class ChatUiTest {
                 de.velwebsolutions.oasis.chat.ui.SwipeToReply(true, {
                 }, nudge = { nudged += 1 }) { androidx.compose.material3.Text("Hallo") }
             }
-            compose.waitUntil(5_000) { nudged == 1 }
+            compose.waitUntil(15_000) { nudged == 1 }
         } finally {
             android.provider.Settings.Global.putFloat(resolver, android.provider.Settings.Global.ANIMATOR_DURATION_SCALE, 1f)
         }
@@ -416,7 +416,7 @@ class ChatUiTest {
             )
         }
         capture("conversation-content")
-        compose.waitUntil(5_000) { "spoken" in calls }
+        compose.waitUntil(15_000) { "spoken" in calls }
         tapTag("chat.request.accept")
         tapTag("chat.request.decline")
         capture("conversation-decline-dialog")

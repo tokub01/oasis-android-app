@@ -112,7 +112,7 @@ class LiveScreensTest {
         )
         val model = HintsInboxViewModel(repository(transport), coordinator(transport, scope))
         show { HintsInboxScreen(model) }
-        compose.waitUntil(5_000) { model.ui.value.state is Loadable.Loaded }
+        compose.waitUntil(15_000) { model.ui.value.state is Loadable.Loaded }
         // The next page is the last one.
         transport.add("GET", "hints", json = LiveJson.LAST_PAGE)
         compose.onNodeWithText("Heute").assertIsDisplayed()
@@ -124,17 +124,17 @@ class LiveScreensTest {
         compose.onNodeWithTag("hints.list").performScrollToNode(hasTestTag("hints.settings"))
         compose.onNodeWithTag("hints.settings").performClick()
         assertEquals(LiveRoute.Settings, opened().last())
-        compose.waitUntil(5_000) { transport.requests.count { it.path == "hints" } >= 2 }
+        compose.waitUntil(15_000) { transport.requests.count { it.path == "hints" } >= 2 }
 
         // Pulled to refresh: the first page again, now the only one.
-        compose.waitUntil(5_000) { !model.ui.value.isLoadingMore }
+        compose.waitUntil(15_000) { !model.ui.value.isLoadingMore }
         val before = transport.requests.count { it.path == "hints" }
         transport.add("GET", "hints", json = LiveJson.HINTS.replace("\"last_page\":2", "\"last_page\":1"))
         compose.onNodeWithTag("hints.list").performScrollToIndex(0)
         compose.onNodeWithTag("hints.list").performTouchInput { swipeDown() }
-        compose.waitUntil(5_000) { transport.requests.count { it.path == "hints" } > before }
+        compose.waitUntil(15_000) { transport.requests.count { it.path == "hints" } > before }
         compose.onNodeWithTag("hints.readAll").performClick()
-        compose.waitUntil(5_000) { model.ui.value.message != null }
+        compose.waitUntil(15_000) { model.ui.value.message != null }
         compose.onNodeWithText("Alle Hinweise sind gelesen.").assertIsDisplayed()
         shot("inbox-read")
     }
@@ -195,11 +195,11 @@ class LiveScreensTest {
         navigator.stack(MainTab.Source).add(LiveRoute.Settings)
         val model = HintSettingsViewModel(repository(transport), registrar())
         show { HintSettingsScreen(model) }
-        compose.waitUntil(5_000) { model.ui.value.settings != null }
+        compose.waitUntil(15_000) { model.ui.value.settings != null }
         shot("settings")
         compose.onNodeWithTag("push.remove.browser-9").tap()
-        compose.waitUntil(5_000) { transport.requests.any { it.path == "push/browsers/9" } }
-        compose.waitUntil(5_000) { model.ui.value.message == "Entfernt." }
+        compose.waitUntil(15_000) { transport.requests.any { it.path == "push/browsers/9" } }
+        compose.waitUntil(15_000) { model.ui.value.message == "Entfernt." }
         model.dismissMessage()
 
         compose.onNodeWithTag("quiet.from").performScrollTo().performClick()
@@ -214,27 +214,27 @@ class LiveScreensTest {
         // leaving the screen could cancel.
         assertEquals(0, transport.requests.count { it.request.method == "PUT" })
         compose.runOnIdle { model.editQuietHours { it.copy(quietFrom = "21:00") } }
-        compose.waitUntil(5_000) { transport.requests.count { it.request.method == "PUT" && it.path == "hints/settings" } == 1 }
-        compose.waitUntil(5_000) { !model.ui.value.isSaving }
+        compose.waitUntil(15_000) { transport.requests.count { it.request.method == "PUT" && it.path == "hints/settings" } == 1 }
+        compose.waitUntil(15_000) { !model.ui.value.isSaving }
         compose.onNodeWithContentDescription("Jeden Tag eine Ruhezeit einhalten").tap()
-        compose.waitUntil(5_000) { transport.requests.count { it.request.method == "PUT" && it.path == "hints/settings" } == 2 }
-        compose.waitUntil(5_000) { !model.ui.value.isSaving }
+        compose.waitUntil(15_000) { transport.requests.count { it.request.method == "PUT" && it.path == "hints/settings" } == 2 }
+        compose.waitUntil(15_000) { !model.ui.value.isSaving }
         model.dismissMessage()
         compose.onNodeWithContentDescription("Eine tägliche Zusammenfassung am Abend").tap()
-        compose.waitUntil(5_000) { transport.requests.count { it.request.method == "PUT" && it.path == "hints/settings" } == 3 }
+        compose.waitUntil(15_000) { transport.requests.count { it.request.method == "PUT" && it.path == "hints/settings" } == 3 }
         // The snackbar of the confirmation would cover the buttons below.
-        compose.waitUntil(5_000) { model.ui.value.message != null }
+        compose.waitUntil(15_000) { model.ui.value.message != null }
         model.dismissMessage()
 
         compose.onNodeWithTag("pause.3").tap()
-        compose.waitUntil(5_000) { model.ui.value.settings?.pausedUntil != null }
+        compose.waitUntil(15_000) { model.ui.value.settings?.pausedUntil != null }
         shot("settings-paused")
         model.dismissMessage()
         compose.onNodeWithTag("pause.end").tap()
-        compose.waitUntil(5_000) { model.ui.value.settings?.pausedUntil == null }
+        compose.waitUntil(15_000) { model.ui.value.settings?.pausedUntil == null }
 
         compose.onNodeWithContentDescription("Push-Hinweis bei neuen Chat-Nachrichten").tap()
-        compose.waitUntil(5_000) { model.ui.value.message == "Chat-Push ist an." }
+        compose.waitUntil(15_000) { model.ui.value.message == "Chat-Push ist an." }
         model.dismissMessage()
         compose.onNodeWithTag("push.toggle").tap()
 
@@ -269,7 +269,7 @@ class LiveScreensTest {
         )
         val model = HintSettingsViewModel(repository(transport), registrar(system))
         show { HintSettingsScreen(model) }
-        compose.waitUntil(5_000) { model.ui.value.settings != null }
+        compose.waitUntil(15_000) { model.ui.value.settings != null }
         compose.onNodeWithTag("push.toggle").tap()
         compose.waitForIdle()
         val request = shadowOf(compose.activity).lastRequestedPermission
@@ -280,8 +280,8 @@ class LiveScreensTest {
             request.requestedPermissions,
             intArrayOf(PackageManager.PERMISSION_DENIED)
         )
-        compose.waitUntil(5_000) { system.answers == listOf(false) }
-        compose.waitUntil(5_000) { model.ui.value.error == PushRegistrar.DENIED_TEXT }
+        compose.waitUntil(15_000) { system.answers == listOf(false) }
+        compose.waitUntil(15_000) { model.ui.value.error == PushRegistrar.DENIED_TEXT }
     }
 
     @Test
@@ -296,9 +296,9 @@ class LiveScreensTest {
         )
         val model = HintSettingsViewModel(repository(transport), registrar())
         show { HintSettingsScreen(model) }
-        compose.waitUntil(5_000) { model.ui.value.settings != null }
+        compose.waitUntil(15_000) { model.ui.value.settings != null }
         compose.onNodeWithContentDescription("Wochenbrief auch per E-Mail").tap()
-        compose.waitUntil(5_000) { transport.requests.any { it.request.method == "PUT" && it.path == "hints/settings" } }
+        compose.waitUntil(15_000) { transport.requests.any { it.request.method == "PUT" && it.path == "hints/settings" } }
         assertEquals(JsonPrimitive(true), (transport.lastBody("hints/settings") as JsonObject)["weekly_letter_email"])
     }
 
@@ -342,7 +342,7 @@ class LiveScreensTest {
         compose.waitForIdle()
         live.counts.showToast(ChatToast("Neue Nachricht von Lea", 2))
         compose.onNodeWithTag("chatToast.close").performClick()
-        compose.waitUntil(5_000) { live.counts.toast.value == null }
+        compose.waitUntil(15_000) { live.counts.toast.value == null }
     }
 
     @Test
@@ -384,9 +384,9 @@ class LiveScreensTest {
         )
         val model = HintSettingsViewModel(repository(transport), registrar())
         show { HintSettingsScreen(model) }
-        compose.waitUntil(5_000) { model.ui.value.settings != null }
+        compose.waitUntil(15_000) { model.ui.value.settings != null }
         compose.onNodeWithTag("push.toggle").tap()
-        compose.waitUntil(5_000) { model.ui.value.message == "Push-Hinweise sind auf diesem Gerät ausgeschaltet." }
+        compose.waitUntil(15_000) { model.ui.value.message == "Push-Hinweise sind auf diesem Gerät ausgeschaltet." }
     }
 
     @Test
@@ -403,7 +403,7 @@ class LiveScreensTest {
         )
         val model = HintsInboxViewModel(repository(transport), coordinator(transport, scope))
         show { HintsInboxScreen(model) }
-        compose.waitUntil(5_000) { model.ui.value.state is Loadable.Loaded }
+        compose.waitUntil(15_000) { model.ui.value.state is Loadable.Loaded }
         compose.onNodeWithText("Neu bei deinen Followern · Emil Novak").performClick()
         assertEquals(listOf("https://example.com/x"), web)
     }
@@ -429,7 +429,7 @@ class LiveScreensTest {
                 Column(Modifier.height(200.dp)) { HintSettingsScreen(settingsModels[current]) }
             }
         }
-        compose.waitUntil(5_000) {
+        compose.waitUntil(15_000) {
             inboxes.all { it.ui.value.state is Loadable.Loaded } &&
                 settingsModels.all { it.ui.value.settings != null }
         }
@@ -449,9 +449,9 @@ class LiveScreensTest {
         )
         val model = HintSettingsViewModel(repository(transport), registrar(FakePushSystem(status = PushAuthorization.NotDetermined)))
         show { HintSettingsScreen(model) }
-        compose.waitUntil(5_000) { model.ui.value.settings != null }
+        compose.waitUntil(15_000) { model.ui.value.settings != null }
         compose.onNodeWithTag("push.toggle").tap()
-        compose.waitUntil(5_000) { model.ui.value.error == PushRegistrar.DENIED_TEXT }
+        compose.waitUntil(15_000) { model.ui.value.error == PushRegistrar.DENIED_TEXT }
     }
 
     private fun askingCoordinator(): Pair<de.velwebsolutions.oasis.live.LiveCoordinator, StubTransport> {
@@ -485,7 +485,7 @@ class LiveScreensTest {
             request.requestedPermissions,
             intArrayOf(PackageManager.PERMISSION_GRANTED)
         )
-        compose.waitUntil(5_000) { transport.requests.any { it.path == "push/devices" } }
+        compose.waitUntil(15_000) { transport.requests.any { it.path == "push/devices" } }
         assertFalse(live.asksForPushPermission.value)
     }
 
@@ -527,7 +527,7 @@ class LiveScreensTest {
         show { HintsButton(live) }
         compose.onNodeWithText("Push-Hinweise einschalten?").assertIsDisplayed()
         compose.onNodeWithTag("push.ask.later").performClick()
-        compose.waitUntil(5_000) { !live.asksForPushPermission.value }
+        compose.waitUntil(15_000) { !live.asksForPushPermission.value }
         compose.onNodeWithText("Push-Hinweise einschalten?").assertDoesNotExist()
         assertEquals(false, store.inAppConsent)
         assertEquals("no system dialog before Android 13", null, shadowOf(compose.activity).lastRequestedPermission)
@@ -541,7 +541,7 @@ class LiveScreensTest {
         val (live, transport) = inAppAskingCoordinator(store)
         show { HintsButton(live) }
         compose.onNodeWithTag("push.ask.yes").performClick()
-        compose.waitUntil(5_000) { transport.requests.any { it.path == "push/devices" } }
+        compose.waitUntil(15_000) { transport.requests.any { it.path == "push/devices" } }
         assertEquals(true, store.inAppConsent)
         assertFalse(live.asksForPushPermission.value)
     }

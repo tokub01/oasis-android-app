@@ -64,7 +64,7 @@ class AuthScreensHiltTest : HiltScreenTest() {
         waitForText("Bitte lade die Seite neu.")
         stub("POST", "auth/two-factor-recovery", """{"message":"Server Error"}""", status = 500)
         compose.onNodeWithTag("recovery.submit").tap()
-        compose.waitUntil(5_000) { transport.requests.count { it.path == "auth/two-factor-recovery" } == 2 }
+        compose.waitUntil(15_000) { transport.requests.count { it.path == "auth/two-factor-recovery" } == 2 }
         stub("POST", "auth/two-factor-recovery", """{"message":"Wir haben dir einen Link geschickt."}""")
         type("Passwort", "geheim")
         compose.onNodeWithTag("recovery.submit").tap()
@@ -79,10 +79,10 @@ class AuthScreensHiltTest : HiltScreenTest() {
         stub("POST", "auth/two-factor", """{"message":"Server Error"}""", status = 500)
         type("Oder ein Wiederherstellungscode (optional)", "abcd-efgh")
         compose.onNodeWithContentDescription("Oder ein Wiederherstellungscode (optional)").performImeAction()
-        compose.waitUntil(5_000) { transport.requests.count { it.path == "auth/two-factor" } == 2 }
+        compose.waitUntil(15_000) { transport.requests.count { it.path == "auth/two-factor" } == 2 }
         stub("POST", "auth/two-factor", """{"token":"new","data":${Fixtures.ME}}""")
         compose.onNodeWithTag("twofactor.submit").tap()
-        compose.waitUntil(5_000) { session.state.value is SessionState.SignedIn }
+        compose.waitUntil(15_000) { session.state.value is SessionState.SignedIn }
     }
 
     @Test
@@ -98,7 +98,7 @@ class AuthScreensHiltTest : HiltScreenTest() {
         waitForText("Bitte gib eine E-Mail-Adresse ein.")
         stub("POST", "auth/forgot-password", """{"message":"Server Error"}""", status = 500)
         compose.onNodeWithTag("forgot.submit").tap()
-        compose.waitUntil(5_000) { transport.requests.count { it.path == "auth/forgot-password" } == 2 }
+        compose.waitUntil(15_000) { transport.requests.count { it.path == "auth/forgot-password" } == 2 }
         stub("POST", "auth/forgot-password", """{"message":"Wenn es ein Konto gibt, bekommst du eine E-Mail."}""")
         compose.onNodeWithTag("forgot.submit").tap()
         waitForText("Wenn es ein Konto gibt, bekommst du eine E-Mail.")
@@ -154,7 +154,7 @@ class AuthScreensHiltTest : HiltScreenTest() {
         stub("POST", "auth/register", """{"message":"Server Error"}""", status = 500)
         stub("GET", "auth/register", """{"message":"Server Error"}""", status = 500)
         compose.onNodeWithTag("register.submit").tap()
-        compose.waitUntil(5_000) { transport.requests.count { it.path == "auth/register" && it.request.method == "POST" } == 3 }
+        compose.waitUntil(15_000) { transport.requests.count { it.path == "auth/register" && it.request.method == "POST" } == 3 }
         assertNull("the password is entered once", transport.lastBody("auth/register")?.jsonObject?.get("password_confirmation"))
         compose.onNodeWithTag("register.back").tap()
         compose.onNodeWithTag("register.back").tap()
@@ -202,7 +202,7 @@ class AuthScreensHiltTest : HiltScreenTest() {
         shot("verify-code-refused")
         stub("POST", "auth/email/verify-code", """{"message":"Too Many Attempts."}""", status = 429)
         compose.onNodeWithTag("verify.submit").tap()
-        compose.waitUntil(5_000) { transport.requests.count { it.path == "auth/email/verify-code" } == 2 }
+        compose.waitUntil(15_000) { transport.requests.count { it.path == "auth/email/verify-code" } == 2 }
         compose.onNodeWithTag("verify.resend").tap()
         waitForRequest("POST", "auth/email/verification-notification")
         stub("POST", "auth/email/verification-notification", "{}")
@@ -232,7 +232,7 @@ class AuthScreensHiltTest : HiltScreenTest() {
         shot("verify-code")
         type("Code aus der E-Mail", " 123 456")
         compose.onNodeWithTag("verify.submit").tap()
-        compose.waitUntil(5_000) { session.me?.emailVerified == true }
+        compose.waitUntil(15_000) { session.me?.emailVerified == true }
         assertEquals(
             kotlinx.serialization.json.JsonObject(mapOf("code" to kotlinx.serialization.json.JsonPrimitive("123 456"))),
             transport.lastBody("auth/email/verify-code")

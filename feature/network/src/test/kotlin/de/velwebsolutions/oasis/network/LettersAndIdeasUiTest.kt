@@ -106,7 +106,7 @@ class LettersAndIdeasUiTest {
         assertTrue(opened(NetworkRoute.Oasis("garten", meetups = true)))
         compose.onNodeWithTag("letter.collection.4").tap()
         assertTrue(opened(NetworkRoute.Oasis("garten", collection = 4)))
-        compose.waitUntil(5_000) { model.earlier.value.size == 2 }
+        compose.waitUntil(15_000) { model.earlier.value.size == 2 }
         compose.waitForIdle()
         scrollTo("letter.4")
         capture("weekly-letter-earlier")
@@ -171,12 +171,12 @@ class LettersAndIdeasUiTest {
         capture("ideas-form")
         network.add("POST", "ideas", 500, """{"message":"Server Error"}""")
         compose.onNodeWithTag("ideas.submit").tap()
-        compose.waitUntil(5_000) { model.form.value?.error?.fieldMessages?.isEmpty() == true }
+        compose.waitUntil(15_000) { model.form.value?.error?.fieldMessages?.isEmpty() == true }
         compose.onNodeWithTag("ideas.cancel").tap()
 
         scrollTo("idea.7")
         compose.onNodeWithTag("idea.7.vote").tap()
-        compose.waitUntil(5_000) { model.ideas.value.valueOrNull?.ideas?.first()?.voted == true }
+        compose.waitUntil(15_000) { model.ideas.value.valueOrNull?.ideas?.first()?.voted == true }
         compose.onNodeWithTag("idea.3.report").tap()
         assertTrue(opened(AccountRoute.Report("http://localhost/app/ideen/3")))
         scrollTo("idea.9")
@@ -187,18 +187,18 @@ class LettersAndIdeasUiTest {
         compose.onNodeWithTag("dialog.cancel").performClick()
         compose.onNodeWithTag("idea.8.delete").tap()
         compose.onNodeWithTag("dialog.confirm").performClick()
-        compose.waitUntil(5_000) { model.status.value == "Deine Idee ist gelöscht." }
+        compose.waitUntil(15_000) { model.status.value == "Deine Idee ist gelöscht." }
 
         scrollTo("ideas.sort")
         compose.onNodeWithTag("ideas.sort").performClick()
         compose.onNodeWithText("Neu").performClick()
-        compose.waitUntil(5_000) { network.transport.requests.any { it.request.url.query?.contains("sort=new") == true } }
+        compose.waitUntil(15_000) { network.transport.requests.any { it.request.url.query?.contains("sort=new") == true } }
         compose.onNodeWithTag("ideas.status").performClick()
         compose.onNodeWithText("In Arbeit").performClick()
-        compose.waitUntil(5_000) { network.transport.requests.any { it.request.url.query?.contains("status=in_progress") == true } }
+        compose.waitUntil(15_000) { network.transport.requests.any { it.request.url.query?.contains("status=in_progress") == true } }
         scrollTo("ideas.more")
         compose.onNodeWithTag("ideas.more").tap()
-        compose.waitUntil(5_000) { network.transport.requests.any { it.request.url.query?.contains("page=2") == true } }
+        compose.waitUntil(15_000) { network.transport.requests.any { it.request.url.query?.contains("page=2") == true } }
 
         val empty = StubbedNetwork(stub("GET", "ideas", ideasPageJson(1, 1)))
         val none = models.keep(IdeasViewModel(null, empty.repository))
