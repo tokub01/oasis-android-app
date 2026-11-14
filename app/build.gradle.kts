@@ -12,8 +12,10 @@ plugins {
 
 // Push through Firebase Cloud Messaging (project oasis-86acd) when app/google-services.json is there – locally copied,
 // in CI written from the GOOGLE_SERVICES_JSON_B64 secret, never committed. Without it the app builds without push.
-// The file names only de.velwebsolutions.mildcrowd, so the ".staging" variant goes without Firebase.
-if (file("google-services.json").exists()) {
+// The file names only de.velwebsolutions.mildcrowd, so the ".staging" variant goes without Firebase. A file that still
+// names another package (the one from before the rename) is skipped as well: the plugin would fail the build on it.
+val googleServices = file("google-services.json")
+if (googleServices.exists() && googleServices.readText().contains("\"de.velwebsolutions.mildcrowd\"")) {
     apply(plugin = "com.google.gms.google-services")
     tasks.matching { it.name.startsWith("process") && it.name.contains("Staging") && it.name.endsWith("GoogleServices") }
         .configureEach { enabled = false }
